@@ -58,3 +58,7 @@ input[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--embe
 .row-note{font-size:12px;font-weight:400;color:var(--faint);margin-top:3px}
 .radio-row{display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:14px;font-weight:500;cursor:pointer}
 .radio-row input{width:auto;margin-top:3px}
+
+.dash-table th{padding:13px 12px}
+.dash-table td{padding:14px 12px}
+.dash-table .row-action:first-child{margin-left:0}

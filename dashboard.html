@@ -22,7 +22,7 @@
   <div id="navAccount" style="display:flex;align-items:center;"></div>
 </div>
 
-<div style="max-width:1440px;margin:0 auto;padding:44px 64px;display:flex;flex-direction:column;gap:24px;">
+<div style="max-width:1440px;margin:0 auto;padding:44px 32px;display:flex;flex-direction:column;gap:24px;">
   <div style="display:flex;justify-content:space-between;align-items:center;">
     <div>
       <div id="orgName" style="font-size:13px;font-weight:700;color:var(--faint);">&nbsp;</div>
@@ -41,13 +41,13 @@
     <input id="textFilter" type="text" placeholder="Filter by title, req # or postID" aria-label="Filter by title, req number or postID" style="width:280px;" autocomplete="off">
   </div>
 
-  <div class="card" style="padding:0;overflow:hidden;">
-    <table>
+  <div class="card" style="padding:0;overflow-x:auto;">
+    <table class="dash-table">
       <thead>
         <tr>
-          <th>Title</th><th>Req #</th><th>postID</th><th>Status</th>
+          <th>Title</th><th>Req #</th><th>postID</th><th>Status</th><th>Actions</th>
           <th id="sortHead" class="sortable" tabindex="0" role="button" aria-label="Sort by posted date">Posted <span id="sortArrow">↓</span></th>
-          <th>Closes</th><th>Applicant cap</th><th>Comments</th><th></th>
+          <th>Closes</th><th>Applicant cap</th><th>Comments</th>
         </tr>
       </thead>
       <tbody id="rows"></tbody>

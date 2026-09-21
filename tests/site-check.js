@@ -15,6 +15,7 @@
 //   S13 styles.css is loaded before app.css on every page
 //   S14 the empty-search note says closed or expired postings appear only by postID, and search.js uses that note
 //   S15 the register form's window is 14 to 45 days (default 45), matches the backend range, and the extended tier is not offered
+//   S17 a table is never wrapped in an element that clips it (overflow:hidden): a too-wide table must scroll sideways, or its last column (the row actions once) silently disappears off the edge
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
@@ -158,6 +159,9 @@ export function checkSite(root) {
       if (!seed.endsWith("location-catalog-" + man.catalog_version + ".json")) add("S16", seed, "the seed file name must carry the catalog version");
     }
   } else add("S16", root, "the location picker files are missing");
+
+  // S17: no overflow:hidden on the element that directly wraps a <table> (it would cut off the columns that do not fit)
+  for (const f of html) if (/<[a-z]+\b[^>]*style="[^"]*overflow\s*:\s*hidden[^"]*"[^>]*>\s*<table\b/i.test(read(f))) add("S17", f, "a table is wrapped in an overflow:hidden element: a too-wide table would be clipped, not scrolled");
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");
   if (!fs.existsSync(vendor) || !fs.existsSync(rec)) add("S10", vendor, "vendored Auth client or its recorded hash is missing");

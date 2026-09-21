@@ -49,11 +49,11 @@ function row(p, now) {
     h("td", { style: "color:var(--muted);" }, reqCell(p)),
     h("td", { style: "color:var(--muted);font-family:'Space Grotesk',sans-serif;letter-spacing:.03em;white-space:nowrap;" }, groupCode(p.post_id)),
     h("td", {}, h("span", { class: "status " + chip.cls }, chip.text)),
+    h("td", { style: "white-space:nowrap;" }, actionCells(p, now)),          // right after the status: the actions must never be pushed off the edge of a narrow window
     h("td", { style: "color:var(--muted);" }, postedCell(p)),
     h("td", { style: "color:var(--muted);" }, closesCell(p), p.bump_used ? h("div", { class: "row-note" }, "extended " + p.bump_days + (p.bump_days === 1 ? " day" : " days")) : null),
     h("td", { style: "color:var(--muted);" }, capCell(p)),
-    h("td", { style: "color:var(--muted);white-space:nowrap;" }, "💬 " + p.comment_count),
-    h("td", { style: "white-space:nowrap;text-align:right;" }, actionCells(p, now)));
+    h("td", { style: "color:var(--muted);white-space:nowrap;" }, "💬 " + p.comment_count));
 }
 
 function render() {

@@ -72,6 +72,7 @@ control("the message stops carrying the note", "S14", edit("js/search-input.js",
 
 control("the form range drifts (floor 7)", "S15", edit("js/register-form.js", (s) => s.replace("MIN_WINDOW_DAYS = 14", "MIN_WINDOW_DAYS = 7")));
 control("the form allows more than 45", "S15", edit("js/register-form.js", (s) => s.replace("MAX_WINDOW_DAYS = 45", "MAX_WINDOW_DAYS = 60")));
+control("the dashboard table is wrapped in an element that clips it", "S17", edit("dashboard.html", (s) => s.replace('style="padding:0;overflow-x:auto;"', 'style="padding:0;overflow:hidden;"')));
 control("a free-text location input comes back", "S16", edit("register.html", (s) => s.replace('<div id="locpicker"', '<div><input id="loc" type="text"></div><div id="locpicker"')));
 control("the area cap drifts (4)", "S16", edit("js/location-rules.js", (s) => s.replace("areas: 3, states: 10", "areas: 4, states: 10")));
 control("the state cap drifts (12)", "S16", edit("js/location-rules.js", (s) => s.replace("states: 10 }", "states: 12 }")));
