@@ -1,0 +1,137 @@
+// unit.test.js - the pure logic of the site (formatting, disclosure wording, search-input rules, the register form). Run: node --test tests/
+import test from "node:test";
+import assert from "node:assert/strict";
+import { fmtDate, fmtStamp, groupCode, locationLine, initials, plural, waitText } from "../js/format.js";
+import { postingChips, aiFilteringChip, aiInterviewChip, statusChips, notOpenMessage, TOOLTIP_FILTERING, TOOLTIP_INTERVIEW } from "../js/chips.js";
+import { classifyQuery, checkCompany, normalizeCode } from "../js/search-input.js";
+import { validateForm, buildCreateBody, mapServerErrors } from "../js/register-form.js";
+
+test("dates read like the design (Sep 2), in UTC when asked", () => {
+  assert.equal(fmtDate("2026-09-02T12:00:00Z", "UTC"), "Sep 2");
+  assert.equal(fmtDate("2026-10-17T23:59:59Z", "UTC"), "Oct 17");
+  assert.equal(fmtDate("nope"), ""); assert.equal(fmtDate(null), "");
+  assert.equal(fmtStamp("2026-09-18T16:12:00Z", "UTC"), "Sep 18, 2026 · 4:12 PM");
+  assert.equal(fmtStamp("2026-09-18T00:05:00Z", "UTC"), "Sep 18, 2026 · 12:05 AM");
+});
+
+test("the employer's code is grouped, never invented", () => {
+  assert.equal(groupCode("D21M48YBZQBF"), "D21M-48YB-ZQBF");
+  assert.equal(groupCode("short"), "short");
+  assert.equal(groupCode(null), "");
+});
+
+test("location line: remote, places, neither", () => {
+  assert.equal(locationLine(true, []), "Remote");
+  assert.equal(locationLine(false, ["Tampa, FL"]), "Tampa, FL");
+  assert.equal(locationLine(true, ["Tampa, FL", " Austin "]), "Remote · Tampa, FL · Austin");
+  assert.equal(locationLine(false, []), "Location not stated");
+  assert.equal(locationLine(null, ["", "  "]), "Location not stated");
+});
+
+test("small helpers", () => {
+  assert.equal(initials("John Pirone"), "JP"); assert.equal(initials("cher"), "C"); assert.equal(initials(""), "?");
+  assert.equal(plural(1, "posting", "postings"), "1 posting"); assert.equal(plural(2, "posting", "postings"), "2 postings");
+  assert.equal(waitText(45), "45 seconds"); assert.equal(waitText(1), "1 second"); assert.equal(waitText(600), "10 minutes"); assert.equal(waitText(undefined), "1 second");
+});
+
+test("the two AI disclosures are independent, worded exactly as designed, and null is said plainly", () => {
+  assert.deepEqual(aiFilteringChip(true), { text: "AI-assisted filtering", tooltip: TOOLTIP_FILTERING });
+  assert.deepEqual(aiFilteringChip(false), { text: "No AI filtering", tooltip: TOOLTIP_FILTERING });
+  assert.equal(aiFilteringChip(null).text, "AI filtering not disclosed");
+  assert.deepEqual(aiInterviewChip(true), { text: "AI used for interviewing/other", tooltip: TOOLTIP_INTERVIEW });
+  assert.deepEqual(aiInterviewChip(false), { text: "No AI interview/other", tooltip: TOOLTIP_INTERVIEW });
+  assert.equal(aiInterviewChip(undefined).text, "AI interview/other not disclosed");
+  assert.match(TOOLTIP_FILTERING, /^Resume screening or keyword\/ATS-style matching used to prioritize applications before a human reviews them\.$/);
+  assert.match(TOOLTIP_INTERVIEW, /^Any AI that interacts with a candidate directly — an AI-conducted interview, a chatbot screening call, or similar\.$/);
+  assert.doesNotMatch(TOOLTIP_FILTERING + TOOLTIP_INTERVIEW, /reject/i);   // design brief 12: the tooltip describes the mechanism, never an outcome
+});
+
+const base = { company_name: "Meridian", title: "Senior Data Analyst", locations: ["Remote"], is_remote: true, posted_at: "2026-09-02T12:00:00Z", closes_at: "2026-10-17T12:00:00Z", applicant_cap: 250,
+  status: "live", closed_reason: null, ai_filtering: false, ai_interview_other: false, ai_disclosure_shown: false, third_party_recruiter: false, masked_code: "****-****-QBF1", posting_ref: "a".repeat(20), last_edited_at: null };
+
+test("a live posting's chips, in the designed order", () => {
+  const t = postingChips(base, "UTC").map((c) => c.text);
+  assert.deepEqual(t, ["Posted Sep 2", "Closes Oct 17", "No AI filtering", "No AI interview/other", "No recruiter", "Capped at 250 applicants"]);
+  assert.equal(postingChips(base, "UTC")[1].bold, true);
+});
+
+test("cap, recruiter and last-edited variants", () => {
+  const p = Object.assign({}, base, { applicant_cap: null, third_party_recruiter: true, ai_filtering: true, last_edited_at: "2026-09-20T09:00:00Z" });
+  const t = postingChips(p, "UTC").map((c) => c.text);
+  assert.ok(t.includes("No applicant cap set")); assert.ok(t.includes("Third-party recruiter involved")); assert.ok(t.includes("AI-assisted filtering")); assert.ok(t.includes("Edited Sep 20"));
+});
+
+test("status wording for every state a candidate can be shown", () => {
+  assert.deepEqual(statusChips(base, "UTC"), [{ text: "Closes Oct 17", bold: true }]);
+  assert.equal(statusChips(Object.assign({}, base, { status: "paused" }), "UTC")[0].text, "Paused");
+  assert.equal(statusChips(Object.assign({}, base, { status: "expired", closed_reason: "expired_no_action" }), "UTC")[0].text, "Expired · No action taken");
+  assert.equal(statusChips(Object.assign({}, base, { status: "closed", closed_reason: "filled" }), "UTC")[0].text, "Closed · Filled");
+  assert.equal(statusChips(Object.assign({}, base, { status: "closed", closed_reason: "withdrawn" }), "UTC")[0].text, "Closed · Withdrawn");
+  assert.match(notOpenMessage("closed", "filled"), /filled/); assert.match(notOpenMessage("closed", "withdrawn"), /withdrew/);
+  assert.match(notOpenMessage("expired", "expired_no_action"), /no action/); assert.match(notOpenMessage("paused", null), /paused/);
+});
+
+test("search company rule mirrors the backend (2+ letters/digits, 200 max)", () => {
+  assert.equal(checkCompany("A").ok, false); assert.equal(checkCompany("  ").ok, false); assert.equal(checkCompany("Ab").ok, true);
+  assert.equal(checkCompany("x".repeat(201)).ok, false); assert.equal(checkCompany("Meridian Health Systems").value, "Meridian Health Systems");
+});
+
+test("one box, two meanings: a code (with a digit or grouped) versus a title", () => {
+  assert.deepEqual(classifyQuery("Data Analyst"), { ok: true, kind: "phrase", value: "Data Analyst" });
+  assert.equal(classifyQuery("D21M-48YB-ZQBF").kind, "code");
+  assert.equal(classifyQuery("d21m 48yb zqbf").kind, "code");
+  assert.equal(classifyQuery("D21M48YBZQBF").kind, "code");
+  assert.equal(classifyQuery("XX63-M3Y3-W3JS").kind, "code");          // the shape a recruiter reads out
+  assert.equal(classifyQuery("ABCD-EFGH-JKMN").kind, "code");          // grouped, even with no digit
+  const w = classifyQuery("Receptionist");                             // twelve letters: a word first, a code only as a fallback
+  assert.equal(w.kind, "phrase"); assert.equal(w.alsoTryCode, true);
+  assert.equal(classifyQuery("Senior Receptionist").alsoTryCode, undefined);
+  assert.equal(classifyQuery("").ok, false); assert.equal(classifyQuery("  ").ok, false);
+  assert.equal(classifyQuery("ab").ok, false); assert.equal(classifyQuery("a b").ok, false);
+  assert.equal(classifyQuery("x".repeat(81)).ok, false);
+  assert.equal(classifyQuery("C++").ok, false);                        // fewer than 3 letters/digits
+  assert.equal(classifyQuery("C++ Developer").kind, "phrase");
+});
+
+test("code normalisation matches the database (I,L -> 1; O -> 0; spaces and hyphens ignored)", () => {
+  assert.equal(normalizeCode("xx63-m3y3 w3js"), "XX63M3Y3W3JS");
+  assert.equal(normalizeCode("Il0o"), "1100");
+});
+
+const good = { title: "Senior Data Analyst", req: "4471", company: "Acme Corp", loc: "Tampa, FL", remote: false, appcap: "250", closeout: "Closes when the role is filled", desc: "About the job...", aiFilter: false, aiInterview: true, recruiter: false };
+
+test("register form: a complete form has no problems and builds exactly the body the backend wants", () => {
+  assert.deepEqual(validateForm(good), {});
+  const b = buildCreateBody(good);
+  assert.deepEqual(b, { req_number: "4471", title: "Senior Data Analyst", company_name: "Acme Corp", tier: "standard", initial_closeout_condition: "Closes when the role is filled", description_text: "About the job...",
+    is_remote: false, locations: ["Tampa, FL"], ai_filtering: false, ai_interview_other: true, third_party_recruiter: false, applicant_cap: 250 });
+  assert.equal("poster_id" in b || "organization_id" in b || "status" in b, false);      // identity and status are never the page's to send
+});
+
+test("both AI disclosures are ALWAYS sent as real booleans, off included (never omitted, never null)", () => {
+  for (const [a, i] of [[false, false], [true, false], [false, true], [true, true]]) {
+    const b = buildCreateBody(Object.assign({}, good, { aiFilter: a, aiInterview: i }));
+    assert.strictEqual(b.ai_filtering, a); assert.strictEqual(b.ai_interview_other, i);
+  }
+  const b = buildCreateBody(Object.assign({}, good, { aiFilter: undefined, aiInterview: undefined }));
+  assert.strictEqual(b.ai_filtering, false); assert.strictEqual(b.ai_interview_other, false);
+});
+
+test("register form: what is missing is named; the cap, remote and location rules", () => {
+  const e = validateForm({ title: " ", req: "", company: "", loc: "", remote: false, appcap: "", closeout: "", desc: "" });
+  assert.deepEqual(Object.keys(e).sort(), ["closeout", "company", "desc", "jtitle", "loc", "req"]);
+  assert.equal(validateForm(Object.assign({}, good, { loc: "", remote: true })).loc, undefined);
+  assert.equal(buildCreateBody(Object.assign({}, good, { loc: "", remote: true })).is_remote, true);
+  assert.deepEqual(buildCreateBody(Object.assign({}, good, { loc: "", remote: true })).locations, []);
+  for (const bad of ["0", "-3", "12.5", "abc", "99999999999"]) assert.ok(validateForm(Object.assign({}, good, { appcap: bad })).appcap, bad);
+  assert.equal(validateForm(Object.assign({}, good, { appcap: "" })).appcap, undefined);
+  assert.equal("applicant_cap" in buildCreateBody(Object.assign({}, good, { appcap: "" })), false);
+  assert.equal(buildCreateBody(Object.assign({}, good, { appcap: " 1 " })).applicant_cap, 1);
+});
+
+test("a server refusal lands under the right input", () => {
+  const m = mapServerErrors({ code: "request_refused", message: "x", field: "req_number", errors: [{ field: "req_number", message: "req_number is required" }, { field: "title", message: "title too long" }, { field: "tier", message: "tier bad" }] });
+  assert.deepEqual(m.byField, { req: "req_number is required", jtitle: "title too long" }); assert.equal(m.general, "tier bad");
+  assert.deepEqual(mapServerErrors({ message: "Something", errors: [] }), { byField: {}, general: "Something" });
+  assert.deepEqual(mapServerErrors(null), { byField: {}, general: null });
+});

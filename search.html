@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src https://tpmvkjuhbbwftqoodzcn.supabase.co; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta name="referrer" content="same-origin">
+<meta name="robots" content="noindex, nofollow">
+<title>FightGhostJobs — Search</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="nav">
+  <a class="nav-logo" href="index.html"><span class="nav-dot"></span><span class="nav-wordmark">FightGhostJobs</span></a>
+  <div class="nav-links">
+    <a href="index.html#candidates">For Candidates</a>
+    <a href="index.html#employers">For Employers</a>
+    <a href="search.html" class="active">Search Postings</a>
+  </div>
+  <div id="navAccount" style="display:flex;align-items:center;"></div>
+</div>
+
+<div style="max-width:1440px;margin:0 auto;">
+  <div style="padding:56px 64px 32px 64px;">
+    <h1 style="font-size:34px;font-weight:700;letter-spacing:-.01em;">Look up a posting</h1>
+    <p style="font-size:15px;color:var(--muted);margin:8px 0 28px 0;">Search by company plus a title or req number. We never let you browse the full registry.</p>
+    <form id="searchForm" novalidate style="display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;max-width:880px;">
+      <div style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
+        <label for="company" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;">Company</label>
+        <input id="company" type="text" maxlength="200" autocomplete="off" placeholder="e.g. Meridian Health Systems" style="border:none;padding:4px 0;">
+      </div>
+      <div style="width:1px;background:var(--line);"></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
+        <label for="titleq" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;">Title or req code</label>
+        <input id="titleq" type="text" maxlength="80" autocomplete="off" placeholder="e.g. Data Analyst, or XXXX-XXXX-XXXX" style="border:none;padding:4px 0;">
+      </div>
+      <button type="submit" id="searchBtn" class="btn btn-dark">Search</button>
+    </form>
+    <div id="formError" class="field-error" hidden style="max-width:880px;margin-top:10px;font-size:13px;"></div>
+  </div>
+
+  <div id="signinWrap" hidden style="padding:0 64px 32px 64px;">
+    <div class="card signin-card">
+      <h2>Verify your email to search</h2>
+      <p>One quick step: we email you a link, and that keeps you verified for 90 days. No password, no account form, no cost. Your email is only used to confirm you are a person and is never shown to anyone.</p>
+      <form id="signinForm" novalidate>
+        <div class="signin-row">
+          <div><label for="candEmail">Your email</label><input id="candEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
+          <button type="submit" id="candSend" class="btn btn-dark">Send link</button>
+        </div>
+        <div id="candEmailError" class="field-error" hidden></div>
+      </form>
+      <div id="candSent" hidden></div>
+    </div>
+  </div>
+
+  <div id="roleNotice" hidden style="padding:0 64px 32px 64px;max-width:944px;"></div>
+
+  <div style="padding:0 64px 64px 64px;display:flex;flex-direction:column;gap:20px;max-width:880px;">
+    <div id="resultCount" class="result-count" hidden></div>
+    <div id="results" style="display:flex;flex-direction:column;gap:20px;"></div>
+  </div>
+</div>
+
+<!-- Shared modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div id="modalCompany" style="font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;"></div>
+        <div id="modalTitle" style="font-size:20px;font-weight:700;margin-top:4px;"></div>
+      </div>
+      <button type="button" id="modalClose" class="btn btn-ghost btn-sm" style="padding:6px 10px;" aria-label="Close">✕</button>
+    </div>
+    <p id="modalIntro" style="font-size:14px;color:var(--muted);line-height:1.6;margin:16px 0 0 0;"></p>
+    <div id="modalLinks"></div>
+    <div id="modalEmpty" class="empty-note" hidden></div>
+  </div>
+</div>
+
+<script type="module" src="js/pages/search.js"></script>
+</body>
+</html>

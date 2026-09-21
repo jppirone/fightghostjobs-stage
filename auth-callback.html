@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src https://tpmvkjuhbbwftqoodzcn.supabase.co; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta name="referrer" content="same-origin">
+<meta name="robots" content="noindex, nofollow">
+<title>FightGhostJobs — Signing you in</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="nav">
+  <a class="nav-logo" href="index.html"><span class="nav-dot"></span><span class="nav-wordmark">FightGhostJobs</span></a>
+  <div class="nav-links">
+    <a href="index.html#candidates">For Candidates</a>
+    <a href="index.html#employers">For Employers</a>
+    <a href="search.html">Search Postings</a>
+  </div>
+  <div id="navAccount" style="display:flex;align-items:center;"></div>
+</div>
+
+<div style="max-width:640px;margin:0 auto;padding:96px 24px;">
+  <div class="card" id="panel">
+    <h1 style="font-size:26px;font-weight:700;" id="title">Signing you in…</h1>
+    <p id="message" style="font-size:15px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;">One moment.</p>
+    <div id="actions" style="display:flex;gap:12px;margin-top:22px;flex-wrap:wrap;"></div>
+  </div>
+</div>
+
+<script type="module" src="js/pages/auth-callback.js"></script>
+</body>
+</html>

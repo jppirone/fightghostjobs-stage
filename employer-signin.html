@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src https://tpmvkjuhbbwftqoodzcn.supabase.co; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta name="referrer" content="same-origin">
+<meta name="robots" content="noindex, nofollow">
+<title>FightGhostJobs — Employer sign-in</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="nav">
+  <a class="nav-logo" href="index.html"><span class="nav-dot"></span><span class="nav-wordmark">FightGhostJobs</span></a>
+  <div class="nav-links">
+    <a href="index.html#candidates">For Candidates</a>
+    <a href="index.html#employers">For Employers</a>
+    <a href="search.html">Search Postings</a>
+  </div>
+  <div id="navAccount" style="display:flex;align-items:center;"></div>
+</div>
+
+<div style="max-width:1440px;margin:0 auto;display:flex;gap:64px;padding:72px 64px;align-items:flex-start;">
+  <div style="flex:1;display:flex;flex-direction:column;gap:20px;max-width:560px;">
+    <div class="pill" style="background:#FCE7DE;color:var(--ember-dark);width:fit-content;">Employer sign-in</div>
+    <h1 style="font-size:44px;line-height:1.08;font-weight:700;letter-spacing:-.02em;">Register and manage your postings</h1>
+    <p style="font-size:17px;line-height:1.6;color:var(--muted);margin:0;">FightGhostJobs is invitation-only for employers right now. Pilot organizations are set up by our team, and each person at the organization is then added by their organization's admin. There is no password: we email you a one-time link.</p>
+    <p style="font-size:14px;line-height:1.6;color:var(--faint);margin:0;">Not invited yet? Write to <a href="mailto:sales@fightghostjobs.com">sales@fightghostjobs.com</a>.</p>
+  </div>
+  <div class="card signin-card" style="flex:1;">
+    <div id="banner" hidden style="margin-bottom:18px;"></div>
+    <div id="already" hidden></div>
+    <form id="form" novalidate>
+      <h2>Email me a sign-in link</h2>
+      <p>Use your work email address. The link works once and expires in 10 minutes.</p>
+      <label for="email">Work email</label>
+      <input id="email" type="email" autocomplete="email" placeholder="you@yourcompany.com">
+      <div id="emailError" class="field-error" hidden></div>
+      <div style="margin-top:20px;"><button id="send" type="submit" class="btn btn-dark" style="width:100%;justify-content:center;">Send sign-in link</button></div>
+    </form>
+    <div id="sent" hidden></div>
+  </div>
+</div>
+
+<script type="module" src="js/pages/employer-signin.js"></script>
+</body>
+</html>

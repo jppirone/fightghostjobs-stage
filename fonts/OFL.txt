@@ -1,0 +1,4 @@
+Space Grotesk (c) The Space Grotesk Project Authors (github.com/floriankarsten/space-grotesk)
+Work Sans (c) The Work Sans Project Authors (github.com/weiweihuanghuang/Work-Sans)
+Both are licensed under the SIL Open Font License, Version 1.1 (https://openfontlicense.org). The font files in this folder are the Latin, Latin-extended and Vietnamese
+subsets served by Google Fonts (fonts.gstatic.com), stored here so no visitor's browser contacts a third party.

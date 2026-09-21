@@ -1,0 +1,2 @@
+# Store every file byte for byte as it is on disk (no line-ending conversion): the vendored Auth client is checked against a recorded SHA-256, and the fonts are binary.
+* -text
