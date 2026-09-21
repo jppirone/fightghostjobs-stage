@@ -49,6 +49,7 @@ export async function mountAccount(container, { cta = true } = {}) {
     const name = r.ok ? r.data.poster.full_name : "Employer";
     const org = r.ok ? r.data.organization.name : "";
     container.append(
+      h("a", { class: "btn btn-outline btn-sm", href: "dashboard.html", style: "margin-right:14px;" }, "My postings"),
       h("span", { class: "nav-account" }, h("span", { class: "avatar" }, initials(name)), name + (org ? " · " + org : "")),
       h("button", { type: "button", class: "btn btn-ghost btn-sm", style: "margin-left:14px;", onclick: async () => { await signOut(); forgetLocalState(); go("index.html"); } }, "Sign out"),
     );

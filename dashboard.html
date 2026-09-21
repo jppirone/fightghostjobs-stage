@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src https://tpmvkjuhbbwftqoodzcn.supabase.co; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta name="referrer" content="same-origin">
+<meta name="robots" content="noindex, nofollow">
+<title>FightGhostJobs — My Postings</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="nav">
+  <a class="nav-logo" href="index.html"><span class="nav-dot"></span><span class="nav-wordmark">FightGhostJobs</span></a>
+  <div class="nav-links">
+    <a href="index.html#candidates">For Candidates</a>
+    <a href="index.html#employers">For Employers</a>
+    <a href="search.html">Search Postings</a>
+  </div>
+  <div id="navAccount" style="display:flex;align-items:center;"></div>
+</div>
+
+<div style="max-width:1440px;margin:0 auto;padding:44px 64px;display:flex;flex-direction:column;gap:24px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <div id="orgName" style="font-size:13px;font-weight:700;color:var(--faint);">&nbsp;</div>
+      <h1 style="font-size:28px;font-weight:700;margin-top:4px;">My postings</h1>
+      <p style="font-size:14px;color:var(--muted);margin:4px 0 0 0;">Everything you've personally registered.</p>
+    </div>
+    <a class="btn btn-primary btn-sm" href="register.html">+ New posting</a>
+  </div>
+
+  <div id="pageAlert" hidden></div>
+
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <div id="filters" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+    <div style="flex:1;"></div>
+    <input id="textFilter" type="text" placeholder="Filter by title, req # or postID" aria-label="Filter by title, req number or postID" style="width:280px;" autocomplete="off">
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th><th>Req #</th><th>postID</th><th>Status</th>
+          <th id="sortHead" class="sortable" tabindex="0" role="button" aria-label="Sort by posted date">Posted <span id="sortArrow">↓</span></th>
+          <th>Closes</th><th>Applicant cap</th><th>Comments</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="tableNote" class="empty-note" style="margin:0;border-radius:0;" hidden></div>
+  </div>
+  <div id="loadNote" class="field-hint" role="status"></div>
+</div>
+
+<script type="module" src="js/pages/dashboard.js"></script>
+</body>
+</html>

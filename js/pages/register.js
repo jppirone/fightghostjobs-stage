@@ -106,6 +106,7 @@ function showResult(p, kind, problem) {
     h("p", { style: "font-size:13px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;" }, "Candidates find this posting by your company name plus either the job title or this postID. They only ever see the last four characters of it.")));
   const actions = h("div", { style: "margin-top:22px;display:flex;gap:12px;flex-wrap:wrap;" });
   if (kind === "live") actions.append(h("a", { class: "btn btn-dark btn-sm", href: "search.html" }, "Look it up as a candidate →"));
+  actions.append(h("a", { class: "btn btn-outline btn-sm", href: "dashboard.html" }, "View my postings"));
   actions.append(h("button", { type: "button", class: "btn btn-outline btn-sm", onclick: registerAnother }, "Register another posting"));
   result.append(actions);
   result.scrollIntoView({ behavior: "smooth", block: "nearest" });

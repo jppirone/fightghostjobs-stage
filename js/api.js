@@ -18,6 +18,8 @@ const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 export const AUTH_FAILURE_CODES = ["unauthorized", "reverification_required", "no_candidate_identity", "not_a_candidate_session", "invalid_verification_time", "no_session"];
 export const isAuthFailure = (err) => !!err && AUTH_FAILURE_CODES.includes(err.code);
 
+const POSTING_STATUSES = ["draft", "live", "paused", "expired", "closed", "flagged"];
+
 // ---- response shapes (exactly what the pages read)
 export const shapes = {
   posterSession: (d) => isObj(d) && isObj(d.poster) && UUID_RE.test(d.poster.poster_id) && isStr(d.poster.full_name) && isBool(d.poster.is_org_admin) && isObj(d.organization) && isStr(d.organization.name) && isStr(d.verified_at),
@@ -30,6 +32,12 @@ export const shapes = {
     && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && l.position >= 1 && l.position <= 10 && isNullable(l.label, isStr)),
   linkIssue: (d) => isObj(d) && isStr(d.expires_at) && Array.isArray(d.links) && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && isNullable(l.label, isStr) && isStr(l.go_url) && /^https:\/\//.test(l.go_url)),
   comments: (d) => isObj(d) && Number.isInteger(d.total) && Array.isArray(d.comments) && d.comments.every((c) => isObj(c) && isStr(c.body) && isStr(c.created_at)) && isNullable(d.next_offset, Number.isInteger),
+  // list-my-postings (the employer's own list): every field the dashboard reads, checked; anything else is ignored
+  myPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && /^[0-9A-Z]{12}$/.test(p.post_id) && POSTING_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
+    && isNullable(p.closed_reason, isStr) && isBool(p.is_remote) && Array.isArray(p.locations) && p.locations.every(isStr) && Array.isArray(p.location_ids) && p.location_ids.every(isStr) && isBool(p.locations_attested)
+    && Number.isInteger(p.window_days) && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isNullable(p.applicant_cap, Number.isInteger)
+    && isBool(p.bump_used) && isNullable(p.bump_days, Number.isInteger) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr) && Number.isInteger(p.comment_count) && p.comment_count >= 0,
+  myPostings: (d) => isObj(d) && Number.isInteger(d.total) && d.total >= 0 && Array.isArray(d.postings) && d.postings.length <= 50 && d.postings.every(shapes.myPosting) && isNullable(d.next_offset, Number.isInteger),
   comment: (d) => isObj(d) && isObj(d.comment) && isStr(d.comment.body) && isStr(d.comment.created_at),
 };
 
@@ -74,6 +82,7 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     posterLoginIntent: (email) => call("poster-login-intent", { email }, { auth: "none" }),
     posterSession: () => call("poster-session", {}, { validate: shapes.posterSession }),
     createPosting: async (fields) => unwrap(await call("create-posting", fields, { validate: postingAnswer })),
+    listMyPostings: (offset) => call("list-my-postings", offset ? { offset } : {}, { validate: shapes.myPostings }),
     publishPosting: async (postingId) => unwrap(await call("publish-posting", { posting_id: postingId }, { validate: postingAnswer })),
     // ---- candidate side
     candidateSession: () => call("candidate-session", {}),

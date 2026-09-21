@@ -115,6 +115,22 @@ test("create / publish answers are checked: a row without a proper public code o
   }
 });
 
+const mine = { id: uuid, title: "Analyst", req_number: null, post_id: "D21M48YBZQBF", status: "live", closed_reason: null, stored_status: "live", is_remote: false, locations: ["Austin, TX"], location_ids: ["gn:4671654"], locations_attested: false, window_days: 45,
+  posted_at: "2026-09-02T12:00:00.000Z", expiration_date: "2026-10-17T12:00:00.000Z", publish_by: null, applicant_cap: null, bump_used: false, bump_days: null, created_at: "2026-09-02T11:59:00.000Z", last_edited_at: null, comment_count: 0 };
+test("list-my-postings: sends only the offset (never an identity), checks every row, and fails closed", async () => {
+  let sent = null;
+  const ok = await mk((u, i) => { sent = { u, body: JSON.parse(i.body) }; return { status: 200, body: { total: 1, postings: [mine], next_offset: null } }; }).api.listMyPostings();
+  assert.equal(ok.ok, true); assert.equal(sent.u.endsWith("/functions/v1/list-my-postings"), true); assert.deepEqual(sent.body, {});
+  await mk((u, i) => { sent = JSON.parse(i.body); return { status: 200, body: { total: 60, postings: [mine], next_offset: 50 } }; }).api.listMyPostings(50); assert.deepEqual(sent, { offset: 50 });
+  const draft = Object.assign({}, mine, { status: "draft", stored_status: "draft", posted_at: null, expiration_date: null, publish_by: "2026-10-01T00:00:00.000Z", req_number: "R-9" });
+  assert.equal((await mk(() => ({ status: 200, body: { total: 1, postings: [draft], next_offset: null } })).api.listMyPostings()).ok, true);
+  for (const bad of [Object.assign({}, mine, { post_id: "short" }), Object.assign({}, mine, { status: "weird" }), Object.assign({}, mine, { comment_count: -1 }), Object.assign({}, mine, { locations: "Austin" }), Object.assign({}, mine, { window_days: "45" }), Object.assign({}, mine, { id: "nope" }), {}]) {
+    const r = await mk(() => ({ status: 200, body: { total: 1, postings: [bad], next_offset: null } })).api.listMyPostings(); assert.equal(r.ok, false); assert.equal(r.error.code, "bad_response");
+  }
+  for (const body of [{ total: 1, postings: "x", next_offset: null }, { total: "1", postings: [], next_offset: null }, { total: 1, postings: [mine] }, null]) assert.equal((await mk(() => ({ status: 200, body })).api.listMyPostings()).ok, false);
+  assert.equal((await mk(() => ({ status: 401, body: { error: "unauthorized", code: "unauthorized" } })).api.listMyPostings()).error.code, "unauthorized");
+});
+
 test("wording for failures never shows raw server text for 5xx", () => {
   assert.doesNotMatch(describeError({ code: "server_error", message: "SQL exploded at line 9" }), /SQL/);
   assert.match(describeError({ code: "reverification_required" }), /verify your email again/i);

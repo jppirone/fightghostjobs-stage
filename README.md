@@ -10,6 +10,7 @@ Plain HTML, CSS and ES modules. **No build step, no framework, no CDN**: what is
 | Page | Who | What it does |
 |---|---|---|
 | `index.html` | everyone | landing page |
+| `dashboard.html` | signed-in employers | "My postings": the postings you own (drafts included), status, dates, postID, req number, comment count; read-only in this first slice |
 | `search.html` | verified candidates | company + job title (or postID) lookup, posting details, destination links; sign-in by emailed link |
 | `employer-signin.html` | employers | "invitation only" copy and the emailed sign-in link request (roster-gated on the server) |
 | `register.html` | employers (signed in) | register a posting: create, then publish (standard tier) |
