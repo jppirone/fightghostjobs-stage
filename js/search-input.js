@@ -16,9 +16,13 @@ const clip = (s, n) => { const t = String(s == null ? "" : s).replace(/\s+/g, " 
 
 // kind: "phrase" | "code"  ->  No postings found for "Acme Inc" + "Senior Analyst". <note>
 export function noMatchMessage(company, query, kind) {
+  if (kind === "req") return "No postings found for \"" + clip(company, 80) + "\" with that req number. " + NO_MATCH_NOTE_REQ;
   const what = kind === "code" ? "code \"" + clip(query, 40) + "\"" : "\"" + clip(query, 80) + "\"";
   return "No postings found for \"" + clip(company, 80) + "\" + " + what + ". " + NO_MATCH_NOTE;
 }
+
+// The wording when a req-number lookup finds nothing: the req is never echoed (it was typed into a masked box).
+export const NO_MATCH_NOTE_REQ = "Check the company name exactly as the employer registered it, and the req number exactly as printed in the job ad. A posting appears here only if a real employer has registered it with FightGhostJobs, so a missing posting is itself worth knowing.";
 
 export function normalizeCode(text) {
   return String(text).toUpperCase().replace(/[ -]+/g, "").replace(/[IL]/g, "1").replace(/O/g, "0");
@@ -49,4 +53,23 @@ export function classifyQuery(text) {
   if (alnumCount(t.replace(/\s+/g, "")) < 3) return { ok: false, message: "Enter at least 3 letters or digits for the title (or a full postID)." };
   if (t.length > 80) return { ok: false, message: "That title is too long (80 characters at most)." };
   return { ok: true, kind: "phrase", value: t };
+}
+
+// ---- the req number box (masked as it is typed). The backend accepts { company, req }: at most 100 characters, no control characters, and at least one letter or digit.
+const hasControl = (s) => Array.from(String(s)).some((ch) => { const c = ch.codePointAt(0); return c < 32 || c === 127; });
+export function checkReq(text) {
+  const t = String(text || "").trim();
+  if (alnumCount(t) < 1) return { ok: false, message: "Enter the req number from the job ad." };
+  if (t.length > 100 || hasControl(t)) return { ok: false, message: "That req number is not valid (100 characters at most)." };
+  return { ok: true, value: t };
+}
+
+// Two boxes, exactly one used: "Title or postID" or "Req number".  -> { ok:false, message, focus:"title"|"req" } | { ok:true, kind:"phrase"|"code"|"req", value, alsoTryCode? }
+export function resolveSearch(titleText, reqText) {
+  const hasTitle = String(titleText || "").trim() !== "", hasReq = String(reqText || "").trim() !== "";
+  if (hasTitle && hasReq) return { ok: false, message: "Search by a title or postID, or by a req number, not both.", focus: "req" };
+  if (!hasTitle && !hasReq) return { ok: false, message: "Enter a job title, a postID or a req number.", focus: "title" };
+  if (hasReq) { const r = checkReq(reqText); return r.ok ? { ok: true, kind: "req", value: r.value } : { ok: false, message: r.message, focus: "req" }; }
+  const q = classifyQuery(titleText);
+  return q.ok ? q : Object.assign({ focus: "title" }, q);
 }

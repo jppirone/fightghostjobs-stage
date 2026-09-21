@@ -35,7 +35,7 @@
     <form id="form" class="card" style="display:flex;flex-direction:column;gap:22px;" novalidate>
       <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;">
         <div><label for="jtitle">Job title</label><input id="jtitle" type="text" maxlength="200" autocomplete="off"><div class="field-error" data-error-for="jtitle" hidden></div></div>
-        <div><label for="req">Req number (optional)</label><input id="req" type="text" maxlength="100" autocomplete="off"><div class="field-error" data-error-for="req" hidden></div><div class="field-hint">Your own reference, such as the number in your ATS. Not shown to candidates.</div></div>
+        <div><label for="req">Req number</label><input id="req" type="text" maxlength="100" autocomplete="off"><div class="field-error" data-error-for="req" hidden></div><div class="field-hint">Required. Your own reference, such as your ATS number. Once the posting is live, candidates can find it by company name plus this number. They see it masked (for example FGJ****45), and these lookups are rate-limited. You always see the full number in My postings.</div></div>
         <div><label for="company">Company</label><input id="company" type="text" maxlength="200" autocomplete="off"><div class="field-error" data-error-for="company" hidden></div></div>
         <div><label for="appcap">Applicant cap (optional)</label><input id="appcap" type="text" inputmode="numeric" autocomplete="off"><div class="field-error" data-error-for="appcap" hidden></div></div>
         <div style="grid-column:1/-1;"><label class="check-row" for="remote"><input id="remote" type="checkbox"> Remote role</label></div>

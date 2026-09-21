@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { fmtDate, fmtStamp, fmtDateTz, fmtClose, tzLabel, groupCode, locationLine, initials, plural, waitText } from "../js/format.js";
 import { postingChips, aiFilteringChip, aiInterviewChip, statusChips, notOpenMessage, TOOLTIP_FILTERING, TOOLTIP_INTERVIEW } from "../js/chips.js";
 import { classifyQuery, checkCompany, normalizeCode, noMatchMessage, NO_MATCH_NOTE } from "../js/search-input.js";
+import { checkReq, resolveSearch, noMatchMessage as noMatchMsg, NO_MATCH_NOTE_REQ } from "../js/search-input.js";
 import { validateForm, buildCreateBody, mapServerErrors, MIN_WINDOW_DAYS, MAX_WINDOW_DAYS } from "../js/register-form.js";
 
 test("dates read like the design (Sep 2), in UTC when asked", () => {
@@ -58,7 +59,7 @@ test("the two AI disclosures are independent, worded exactly as designed, and nu
 });
 
 const base = { company_name: "Meridian", title: "Senior Data Analyst", locations: ["Remote"], is_remote: true, posted_at: "2026-09-02T12:00:00Z", closes_at: "2026-10-17T12:00:00Z", applicant_cap: 250,
-  status: "live", closed_reason: null, ai_filtering: false, ai_interview_other: false, ai_disclosure_shown: false, third_party_recruiter: false, masked_code: "****-****-QBF1", posting_ref: "a".repeat(20), last_edited_at: null };
+  status: "live", closed_reason: null, ai_filtering: false, ai_interview_other: false, ai_disclosure_shown: false, third_party_recruiter: false, masked_code: "****-****-QBF1", masked_req: "R****0", posting_ref: "a".repeat(20), last_edited_at: null };
 
 test("a live posting's chips, in the designed order", () => {
   const t = postingChips(base, "UTC").map((c) => c.text);
@@ -143,7 +144,7 @@ test("both AI disclosures are ALWAYS sent as real booleans, off included (never 
 
 test("register form: what is missing is named; the cap, remote and location rules", () => {
   const e = validateForm({ title: " ", req: "", company: "", locEntries: [], remote: false, appcap: "", closeout: "", desc: "" });
-  assert.deepEqual(Object.keys(e).sort(), ["closeout", "company", "desc", "jtitle", "locpicker"]);        // the req number is optional: not among the missing
+  assert.deepEqual(Object.keys(e).sort(), ["closeout", "company", "desc", "jtitle", "locpicker", "req"]);
   assert.equal(validateForm(Object.assign({}, good, { locEntries: [], remote: true })).locpicker, undefined);
   assert.equal(buildCreateBody(Object.assign({}, good, { locEntries: [], remote: true })).is_remote, true);
   assert.equal("location_ids" in buildCreateBody(Object.assign({}, good, { locEntries: [], remote: true })), false);
@@ -154,13 +155,11 @@ test("register form: what is missing is named; the cap, remote and location rule
   assert.equal(buildCreateBody(Object.assign({}, good, { appcap: " 1 " })).applicant_cap, 1);
 });
 
-test("the req number is optional: blank is fine and is not sent; a value is trimmed and sent", () => {
-  for (const blank of ["", "   ", undefined, null]) {
-    const v = Object.assign({}, good, { req: blank });
-    assert.equal(validateForm(v).req, undefined, JSON.stringify(blank));
-    assert.equal("req_number" in buildCreateBody(v), false, JSON.stringify(blank));
-  }
+test("the req number is required: blank is refused under its own input; a value is trimmed and always sent", () => {
+  for (const blank of ["", "   ", undefined, null]) assert.ok(validateForm(Object.assign({}, good, { req: blank })).req, JSON.stringify(blank));
+  assert.equal(validateForm(good).req, undefined);
   assert.equal(buildCreateBody(Object.assign({}, good, { req: "  4471-A " })).req_number, "4471-A");
+  assert.equal(buildCreateBody(good).req_number, "4471");
 });
 
 test("the window: 14 to 45 days, empty means the default, anything else is named under its input", () => {
@@ -179,4 +178,32 @@ test("a server refusal lands under the right input", () => {
   assert.deepEqual(m.byField, { req: "req_number is required", jtitle: "title too long" }); assert.equal(m.general, "tier bad");
   assert.deepEqual(mapServerErrors({ message: "Something", errors: [] }), { byField: {}, general: "Something" });
   assert.deepEqual(mapServerErrors(null), { byField: {}, general: null });
+});
+
+// ---- the req number box on the search page
+test("checkReq: at least one letter or digit, at most 100 characters, no control characters; the value is trimmed", () => {
+  assert.deepEqual(checkReq("  R-2026/0451 "), { ok: true, value: "R-2026/0451" });
+  assert.equal(checkReq("7").ok, true);
+  for (const bad of ["", "   ", "---", "!!", null, undefined]) assert.equal(checkReq(bad).ok, false, String(bad));
+  assert.equal(checkReq("x".repeat(100)).ok, true);
+  assert.equal(checkReq("x".repeat(101)).ok, false);
+  assert.equal(checkReq("R" + String.fromCharCode(10) + "100").ok, false);
+});
+
+test("resolveSearch: exactly one of the two boxes; each keeps its own rules; the focus goes to the box that needs fixing", () => {
+  assert.equal(resolveSearch("Data Analyst", "").kind, "phrase");
+  assert.equal(resolveSearch("XXXX-XXXX-XXXX".replace(/X/g, "7"), "").kind, "code");
+  assert.deepEqual(resolveSearch("", " FGJ-1234 "), { ok: true, kind: "req", value: "FGJ-1234" });
+  assert.deepEqual(resolveSearch("", "").focus, "title");
+  assert.equal(resolveSearch("", "").ok, false);
+  const both = resolveSearch("Analyst", "R-1"); assert.equal(both.ok, false); assert.equal(both.focus, "req");
+  assert.equal(resolveSearch("", "---").focus, "req");
+  assert.equal(resolveSearch("ab", "").focus, "title");                                  // a too-short title is still the title box's problem
+});
+
+test("a req lookup that finds nothing never echoes the req (it was typed into a masked box) and tells the person what to check", () => {
+  const m = noMatchMsg("Acme Inc", "SECRET-REQ-991", "req");
+  assert.ok(!m.includes("SECRET-REQ-991"));
+  assert.ok(m.includes("Acme Inc") && m.endsWith(NO_MATCH_NOTE_REQ));
+  assert.match(noMatchMsg("Acme", "Analyst", "phrase"), /"Analyst"/);                    // the other modes still echo what was searched
 });

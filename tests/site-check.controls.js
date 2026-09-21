@@ -66,13 +66,17 @@ control("app.css loaded before styles.css", "S13", edit("register.html", (s) => 
 control("the closed-or-expired sentence removed from the note", "S14", edit("js/search-input.js", (s) => s.replace(" Closed or expired postings appear only when you search by postID.", "")));
 control("the sentence reworded", "S14", edit("js/search-input.js", (s) => s.replace("appear only when you search by postID.", "may appear if you search by postID.")));
 control("search.js goes back to its own hand-written message", "S14", edit("js/pages/search.js", (s) => s.replace("noMatchMessage(searched.company, searched.query, searched.kind))", "\"No postings found. Check the name.\")")));
-control("search.js no longer imports the message builder", "S14", edit("js/pages/search.js", (s) => s.replace("classifyQuery, noMatchMessage }", "classifyQuery }")));
-control("the message stops echoing what was searched", "S14", edit("js/search-input.js", (s) => s.replace("return \"No postings found for", "return \"Nothing for")));
+control("search.js no longer imports the message builder", "S14", edit("js/pages/search.js", (s) => s.replace("resolveSearch, noMatchMessage }", "resolveSearch }")));
+control("the message stops echoing what was searched", "S14", edit("js/search-input.js", (s) => s.split("return \"No postings found for").join("return \"Nothing for")));
 control("the message stops carrying the note", "S14", edit("js/search-input.js", (s) => s.replace("+ what + \". \" + NO_MATCH_NOTE;", "+ what + \".\";")));
 
 control("the form range drifts (floor 7)", "S15", edit("js/register-form.js", (s) => s.replace("MIN_WINDOW_DAYS = 14", "MIN_WINDOW_DAYS = 7")));
 control("the form allows more than 45", "S15", edit("js/register-form.js", (s) => s.replace("MAX_WINDOW_DAYS = 45", "MAX_WINDOW_DAYS = 60")));
 control("the dashboard table is wrapped in an element that clips it", "S17", edit("dashboard.html", (s) => s.replace('style="padding:0;overflow-x:auto;"', 'style="padding:0;overflow:hidden;"')));
+control("the candidate req box is a plain visible text box", "S18", edit("search.html", (s) => s.replace('id="reqq" type="password"', 'id="reqq" type="text"')));
+control("the show/hide toggle for the req box is gone", "S18", edit("search.html", (s) => s.replace('id="reqToggle"', 'id="reqTogglX"')));
+control("the register hint loses the approved wording", "S18", edit("register.html", (s) => s.replace("Required. Your own reference, such as your ATS number.", "Not shown to candidates.")));
+control("the register hint stops telling employers the req is masked", "S18", edit("register.html", (s) => s.replace("They see it masked (for example FGJ****45)", "They see it")));
 control("a free-text location input comes back", "S16", edit("register.html", (s) => s.replace('<div id="locpicker"', '<div><input id="loc" type="text"></div><div id="locpicker"')));
 control("the area cap drifts (4)", "S16", edit("js/location-rules.js", (s) => s.replace("areas: 3, states: 10", "areas: 4, states: 10")));
 control("the state cap drifts (12)", "S16", edit("js/location-rules.js", (s) => s.replace("states: 10 }", "states: 12 }")));

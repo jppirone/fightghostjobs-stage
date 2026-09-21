@@ -1,4 +1,4 @@
-// search.js - a verified candidate looks up a posting: company + (title or postID). No browsing, ever: the backend refuses anything else.
+// search.js - a verified candidate looks up a posting: company + (title, postID or req number). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
 import { api, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js";
@@ -6,10 +6,10 @@ import { requestLink } from "../session.js";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js";
 import { locationLine, waitText } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
-import { checkCompany, classifyQuery, noMatchMessage } from "../search-input.js";
+import { checkCompany, resolveSearch, noMatchMessage } from "../search-input.js";
 
 const PENDING_KEY = "fgj-pending-search";
-const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), searchBtn = $("#searchBtn"), formError = $("#formError");
+const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
 const backdrop = $("#modalBackdrop");
 let session = null, busy = false, cooldownTimer = null;
@@ -63,7 +63,7 @@ function renderCard(row) {
       h("div", {},
         h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
         h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
-        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, locationLine(row.is_remote, row.locations) + " · postID " + row.masked_code)),
+        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, locationLine(row.is_remote, row.locations) + " · postID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : ""))),
       h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }, "✓ Verified")),
     h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, chips),
     h("div", { style: "margin-top:22px;border-top:1px solid var(--line);padding-top:20px;display:flex;gap:12px;align-items:center;" },
@@ -86,11 +86,11 @@ function showResults(data, searched) {
 async function runSearch() {
   if (busy) return;
   setFormError("");
-  const c = checkCompany(companyIn.value), q = classifyQuery(queryIn.value);
+  const c = checkCompany(companyIn.value), q = resolveSearch(queryIn.value, reqIn.value);
   if (!c.ok) { setFormError(c.message); companyIn.focus(); return; }
-  if (!q.ok) { setFormError(q.message); queryIn.focus(); return; }
+  if (!q.ok) { setFormError(q.message); (q.focus === "req" ? reqIn : queryIn).focus(); return; }
   if (!session || !session.isCandidate) {
-    try { sessionStorage.setItem(PENDING_KEY, JSON.stringify({ company: companyIn.value, q: queryIn.value })); } catch { /* ignore */ }
+    try { sessionStorage.setItem(PENDING_KEY, JSON.stringify({ company: companyIn.value, q: queryIn.value, r: reqIn.value })); } catch { /* ignore */ }
     if (session && session.isPoster) { applySession(); return; }
     showSignIn("Verify your email first; your search is saved and runs as soon as you are back.");
     $("#candEmail").focus();
@@ -99,7 +99,7 @@ async function runSearch() {
   busy = true; searchBtn.disabled = true; const label = "Search"; searchBtn.textContent = "Searching…";
   let cooldown = 0;
   try {
-    let r = await api.candidateSearch(q.kind === "code" ? { company: c.value, code: q.value } : { company: c.value, phrase: q.value });
+    let r = await api.candidateSearch(q.kind === "req" ? { company: c.value, req: q.value } : q.kind === "code" ? { company: c.value, code: q.value } : { company: c.value, phrase: q.value });
     if (q.alsoTryCode && r.ok && r.data.results.length === 0) r = await api.candidateSearch({ company: c.value, code: q.value });
     if (!r.ok && r.status === 404 && r.error.code === "not_found") r = { ok: true, data: { mode: "code", truncated: false, results: [] } };   // a code that matches nothing is a plain "no such posting"
     if (r.ok) { showResults(r.data, { company: c.value, query: q.value, kind: q.kind }); return; }
@@ -114,11 +114,18 @@ async function runSearch() {
   }
 }
 form.addEventListener("submit", (ev) => { ev.preventDefault(); runSearch(); });
+// show / hide the req number while typing (hidden by default, like a password)
+reqToggle.addEventListener("click", () => {
+  const show = reqIn.type === "password";
+  reqIn.type = show ? "text" : "password"; reqToggle.textContent = show ? "Hide" : "Show";
+  reqToggle.setAttribute("aria-pressed", show ? "true" : "false"); reqToggle.setAttribute("aria-label", show ? "Hide the req number" : "Show the req number");
+});
 
 // ---- the details dialog
 function openModal(row) {
   $("#modalCompany").textContent = row.company_name;
   $("#modalTitle").textContent = row.title;
+  $("#modalRefs").textContent = "postID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : "");
   $("#modalIntro").textContent = "This listing is verified: a real employer registered it directly with FightGhostJobs, with the dates and disclosures shown on the search page.";
   clear($("#modalLinks")); const empty = $("#modalEmpty"); empty.hidden = true; empty.textContent = "";
   backdrop.classList.add("open");
@@ -192,7 +199,7 @@ function linkRow(row, link) {
   if (session && session.isCandidate) {
     try {
       const p = JSON.parse(sessionStorage.getItem(PENDING_KEY) || "null");
-      if (p && typeof p.company === "string" && typeof p.q === "string") { sessionStorage.removeItem(PENDING_KEY); companyIn.value = p.company; queryIn.value = p.q; runSearch(); }
+      if (p && typeof p.company === "string" && typeof p.q === "string") { sessionStorage.removeItem(PENDING_KEY); companyIn.value = p.company; queryIn.value = p.q; reqIn.value = typeof p.r === "string" ? p.r : ""; runSearch(); }
     } catch { /* nothing pending */ }
   }
 })();

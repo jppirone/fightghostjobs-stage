@@ -25,8 +25,8 @@
 <div style="max-width:1440px;margin:0 auto;">
   <div style="padding:56px 64px 32px 64px;">
     <h1 style="font-size:34px;font-weight:700;letter-spacing:-.01em;">Look up a posting</h1>
-    <p style="font-size:15px;color:var(--muted);margin:8px 0 28px 0;">Search by company plus a title or postID. We never let you browse the full registry.</p>
-    <form id="searchForm" novalidate style="display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;max-width:880px;">
+    <p style="font-size:15px;color:var(--muted);margin:8px 0 28px 0;">Search by company plus a title, a postID or a req number. We never let you browse the full registry.</p>
+    <form id="searchForm" novalidate style="display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;max-width:1080px;">
       <div style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
         <label for="company" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;">Company</label>
         <input id="company" type="text" maxlength="200" autocomplete="off" placeholder="e.g. Meridian Health Systems" style="border:none;padding:4px 0;">
@@ -36,9 +36,18 @@
         <label for="titleq" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;">Title or postID</label>
         <input id="titleq" type="text" maxlength="80" autocomplete="off" placeholder="e.g. Data Analyst, or XXXX-XXXX-XXXX" style="border:none;padding:4px 0;">
       </div>
+      <div style="width:1px;background:var(--line);"></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
+        <label for="reqq" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;">Req number</label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input id="reqq" type="password" maxlength="100" autocomplete="off" spellcheck="false" placeholder="From the job ad" aria-describedby="reqHint" data-lpignore="true" data-1p-ignore="true" style="border:none;padding:4px 0;">
+          <button type="button" id="reqToggle" class="row-action" aria-pressed="false" aria-label="Show the req number" style="margin:0;">Show</button>
+        </div>
+      </div>
       <button type="submit" id="searchBtn" class="btn btn-dark">Search</button>
     </form>
-    <div id="formError" class="field-error" hidden style="max-width:880px;margin-top:10px;font-size:13px;"></div>
+    <div id="formError" class="field-error" hidden style="max-width:1080px;margin-top:10px;font-size:13px;"></div>
+    <div id="reqHint" class="field-hint" style="max-width:1080px;">Use the title / postID box or the req number box, not both. The req number is hidden as you type; press Show to check it.</div>
   </div>
 
   <div id="signinWrap" hidden style="padding:0 64px 32px 64px;">
@@ -71,6 +80,7 @@
       <div>
         <div id="modalCompany" style="font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;"></div>
         <div id="modalTitle" style="font-size:20px;font-weight:700;margin-top:4px;"></div>
+        <div id="modalRefs" style="font-size:13px;color:var(--muted);margin-top:4px;"></div>
       </div>
       <button type="button" id="modalClose" class="btn btn-ghost btn-sm" style="padding:6px 10px;" aria-label="Close">✕</button>
     </div>

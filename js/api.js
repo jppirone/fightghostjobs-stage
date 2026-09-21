@@ -10,6 +10,8 @@
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REF_RE = /^[0-9a-hjkmnp-tv-z]{20}$/;
 const MASK_RE = /^\*{4}-\*{4}-[0-9A-HJKMNP-TV-Z]{4}$/;
+// the masked req number: at most 3 leading characters, a fixed block of four stars, at most 2 trailing characters (the full number is never sent to a candidate)
+const MASKED_REQ_RE = /^.{0,3}[*]{4}.{0,2}$/;
 const isStr = (v) => typeof v === "string";
 const isBool = (v) => typeof v === "boolean";
 const isNullable = (v, t) => v === null || t(v);
@@ -26,8 +28,8 @@ export const shapes = {
   posting: (d) => isObj(d) && UUID_RE.test(d.id) && isStr(d.status) && isStr(d.title) && isStr(d.expiration_date) && /^[0-9A-Z]{12}$/.test(d.public_code) && REF_RE.test(d.posting_ref) && isNullable(d.closed_reason, isStr),
   searchRow: (r) => isObj(r) && isStr(r.company_name) && isStr(r.title) && Array.isArray(r.locations) && r.locations.every(isStr) && isBool(r.is_remote) && isStr(r.posted_at) && isStr(r.closes_at)
     && isNullable(r.applicant_cap, Number.isInteger) && isStr(r.status) && isNullable(r.closed_reason, isStr) && isNullable(r.ai_filtering, isBool) && isNullable(r.ai_interview_other, isBool) && isBool(r.ai_disclosure_shown)
-    && isBool(r.third_party_recruiter) && MASK_RE.test(r.masked_code) && REF_RE.test(r.posting_ref) && isNullable(r.last_edited_at, isStr),
-  search: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code") && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.searchRow),
+    && isBool(r.third_party_recruiter) && MASK_RE.test(r.masked_code) && isNullable(r.masked_req, (v) => isStr(v) && MASKED_REQ_RE.test(v)) && REF_RE.test(r.posting_ref) && isNullable(r.last_edited_at, isStr),
+  search: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req") && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.searchRow),
   detail: (d) => isObj(d) && isObj(d.posting) && shapes.searchRow(Object.assign({ }, d.posting)) && Array.isArray(d.links) && d.links.length <= 10
     && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && l.position >= 1 && l.position <= 10 && isNullable(l.label, isStr)),
   linkIssue: (d) => isObj(d) && isStr(d.expires_at) && Array.isArray(d.links) && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && isNullable(l.label, isStr) && isStr(l.go_url) && /^https:\/\//.test(l.go_url)),

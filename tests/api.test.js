@@ -7,7 +7,7 @@ const BASE = "https://example.test", KEY = "sb_publishable_TESTKEY";
 const uuid = "11111111-1111-4111-8111-111111111111";
 const ref = "0123456789abcdefghjk";
 const searchRow = { company_name: "Meridian", title: "Analyst", locations: ["Remote"], is_remote: true, posted_at: "2026-09-02T12:00:00.000Z", closes_at: "2026-10-17T12:00:00.000Z", applicant_cap: null, status: "live", closed_reason: null,
-  ai_filtering: false, ai_interview_other: true, ai_disclosure_shown: false, third_party_recruiter: false, masked_code: "****-****-QBF1", posting_ref: ref, last_edited_at: null };
+  ai_filtering: false, ai_interview_other: true, ai_disclosure_shown: false, third_party_recruiter: false, masked_code: "****-****-QBF1", masked_req: "R****0", posting_ref: ref, last_edited_at: null };
 const posting = { id: uuid, status: "draft", title: "Analyst", expiration_date: "2026-10-17T12:00:00.000Z", public_code: "D21M48YBZQBF", posting_ref: ref, closed_reason: null };
 
 function fake(handler) {
@@ -155,4 +155,14 @@ test("wording for failures never shows raw server text for 5xx", () => {
   assert.doesNotMatch(describeError({ code: "server_error", message: "SQL exploded at line 9" }), /SQL/);
   assert.match(describeError({ code: "reverification_required" }), /verify your email again/i);
   assert.match(describeError({ code: "request_refused", message: "closed_reason must be filled or withdrawn" }), /closed_reason/);
+});
+
+test("search answers: every row carries masked_req (masked or null); a FULL req number is never accepted; mode req is understood", () => {
+  const ok = (row) => shapes.search({ mode: "req", truncated: false, results: [row] });
+  assert.equal(ok(searchRow), true);
+  assert.equal(ok(Object.assign({}, searchRow, { masked_req: null })), true);
+  for (const full of ["R-100", "FGJP12345", "4471", "R", ""]) assert.equal(ok(Object.assign({}, searchRow, { masked_req: full })), false, full);
+  assert.equal(ok(Object.assign({}, searchRow, { masked_req: 5 })), false);
+  const missing = Object.assign({}, searchRow); delete missing.masked_req; assert.equal(ok(missing), false);          // a backend that stops sending the field must be noticed
+  for (const m of ["FGJ****45", "R****0", "REQ****51", "****7", "****"]) assert.equal(ok(Object.assign({}, searchRow, { masked_req: m })), true, m);
 });

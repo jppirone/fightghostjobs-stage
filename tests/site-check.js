@@ -16,6 +16,7 @@
 //   S14 the empty-search note says closed or expired postings appear only by postID, and search.js uses that note
 //   S15 the register form's window is 14 to 45 days (default 45), matches the backend range, and the extended tier is not offered
 //   S17 a table is never wrapped in an element that clips it (overflow:hidden): a too-wide table must scroll sideways, or its last column (the row actions once) silently disappears off the edge
+//   S18 the req number: the candidate's req box on search.html is MASKED as it is typed (type=password) with a show/hide toggle, and the register hint says it is required, searchable by candidates, masked, rate-limited and always visible to the employer
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
@@ -162,6 +163,17 @@ export function checkSite(root) {
 
   // S17: no overflow:hidden on the element that directly wraps a <table> (it would cut off the columns that do not fit)
   for (const f of html) if (/<[a-z]+\b[^>]*style="[^"]*overflow\s*:\s*hidden[^"]*"[^>]*>\s*<table\b/i.test(read(f))) add("S17", f, "a table is wrapped in an overflow:hidden element: a too-wide table would be clipped, not scrolled");
+
+  // S18: the req number decisions (pass 12f)
+  const sh = path.join(root, "search.html");
+  if (fs.existsSync(sh) && fs.existsSync(rh)) {
+    const shtml = read(sh), rhtml2 = read(rh);
+    if (!/<input id="reqq" type="password"/.test(shtml)) add("S18", sh, "the candidate's req number box (id=reqq) must be a masked input (type=password)");
+    if (!/<button type="button" id="reqToggle"/.test(shtml)) add("S18", sh, "the req box needs its show/hide toggle (id=reqToggle)");
+    const hint = "Required. Your own reference, such as your ATS number. Once the posting is live, candidates can find it by company name plus this number. They see it masked (for example FGJ****45), and these lookups are rate-limited. You always see the full number in My postings.";
+    if (!rhtml2.includes(hint)) add("S18", rh, "the register form's req number hint must carry the approved wording, word for word");
+    if (/Req number (optional)/.test(rhtml2)) add("S18", rh, "the req number is required: its label must not say optional");
+  }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");
   if (!fs.existsSync(vendor) || !fs.existsSync(rec)) add("S10", vendor, "vendored Auth client or its recorded hash is missing");
