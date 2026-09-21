@@ -19,7 +19,6 @@ export function validateForm(v) {
   const e = {};
   const need = (id, text, what) => { if (String(text || "").trim() === "") e[id] = "Enter " + what + "."; };
   need("jtitle", v.title, "the job title");
-  need("req", v.req, "your req number");
   need("company", v.company, "the company name");
   need("closeout", v.closeout, "what ends this posting");
   need("desc", v.desc, "the job description");
@@ -38,7 +37,6 @@ export function validateForm(v) {
 export function buildCreateBody(v) {
   const chosen = Array.isArray(v.locEntries) ? v.locEntries : [];
   const body = {
-    req_number: String(v.req).trim(),
     title: String(v.title).trim(),
     company_name: String(v.company).trim(),
     tier: "standard",
@@ -52,6 +50,7 @@ export function buildCreateBody(v) {
   // Locations are sent as catalog ids ONLY (free text is refused by the backend); the display text is derived by the database. The attestation is sent when it applies (two or more locations).
   if (chosen.length) body.location_ids = chosen.map((c) => c.id);
   if (chosen.length >= 2) body.locations_attested = v.attested === true;
+  if (String(v.req || "").trim() !== "") body.req_number = String(v.req).trim();          // optional: left blank, it is simply not sent (the backend stores "not provided")
   if (String(v.appcap || "").trim() !== "") body.applicant_cap = Number(String(v.appcap).trim());
   const w = String(v.win == null ? "" : v.win).trim();
   if (w !== "") body.window_days = Number(w);          // omitted means 45 (the backend's default); a value outside 14-45 is refused by the backend, whatever this page checked

@@ -143,7 +143,7 @@ test("both AI disclosures are ALWAYS sent as real booleans, off included (never 
 
 test("register form: what is missing is named; the cap, remote and location rules", () => {
   const e = validateForm({ title: " ", req: "", company: "", locEntries: [], remote: false, appcap: "", closeout: "", desc: "" });
-  assert.deepEqual(Object.keys(e).sort(), ["closeout", "company", "desc", "jtitle", "locpicker", "req"]);
+  assert.deepEqual(Object.keys(e).sort(), ["closeout", "company", "desc", "jtitle", "locpicker"]);        // the req number is optional: not among the missing
   assert.equal(validateForm(Object.assign({}, good, { locEntries: [], remote: true })).locpicker, undefined);
   assert.equal(buildCreateBody(Object.assign({}, good, { locEntries: [], remote: true })).is_remote, true);
   assert.equal("location_ids" in buildCreateBody(Object.assign({}, good, { locEntries: [], remote: true })), false);
@@ -152,6 +152,15 @@ test("register form: what is missing is named; the cap, remote and location rule
   assert.equal(validateForm(Object.assign({}, good, { appcap: "" })).appcap, undefined);
   assert.equal("applicant_cap" in buildCreateBody(Object.assign({}, good, { appcap: "" })), false);
   assert.equal(buildCreateBody(Object.assign({}, good, { appcap: " 1 " })).applicant_cap, 1);
+});
+
+test("the req number is optional: blank is fine and is not sent; a value is trimmed and sent", () => {
+  for (const blank of ["", "   ", undefined, null]) {
+    const v = Object.assign({}, good, { req: blank });
+    assert.equal(validateForm(v).req, undefined, JSON.stringify(blank));
+    assert.equal("req_number" in buildCreateBody(v), false, JSON.stringify(blank));
+  }
+  assert.equal(buildCreateBody(Object.assign({}, good, { req: "  4471-A " })).req_number, "4471-A");
 });
 
 test("the window: 14 to 45 days, empty means the default, anything else is named under its input", () => {
