@@ -38,6 +38,8 @@ export const shapes = {
     && Number.isInteger(p.window_days) && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isNullable(p.applicant_cap, Number.isInteger)
     && isBool(p.bump_used) && isNullable(p.bump_days, Number.isInteger) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr) && Number.isInteger(p.comment_count) && p.comment_count >= 0,
   myPostings: (d) => isObj(d) && Number.isInteger(d.total) && d.total >= 0 && Array.isArray(d.postings) && d.postings.length <= 50 && d.postings.every(shapes.myPosting) && isNullable(d.next_offset, Number.isInteger),
+  // pause / resume / bump / close: only the fact that it worked and the posting's new status are read
+  actionAnswer: (d) => { const p = d && isObj(d.posting) ? d.posting : d; return isObj(p) && isStr(p.status); },
   comment: (d) => isObj(d) && isObj(d.comment) && isStr(d.comment.body) && isStr(d.comment.created_at),
 };
 
@@ -83,6 +85,10 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     posterSession: () => call("poster-session", {}, { validate: shapes.posterSession }),
     createPosting: async (fields) => unwrap(await call("create-posting", fields, { validate: postingAnswer })),
     listMyPostings: (offset) => call("list-my-postings", offset ? { offset } : {}, { validate: shapes.myPostings }),
+    pausePosting: (postingId) => call("pause-posting", { posting_id: postingId }, { validate: shapes.actionAnswer }),
+    resumePosting: (postingId) => call("resume-posting", { posting_id: postingId }, { validate: shapes.actionAnswer }),
+    bumpPosting: (postingId, days, reason) => call("bump-posting", { posting_id: postingId, bump_days: days, bump_reason: reason }, { validate: shapes.actionAnswer }),
+    closePosting: (postingId, reason, detail) => call("close-posting", Object.assign({ posting_id: postingId, closed_reason: reason }, detail ? { closed_detail: detail } : {}), { validate: shapes.actionAnswer }),
     publishPosting: async (postingId) => unwrap(await call("publish-posting", { posting_id: postingId }, { validate: postingAnswer })),
     // ---- candidate side
     candidateSession: () => call("candidate-session", {}),

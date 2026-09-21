@@ -60,7 +60,7 @@
       <div style="font-size:12px;color:var(--muted);margin-top:-10px;">If set, the cap is shown to candidates too. Reaching it doesn't auto-close the posting — that's on you to come back and pause or close it. Pausing never resets this cap or the close date.</div>
       <div class="alert alert-notice" id="windowNote" role="note">
         <strong style="color:var(--ink);">How long it stays live: you choose, 14 to 45 days.</strong>
-        Your posting goes live the moment you register it and closes automatically after the number of days you set above (45 unless you change it, and never more than 45). The days start when it goes live, not when you fill in this form.
+        Your posting goes live the moment you register it and closes automatically after the number of days you set above (45 unless you change it, and never more than 45). The days start when it goes live, not when you fill in this form, so a saved draft does not start the clock until you publish it.
         The close date is shown to candidates; you will see the exact date and time, with your time zone, as soon as it is registered. It can be extended once, by up to 15 days.
       </div>
 
@@ -116,6 +116,7 @@
       <div id="formAlert" hidden></div>
       <div style="display:flex;gap:12px;">
         <button type="submit" id="registerBtn" class="btn btn-dark" style="flex:1;justify-content:center;">Register posting</button>
+        <button type="button" id="draftBtn" class="btn btn-ghost">Save draft</button>
       </div>
     </form>
 

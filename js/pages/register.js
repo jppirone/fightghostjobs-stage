@@ -1,5 +1,5 @@
 // register.js - an employer registers a posting: create it (a draft), then publish it (standard tier goes live immediately).
-// There is no "Save draft" button for now: a saved draft cannot be listed, edited or published from the site until the dashboard exists (the mode === "draft" path below is kept for then). Nothing here trusts the page for identity: the session token tells the server who is acting.
+// "Save draft" stops after the first step: the draft is then found and published from My postings (dashboard.html). Nothing here trusts the page for identity: the session token tells the server who is acting.
 
 import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js";
 import { rememberNext } from "../session.js";
@@ -10,7 +10,7 @@ import { mountLocationPicker } from "../location-picker.js";
 
 const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false };
 const form = $("#form"), result = $("#result"), pageAlert = $("#pageAlert"), formAlert = $("#formAlert");
-const registerBtn = $("#registerBtn");
+const registerBtn = $("#registerBtn"), draftBtn = $("#draftBtn");
 const picker = mountLocationPicker({ isRemote: () => $("#remote").checked });
 $("#remote").addEventListener("change", () => picker.refresh());
 
@@ -35,7 +35,7 @@ const collect = () => ({ title: val("#jtitle"), req: val("#req"), company: val("
 function showErrors(byField) {
   for (const el of $$("[data-error-for]")) { const id = el.dataset.errorFor; const msg = byField[id]; el.hidden = !msg; el.textContent = msg || ""; const inp = $("#" + (id === "locpicker" ? "locq" : id)); if (inp) inp.setAttribute("aria-invalid", msg ? "true" : "false"); }
 }
-function setBusy(on) { state.busy = on; registerBtn.disabled = on; }
+function setBusy(on) { state.busy = on; registerBtn.disabled = on; draftBtn.disabled = on; }
 function say(box, kind, text) { clear(box); box.hidden = !text; if (text) box.append(alertBox(kind, text)); }
 
 // A session that the server no longer accepts: sign out here and send the employer to sign in again (their work is not lost from the server side: nothing was created).
@@ -85,8 +85,8 @@ async function publish() {
   showResult(r.data, r.data.status === "live" ? "live" : "other");
 }
 
-function lockForm() { for (const el of $$("input, textarea", form)) el.disabled = true; picker.setLocked(true); registerBtn.hidden = true; }
-function unlockForm() { for (const el of $$("input, textarea", form)) el.disabled = false; picker.setLocked(false); registerBtn.hidden = false; }
+function lockForm() { for (const el of $$("input, textarea", form)) el.disabled = true; picker.setLocked(true); registerBtn.hidden = true; draftBtn.hidden = true; }
+function unlockForm() { for (const el of $$("input, textarea", form)) el.disabled = false; picker.setLocked(false); registerBtn.hidden = false; draftBtn.hidden = false; }
 
 function showResult(p, kind, problem) {
   result.hidden = false; clear(result);
@@ -104,6 +104,7 @@ function showResult(p, kind, problem) {
     h("div", { style: "font-size:13px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;" }, "Your postID"),
     h("span", { class: "code-box", id: "postId" }, groupCode(p.public_code)),
     h("p", { style: "font-size:13px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;" }, "Candidates find this posting by your company name plus either the job title or this postID. They only ever see the last four characters of it.")));
+  if (kind === "draft") result.append(h("div", { style: "margin-top:16px;" }, alertBox("notice", "Nothing is visible to candidates yet. Open My postings to publish it: a draft can be published for 14 days after it was saved, and the posting window starts when you publish.")));
   const actions = h("div", { style: "margin-top:22px;display:flex;gap:12px;flex-wrap:wrap;" });
   if (kind === "live") actions.append(h("a", { class: "btn btn-dark btn-sm", href: "search.html" }, "Look it up as a candidate →"));
   actions.append(h("a", { class: "btn btn-outline btn-sm", href: "dashboard.html" }, "View my postings"));
@@ -125,6 +126,7 @@ function registerAnother() {
 }
 
 form.addEventListener("submit", (ev) => { ev.preventDefault(); submit("register"); });
+draftBtn.addEventListener("click", () => submit("draft"));
 
 (async () => {
   const ctx = await requirePoster("register.html");

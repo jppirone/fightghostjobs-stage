@@ -63,3 +63,33 @@ export function closesCell(p) {
   if (p.status === "live" || p.status === "paused") return fmtClose(p.expiration_date);
   return p.expiration_date ? fmtDate(p.expiration_date) : "—";
 }
+
+// ---- row actions (slice B)
+export const MIN_BUMP_DAYS = 1, MAX_BUMP_DAYS = 15, MAX_REASON = 300, MAX_CLOSE_DETAIL = 500;      // the backend refuses anything else (bump-posting, close-posting)
+
+// A draft can be published for 14 days after it was saved (publish_by); after that publish-posting refuses it.
+export const publishWindowEnded = (p, nowMs) => p.status === "draft" && typeof p.publish_by === "string" && Date.parse(p.publish_by) <= nowMs;
+
+// -> the action keys a row offers, in display order. Based on the EFFECTIVE status too: a live or paused posting whose clock has run out reads as expired and offers nothing.
+export function actionsFor(p, nowMs) {
+  if (p.status === "draft") return p.stored_status === "draft" && !publishWindowEnded(p, nowMs) ? ["publish"] : [];
+  if (p.status === "live" && p.stored_status === "live") return p.bump_used ? ["pause", "close"] : ["pause", "extend", "close"];
+  if (p.status === "paused" && p.stored_status === "paused") return ["resume", "close"];
+  return [];
+}
+
+// -> { ok, errors: { bumpDays?, bumpReason? }, body?: { bump_days, bump_reason } }
+export function checkBump(daysText, reasonText) {
+  const errors = {}, d = String(daysText == null ? "" : daysText).trim(), r = String(reasonText == null ? "" : reasonText).trim();
+  if (!/^[0-9]{1,2}$/.test(d) || Number(d) < MIN_BUMP_DAYS || Number(d) > MAX_BUMP_DAYS) errors.bumpDays = "Enter a whole number of days from " + MIN_BUMP_DAYS + " to " + MAX_BUMP_DAYS + ".";
+  if (r === "") errors.bumpReason = "Enter a reason (it is recorded)."; else if (r.length > MAX_REASON) errors.bumpReason = "Keep the reason to " + MAX_REASON + " characters or fewer.";
+  return Object.keys(errors).length ? { ok: false, errors } : { ok: true, errors, body: { bump_days: Number(d), bump_reason: r } };
+}
+
+// -> { ok, errors: { closeDetail? }, body?: { closed_reason, closed_detail? } }.  The detail belongs to "withdrawn" only: for "filled" it is never sent.
+export function checkClose(reason, detailText) {
+  if (reason !== "filled" && reason !== "withdrawn") return { ok: false, errors: { closeReason: "Choose filled or withdrawn." } };
+  const detail = String(detailText == null ? "" : detailText).trim();
+  if (reason === "withdrawn" && detail.length > MAX_CLOSE_DETAIL) return { ok: false, errors: { closeDetail: "Keep the detail to " + MAX_CLOSE_DETAIL + " characters or fewer." } };
+  return { ok: true, errors: {}, body: reason === "withdrawn" && detail !== "" ? { closed_reason: reason, closed_detail: detail } : { closed_reason: reason } };
+}

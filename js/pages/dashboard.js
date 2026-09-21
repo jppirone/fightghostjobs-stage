@@ -1,4 +1,4 @@
-// dashboard.js - "My postings": the postings the signed-in employer OWNS (a colleague's do not appear), read-only in this first slice.
+// dashboard.js - "My postings": the postings the signed-in employer OWNS (a colleague's do not appear), with the row actions: publish a draft, pause, resume, extend (once) and close.
 // Nothing here trusts the page for identity: the session token tells the server who is asking, and the server returns only that person's postings.
 
 import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js";
@@ -6,6 +6,8 @@ import { rememberNext } from "../session.js";
 import { $, h, clear, alertBox } from "../dom.js";
 import { groupCode, locationLine, waitText } from "../format.js";
 import { FILTERS, statusChip, matchesFilter, matchesText, sortByPosted, reqCell, postedCell, capCell, closesCell } from "../dashboard-model.js";
+import { actionsFor, publishWindowEnded } from "../dashboard-model.js";
+import { runAction, ACTION_LABEL } from "../dashboard-actions.js";
 
 const PAGE_CAP = 20;                       // 20 pages of 50: a hard stop, never an endless loop
 const state = { rows: [], total: 0, filter: "all", sortDir: "desc", text: "", loaded: false };
@@ -34,6 +36,12 @@ function renderFilters() {
   for (const [key, label] of FILTERS) box.append(h("button", { type: "button", class: "filter-pill" + (state.filter === key ? " on" : ""), onclick: () => { state.filter = key; render(); } }, label));
 }
 
+function actionCells(p, now) {
+  const out = actionsFor(p, now).map((k) => h("button", { type: "button", class: "row-action", onclick: () => runAction(k, p, deps) }, ACTION_LABEL[k]));
+  if (publishWindowEnded(p, now)) out.push(h("span", { class: "row-note" }, "Publish window ended"));
+  return out;
+}
+
 function row(p, now) {
   const chip = statusChip(p, now);
   return h("tr", {},
@@ -42,9 +50,10 @@ function row(p, now) {
     h("td", { style: "color:var(--muted);font-family:'Space Grotesk',sans-serif;letter-spacing:.03em;white-space:nowrap;" }, groupCode(p.post_id)),
     h("td", {}, h("span", { class: "status " + chip.cls }, chip.text)),
     h("td", { style: "color:var(--muted);" }, postedCell(p)),
-    h("td", { style: "color:var(--muted);" }, closesCell(p)),
+    h("td", { style: "color:var(--muted);" }, closesCell(p), p.bump_used ? h("div", { class: "row-note" }, "extended " + p.bump_days + (p.bump_days === 1 ? " day" : " days")) : null),
     h("td", { style: "color:var(--muted);" }, capCell(p)),
-    h("td", { style: "color:var(--muted);white-space:nowrap;" }, "💬 " + p.comment_count));
+    h("td", { style: "color:var(--muted);white-space:nowrap;" }, "💬 " + p.comment_count),
+    h("td", { style: "white-space:nowrap;text-align:right;" }, actionCells(p, now)));
 }
 
 function render() {
@@ -62,6 +71,13 @@ function render() {
   } else note.hidden = true;
   $("#loadNote").textContent = state.loaded ? (state.total > state.rows.length ? "Showing the newest " + state.rows.length + " of " + state.total + " postings." : shown.length + " of " + state.rows.length + (state.rows.length === 1 ? " posting" : " postings")) : "";
 }
+
+// what the row actions need: the API, what to do after one worked, and what to do when the session has ended
+const deps = {
+  api,
+  done: async (message) => { const n = $("#actionNote"); clear(n); n.hidden = false; n.append(alertBox("ok", message)); await refresh(); },
+  sessionEnded: () => sessionEnded(),
+};
 
 async function refresh() {
   const box = $("#pageAlert"); box.hidden = true; clear(box);

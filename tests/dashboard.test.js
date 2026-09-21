@@ -73,3 +73,43 @@ test("table cells: a missing req number, a draft with no dates, no cap, and the 
   assert.match(closesCell(row({})), /[AP]M/);                                    // a live posting's close date carries the exact time
   assert.match(closesCell(row({ status: "closed" })), /^[A-Z][a-z]{2} \d{1,2}$/);
 });
+
+// ---- slice B: row actions
+import { actionsFor, publishWindowEnded, checkBump, checkClose, MAX_BUMP_DAYS, MAX_REASON, MAX_CLOSE_DETAIL } from "../js/dashboard-model.js";
+
+test("actions per row: exactly what each status can do, and nothing for an expired, closed, held or out-of-time row", () => {
+  const A = (o) => actionsFor(row(o), NOW).join(",");
+  assert.equal(A({}), "pause,extend,close");                                                                     // live
+  assert.equal(A({ bump_used: true, bump_days: 5 }), "pause,close");                                            // the one-time extension is used
+  assert.equal(A({ status: "paused", stored_status: "paused" }), "resume,close");                              // paused: no extend (the backend refuses it)
+  assert.equal(A({ status: "draft", stored_status: "draft", posted_at: null, expiration_date: null, publish_by: at(5) }), "publish");
+  assert.equal(A({ status: "draft", stored_status: "draft", posted_at: null, expiration_date: null, publish_by: at(-0.001) }), "");   // the 14-day publish window has ended
+  assert.equal(A({ status: "expired", stored_status: "live", closed_reason: "expired_no_action" }), "");         // a live posting whose clock ran out: expired for the candidate, nothing to do
+  assert.equal(A({ status: "expired", stored_status: "paused", closed_reason: "expired_no_action" }), "");
+  assert.equal(A({ status: "closed", stored_status: "closed", closed_reason: "filled" }), "");
+  assert.equal(A({ status: "flagged", stored_status: "flagged" }), "");
+  assert.equal(publishWindowEnded(row({ status: "draft", publish_by: at(-1) }), NOW), true);
+  assert.equal(publishWindowEnded(row({ status: "draft", publish_by: at(1) }), NOW), false);
+  assert.equal(publishWindowEnded(row({ status: "live", publish_by: null }), NOW), false);
+});
+
+test("extend: whole days from 1 to 15 and a reason, checked before anything is sent", () => {
+  assert.equal(MAX_BUMP_DAYS, 15);
+  for (const ok of ["1", "15", " 7 ", "07"]) assert.equal(checkBump(ok, "hiring took longer").ok, true, ok);
+  for (const bad of ["0", "16", "-1", "1.5", "abc", "", " ", "100", "1e1", "1 5", null, undefined]) { const c = checkBump(bad, "why"); assert.equal(c.ok, false, String(bad)); assert.ok(c.errors.bumpDays, String(bad)); }
+  for (const bad of ["", "   ", null, undefined, "x".repeat(MAX_REASON + 1)]) { const c = checkBump("3", bad); assert.equal(c.ok, false); assert.ok(c.errors.bumpReason); }
+  assert.equal(checkBump("3", "x".repeat(MAX_REASON)).ok, true);
+  assert.deepEqual(checkBump(" 4 ", "  final interviews  ").body, { bump_days: 4, bump_reason: "final interviews" });
+  assert.deepEqual(Object.keys(checkBump("0", "").errors).sort(), ["bumpDays", "bumpReason"]);
+});
+
+test("close: filled or withdrawn; the detail is sent only for withdrawn, trimmed, and never longer than 500", () => {
+  assert.deepEqual(checkClose("filled", "").body, { closed_reason: "filled" });
+  assert.deepEqual(checkClose("filled", "this text must not be sent").body, { closed_reason: "filled" });        // detail belongs to withdrawn only
+  assert.deepEqual(checkClose("withdrawn", "").body, { closed_reason: "withdrawn" });
+  assert.deepEqual(checkClose("withdrawn", "  budget freeze  ").body, { closed_reason: "withdrawn", closed_detail: "budget freeze" });
+  assert.equal(checkClose("withdrawn", "x".repeat(MAX_CLOSE_DETAIL)).ok, true);
+  assert.equal(checkClose("withdrawn", "x".repeat(MAX_CLOSE_DETAIL + 1)).ok, false);
+  assert.equal(checkClose("filled", "x".repeat(MAX_CLOSE_DETAIL + 1)).ok, true);          // ignored for filled, so its length does not matter
+  for (const bad of ["", "expired_no_action", "FILLED", null, undefined]) assert.equal(checkClose(bad, "").ok, false, String(bad));
+});

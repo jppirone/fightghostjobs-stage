@@ -131,6 +131,26 @@ test("list-my-postings: sends only the offset (never an identity), checks every 
   assert.equal((await mk(() => ({ status: 401, body: { error: "unauthorized", code: "unauthorized" } })).api.listMyPostings()).error.code, "unauthorized");
 });
 
+test("row actions send exactly the documented bodies (never an identity), and read only the fact that they worked", async () => {
+  const calls = [];
+  const ok = (body) => () => ({ status: 200, body });
+  const run = async (f) => { const m = mk((u, i) => { calls.push({ fn: u.split("/functions/v1/")[1], body: JSON.parse(i.body) }); return { status: 200, body: { posting: { id: uuid, status: "paused" } } }; }); return f(m.api); };
+  assert.equal((await run((api) => api.pausePosting(uuid))).ok, true);
+  assert.equal((await run((api) => api.resumePosting(uuid))).ok, true);
+  assert.equal((await run((api) => api.bumpPosting(uuid, 7, "final interviews"))).ok, true);
+  assert.equal((await run((api) => api.closePosting(uuid, "filled"))).ok, true);
+  assert.equal((await run((api) => api.closePosting(uuid, "withdrawn", "budget freeze"))).ok, true);
+  assert.deepEqual(calls, [
+    { fn: "pause-posting", body: { posting_id: uuid } }, { fn: "resume-posting", body: { posting_id: uuid } },
+    { fn: "bump-posting", body: { posting_id: uuid, bump_days: 7, bump_reason: "final interviews" } },
+    { fn: "close-posting", body: { posting_id: uuid, closed_reason: "filled" } },
+    { fn: "close-posting", body: { posting_id: uuid, closed_reason: "withdrawn", closed_detail: "budget freeze" } }]);
+  assert.equal((await mk(ok({ status: "live" })).api.pausePosting(uuid)).ok, true);                    // an answer without the wrapper is fine too
+  for (const bad of [{}, { posting: {} }, { status: 5 }, null]) assert.equal((await mk(ok(bad)).api.pausePosting(uuid)).ok, false);
+  const refused = await mk(() => ({ status: 409, body: { error: "posting cannot be bumped: its current status is 'paused'", code: "request_refused" } })).api.bumpPosting(uuid, 3, "x");
+  assert.equal(refused.ok, false); assert.match(refused.error.message, /cannot be bumped/);
+});
+
 test("wording for failures never shows raw server text for 5xx", () => {
   assert.doesNotMatch(describeError({ code: "server_error", message: "SQL exploded at line 9" }), /SQL/);
   assert.match(describeError({ code: "reverification_required" }), /verify your email again/i);
