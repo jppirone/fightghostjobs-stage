@@ -1,0 +1,64 @@
+{
+ "catalog_version": "1-d13e1609",
+ "built_from": "GeoNames cities500 + admin1/admin2 codes, US Census Bureau CBSA estimates (vintage 2023)",
+ "counts": {
+  "total": 8107,
+  "place": 7130,
+  "metro": 387,
+  "micro": 538,
+  "state": 51,
+  "nationwide": 1
+ },
+ "curated": {
+  "status": "approved",
+  "applied": 21
+ },
+ "dropped_ambiguous": [
+  {
+   "id": "gn:4592487",
+   "display": "Red Hill, SC",
+   "why": "still ambiguous within the same county; the larger place is kept"
+  },
+  {
+   "id": "gn:7262464",
+   "display": "Vincent, CA",
+   "why": "still ambiguous within the same county; the larger place is kept"
+  }
+ ],
+ "rules": {
+  "min_population": 5000,
+  "excluded_feature_codes": [
+   "PPLX",
+   "PPLQ",
+   "PPLH",
+   "PPLL",
+   "PPLW"
+  ],
+  "states": "50 states + DC (no territories)"
+ },
+ "sources": {
+  "cities500.txt": {
+   "bytes": 41285045,
+   "sha256": "79078240008071af4ca79081feaa1501cdc851bebac091677877143823982aa2"
+  },
+  "admin1CodesASCII.txt": {
+   "bytes": 151583,
+   "sha256": "1da92a6323a5fec3176f3f743bf4cf4040fd56a876da55e46fbca23c863aa60a"
+  },
+  "admin2Codes.txt": {
+   "bytes": 2375308,
+   "sha256": "8288c37fb75b484c72844f663dfde78e6255bd11585136e1761a432623d0d073"
+  },
+  "cbsa-est2023-alldata.csv": {
+   "bytes": 608132,
+   "sha256": "a15cdfd3c6f1bdfe1430dcdf70ab9fcf039a2c629ff7584be6693e981d434a03"
+  }
+ },
+ "seed_sha256": "d13e16090575dcc284cc0a0b81ff3ddfc901e8688cdf3aa1417f0f2ea92826be",
+ "module_sha256": "948b4d7b27dfb5348f12fc7103cd90cebe4a20968f0ba1a9cf5040c2dda6b308",
+ "seed_ordered_md5_of_id_display": "392837b9b5e8e27cc7d94a90d777635c",
+ "licenses": {
+  "geonames": "CC BY 4.0 - attribution required (https://www.geonames.org)",
+  "census": "US Government work, public domain"
+ }
+}
