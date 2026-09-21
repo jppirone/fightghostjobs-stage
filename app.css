@@ -35,3 +35,18 @@ input[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--embe
 .result-count{font-size:13px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
 .code-box{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;letter-spacing:.06em;background:var(--panel);border-radius:10px;padding:14px 18px;display:inline-block}
 .nav-account+.btn{margin-left:14px}
+
+/* location picker (register form) */
+.loc-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.loc-chips:empty{display:none;margin:0}
+.loc-chip{display:inline-flex;align-items:center;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 5px 4px 12px;font-size:13px;font-weight:600}
+.loc-remove{border:none;background:transparent;color:var(--muted);font-size:16px;line-height:1;cursor:pointer;border-radius:999px;width:22px;height:22px;padding:0;font-family:inherit}
+.loc-remove:hover{background:var(--line);color:var(--ink)}
+.loc-remove:focus-visible{outline:2px solid var(--ember);outline-offset:1px}
+.loc-remove[disabled]{cursor:not-allowed;opacity:.55}
+.loc-combo{position:relative}
+.loc-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;margin:0;padding:4px;list-style:none;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(23,20,18,.12);max-height:320px;overflow-y:auto}
+.loc-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 12px;border-radius:6px;font-size:14px;cursor:pointer}
+.loc-list li[aria-selected="true"],.loc-list li:hover{background:var(--panel)}
+.loc-tag{font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
+#locStatus:empty{display:none}

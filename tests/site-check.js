@@ -15,6 +15,8 @@
 //   S13 styles.css is loaded before app.css on every page
 //   S14 the empty-search note says closed or expired postings appear only by req code, and search.js uses that note
 //   S15 the register form's window is 14 to 45 days (default 45), matches the backend range, and the extended tier is not offered
+//   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
+//       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -131,6 +133,31 @@ export function checkSite(root) {
     if (!rhtml.includes("14 to 45 days")) add("S15", rh, "the form must say the window is 14 to 45 days");
     if (/id="tier"|extended tier|value="extended"/i.test(rhtml)) add("S15", rh, "the extended tier must not be offered in the form");
   } else add("S15", root, "js/register-form.js or register.html is missing");
+
+  // S16: the location picker (pass 12c). Locations are CHOSEN from the catalog (ids); the database refuses anything else, and these checks keep the page honest about it.
+  const lr = path.join(root, "js", "location-rules.js"), lc = path.join(root, "js", "location-catalog.js"), dm = path.join(root, "js", "data", "locations-us.js");
+  if (fs.existsSync(rf) && fs.existsSync(rh) && fs.existsSync(lr) && fs.existsSync(lc) && fs.existsSync(dm)) {
+    const rhtml = read(rh), rules = read(lr), form = stripJsComments(read(rf));
+    if (!rules.includes("export const CAPS = { total: 13, areas: 3, states: 10 };")) add("S16", lr, "the caps must be exactly 13 in all, 3 areas, 10 states (the database and the edge functions enforce the same)");
+    if (/<input id="loc"/.test(rhtml)) add("S16", rh, "a free-text location input (id=loc) must not exist: locations are chosen from the catalog");
+    for (const id of ["locq", "locList", "locChips", "attestRow", "attest"]) if (!new RegExp('id="' + id + '"').test(rhtml)) add("S16", rh, "the picker markup is missing id=" + id);
+    for (const f of ["locpicker", "attest"]) if (!rhtml.includes('data-error-for="' + f + '"')) add("S16", rh, "no place to show the " + f + " error");
+    if (!/<input id="locq"[^>]*role="combobox"/.test(rhtml)) add("S16", rh, "the picker input must be a combobox");
+    if (!rhtml.includes("This is one opening that can be filled from any of these locations, not separate openings.")) add("S16", rh, "the one-opening statement must be on the form, word for word");
+    if (!/id="locAttribution"[^>]*>[^<]*GeoNames[^<]*CC BY 4\.0[^<]*Census/.test(rhtml)) add("S16", rh, "the GeoNames (CC BY 4.0) and Census attribution must be on the page");
+    const body = (form.match(/export function buildCreateBody\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1] || "";
+    if (/\blocations\s*:|body\.locations\s*=/.test(body) || !/body\.location_ids = /.test(body) || !/body\.locations_attested = /.test(body)) add("S16", rf, "buildCreateBody must send location_ids and locations_attested, never free-text locations");
+    for (const f of js) if (f !== lc && f !== dm && /locations-us\.js/.test(stripJsComments(read(f)))) add("S16", f, "only js/location-catalog.js may load the catalog module");
+    if (!/import\("\.\/data\/locations-us\.js"\)/.test(stripJsComments(read(lc)))) add("S16", lc, "the catalog module must be loaded lazily (dynamic import)");
+    const manifests = files.filter((f) => /[\\/]data[\\/]location-catalog-[^\\/]+\.manifest\.json$/.test(f));
+    if (manifests.length !== 1) add("S16", root, "expected exactly one catalog manifest in data/, found " + manifests.length);
+    else {
+      const man = JSON.parse(read(manifests[0])), seed = manifests[0].replace(/\.manifest\.json$/, ".json"), sha = (f) => crypto.createHash("sha256").update(fs.readFileSync(f)).digest("hex");
+      if (!fs.existsSync(seed) || sha(seed) !== man.seed_sha256) add("S16", seed, "the catalog seed file does not match its manifest");
+      if (sha(dm) !== man.module_sha256) add("S16", dm, "the catalog module does not match its manifest");
+      if (!seed.endsWith("location-catalog-" + man.catalog_version + ".json")) add("S16", seed, "the seed file name must carry the catalog version");
+    }
+  } else add("S16", root, "the location picker files are missing");
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");
   if (!fs.existsSync(vendor) || !fs.existsSync(rec)) add("S10", vendor, "vendored Auth client or its recorded hash is missing");

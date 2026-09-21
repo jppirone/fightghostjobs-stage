@@ -3,16 +3,18 @@
 // Facts fixed by the backend: the tier is always "standard" in this build (live on registration; the window is the poster's choice from 14 to 45 days, 45 when left alone; the extended tier is not
 // offered); both AI disclosures are REQUIRED and are always sent as true or false (never omitted, never null); the acting employer and organization are never sent (the server reads them from the session).
 
+import { problems as locationProblems } from "./location-rules.js";
+
 export const MAX_APPLICANT_CAP = 2147483647;
 export const MIN_WINDOW_DAYS = 14, MAX_WINDOW_DAYS = 45;      // the standard-tier window range: create-posting refuses anything else and so does the database (postings_window_days_check)
 
 // The form's input ids -> the backend's field names (for showing a server refusal under the right input)
 export const FIELD_OF_SERVER_NAME = {
-  title: "jtitle", req_number: "req", company_name: "company", locations: "loc", is_remote: "loc", applicant_cap: "appcap",
+  title: "jtitle", req_number: "req", company_name: "company", location_ids: "locpicker", locations: "locpicker", is_remote: "locpicker", locations_attested: "attest", applicant_cap: "appcap",
   initial_closeout_condition: "closeout", description_text: "desc", window_days: "livedays",
 };
 
-// values: { title, req, company, loc, remote, appcap, win, closeout, desc, aiFilter, aiInterview, recruiter }     (win: the days the posting stays live, as typed; empty means the default, 45)
+// values: { title, req, company, locEntries, attested, remote, appcap, win, closeout, desc, aiFilter, aiInterview, recruiter }     (locEntries: the catalog entries chosen in the picker, [{ id, kind, display }]; attested: the "one opening, fillable from any of these" box;  win: the days the posting stays live, as typed; empty means the default, 45)
 export function validateForm(v) {
   const e = {};
   const need = (id, text, what) => { if (String(text || "").trim() === "") e[id] = "Enter " + what + "."; };
@@ -27,12 +29,14 @@ export function validateForm(v) {
   }
   const w = String(v.win == null ? "" : v.win).trim();
   if (w !== "" && (!/^\d{1,3}$/.test(w) || Number(w) < MIN_WINDOW_DAYS || Number(w) > MAX_WINDOW_DAYS)) e.livedays = "Enter a whole number of days from " + MIN_WINDOW_DAYS + " to " + MAX_WINDOW_DAYS + ".";
-  if (v.remote !== true && String(v.loc || "").trim() === "") e.loc = "Enter a location, or tick Remote role.";
+  const chosen = Array.isArray(v.locEntries) ? v.locEntries : [];
+  if (v.remote !== true && chosen.length === 0) e.locpicker = "Choose a location from the list, or tick Remote role.";
+  else Object.assign(e, locationProblems(chosen, v.remote === true, v.attested === true));
   return e;
 }
 
 export function buildCreateBody(v) {
-  const loc = String(v.loc || "").trim();
+  const chosen = Array.isArray(v.locEntries) ? v.locEntries : [];
   const body = {
     req_number: String(v.req).trim(),
     title: String(v.title).trim(),
@@ -41,11 +45,13 @@ export function buildCreateBody(v) {
     initial_closeout_condition: String(v.closeout).trim(),
     description_text: String(v.desc).trim(),
     is_remote: v.remote === true,
-    locations: loc === "" ? [] : [loc],
     ai_filtering: v.aiFilter === true,
     ai_interview_other: v.aiInterview === true,
     third_party_recruiter: v.recruiter === true,
   };
+  // Locations are sent as catalog ids ONLY (free text is refused by the backend); the display text is derived by the database. The attestation is sent when it applies (two or more locations).
+  if (chosen.length) body.location_ids = chosen.map((c) => c.id);
+  if (chosen.length >= 2) body.locations_attested = v.attested === true;
   if (String(v.appcap || "").trim() !== "") body.applicant_cap = Number(String(v.appcap).trim());
   const w = String(v.win == null ? "" : v.win).trim();
   if (w !== "") body.window_days = Number(w);          // omitted means 45 (the backend's default); a value outside 14-45 is refused by the backend, whatever this page checked

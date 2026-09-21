@@ -38,7 +38,7 @@ every import and local link resolves, nothing loaded from another host, no secre
 node tests/run-all.js      # or: npm test
 ```
 
-Runs the unit and API tests, the static site rules, and 46 deliberate defects that each rule must catch. Needs Node 20+ and nothing else (no install step).
+Runs the unit and API tests, the static site rules, and 59 deliberate defects that each rule must catch. Needs Node 20+ and nothing else (no install step).
 
 The live end-to-end suite (`web-e2e.js`) needs the project's secret key and lives with the backend tooling, not in this repo.
 

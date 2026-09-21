@@ -6,10 +6,13 @@ import { rememberNext } from "../session.js";
 import { $, $$, h, clear, alertBox } from "../dom.js";
 import { fmtClose, groupCode, waitText } from "../format.js";
 import { validateForm, buildCreateBody, mapServerErrors } from "../register-form.js";
+import { mountLocationPicker } from "../location-picker.js";
 
 const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false };
 const form = $("#form"), result = $("#result"), pageAlert = $("#pageAlert"), formAlert = $("#formAlert");
 const registerBtn = $("#registerBtn"), draftBtn = $("#draftBtn");
+const picker = mountLocationPicker({ isRemote: () => $("#remote").checked });
+$("#remote").addEventListener("change", () => picker.refresh());
 
 function wireToggle(id, key) {
   const btn = $(id);
@@ -26,11 +29,11 @@ wireToggle("#aiInterviewToggle", "aiInterview");
 wireToggle("#recruiterToggle", "recruiter");
 
 const val = (id) => $(id).value;
-const collect = () => ({ title: val("#jtitle"), req: val("#req"), company: val("#company"), loc: val("#loc"), remote: $("#remote").checked, appcap: val("#appcap"), win: val("#livedays"), closeout: val("#closeout"), desc: val("#desc"),
+const collect = () => ({ title: val("#jtitle"), req: val("#req"), company: val("#company"), locEntries: picker.get().entries, attested: picker.get().attested, remote: $("#remote").checked, appcap: val("#appcap"), win: val("#livedays"), closeout: val("#closeout"), desc: val("#desc"),
   aiFilter: state.aiFilter, aiInterview: state.aiInterview, recruiter: state.recruiter });
 
 function showErrors(byField) {
-  for (const el of $$("[data-error-for]")) { const id = el.dataset.errorFor; const msg = byField[id]; el.hidden = !msg; el.textContent = msg || ""; const inp = $("#" + id); if (inp) inp.setAttribute("aria-invalid", msg ? "true" : "false"); }
+  for (const el of $$("[data-error-for]")) { const id = el.dataset.errorFor; const msg = byField[id]; el.hidden = !msg; el.textContent = msg || ""; const inp = $("#" + (id === "locpicker" ? "locq" : id)); if (inp) inp.setAttribute("aria-invalid", msg ? "true" : "false"); }
 }
 function setBusy(on) { state.busy = on; registerBtn.disabled = on; draftBtn.disabled = on; }
 function say(box, kind, text) { clear(box); box.hidden = !text; if (text) box.append(alertBox(kind, text)); }
@@ -49,7 +52,7 @@ async function submit(mode) {
   const values = collect();
   const problems = validateForm(values);
   showErrors(problems);
-  if (Object.keys(problems).length) { const first = Object.keys(problems)[0]; $("#" + first).focus(); return; }
+  if (Object.keys(problems).length) { const first = Object.keys(problems)[0]; if (first === "locpicker" || first === "attest") picker.focusFor(first); else $("#" + first).focus(); return; }
   setBusy(true);
   try {
     // 1. create (a draft)
@@ -82,8 +85,8 @@ async function publish() {
   showResult(r.data, r.data.status === "live" ? "live" : "other");
 }
 
-function lockForm() { for (const el of $$("input, textarea", form)) el.disabled = true; registerBtn.hidden = true; draftBtn.hidden = true; }
-function unlockForm() { for (const el of $$("input, textarea", form)) el.disabled = false; registerBtn.hidden = false; draftBtn.hidden = false; }
+function lockForm() { for (const el of $$("input, textarea", form)) el.disabled = true; picker.setLocked(true); registerBtn.hidden = true; draftBtn.hidden = true; }
+function unlockForm() { for (const el of $$("input, textarea", form)) el.disabled = false; picker.setLocked(false); registerBtn.hidden = false; draftBtn.hidden = false; }
 
 function showResult(p, kind, problem) {
   result.hidden = false; clear(result);
@@ -110,7 +113,8 @@ function showResult(p, kind, problem) {
 
 function registerAnother() {
   state.saved = null; result.hidden = true; clear(result);
-  for (const id of ["#jtitle", "#req", "#loc", "#appcap", "#closeout", "#desc"]) $(id).value = "";
+  for (const id of ["#jtitle", "#req", "#appcap", "#closeout", "#desc"]) $(id).value = "";
+  picker.reset();
   $("#livedays").value = "45";
   $("#remote").checked = false;
   for (const [id, key] of [["#aiFilterToggle", "aiFilter"], ["#aiInterviewToggle", "aiInterview"], ["#recruiterToggle", "recruiter"]]) { state[key] = false; $(id).classList.remove("on"); $(id).setAttribute("aria-checked", "false"); }

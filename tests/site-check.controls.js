@@ -72,6 +72,19 @@ control("the message stops carrying the note", "S14", edit("js/search-input.js",
 
 control("the form range drifts (floor 7)", "S15", edit("js/register-form.js", (s) => s.replace("MIN_WINDOW_DAYS = 14", "MIN_WINDOW_DAYS = 7")));
 control("the form allows more than 45", "S15", edit("js/register-form.js", (s) => s.replace("MAX_WINDOW_DAYS = 45", "MAX_WINDOW_DAYS = 60")));
+control("a free-text location input comes back", "S16", edit("register.html", (s) => s.replace('<div id="locpicker"', '<div><input id="loc" type="text"></div><div id="locpicker"')));
+control("the area cap drifts (4)", "S16", edit("js/location-rules.js", (s) => s.replace("areas: 3, states: 10", "areas: 4, states: 10")));
+control("the state cap drifts (12)", "S16", edit("js/location-rules.js", (s) => s.replace("states: 10 }", "states: 12 }")));
+control("the attribution is removed", "S16", edit("register.html", (s) => s.replace("licensed CC BY 4.0", "licensed")));
+control("the statement is reworded", "S16", edit("register.html", (s) => s.replace("not separate openings.", "and that is fine.")));
+control("the statement checkbox loses its id", "S16", edit("register.html", (s) => s.replace('id="attest" type="checkbox"', 'type="checkbox"')));
+control("the picker is not a combobox", "S16", edit("register.html", (s) => s.replace('role="combobox" ', "")));
+control("the catalog module is edited by hand", "S16", append("js/data/locations-us.js", "// tampered"));
+control("the seed file is edited by hand", "S16", edit("data/location-catalog-1-d13e1609.json", (s) => s.replace("Austin, TX", "Austin, Texas")));
+control("another module loads the catalog directly", "S16", append("js/pages/search.js", 'import("../data/locations-us.js");'));
+control("the form sends free-text locations", "S16", edit("js/register-form.js", (s) => s.replace("  if (chosen.length) body.location_ids", "  body.locations = chosen.map((c) => c.display);\n  if (chosen.length) body.location_ids")));
+control("the form stops sending the statement", "S16", edit("js/register-form.js", (s) => s.replace("body.locations_attested = v.attested === true;", "")));
+control("the catalog is loaded eagerly", "S16", edit("js/location-catalog.js", (s) => s.replace('import("./data/locations-us.js")', "Promise.resolve({})")));
 control("the window input is removed", "S15", edit("register.html", (s) => s.replace('id="livedays"', 'id="somethingelse"')));
 control("the window input defaults to 60", "S15", edit("register.html", (s) => s.replace('value="45" autocomplete', 'value="60" autocomplete')));
 control("the extended tier appears in the form", "S15", edit("register.html", (s) => s.replace("How long it stays live:", "Extended tier: staff review. How long it stays live:")));

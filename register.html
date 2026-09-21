@@ -38,8 +38,23 @@
         <div><label for="req">Req number</label><input id="req" type="text" maxlength="100" autocomplete="off"><div class="field-error" data-error-for="req" hidden></div></div>
         <div><label for="company">Company</label><input id="company" type="text" maxlength="200" autocomplete="off"><div class="field-error" data-error-for="company" hidden></div></div>
         <div><label for="appcap">Applicant cap (optional)</label><input id="appcap" type="text" inputmode="numeric" autocomplete="off"><div class="field-error" data-error-for="appcap" hidden></div></div>
-        <div><label for="loc">Location</label><input id="loc" type="text" maxlength="200" autocomplete="off"><div class="field-error" data-error-for="loc" hidden></div></div>
-        <div style="display:flex;align-items:flex-end;padding-bottom:10px;"><label class="check-row" for="remote"><input id="remote" type="checkbox"> Remote role</label></div>
+        <div style="grid-column:1/-1;"><label class="check-row" for="remote"><input id="remote" type="checkbox"> Remote role</label></div>
+        <div id="locpicker" style="grid-column:1/-1;">
+          <label for="locq">Location</label>
+          <div id="locChips" class="loc-chips" role="group" aria-label="Chosen locations"></div>
+          <div class="loc-combo">
+            <input id="locq" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="locList" aria-describedby="lochint locStatus" maxlength="80" autocomplete="off" spellcheck="false" placeholder="Start typing a city or metro area">
+            <ul id="locList" class="loc-list" role="listbox" aria-label="Matching locations" hidden></ul>
+          </div>
+          <div class="field-error" data-error-for="locpicker" hidden></div>
+          <div id="locStatus" class="field-hint" role="status"></div>
+          <div id="lochint" class="field-hint">Choose from the list; it is not free text. Up to 3 cities or metro areas. For a remote role you can also choose up to 10 states, or "United States (nationwide)".</div>
+          <div id="locAttribution" class="field-hint">Place names: GeoNames (geonames.org), licensed CC BY 4.0. Metro and micro areas: U.S. Census Bureau, 2023 delineations.</div>
+          <div id="attestRow" hidden style="margin-top:12px;">
+            <label class="check-row" for="attest" style="align-items:flex-start;"><input id="attest" type="checkbox" style="margin-top:3px;"><span>This is one opening that can be filled from any of these locations, not separate openings.</span></label>
+            <div class="field-error" data-error-for="attest" hidden></div>
+          </div>
+        </div>
         <div><label for="livedays">Keep it live for (days)</label><input id="livedays" type="text" inputmode="numeric" maxlength="3" value="45" autocomplete="off"><div class="field-error" data-error-for="livedays" hidden></div><div class="field-hint">14 to 45 days. Never longer than 45.</div></div>
       </div>
       <div style="font-size:12px;color:var(--muted);margin-top:-10px;">If set, the cap is shown to candidates too. Reaching it doesn't auto-close the posting — that's on you to come back and pause or close it. Pausing never resets this cap or the close date.</div>

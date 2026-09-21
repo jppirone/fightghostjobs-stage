@@ -122,13 +122,13 @@ test("code normalisation matches the database (I,L -> 1; O -> 0; spaces and hyph
   assert.equal(normalizeCode("Il0o"), "1100");
 });
 
-const good = { title: "Senior Data Analyst", req: "4471", company: "Acme Corp", loc: "Tampa, FL", remote: false, appcap: "250", closeout: "Closes when the role is filled", desc: "About the job...", aiFilter: false, aiInterview: true, recruiter: false };
+const good = { title: "Senior Data Analyst", req: "4471", company: "Acme Corp", locEntries: [{ id: "gn:4174757", kind: "place", display: "Tampa, FL" }], remote: false, appcap: "250", closeout: "Closes when the role is filled", desc: "About the job...", aiFilter: false, aiInterview: true, recruiter: false };
 
 test("register form: a complete form has no problems and builds exactly the body the backend wants", () => {
   assert.deepEqual(validateForm(good), {});
   const b = buildCreateBody(good);
   assert.deepEqual(b, { req_number: "4471", title: "Senior Data Analyst", company_name: "Acme Corp", tier: "standard", initial_closeout_condition: "Closes when the role is filled", description_text: "About the job...",
-    is_remote: false, locations: ["Tampa, FL"], ai_filtering: false, ai_interview_other: true, third_party_recruiter: false, applicant_cap: 250 });
+    is_remote: false, location_ids: ["gn:4174757"], ai_filtering: false, ai_interview_other: true, third_party_recruiter: false, applicant_cap: 250 });
   assert.equal("poster_id" in b || "organization_id" in b || "status" in b, false);      // identity and status are never the page's to send
 });
 
@@ -142,11 +142,12 @@ test("both AI disclosures are ALWAYS sent as real booleans, off included (never 
 });
 
 test("register form: what is missing is named; the cap, remote and location rules", () => {
-  const e = validateForm({ title: " ", req: "", company: "", loc: "", remote: false, appcap: "", closeout: "", desc: "" });
-  assert.deepEqual(Object.keys(e).sort(), ["closeout", "company", "desc", "jtitle", "loc", "req"]);
-  assert.equal(validateForm(Object.assign({}, good, { loc: "", remote: true })).loc, undefined);
-  assert.equal(buildCreateBody(Object.assign({}, good, { loc: "", remote: true })).is_remote, true);
-  assert.deepEqual(buildCreateBody(Object.assign({}, good, { loc: "", remote: true })).locations, []);
+  const e = validateForm({ title: " ", req: "", company: "", locEntries: [], remote: false, appcap: "", closeout: "", desc: "" });
+  assert.deepEqual(Object.keys(e).sort(), ["closeout", "company", "desc", "jtitle", "locpicker", "req"]);
+  assert.equal(validateForm(Object.assign({}, good, { locEntries: [], remote: true })).locpicker, undefined);
+  assert.equal(buildCreateBody(Object.assign({}, good, { locEntries: [], remote: true })).is_remote, true);
+  assert.equal("location_ids" in buildCreateBody(Object.assign({}, good, { locEntries: [], remote: true })), false);
+  assert.equal("locations" in buildCreateBody(good), false);        // free text is never sent
   for (const bad of ["0", "-3", "12.5", "abc", "99999999999"]) assert.ok(validateForm(Object.assign({}, good, { appcap: bad })).appcap, bad);
   assert.equal(validateForm(Object.assign({}, good, { appcap: "" })).appcap, undefined);
   assert.equal("applicant_cap" in buildCreateBody(Object.assign({}, good, { appcap: "" })), false);
