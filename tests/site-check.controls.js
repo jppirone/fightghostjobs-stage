@@ -82,6 +82,12 @@ control("the edit page loses its destination-links form", "S20", edit("edit.html
 control("the locked section no longer points to sales", "S20", edit("edit.html", (s) => s.replace("Write to sales@fightghostjobs.com →", "Ask around")));
 control("the edit page no longer saves links through the API", "S20", edit("js/pages/edit.js", (s) => s.replace("api.setDestinationLinks(", "api.somethingElse(")));
 control("the edit page reads an address back from a stored link", "S20", append("js/pages/edit.js", "const leak = (doc) => doc.destination_links.map((x) => x.url);"));
+control("the register form's go-live disclosure is reworded", "S21", edit("register.html", (s) => s.replace("Your posting goes live within 15 minutes after that time", "Your posting goes live at that time")));
+control("the edit page's go-live disclosure is reworded", "S21", edit("edit.html", (s) => s.replace("counted from the moment it actually goes live, not from now", "counted from now")));
+control("the go-live input is a plain text box", "S21", edit("register.html", (s) => s.replace('<input id="gldate" type="datetime-local"', '<input id="gldate" type="text"')));
+control("the register form loses its 'on a date and time' choice", "S21", edit("register.html", (s) => s.replace('id="glLater"', 'id="glLaterX"')));
+control("the register page no longer schedules through the API", "S21", edit("js/pages/register.js", (s) => s.replace("api.schedulePosting(", "api.somethingElse(")));
+control("the edit page no longer schedules through the API", "S21", edit("js/pages/edit.js", (s) => s.replace("api.schedulePosting(", "api.somethingElse(")));
 control("the edit page has no change note input", "S19", edit("edit.html", (s) => s.replace('<input id="note" type="text" maxlength="500"', '<input id="notx" type="text" maxlength="500"')));
 control("the register hint loses the approved wording", "S18", edit("register.html", (s) => s.replace("Required. Your own reference, such as your ATS number.", "Not shown to candidates.")));
 control("the register hint stops telling employers the req is masked", "S18", edit("register.html", (s) => s.replace("They see it masked (for example FGJ****45)", "They see it")));

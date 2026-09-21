@@ -116,7 +116,7 @@ test("create / publish answers are checked: a row without a proper public code o
 });
 
 const mine = { id: uuid, title: "Analyst", req_number: null, post_id: "D21M48YBZQBF", status: "live", closed_reason: null, stored_status: "live", is_remote: false, locations: ["Austin, TX"], location_ids: ["gn:4671654"], locations_attested: false, window_days: 45,
-  posted_at: "2026-09-02T12:00:00.000Z", expiration_date: "2026-10-17T12:00:00.000Z", publish_by: null, applicant_cap: null, bump_used: false, bump_days: null, created_at: "2026-09-02T11:59:00.000Z", last_edited_at: null, comment_count: 0 };
+  posted_at: "2026-09-02T12:00:00.000Z", expiration_date: "2026-10-17T12:00:00.000Z", publish_by: null, go_live_at: null, applicant_cap: null, bump_used: false, bump_days: null, created_at: "2026-09-02T11:59:00.000Z", last_edited_at: null, comment_count: 0 };
 test("list-my-postings: sends only the offset (never an identity), checks every row, and fails closed", async () => {
   let sent = null;
   const ok = await mk((u, i) => { sent = { u, body: JSON.parse(i.body) }; return { status: 200, body: { total: 1, postings: [mine], next_offset: null } }; }).api.listMyPostings();

@@ -118,6 +118,24 @@
       </div>
     </form>
 
+    <div id="scheduleCard" class="card" style="display:flex;flex-direction:column;gap:14px;" hidden>
+      <div style="font-size:14px;font-weight:700;">Go-live time</div>
+      <div id="scheduleState" style="font-size:14px;line-height:1.6;color:#4A453F;"></div>
+      <form id="scheduleForm" novalidate style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label for="gldate">Go-live date and time (your own time zone)</label>
+          <input id="gldate" type="datetime-local" autocomplete="off">
+          <div class="field-error" data-error-for="gldate" hidden></div>
+          <div id="goLiveHint" class="field-hint">Choose a time between 1 hour and 90 days from now. Your posting goes live within 15 minutes after that time, and its closing date is counted from the moment it actually goes live, not from now. Until then it is a scheduled draft that candidates cannot see; you can change the time, remove it or publish it now from My postings.</div>
+        </div>
+        <div id="scheduleAlert" hidden></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button type="submit" id="scheduleBtn" class="btn btn-dark btn-sm">Schedule go-live</button>
+          <button type="button" id="unscheduleBtn" class="btn btn-outline btn-sm" hidden>Remove the schedule</button>
+        </div>
+      </form>
+    </div>
+
     <div id="linksCard" class="card" style="display:flex;flex-direction:column;gap:16px;" hidden>
       <div style="font-size:14px;font-weight:700;">Destination links</div>
       <div id="linksPlan" hidden></div>
@@ -150,6 +168,7 @@
         <li>Location (with a new req number once live)</li>
         <li>AI disclosures, recruiter yes/no, applicant cap</li>
         <li>Destination links, and the "only through these links" statement (verified plan)</li>
+        <li>For a draft: the go-live time</li>
       </ul>
       <p style="font-size:13px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;">Dates are changed with Extend on My postings. Expired and closed postings are the public record and cannot be edited.</p>
     </div>

@@ -5,7 +5,7 @@ import { CLOSING_SOON_DAYS, FILTERS, isClosingSoon, statusChip, matchesFilter, m
 
 const NOW = Date.parse("2026-09-21T12:00:00Z"), DAY = 86400000, at = (days) => new Date(NOW + days * DAY).toISOString();
 const base = { id: "11111111-1111-4111-8111-111111111111", title: "Analyst", req_number: "R-1", post_id: "ABCD2345EFGH", status: "live", closed_reason: null, stored_status: "live", is_remote: false, locations: [], location_ids: [], locations_attested: false,
-  window_days: 45, posted_at: at(-5), expiration_date: at(40), publish_by: null, applicant_cap: null, bump_used: false, bump_days: null, created_at: at(-5), last_edited_at: null, comment_count: 0 };
+  window_days: 45, posted_at: at(-5), expiration_date: at(40), publish_by: null, go_live_at: null, applicant_cap: null, bump_used: false, bump_days: null, created_at: at(-5), last_edited_at: null, comment_count: 0 };
 const row = (o) => Object.assign({}, base, o);
 
 test("closing soon: live or paused, and 10 days or fewer left (exactly 10 days counts, 10 days and a second does not, already past does not)", () => {
@@ -42,7 +42,7 @@ test("filters: each posting lands under the right pill; Closed includes expired;
   assert.equal(count("paused"), "paused");
   assert.equal(count("draft"), "draft");
   assert.equal(count("closed"), "closed,expired");
-  assert.deepEqual(FILTERS.map((f) => f[0]), ["all", "live", "closing", "paused", "draft", "closed"]);
+  assert.deepEqual(FILTERS.map((f) => f[0]), ["all", "live", "closing", "paused", "scheduled", "draft", "closed"]);
 });
 
 test("text filter: title, req number or postID, ignoring case and punctuation", () => {

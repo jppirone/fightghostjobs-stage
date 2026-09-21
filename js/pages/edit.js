@@ -8,6 +8,7 @@ import { fmtClose, fmtStamp, waitText } from "../format.js";
 import { statusChip } from "../dashboard-model.js";
 import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, mapLinksErrors, planNotice, MAX_LINKS, MAX_URL, MAX_LABEL } from "../edit-form.js";
 import { mountLocationPicker } from "../location-picker.js";
+import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js";
 import { loadCatalog } from "../location-catalog.js";
 
 const postingId = new URLSearchParams(location.search).get("id") || "";
@@ -59,6 +60,45 @@ function renderChanges(list) {
   card.hidden = list.length === 0;
   for (const c of list) ul.append(h("li", {}, h("div", { style: "font-weight:600;" }, KIND_TEXT[c.kind] || "Edit", h("span", { style: "font-weight:400;color:var(--muted);" }, " · " + fmtStamp(c.at))), h("div", { style: "color:#4A453F;margin-top:2px;overflow-wrap:anywhere;" }, c.note)));
 }
+
+// ---- the go-live time: a draft (scheduled or not) can carry one; the 15-minute scheduler publishes it, and the window starts then
+function renderSchedule(p, editable) {
+  const card = $("#scheduleCard"); card.hidden = !(editable && p.stored_status === "draft"); if (card.hidden) return;
+  const scheduled = typeof p.go_live_at === "string";
+  const st = $("#scheduleState"); clear(st);
+  st.append(scheduled ? h("span", {}, h("strong", {}, "Scheduled: "), "goes live at " + fmtClose(p.go_live_at) + ", published within 15 minutes after that time. Its window is counted from then.")
+    : "Not scheduled. It goes live when you publish it" + (p.publish_by ? " (a draft can be published for 14 days after it was saved, until " + fmtClose(p.publish_by) + ")." : "."));
+  $("#gldate").value = scheduled ? toLocalInput(p.go_live_at) : "";
+  $("#scheduleBtn").textContent = scheduled ? "Change the time" : "Schedule go-live";
+  $("#unscheduleBtn").hidden = !scheduled;
+  say($("#scheduleAlert"), "error", "");
+}
+async function submitSchedule(clearIt) {
+  if (state.busy || !state.orig) return;
+  const box = $("#scheduleAlert"); say(box, "error", "");
+  let iso = null;
+  if (!clearIt) {
+    const c = checkGoLive($("#gldate").value, Date.now(), Date.parse(state.orig.created_at));
+    showErrors({ gldate: c.ok ? "" : c.error });
+    if (!c.ok) { $("#gldate").focus(); return; }
+    iso = c.iso;
+  } else showErrors({});
+  setBusy(true);
+  try {
+    const r = await api.schedulePosting(postingId, iso);
+    if (!r.ok) {
+      if (isAuthFailure(r.error)) return sessionEnded();
+      const m = mapScheduleError(r.error);
+      if (m.where === "gldate") showErrors({ gldate: m.message }); else say(box, "error", m.message || failureText(r.error));
+      return;
+    }
+    const reload = await api.getMyPosting(postingId);
+    if (reload.ok) await populate(reload.data);
+    say($("#scheduleAlert"), "ok", r.data.changed === false ? "That is the time already set, so nothing was changed." : clearIt ? "The schedule is removed. It is a draft again." : "Saved. It goes live at " + fmtClose(r.data.go_live_at) + ", within 15 minutes after that time.");
+  } finally { setBusy(false); }
+}
+$("#scheduleForm").addEventListener("submit", (ev) => { ev.preventDefault(); submitSchedule(false); });
+$("#unscheduleBtn").addEventListener("click", () => submitSchedule(true));
 
 // ---- destination links: shown only for a posting that can be edited; a verified plan gets the form, a lapsed one a notice, anyone else the sales note
 const planDay = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -112,13 +152,14 @@ async function populate(doc) {
   $("#aiInterviewNote").textContent = p.ai_interview_other === null ? "Not stated yet. Once you state it, it can be changed but not cleared." : "Independent of filtering — an employer can have neither, either, or both on.";
   const chip = statusChip(p, Date.now());
   const line = $("#statusLine"); line.hidden = false; clear(line);
-  line.append(h("span", { class: "status " + chip.cls }, chip.text), " ", p.stored_status === "draft" ? "Not visible to candidates yet." : (p.status === "live" || p.status === "paused") && p.expiration_date ? "Closes " + fmtClose(p.expiration_date) + "." : "");
+  line.append(h("span", { class: "status " + chip.cls }, chip.text), " ", p.stored_status === "draft" ? (p.go_live_at ? "Scheduled: not visible to candidates until it goes live." : "Not visible to candidates yet.") : (p.status === "live" || p.status === "paused") && p.expiration_date ? "Closes " + fmtClose(p.expiration_date) + "." : "");
   noteLabel(p.stored_status === "draft");
   renderChanges(doc.recent_changes);
   picker.set(await entriesFor(p), p.locations_attested);
   const editable = p.stored_status === "draft" || ((p.stored_status === "live" || p.stored_status === "paused") && p.status === p.stored_status);
   form.hidden = !editable;
   renderLinks(doc, editable);
+  renderSchedule(p, editable);
   const ro = $("#readonlyNote"); ro.hidden = editable; clear(ro);
   if (!editable) {
     const why = p.stored_status === "flagged" ? "This posting is held for review, so it cannot be edited right now."

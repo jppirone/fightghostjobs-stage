@@ -4,6 +4,7 @@
 // offered); both AI disclosures are REQUIRED and are always sent as true or false (never omitted, never null); the acting employer and organization are never sent (the server reads them from the session).
 
 import { problems as locationProblems } from "./location-rules.js";
+import { checkGoLive } from "./schedule-form.js";
 
 export const MAX_APPLICANT_CAP = 2147483647;
 export const MIN_WINDOW_DAYS = 14, MAX_WINDOW_DAYS = 45;      // the standard-tier window range: create-posting refuses anything else and so does the database (postings_window_days_check)
@@ -39,6 +40,7 @@ export function validateForm(v) {
   }
   const w = String(v.win == null ? "" : v.win).trim();
   if (w !== "" && (!/^\d{1,3}$/.test(w) || Number(w) < MIN_WINDOW_DAYS || Number(w) > MAX_WINDOW_DAYS)) e.livedays = "Enter a whole number of days from " + MIN_WINDOW_DAYS + " to " + MAX_WINDOW_DAYS + ".";
+  if (v.goLater === true) { const g = checkGoLive(v.goLive, typeof v.nowMs === "number" ? v.nowMs : Date.now()); if (!g.ok) e.gldate = g.error; }      // goLater: "on a date and time I choose" is selected; goLive: the datetime-local text
   const chosen = Array.isArray(v.locEntries) ? v.locEntries : [];
   if (v.remote !== true && chosen.length === 0) e.locpicker = "Choose a location from the list, or tick Remote role.";
   else Object.assign(e, locationProblems(chosen, v.remote === true, v.attested === true));

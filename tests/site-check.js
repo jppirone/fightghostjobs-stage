@@ -197,6 +197,21 @@ export function checkSite(root) {
     }
   }
 
+  // S21: the scheduled go-live control (pass 14): on the register form AND the edit page, the approved disclosure (0-15 minutes after the chosen time; the window counts from the actual go-live) word for word,
+  // a datetime-local input, and the pages send it through api.schedulePosting (never a made-up start date)
+  {
+    const HINT = "Choose a time between 1 hour and 90 days from now. Your posting goes live within 15 minutes after that time, and its closing date is counted from the moment it actually goes live, not from now. Until then it is a scheduled draft that candidates cannot see; you can change the time, remove it or publish it now from My postings.";
+    for (const f of [rh, eh]) {
+      if (!fs.existsSync(f)) continue;
+      const t = read(f);
+      if (!t.includes('<div id="goLiveHint" class="field-hint">' + HINT + "</div>")) add("S21", f, "the go-live disclosure (#goLiveHint) must carry the approved wording, word for word");
+      if (!/<input id="gldate" type="datetime-local"/.test(t)) add("S21", f, "the go-live input (id=gldate) must be a datetime-local input");
+    }
+    if (fs.existsSync(rh)) for (const id of ["glNow", "glLater", "glWhen"]) if (!read(rh).includes('id="' + id + '"')) add("S21", rh, "the register form is missing #" + id + " (when should it go live)");
+    for (const js of ["register.js", "edit.js"]) { const p = path.join(root, "js", "pages", js); if (fs.existsSync(p) && !read(p).includes("api.schedulePosting(")) add("S21", p, js + " must schedule through api.schedulePosting");
+      if (fs.existsSync(p) && /posted_at|start_date|expiration_date\s*:/.test(read(p).split("\n").filter((l) => /schedulePosting|go_live/.test(l)).join("\n"))) add("S21", p, js + " must not send a start or posted date: only go_live_at is sent"); }
+  }
+
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");
   if (!fs.existsSync(vendor) || !fs.existsSync(rec)) add("S10", vendor, "vendored Auth client or its recorded hash is missing");
   else if (crypto.createHash("sha256").update(fs.readFileSync(vendor)).digest("hex") !== fs.readFileSync(rec, "utf8").trim()) add("S10", vendor, "the vendored Auth client does not match tests/vendor-hash.txt");

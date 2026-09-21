@@ -4,8 +4,9 @@ import { h } from "./dom.js";
 import { isAuthFailure, describeError } from "./api.js";
 import { checkBump, checkClose, MAX_BUMP_DAYS, MAX_REASON, MAX_CLOSE_DETAIL } from "./dashboard-model.js";
 import { fmtClose } from "./format.js";
+const DAY_MS = 86400000;
 
-export const ACTION_LABEL = { edit: "Edit", publish: "Publish", pause: "Pause", resume: "Resume", extend: "Extend", close: "Close" };
+export const ACTION_LABEL = { edit: "Edit", publish: "Publish", unschedule: "Remove schedule", pause: "Pause", resume: "Resume", extend: "Extend", close: "Close" };
 
 function focusable(root) { return Array.from(root.querySelectorAll("button:not([disabled]), input:not([disabled]), textarea:not([disabled])")).filter((e) => !e.hidden && e.offsetParent !== null); }
 
@@ -58,9 +59,16 @@ export function runAction(kind, p, deps) {
   const posting = (d) => (d && d.posting && typeof d.posting === "object" ? d.posting : d);
   const title = "“" + p.title + "”";
 
+  if (kind === "unschedule") {
+    const aged = Date.parse(p.created_at) + 14 * DAY_MS <= Date.now();
+    return openDialog({ title: "Remove the scheduled go-live?", confirmLabel: "Remove schedule",
+      content: [para(title + " goes back to a plain draft: nothing is published on " + fmtClose(p.go_live_at) + ". Nothing else about it changes."),
+        para(aged ? "This draft was saved more than 14 days ago, and a plain draft can only be published for 14 days after it was saved. Once the schedule is removed it can no longer be published: keep the schedule (or publish it now) instead, or register a new posting." : "A plain draft can be published for 14 days after it was saved, so publish it before then or schedule it again.")],
+      onSubmit: async () => finish(await api.schedulePosting(p.id, null), () => "The schedule for " + title + " is removed. It is a draft again.") });
+  }
   if (kind === "publish") {
     return openDialog({ title: "Publish this posting?", confirmLabel: "Publish now",
-      content: [para(title + " goes live for candidates right away, and its " + p.window_days + "-day window starts now. The exact close date and time are shown once it is live.")],
+      content: [para(title + " goes live for candidates right away, and its " + p.window_days + "-day window starts now. The exact close date and time are shown once it is live." + (p.status === "scheduled" ? " It was set to go live on " + fmtClose(p.go_live_at) + "; publishing now replaces that." : ""))],
       onSubmit: async () => finish(await api.publishPosting(p.id), (d) => title + " is live. It closes " + fmtClose(posting(d).expiration_date) + ".") });
   }
   if (kind === "pause") {

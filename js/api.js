@@ -21,6 +21,7 @@ export const AUTH_FAILURE_CODES = ["unauthorized", "reverification_required", "n
 export const isAuthFailure = (err) => !!err && AUTH_FAILURE_CODES.includes(err.code);
 
 const POSTING_STATUSES = ["draft", "live", "paused", "expired", "closed", "flagged"];
+const EFFECTIVE_STATUSES = POSTING_STATUSES.concat(["scheduled"]);      // what the employer's views report: a draft that carries a go-live time reads "scheduled" (never a stored status)
 
 // ---- response shapes (exactly what the pages read)
 export const shapes = {
@@ -37,21 +38,23 @@ export const shapes = {
   linkIssue: (d) => isObj(d) && isStr(d.expires_at) && Array.isArray(d.links) && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && isNullable(l.label, isStr) && isStr(l.go_url) && /^https:\/\//.test(l.go_url)),
   comments: (d) => isObj(d) && Number.isInteger(d.total) && Array.isArray(d.comments) && d.comments.every((c) => isObj(c) && isStr(c.body) && isStr(c.created_at)) && isNullable(d.next_offset, Number.isInteger),
   // list-my-postings (the employer's own list): every field the dashboard reads, checked; anything else is ignored
-  myPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && /^[0-9A-Z]{12}$/.test(p.post_id) && POSTING_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
+  myPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && /^[0-9A-Z]{12}$/.test(p.post_id) && EFFECTIVE_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
     && isNullable(p.closed_reason, isStr) && isBool(p.is_remote) && Array.isArray(p.locations) && p.locations.every(isStr) && Array.isArray(p.location_ids) && p.location_ids.every(isStr) && isBool(p.locations_attested)
-    && Number.isInteger(p.window_days) && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isNullable(p.applicant_cap, Number.isInteger)
+    && Number.isInteger(p.window_days) && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isNullable(p.go_live_at, isStr) && isNullable(p.applicant_cap, Number.isInteger)
     && isBool(p.bump_used) && isNullable(p.bump_days, Number.isInteger) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr) && Number.isInteger(p.comment_count) && p.comment_count >= 0,
   myPostings: (d) => isObj(d) && Number.isInteger(d.total) && d.total >= 0 && Array.isArray(d.postings) && d.postings.length <= 50 && d.postings.every(shapes.myPosting) && isNullable(d.next_offset, Number.isInteger),
   // get-my-posting (one posting, for the edit page): the fields the form starts from, checked; recent_changes: the newest five log entries (when, note, kind, the NAMES of the fields; never values)
-  openPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && isStr(p.company_name) && /^[0-9A-Z]{12}$/.test(p.post_id) && POSTING_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
+  openPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && isStr(p.company_name) && /^[0-9A-Z]{12}$/.test(p.post_id) && EFFECTIVE_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
     && isNullable(p.closed_reason, isStr) && isBool(p.is_remote) && Array.isArray(p.locations) && p.locations.every(isStr) && Array.isArray(p.location_ids) && p.location_ids.every(isStr) && isBool(p.locations_attested)
     && isNullable(p.ai_filtering, isBool) && isNullable(p.ai_interview_other, isBool) && isBool(p.third_party_recruiter) && isBool(p.destination_links_exclusive) && isNullable(p.applicant_cap, Number.isInteger) && isStr(p.description_text) && Number.isInteger(p.window_days)
-    && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr),
+    && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isNullable(p.go_live_at, isStr) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr),
   // the destination links the employer stored: position and label only, NEVER the address (the server keeps that encrypted and does not send it back)
   storedLinks: (l) => Array.isArray(l) && l.length <= 10 && l.every((x) => isObj(x) && Number.isInteger(x.position) && x.position >= 1 && x.position <= 10 && isNullable(x.label, isStr)),
   linksAnswer: (d) => isObj(d) && Number.isInteger(d.active_links) && shapes.storedLinks(d.links),
   openAnswer: (d) => isObj(d) && shapes.openPosting(d.posting) && shapes.storedLinks(d.destination_links) && shapes.plan(d.plan) && Array.isArray(d.recent_changes) && d.recent_changes.length <= 5
     && d.recent_changes.every((c) => isObj(c) && isStr(c.at) && isStr(c.note) && isNullable(c.kind, isStr) && Array.isArray(c.fields) && c.fields.every(isStr)),
+  // schedule-posting: whether anything changed, the go-live time now stored (null = removed) and the resulting status
+  scheduleAnswer: (d) => isObj(d) && isBool(d.changed) && isNullable(d.go_live_at, isStr) && (d.status === "draft" || d.status === "scheduled"),
   // edit-posting: what the page reads is whether anything changed, which fields, and (for a requirements-text edit) how much of the wording was kept
   editAnswer: (d) => isObj(d) && Array.isArray(d.changed_fields) && d.changed_fields.every(isStr) && isBool(d.edited) && isNullable(d.similarity_pct === undefined ? null : d.similarity_pct, Number.isInteger),
   // pause / resume / bump / close: only the fact that it worked and the posting's new status are read
@@ -102,6 +105,8 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     createPosting: async (fields) => unwrap(await call("create-posting", fields, { validate: postingAnswer })),
     getMyPosting: (postingId) => call("get-my-posting", { posting_id: postingId }, { validate: shapes.openAnswer }),
     editPosting: (body) => call("edit-posting", body, { validate: shapes.editAnswer }),
+    // sets, changes or removes (null) a DRAFT's scheduled go-live time; goLiveAt: an ISO instant with a time zone
+    schedulePosting: (postingId, goLiveAt) => call("schedule-posting", { posting_id: postingId, go_live_at: goLiveAt }, { validate: shapes.scheduleAnswer }),
     // replaces the posting's whole set of destination links (verified plan): [{ url, label? }], 1 to 10
     setDestinationLinks: (postingId, links) => call("set-destination-links", { posting_id: postingId, links }, { validate: shapes.linksAnswer }),
     listMyPostings: (offset) => call("list-my-postings", offset ? { offset } : {}, { validate: shapes.myPostings }),

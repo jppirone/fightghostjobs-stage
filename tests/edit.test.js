@@ -8,7 +8,7 @@ const ID = "3f1d5b1e-0000-4000-8000-000000000001";
 const AUSTIN = { id: "gn:4671654", kind: "place", display: "Austin, TX" }, DALLAS = { id: "gn:4684888", kind: "place", display: "Dallas, TX" };
 const orig = (o) => Object.assign({ id: ID, title: "Data Analyst", req_number: "R-100", company_name: "Acme", post_id: "ABCDEFGHJKMN", status: "live", stored_status: "live", closed_reason: null, is_remote: false, locations: ["Austin, TX"], location_ids: [AUSTIN.id],
   locations_attested: false, ai_filtering: false, ai_interview_other: null, third_party_recruiter: false, destination_links_exclusive: false, applicant_cap: null, description_text: "Analyse the data.", window_days: 45, posted_at: "2026-09-01T00:00:00Z", expiration_date: "2026-10-16T00:00:00Z",
-  publish_by: null, created_at: "2026-09-01T00:00:00Z", last_edited_at: null }, o || {});
+  publish_by: null, go_live_at: null, created_at: "2026-09-01T00:00:00Z", last_edited_at: null }, o || {});
 const FREE = { verified: false, source: null, expires_at: null, lapsed: false };
 const same = (o) => Object.assign({ title: "Data Analyst", req: "R-100", desc: "Analyse the data.", locEntries: [AUSTIN], attested: false, remote: false, appcap: "", aiFilter: false, aiInterview: null, recruiter: false, note: "" }, o || {});
 

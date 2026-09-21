@@ -69,9 +69,21 @@
       <div style="font-size:12px;color:var(--muted);margin-top:-10px;">If set, the cap is shown to candidates too. Reaching it doesn't auto-close the posting — that's on you to come back and pause or close it. Pausing never resets this cap or the close date.</div>
       <div class="alert alert-notice" id="windowNote" role="note">
         <strong style="color:var(--ink);">How long it stays live: you choose, 14 to 45 days.</strong>
-        Your posting goes live the moment you register it and closes automatically after the number of days you set above (45 unless you change it, and never more than 45). The days start when it goes live, not when you fill in this form, so a saved draft does not start the clock until you publish it.
+        Your posting goes live the moment you register it (unless you choose a go-live time below) and closes automatically after the number of days you set above (45 unless you change it, and never more than 45). The days start when it goes live, not when you fill in this form, so a saved draft does not start the clock until you publish it.
         The close date is shown to candidates; you will see the exact date and time, with your time zone, as soon as it is registered. It can be extended once, by up to 15 days.
       </div>
+
+      <fieldset id="goLive" style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">
+        <legend style="font-size:14px;font-weight:700;padding:0;margin-bottom:6px;">When should it go live?</legend>
+        <label class="check-row" for="glNow"><input id="glNow" type="radio" name="goLiveWhen" value="now" checked> As soon as I register it</label>
+        <label class="check-row" for="glLater"><input id="glLater" type="radio" name="goLiveWhen" value="later"> On a date and time I choose</label>
+        <div id="glWhen" hidden>
+          <label for="gldate">Go-live date and time (your own time zone)</label>
+          <input id="gldate" type="datetime-local" autocomplete="off">
+          <div class="field-error" data-error-for="gldate" hidden></div>
+          <div id="goLiveHint" class="field-hint">Choose a time between 1 hour and 90 days from now. Your posting goes live within 15 minutes after that time, and its closing date is counted from the moment it actually goes live, not from now. Until then it is a scheduled draft that candidates cannot see; you can change the time, remove it or publish it now from My postings.</div>
+        </div>
+      </fieldset>
 
       <div>
         <label for="closeout">What ends this posting?</label>

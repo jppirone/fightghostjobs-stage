@@ -5,10 +5,11 @@ import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFai
 import { rememberNext } from "../session.js";
 import { $, $$, h, clear, alertBox } from "../dom.js";
 import { fmtClose, groupCode, waitText } from "../format.js";
+import { checkGoLive, mapScheduleError } from "../schedule-form.js";
 import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq } from "../register-form.js";
 import { mountLocationPicker } from "../location-picker.js";
 
-const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false, dupAsked: false };
+const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false, dupAsked: false, goLiveIso: null };
 const form = $("#form"), result = $("#result"), pageAlert = $("#pageAlert"), formAlert = $("#formAlert");
 const registerBtn = $("#registerBtn"), draftBtn = $("#draftBtn");
 const picker = mountLocationPicker({ isRemote: () => $("#remote").checked });
@@ -29,8 +30,12 @@ wireToggle("#aiInterviewToggle", "aiInterview");
 wireToggle("#recruiterToggle", "recruiter");
 
 const val = (id) => $(id).value;
+// "when should it go live": as soon as it is registered (the default) or at a time the employer chooses
+const goLater = () => $("#glLater").checked;
+function syncGoLive() { $("#glWhen").hidden = !goLater(); registerBtn.textContent = goLater() ? "Register and schedule" : "Register posting"; }
+$("#glNow").addEventListener("change", syncGoLive); $("#glLater").addEventListener("change", syncGoLive);
 const collect = () => ({ title: val("#jtitle"), req: val("#req"), company: val("#company"), locEntries: picker.get().entries, attested: picker.get().attested, remote: $("#remote").checked, appcap: val("#appcap"), win: val("#livedays"), closeout: val("#closeout"), desc: val("#desc"),
-  aiFilter: state.aiFilter, aiInterview: state.aiInterview, recruiter: state.recruiter, dupAsked: state.dupAsked, dupNote: val("#dupnote") });
+  aiFilter: state.aiFilter, aiInterview: state.aiInterview, recruiter: state.recruiter, dupAsked: state.dupAsked, dupNote: val("#dupnote"), goLater: goLater(), goLive: val("#gldate") });
 
 function showErrors(byField) {
   for (const el of $$("[data-error-for]")) { const id = el.dataset.errorFor; const msg = byField[id]; el.hidden = !msg; el.textContent = msg || ""; const inp = $("#" + (id === "locpicker" ? "locq" : id)); if (inp) inp.setAttribute("aria-invalid", msg ? "true" : "false"); }
@@ -76,8 +81,8 @@ async function submit(mode) {
     state.saved = created.data;
     lockForm();
     if (mode === "draft") { showResult(created.data, "draft"); return; }
-    // 2. publish
-    await publish();
+    // 2. publish now, or schedule the go-live for the time chosen
+    if (goLater()) { state.goLiveIso = checkGoLive(val("#gldate"), Date.now()).iso || null; await schedule(); } else await publish();
   } finally {
     setBusy(false);
   }
@@ -94,18 +99,34 @@ async function publish() {
   showResult(r.data, r.data.status === "live" ? "live" : "other");
 }
 
+async function schedule() {
+  const r = await api.schedulePosting(state.saved.id, state.goLiveIso);
+  if (!r.ok) {
+    if (isAuthFailure(r.error)) return sessionEnded();
+    const m = mapScheduleError(r.error);
+    showResult(state.saved, "schedule-failed", m.message || failureText(r.error));
+    return;
+  }
+  showResult(state.saved, "scheduled", null, r.data.go_live_at);
+}
+
 function lockForm() { for (const el of $$("input, textarea", form)) el.disabled = true; picker.setLocked(true); registerBtn.hidden = true; draftBtn.hidden = true; }
 function unlockForm() { for (const el of $$("input, textarea", form)) el.disabled = false; picker.setLocked(false); registerBtn.hidden = false; draftBtn.hidden = false; }
 
-function showResult(p, kind, problem) {
+function showResult(p, kind, problem, goLiveAt) {
   result.hidden = false; clear(result);
-  const heading = kind === "live" ? "Registered — live now" : kind === "draft" ? "Saved as a draft" : kind === "publish-failed" ? "Saved as a draft — publishing did not finish" : "Registered";
+  const heading = kind === "live" ? "Registered — live now" : kind === "draft" ? "Saved as a draft" : kind === "scheduled" ? "Registered — scheduled" : kind === "schedule-failed" ? "Saved as a draft — the go-live time was not set" : kind === "publish-failed" ? "Saved as a draft — publishing did not finish" : "Registered";
   result.append(h("h2", { style: "font-size:22px;font-weight:700;" }, heading));
   if (kind === "publish-failed") {
     result.append(h("div", { style: "margin-top:12px;" }, alertBox("error", problem + " Your posting is saved as a draft; nothing is visible to candidates yet.")),
       h("div", { style: "margin-top:16px;display:flex;gap:12px;" }, h("button", { type: "button", class: "btn btn-dark btn-sm", id: "retryPublish", onclick: async (ev) => { ev.currentTarget.disabled = true; await publish(); } }, "Try publishing again")));
   }
-  const rows = [["Title", p.title], ["Status", p.status]];
+  if (kind === "schedule-failed") {
+    result.append(h("div", { style: "margin-top:12px;" }, alertBox("error", problem + " Your posting is saved as a draft; nothing is visible to candidates yet. You can set the time again from My postings (Edit), or publish it.")),
+      h("div", { style: "margin-top:16px;display:flex;gap:12px;" }, h("button", { type: "button", class: "btn btn-dark btn-sm", id: "retrySchedule", onclick: async (ev) => { ev.currentTarget.disabled = true; await schedule(); } }, "Try scheduling again")));
+  }
+  const rows = [["Title", p.title], ["Status", kind === "scheduled" ? "Scheduled" : p.status]];
+  if (kind === "scheduled") rows.push(["Goes live", fmtClose(goLiveAt) + " (within 15 minutes after that time)"]);
   if (kind === "live" || kind === "other") rows.push(["Closes", fmtClose(p.expiration_date)]);
   result.append(h("dl", { style: "margin:18px 0 0 0;display:grid;grid-template-columns:auto 1fr;gap:8px 18px;font-size:14px;" },
     rows.flatMap(([k, v]) => [h("dt", { style: "color:var(--faint);font-weight:600;" }, k), h("dd", { style: "margin:0;" }, v)])));
@@ -113,6 +134,7 @@ function showResult(p, kind, problem) {
     h("div", { style: "font-size:13px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;" }, "Your postID"),
     h("span", { class: "code-box", id: "postId" }, groupCode(p.public_code)),
     h("p", { style: "font-size:13px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;" }, "Candidates find this posting by your company name plus either the job title or this postID. They only ever see the last four characters of it.")));
+  if (kind === "scheduled") result.append(h("div", { style: "margin-top:16px;" }, alertBox("notice", "Nothing is visible to candidates until it goes live. Its " + (p.window_days || 45) + "-day window is counted from the moment it actually goes live. You can change the time, remove it or publish it now from My postings.")));
   if (kind === "draft") result.append(h("div", { style: "margin-top:16px;" }, alertBox("notice", "Nothing is visible to candidates yet. Open My postings to publish it: a draft can be published for 14 days after it was saved, and the posting window starts when you publish.")));
   const actions = h("div", { style: "margin-top:22px;display:flex;gap:12px;flex-wrap:wrap;" });
   if (kind === "live") actions.append(h("a", { class: "btn btn-dark btn-sm", href: "search.html" }, "Look it up as a candidate →"));
