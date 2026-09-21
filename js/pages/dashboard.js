@@ -37,7 +37,8 @@ function renderFilters() {
 }
 
 function actionCells(p, now) {
-  const out = actionsFor(p, now).map((k) => h("button", { type: "button", class: "row-action", onclick: () => runAction(k, p, deps) }, ACTION_LABEL[k]));
+  // Edit is a page of its own (a link); the others are one-click dialogs
+  const out = actionsFor(p, now).map((k) => k === "edit" ? h("a", { class: "row-action", href: "edit.html?id=" + encodeURIComponent(p.id) }, ACTION_LABEL[k]) : h("button", { type: "button", class: "row-action", onclick: () => runAction(k, p, deps) }, ACTION_LABEL[k]));
   if (publishWindowEnded(p, now)) out.push(h("span", { class: "row-note" }, "Publish window ended"));
   return out;
 }

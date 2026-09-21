@@ -5,7 +5,7 @@ import { isAuthFailure, describeError } from "./api.js";
 import { checkBump, checkClose, MAX_BUMP_DAYS, MAX_REASON, MAX_CLOSE_DETAIL } from "./dashboard-model.js";
 import { fmtClose } from "./format.js";
 
-export const ACTION_LABEL = { publish: "Publish", pause: "Pause", resume: "Resume", extend: "Extend", close: "Close" };
+export const ACTION_LABEL = { edit: "Edit", publish: "Publish", pause: "Pause", resume: "Resume", extend: "Extend", close: "Close" };
 
 function focusable(root) { return Array.from(root.querySelectorAll("button:not([disabled]), input:not([disabled]), textarea:not([disabled])")).filter((e) => !e.hidden && e.offsetParent !== null); }
 

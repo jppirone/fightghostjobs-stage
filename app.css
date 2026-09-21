@@ -54,6 +54,8 @@ input[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--embe
 /* dashboard row actions and dialogs */
 .row-action{background:none;border:none;padding:0;margin-left:14px;font-family:inherit;font-size:13px;font-weight:600;color:var(--ember);cursor:pointer}
 .row-action:hover{text-decoration:underline}
+a.row-action{display:inline-block;text-decoration:none}
+a.row-action:hover{text-decoration:underline}
 .row-action:focus-visible{outline:2px solid var(--ember);outline-offset:2px;border-radius:3px}
 .row-note{font-size:12px;font-weight:400;color:var(--faint);margin-top:3px}
 .radio-row{display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:14px;font-weight:500;cursor:pointer}

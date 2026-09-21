@@ -79,10 +79,10 @@ import { actionsFor, publishWindowEnded, checkBump, checkClose, MAX_BUMP_DAYS, M
 
 test("actions per row: exactly what each status can do, and nothing for an expired, closed, held or out-of-time row", () => {
   const A = (o) => actionsFor(row(o), NOW).join(",");
-  assert.equal(A({}), "pause,extend,close");                                                                     // live
-  assert.equal(A({ bump_used: true, bump_days: 5 }), "pause,close");                                            // the one-time extension is used
-  assert.equal(A({ status: "paused", stored_status: "paused" }), "resume,close");                              // paused: no extend (the backend refuses it)
-  assert.equal(A({ status: "draft", stored_status: "draft", posted_at: null, expiration_date: null, publish_by: at(5) }), "publish");
+  assert.equal(A({}), "edit,pause,extend,close");                                                                // live
+  assert.equal(A({ bump_used: true, bump_days: 5 }), "edit,pause,close");                                       // the one-time extension is used
+  assert.equal(A({ status: "paused", stored_status: "paused" }), "edit,resume,close");                         // paused: no extend (the backend refuses it)
+  assert.equal(A({ status: "draft", stored_status: "draft", posted_at: null, expiration_date: null, publish_by: at(5) }), "edit,publish");
   assert.equal(A({ status: "draft", stored_status: "draft", posted_at: null, expiration_date: null, publish_by: at(-0.001) }), "");   // the 14-day publish window has ended
   assert.equal(A({ status: "expired", stored_status: "live", closed_reason: "expired_no_action" }), "");         // a live posting whose clock ran out: expired for the candidate, nothing to do
   assert.equal(A({ status: "expired", stored_status: "paused", closed_reason: "expired_no_action" }), "");

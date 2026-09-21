@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src https://tpmvkjuhbbwftqoodzcn.supabase.co; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta name="referrer" content="same-origin">
+<meta name="robots" content="noindex, nofollow">
+<title>FightGhostJobs — Edit a Posting</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="nav">
+  <a class="nav-logo" href="index.html"><span class="nav-dot"></span><span class="nav-wordmark">FightGhostJobs</span></a>
+  <div class="nav-links">
+    <a href="index.html#candidates">For Candidates</a>
+    <a href="index.html#employers">For Employers</a>
+    <a href="search.html">Search Postings</a>
+  </div>
+  <div id="navAccount" style="display:flex;align-items:center;"></div>
+</div>
+
+<div style="max-width:1440px;margin:0 auto;display:flex;gap:48px;padding:56px 64px;">
+
+  <div style="flex:2;display:flex;flex-direction:column;gap:28px;max-width:720px;">
+    <div>
+      <div id="orgName" style="font-size:13px;font-weight:700;color:var(--faint);">&nbsp;</div>
+      <h1 style="font-size:32px;font-weight:700;margin-top:6px;letter-spacing:-.01em;">Edit a posting</h1>
+      <div id="statusLine" style="font-size:14px;color:var(--muted);margin-top:8px;" hidden></div>
+    </div>
+
+    <div id="pageAlert" hidden></div>
+
+    <form id="form" class="card" style="display:flex;flex-direction:column;gap:22px;" novalidate hidden>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;">
+        <div><label for="jtitle">Job title</label><input id="jtitle" type="text" maxlength="200" autocomplete="off"><div class="field-error" data-error-for="jtitle" hidden></div></div>
+        <div><label for="req">Req number</label><input id="req" type="text" maxlength="100" autocomplete="off"><div class="field-error" data-error-for="req" hidden></div><div class="field-hint">Your own reference. Candidates find a posting by company name plus this number, so changing it changes how they find this posting. They see it masked (for example FGJ****45).</div></div>
+        <div><label>Company</label><div id="companyShown" style="padding:10px 0;font-size:15px;"></div><div class="field-hint">The company name is fixed once a posting is registered.</div></div>
+        <div><label for="appcap">Applicant cap (optional)</label><input id="appcap" type="text" inputmode="numeric" autocomplete="off"><div class="field-error" data-error-for="appcap" hidden></div></div>
+        <div style="grid-column:1/-1;"><label class="check-row" for="remote"><input id="remote" type="checkbox"> Remote role</label></div>
+        <div id="locpicker" style="grid-column:1/-1;">
+          <label for="locq">Location</label>
+          <div id="locChips" class="loc-chips" role="group" aria-label="Chosen locations"></div>
+          <div class="loc-combo">
+            <input id="locq" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="locList" aria-describedby="lochint locStatus" maxlength="80" autocomplete="off" spellcheck="false" placeholder="Start typing a city or metro area">
+            <ul id="locList" class="loc-list" role="listbox" aria-label="Matching locations" hidden></ul>
+          </div>
+          <div class="field-error" data-error-for="locpicker" hidden></div>
+          <div id="locStatus" class="field-hint" role="status"></div>
+          <div id="lochint" class="field-hint">Choose from the list; it is not free text. Up to 3 cities or metro areas. For a remote role you can also choose up to 10 states, or "United States (nationwide)". Once a posting is live, changing where the job is located needs a new req number.</div>
+          <div id="locAttribution" class="field-hint">Place names: GeoNames (geonames.org), licensed CC BY 4.0. Metro and micro areas: U.S. Census Bureau, 2023 delineations.</div>
+          <div id="attestRow" hidden style="margin-top:12px;">
+            <label class="check-row" for="attest" style="align-items:flex-start;"><input id="attest" type="checkbox" style="margin-top:3px;"><span>This is one opening that can be filled from any of these locations, not separate openings.</span></label>
+            <div class="field-error" data-error-for="attest" hidden></div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-top:-10px;">If set, the cap is shown to candidates too. Reaching it doesn't auto-close the posting — that's on you to come back and pause or close it.</div>
+
+      <div>
+        <label for="desc">Job description</label>
+        <textarea id="desc" rows="8" maxlength="20000"></textarea>
+        <div class="field-error" data-error-for="desc" hidden></div>
+        <div class="field-hint">Never shown to candidates. Up to 20,000 characters.</div>
+        <div id="reqTextHint" class="field-hint">This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to register it as a new posting with its own req number, so candidates can always tell which role they're looking at. Each change is saved with a short note.</div>
+      </div>
+
+      <div style="height:1px;background:var(--line);"></div>
+      <div style="font-size:14px;font-weight:700;">Disclosures</div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:14px;font-weight:600;">AI used for initial filtering</div>
+          <div id="aiFilterNote" style="font-size:13px;color:var(--muted);margin-top:2px;">Shown to candidates as a plain fact, never scored.</div>
+        </div>
+        <button type="button" id="aiFilterToggle" class="toggle" role="switch" aria-checked="false" aria-label="AI used for initial filtering"><span class="toggle-knob"></span></button>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:14px;font-weight:600;">AI used for interviewing or other</div>
+          <div id="aiInterviewNote" style="font-size:13px;color:var(--muted);margin-top:2px;">Independent of filtering — an employer can have neither, either, or both on.</div>
+        </div>
+        <button type="button" id="aiInterviewToggle" class="toggle" role="switch" aria-checked="false" aria-label="AI used for interviewing or other"><span class="toggle-knob"></span></button>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:14px;font-weight:600;">Third-party recruiter involved</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px;">The yes/no flag is always free. Naming the firm is a verified-tier feature.</div>
+        </div>
+        <button type="button" id="recruiterToggle" class="toggle" role="switch" aria-checked="false" aria-label="Third-party recruiter involved"><span class="toggle-knob"></span></button>
+      </div>
+
+      <div style="height:1px;background:var(--line);"></div>
+      <div>
+        <label for="note" id="noteLabel">What changed, and why? (required; kept with the posting).</label>
+        <input id="note" type="text" maxlength="500" autocomplete="off">
+        <div class="field-error" data-error-for="note" hidden></div>
+        <div class="field-hint">One line, 500 characters at most. It is saved with the change.</div>
+      </div>
+      <div id="formAlert" hidden></div>
+      <div style="display:flex;gap:12px;">
+        <button type="submit" id="saveBtn" class="btn btn-dark" style="flex:1;justify-content:center;">Save changes</button>
+        <a href="dashboard.html" class="btn btn-ghost">Back to My postings</a>
+      </div>
+    </form>
+
+    <div id="readonlyNote" class="card" hidden></div>
+  </div>
+
+  <div style="flex:1;display:flex;flex-direction:column;gap:16px;max-width:340px;">
+    <div class="card" id="changesCard" hidden>
+      <div style="font-size:13px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;">Recent changes</div>
+      <ul id="changesList" style="margin:14px 0 0 0;padding-left:0;list-style:none;font-size:14px;line-height:1.5;display:flex;flex-direction:column;gap:12px;"></ul>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;">What can be changed</div>
+      <ul style="margin:14px 0 0 0;padding-left:18px;font-size:14px;line-height:1.9;color:#4A453F;">
+        <li>Title, req number, description</li>
+        <li>Location (with a new req number once live)</li>
+        <li>AI disclosures, recruiter yes/no, applicant cap</li>
+      </ul>
+      <p style="font-size:13px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;">Dates are changed with Extend on My postings. Expired and closed postings are the public record and cannot be edited.</p>
+    </div>
+  </div>
+
+</div>
+
+<script type="module" src="js/pages/edit.js"></script>
+</body>
+</html>

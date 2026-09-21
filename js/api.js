@@ -40,6 +40,15 @@ export const shapes = {
     && Number.isInteger(p.window_days) && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isNullable(p.applicant_cap, Number.isInteger)
     && isBool(p.bump_used) && isNullable(p.bump_days, Number.isInteger) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr) && Number.isInteger(p.comment_count) && p.comment_count >= 0,
   myPostings: (d) => isObj(d) && Number.isInteger(d.total) && d.total >= 0 && Array.isArray(d.postings) && d.postings.length <= 50 && d.postings.every(shapes.myPosting) && isNullable(d.next_offset, Number.isInteger),
+  // get-my-posting (one posting, for the edit page): the fields the form starts from, checked; recent_changes: the newest five log entries (when, note, kind, the NAMES of the fields; never values)
+  openPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && isStr(p.company_name) && /^[0-9A-Z]{12}$/.test(p.post_id) && POSTING_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
+    && isNullable(p.closed_reason, isStr) && isBool(p.is_remote) && Array.isArray(p.locations) && p.locations.every(isStr) && Array.isArray(p.location_ids) && p.location_ids.every(isStr) && isBool(p.locations_attested)
+    && isNullable(p.ai_filtering, isBool) && isNullable(p.ai_interview_other, isBool) && isBool(p.third_party_recruiter) && isNullable(p.applicant_cap, Number.isInteger) && isStr(p.description_text) && Number.isInteger(p.window_days)
+    && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr),
+  openAnswer: (d) => isObj(d) && shapes.openPosting(d.posting) && Array.isArray(d.recent_changes) && d.recent_changes.length <= 5
+    && d.recent_changes.every((c) => isObj(c) && isStr(c.at) && isStr(c.note) && isNullable(c.kind, isStr) && Array.isArray(c.fields) && c.fields.every(isStr)),
+  // edit-posting: what the page reads is whether anything changed, which fields, and (for a requirements-text edit) how much of the wording was kept
+  editAnswer: (d) => isObj(d) && Array.isArray(d.changed_fields) && d.changed_fields.every(isStr) && isBool(d.edited) && isNullable(d.similarity_pct === undefined ? null : d.similarity_pct, Number.isInteger),
   // pause / resume / bump / close: only the fact that it worked and the posting's new status are read
   actionAnswer: (d) => { const p = d && isObj(d.posting) ? d.posting : d; return isObj(p) && isStr(p.status); },
   comment: (d) => isObj(d) && isObj(d.comment) && isStr(d.comment.body) && isStr(d.comment.created_at),
@@ -86,6 +95,8 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     posterLoginIntent: (email) => call("poster-login-intent", { email }, { auth: "none" }),
     posterSession: () => call("poster-session", {}, { validate: shapes.posterSession }),
     createPosting: async (fields) => unwrap(await call("create-posting", fields, { validate: postingAnswer })),
+    getMyPosting: (postingId) => call("get-my-posting", { posting_id: postingId }, { validate: shapes.openAnswer }),
+    editPosting: (body) => call("edit-posting", body, { validate: shapes.editAnswer }),
     listMyPostings: (offset) => call("list-my-postings", offset ? { offset } : {}, { validate: shapes.myPostings }),
     pausePosting: (postingId) => call("pause-posting", { posting_id: postingId }, { validate: shapes.actionAnswer }),
     resumePosting: (postingId) => call("resume-posting", { posting_id: postingId }, { validate: shapes.actionAnswer }),

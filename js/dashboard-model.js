@@ -72,9 +72,9 @@ export const publishWindowEnded = (p, nowMs) => p.status === "draft" && typeof p
 
 // -> the action keys a row offers, in display order. Based on the EFFECTIVE status too: a live or paused posting whose clock has run out reads as expired and offers nothing.
 export function actionsFor(p, nowMs) {
-  if (p.status === "draft") return p.stored_status === "draft" && !publishWindowEnded(p, nowMs) ? ["publish"] : [];
-  if (p.status === "live" && p.stored_status === "live") return p.bump_used ? ["pause", "close"] : ["pause", "extend", "close"];
-  if (p.status === "paused" && p.stored_status === "paused") return ["resume", "close"];
+  if (p.status === "draft") return p.stored_status === "draft" && !publishWindowEnded(p, nowMs) ? ["edit", "publish"] : [];
+  if (p.status === "live" && p.stored_status === "live") return p.bump_used ? ["edit", "pause", "close"] : ["edit", "pause", "extend", "close"];
+  if (p.status === "paused" && p.stored_status === "paused") return ["edit", "resume", "close"];
   return [];
 }
 

@@ -96,6 +96,8 @@ export function mountLocationPicker({ isRemote }) {
     get: () => ({ entries: chosen.slice(), attested: chosen.length >= 2 && attest.checked }),
     refresh,
     reset() { chosen = []; attest.checked = false; input.value = ""; close(); status.textContent = ""; refresh(); },
+    // start from what a posting already has (the edit page): entries = [{ id, kind, display }]
+    set(entries, attested) { chosen = entries.slice(); input.value = ""; close(); status.textContent = ""; refresh(); attest.checked = chosen.length >= 2 && attested === true; },
     setLocked(on) { locked = on; refresh(); },
     focusFor(id) { (id === "attest" ? attest : input).focus(); },
   };

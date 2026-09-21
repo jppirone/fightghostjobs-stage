@@ -75,6 +75,10 @@ control("the form allows more than 45", "S15", edit("js/register-form.js", (s) =
 control("the dashboard table is wrapped in an element that clips it", "S17", edit("dashboard.html", (s) => s.replace('style="padding:0;overflow-x:auto;"', 'style="padding:0;overflow:hidden;"')));
 control("the candidate req box is a plain visible text box", "S18", edit("search.html", (s) => s.replace('id="reqq" type="password"', 'id="reqq" type="text"')));
 control("the show/hide toggle for the req box is gone", "S18", edit("search.html", (s) => s.replace('id="reqToggle"', 'id="reqTogglX"')));
+control("the register form loses the requirements-text hint wording", "S19", edit("register.html", (s) => s.replace("Small corrections (a typo, a tightened sentence, a dropped line) save straight away", "Corrections save")));
+control("the edit page loses the requirements-text hint wording", "S19", edit("edit.html", (s) => s.replace("we'll ask you to register it as a new posting with its own req number", "we'll ask you")));
+control("the edit page's note label is changed", "S19", edit("edit.html", (s) => s.replace("(required; kept with the posting).", "(optional).")));
+control("the edit page has no change note input", "S19", edit("edit.html", (s) => s.replace('<input id="note" type="text" maxlength="500"', '<input id="notx" type="text" maxlength="500"')));
 control("the register hint loses the approved wording", "S18", edit("register.html", (s) => s.replace("Required. Your own reference, such as your ATS number.", "Not shown to candidates.")));
 control("the register hint stops telling employers the req is masked", "S18", edit("register.html", (s) => s.replace("They see it masked (for example FGJ****45)", "They see it")));
 control("a free-text location input comes back", "S16", edit("register.html", (s) => s.replace('<div id="locpicker"', '<div><input id="loc" type="text"></div><div id="locpicker"')));
