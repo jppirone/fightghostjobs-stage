@@ -166,3 +166,14 @@ test("search answers: every row carries masked_req (masked or null); a FULL req 
   const missing = Object.assign({}, searchRow); delete missing.masked_req; assert.equal(ok(missing), false);          // a backend that stops sending the field must be noticed
   for (const m of ["FGJ****45", "R****0", "REQ****51", "****7", "****"]) assert.equal(ok(Object.assign({}, searchRow, { masked_req: m })), true, m);
 });
+
+test("setDestinationLinks sends the posting id and the full link set to set-destination-links; a 403 plan_required is an error the page can name", async () => {
+  const links = [{ url: "https://careers.example.com/apply?job=1", label: "Careers site" }, { url: "https://jobs.example.org/x" }];
+  const ok = mk(() => ({ status: 200, body: { posting_id: uuid, changed: true, active_links: 2, links: [{ position: 1, label: "Careers site" }, { position: 2, label: null }] } }));
+  const r = await ok.api.setDestinationLinks(uuid, links);
+  assert.equal(r.ok, true); assert.equal(ok.calls[0].url, BASE + "/functions/v1/set-destination-links"); assert.deepEqual(ok.calls[0].body, { posting_id: uuid, links });
+  const bad = await mk(() => ({ status: 200, body: { active_links: 2, links: [{ position: 1, label: "x", url: "https://leak.example.com" }, { position: "2" }] } })).api.setDestinationLinks(uuid, links);
+  assert.equal(bad.ok, false); assert.equal(bad.error.code, "bad_response");
+  const refused = await mk(() => ({ status: 403, body: { error: "This feature is part of the verified plan.", code: "plan_required" } })).api.setDestinationLinks(uuid, links);
+  assert.equal(refused.ok, false); assert.equal(refused.status, 403); assert.equal(refused.error.code, "plan_required"); assert.equal(refused.error.message, "This feature is part of the verified plan.");
+});

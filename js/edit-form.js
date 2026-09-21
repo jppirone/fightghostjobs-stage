@@ -21,7 +21,7 @@ const sameList = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === 
 const hasControl = (s) => Array.from(String(s)).some((ch) => { const c = ch.codePointAt(0); return c < 32 || c === 127; });
 
 // orig: the posting object get-my-posting returned.
-// v: { title, req, desc, locEntries, attested, remote, appcap, aiFilter, aiInterview, recruiter, note }     (aiFilter / aiInterview: true, false or null = never stated and not touched)
+// v: { title, req, desc, locEntries, attested, remote, appcap, aiFilter, aiInterview, recruiter, exclusive, note }     (aiFilter / aiInterview: true, false or null = never stated and not touched; exclusive: true / false, or undefined = the employer's plan does not offer it, so it is not touched)
 // -> the fields that changed, by their backend names.
 export function changedFields(orig, v) {
   const ch = {};
@@ -37,6 +37,7 @@ export function changedFields(orig, v) {
   if (v.aiFilter !== null && v.aiFilter !== undefined && v.aiFilter !== orig.ai_filtering) ch.ai_filtering = v.aiFilter;
   if (v.aiInterview !== null && v.aiInterview !== undefined && v.aiInterview !== orig.ai_interview_other) ch.ai_interview_other = v.aiInterview;
   if ((v.recruiter === true) !== orig.third_party_recruiter) ch.third_party_recruiter = v.recruiter === true;
+  if (typeof v.exclusive === "boolean" && v.exclusive !== (orig.destination_links_exclusive === true)) ch.destination_links_exclusive = v.exclusive;
   const capText = String(v.appcap == null ? "" : v.appcap).trim(), cap = capText === "" ? null : Number(capText);
   if (/^[0-9]+$/.test(capText) ? cap !== orig.applicant_cap : (capText === "" && orig.applicant_cap !== null)) ch.applicant_cap = cap;
   return ch;
@@ -96,3 +97,58 @@ export function mapEditErrors(err) {
 
 // what an edit is called in the change list (the kind the backend logged)
 export const KIND_TEXT = { draft_edit: "Draft edit", edit: "Edit", text_correction: "Requirements text corrected", req_change: "Req number changed", location_change: "Location changed" };
+
+// ---- destination links (verified plan). set-destination-links replaces the WHOLE set (1 to 10 addresses); the addresses are write-only (never sent back), so the page asks for the full set again to change it.
+export const MAX_LINKS = 10, MAX_URL = 2048, MAX_LABEL = 100, PLAN_WARN_DAYS = 14;
+
+// rows: [{ url, label }] as typed (a row with both boxes empty is ignored). -> { ok, errors: { rowIndex: { url?, label? } }, form?, links: [{ url, label? }] (the rows that are fine, in order), rowOf: [rowIndex of each link] }
+export function checkLinks(rows) {
+  const errors = {}, links = [], rowOf = [], seen = new Set(); let used = 0;
+  (Array.isArray(rows) ? rows : []).forEach((r, i) => {
+    const url = String(r && r.url != null ? r.url : "").trim(), label = String(r && r.label != null ? r.label : "").trim();
+    if (url === "" && label === "") return;
+    used++;
+    const e = {};
+    if (url === "") e.url = "Enter the address, or clear this row.";
+    else if (url.length > MAX_URL) e.url = "Keep the address to " + MAX_URL + " characters or fewer.";
+    else if (!/^https:\/\//i.test(url)) e.url = "The address must start with https://";
+    else {
+      let href = null; try { const u = new URL(url); if (u.protocol === "https:" && u.hostname !== "") href = u.href; } catch { /* not an address */ }
+      if (href === null) e.url = "That does not look like a web address.";
+      else if (seen.has(href)) e.url = "This address is already in the list.";
+      else seen.add(href);
+    }
+    if (Array.from(label).length > MAX_LABEL) e.label = "Keep the label to " + MAX_LABEL + " characters or fewer.";
+    else if (hasControl(label)) e.label = "Keep the label to plain text.";
+    if (Object.keys(e).length) errors[i] = e; else { links.push(label === "" ? { url } : { url, label }); rowOf.push(i); }
+  });
+  const out = { ok: false, errors, links, rowOf };
+  if (used === 0) out.form = "Enter at least one address.";
+  else if (used > MAX_LINKS) out.form = "Up to " + MAX_LINKS + " destination links.";
+  out.ok = !out.form && Object.keys(errors).length === 0;
+  return out;
+}
+
+// A refusal from set-destination-links -> { rows: { rowIndex: { url?, label? } }, general, planRequired }. rowOf: the row each SENT link came from (the server counts the links it was sent).
+export function mapLinksErrors(err, rowOf) {
+  const rows = {}; let general = null;
+  if (!err) return { rows, general: "Something went wrong.", planRequired: false };
+  if (err.code === "plan_required") return { rows, general: err.message || "Destination links are part of the verified plan. Your organization is not on it (or the plan has ended), so nothing was changed.", planRequired: true };
+  const list = Array.isArray(err.errors) && err.errors.length ? err.errors : err.field ? [{ field: err.field, message: err.message || "Not accepted." }] : [];
+  for (const x of list) {
+    const m = /^links\[(\d+)\]\.(url|label)/.exec(x.field);
+    const row = m && Array.isArray(rowOf) ? rowOf[Number(m[1])] : undefined;
+    if (m && row !== undefined) { rows[row] = rows[row] || {}; if (!rows[row][m[2]]) rows[row][m[2]] = x.message; } else if (!general) general = x.message;
+  }
+  if (!list.length && err.message) general = err.message;
+  return { rows, general, planRequired: false };
+}
+
+// What the page says about the plan. plan: what get-my-posting / poster-session returned.
+// -> { state: "active" | "lapsed" | "locked" | "unknown", endsAt, endsSoon }   (active: verified now; lapsed: it ended, the links and names are kept but hidden; locked: never verified)
+export function planNotice(plan, nowMs) {
+  if (!plan || typeof plan !== "object") return { state: "unknown", endsAt: null, endsSoon: false };
+  if (plan.verified === true) { const ends = plan.expires_at ? Date.parse(plan.expires_at) : NaN; return { state: "active", endsAt: plan.expires_at || null, endsSoon: Number.isFinite(ends) && ends - nowMs <= PLAN_WARN_DAYS * 86400000 }; }
+  if (plan.lapsed === true) return { state: "lapsed", endsAt: plan.expires_at || null, endsSoon: false };
+  return { state: "locked", endsAt: null, endsSoon: false };
+}

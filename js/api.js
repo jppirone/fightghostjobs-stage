@@ -24,7 +24,9 @@ const POSTING_STATUSES = ["draft", "live", "paused", "expired", "closed", "flagg
 
 // ---- response shapes (exactly what the pages read)
 export const shapes = {
-  posterSession: (d) => isObj(d) && isObj(d.poster) && UUID_RE.test(d.poster.poster_id) && isStr(d.poster.full_name) && isBool(d.poster.is_org_admin) && isObj(d.organization) && isStr(d.organization.name) && isStr(d.verified_at),
+  // the organization's plan (item 3): verified now?, where it came from, when it ends, and whether it HAS ended (lapsed: links and named recruiter firms are stored but hidden)
+  plan: (d) => isObj(d) && isBool(d.verified) && isNullable(d.source, isStr) && isNullable(d.expires_at, isStr) && isBool(d.lapsed),
+  posterSession: (d) => isObj(d) && isObj(d.poster) && UUID_RE.test(d.poster.poster_id) && isStr(d.poster.full_name) && isBool(d.poster.is_org_admin) && isObj(d.organization) && isStr(d.organization.name) && isStr(d.verified_at) && (d.plan === undefined || shapes.plan(d.plan)),
   posting: (d) => isObj(d) && UUID_RE.test(d.id) && isStr(d.status) && isStr(d.title) && isStr(d.expiration_date) && /^[0-9A-Z]{12}$/.test(d.public_code) && REF_RE.test(d.posting_ref) && isNullable(d.closed_reason, isStr),
   searchRow: (r) => isObj(r) && isStr(r.company_name) && isStr(r.title) && Array.isArray(r.locations) && r.locations.every(isStr) && isBool(r.is_remote) && isStr(r.posted_at) && isStr(r.closes_at)
     && isNullable(r.applicant_cap, Number.isInteger) && isStr(r.status) && isNullable(r.closed_reason, isStr) && isNullable(r.ai_filtering, isBool) && isNullable(r.ai_interview_other, isBool) && isBool(r.ai_disclosure_shown)
@@ -43,9 +45,12 @@ export const shapes = {
   // get-my-posting (one posting, for the edit page): the fields the form starts from, checked; recent_changes: the newest five log entries (when, note, kind, the NAMES of the fields; never values)
   openPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && isStr(p.company_name) && /^[0-9A-Z]{12}$/.test(p.post_id) && POSTING_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
     && isNullable(p.closed_reason, isStr) && isBool(p.is_remote) && Array.isArray(p.locations) && p.locations.every(isStr) && Array.isArray(p.location_ids) && p.location_ids.every(isStr) && isBool(p.locations_attested)
-    && isNullable(p.ai_filtering, isBool) && isNullable(p.ai_interview_other, isBool) && isBool(p.third_party_recruiter) && isNullable(p.applicant_cap, Number.isInteger) && isStr(p.description_text) && Number.isInteger(p.window_days)
+    && isNullable(p.ai_filtering, isBool) && isNullable(p.ai_interview_other, isBool) && isBool(p.third_party_recruiter) && isBool(p.destination_links_exclusive) && isNullable(p.applicant_cap, Number.isInteger) && isStr(p.description_text) && Number.isInteger(p.window_days)
     && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr),
-  openAnswer: (d) => isObj(d) && shapes.openPosting(d.posting) && Array.isArray(d.recent_changes) && d.recent_changes.length <= 5
+  // the destination links the employer stored: position and label only, NEVER the address (the server keeps that encrypted and does not send it back)
+  storedLinks: (l) => Array.isArray(l) && l.length <= 10 && l.every((x) => isObj(x) && Number.isInteger(x.position) && x.position >= 1 && x.position <= 10 && isNullable(x.label, isStr)),
+  linksAnswer: (d) => isObj(d) && Number.isInteger(d.active_links) && shapes.storedLinks(d.links),
+  openAnswer: (d) => isObj(d) && shapes.openPosting(d.posting) && shapes.storedLinks(d.destination_links) && shapes.plan(d.plan) && Array.isArray(d.recent_changes) && d.recent_changes.length <= 5
     && d.recent_changes.every((c) => isObj(c) && isStr(c.at) && isStr(c.note) && isNullable(c.kind, isStr) && Array.isArray(c.fields) && c.fields.every(isStr)),
   // edit-posting: what the page reads is whether anything changed, which fields, and (for a requirements-text edit) how much of the wording was kept
   editAnswer: (d) => isObj(d) && Array.isArray(d.changed_fields) && d.changed_fields.every(isStr) && isBool(d.edited) && isNullable(d.similarity_pct === undefined ? null : d.similarity_pct, Number.isInteger),
@@ -97,6 +102,8 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     createPosting: async (fields) => unwrap(await call("create-posting", fields, { validate: postingAnswer })),
     getMyPosting: (postingId) => call("get-my-posting", { posting_id: postingId }, { validate: shapes.openAnswer }),
     editPosting: (body) => call("edit-posting", body, { validate: shapes.editAnswer }),
+    // replaces the posting's whole set of destination links (verified plan): [{ url, label? }], 1 to 10
+    setDestinationLinks: (postingId, links) => call("set-destination-links", { posting_id: postingId, links }, { validate: shapes.linksAnswer }),
     listMyPostings: (offset) => call("list-my-postings", offset ? { offset } : {}, { validate: shapes.myPostings }),
     pausePosting: (postingId) => call("pause-posting", { posting_id: postingId }, { validate: shapes.actionAnswer }),
     resumePosting: (postingId) => call("resume-posting", { posting_id: postingId }, { validate: shapes.actionAnswer }),

@@ -94,6 +94,16 @@
         <button type="button" id="recruiterToggle" class="toggle" role="switch" aria-checked="false" aria-label="Third-party recruiter involved"><span class="toggle-knob"></span></button>
       </div>
 
+      <div id="exclusiveRow" hidden>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:600;">Applications only through the destination links</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:2px;">A plain statement from you that the links below are the only way to apply. It is recorded with the posting; we do not check it.</div>
+          </div>
+          <button type="button" id="exclusiveToggle" class="toggle" role="switch" aria-checked="false" aria-label="Applications only through the destination links"><span class="toggle-knob"></span></button>
+        </div>
+      </div>
+
       <div style="height:1px;background:var(--line);"></div>
       <div>
         <label for="note" id="noteLabel">What changed, and why? (required; kept with the posting).</label>
@@ -107,6 +117,23 @@
         <a href="dashboard.html" class="btn btn-ghost">Back to My postings</a>
       </div>
     </form>
+
+    <div id="linksCard" class="card" style="display:flex;flex-direction:column;gap:16px;" hidden>
+      <div style="font-size:14px;font-weight:700;">Destination links</div>
+      <div id="linksPlan" hidden></div>
+      <div id="linksLocked" hidden>
+        <p style="font-size:14px;line-height:1.6;margin:0;">Destination links let a candidate who chooses to apply be sent from the posting to your own application page. They are part of the verified plan.</p>
+        <p style="font-size:14px;line-height:1.6;margin:10px 0 0 0;">Your organization is not on the verified plan. <a href="mailto:sales@fightghostjobs.com?subject=Verified%20tier" style="font-weight:600;">Write to sales@fightghostjobs.com →</a></p>
+      </div>
+      <form id="linksForm" novalidate hidden style="display:flex;flex-direction:column;gap:14px;">
+        <div id="linksStored" style="font-size:14px;line-height:1.6;color:#4A453F;"></div>
+        <div class="field-hint">Candidates never see these addresses. When a candidate chooses to apply, they are sent through a one-time link to the address you enter here (position 1 first). For safety the addresses are not shown back to you: to change them, enter the full set again. What you save replaces what is stored. Up to 10; the label is optional (a candidate sees "Application link 2" when there is none).</div>
+        <div id="linkRows" style="display:flex;flex-direction:column;gap:12px;"></div>
+        <div><button type="button" id="addLinkBtn" class="btn btn-outline btn-sm">Add another link</button></div>
+        <div id="linksAlert" hidden></div>
+        <div><button type="submit" id="saveLinksBtn" class="btn btn-dark">Replace destination links</button></div>
+      </form>
+    </div>
 
     <div id="readonlyNote" class="card" hidden></div>
   </div>
@@ -122,6 +149,7 @@
         <li>Title, req number, description</li>
         <li>Location (with a new req number once live)</li>
         <li>AI disclosures, recruiter yes/no, applicant cap</li>
+        <li>Destination links, and the "only through these links" statement (verified plan)</li>
       </ul>
       <p style="font-size:13px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;">Dates are changed with Extend on My postings. Expired and closed postings are the public record and cannot be edited.</p>
     </div>

@@ -185,6 +185,18 @@ export function checkSite(root) {
     if (!/<input id="note" type="text" maxlength="500"/.test(read(eh))) add("S19", eh, "the change note input (id=note, at most 500 characters) is missing");
   }
 
+  // S20: destination links on the edit page (item 3, verified plan): the section and its controls exist, a free organization is pointed to sales, the page saves through setDestinationLinks, and it never reads an address back (the server sends position and label only)
+  if (fs.existsSync(eh)) {
+    const eht = read(eh), ejs = path.join(root, "js", "pages", "edit.js");
+    for (const id of ["linksCard", "linksLocked", "linksForm", "linkRows", "exclusiveRow", "exclusiveToggle"]) if (!eht.includes('id="' + id + '"')) add("S20", eh, "the edit page is missing #" + id + " (destination links, verified plan)");
+    if (!/<a href="mailto:sales@fightghostjobs\.com[^"]*"[^>]*>Write to sales@fightghostjobs\.com/.test(eht)) add("S20", eh, "the locked destination-links section must point to sales@fightghostjobs.com");
+    if (fs.existsSync(ejs)) {
+      const code = read(ejs);
+      if (!code.includes("api.setDestinationLinks(")) add("S20", ejs, "the edit page must save the links through api.setDestinationLinks");
+      if (/destination_links[^;\n]*\.url\b/.test(code) || /\.url\s*=[^=]*destination_links/.test(code)) add("S20", ejs, "the edit page must not read an address back from the stored links (position and label only)");
+    }
+  }
+
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");
   if (!fs.existsSync(vendor) || !fs.existsSync(rec)) add("S10", vendor, "vendored Auth client or its recorded hash is missing");
   else if (crypto.createHash("sha256").update(fs.readFileSync(vendor)).digest("hex") !== fs.readFileSync(rec, "utf8").trim()) add("S10", vendor, "the vendored Auth client does not match tests/vendor-hash.txt");
