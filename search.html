@@ -25,7 +25,7 @@
 <div style="max-width:1440px;margin:0 auto;">
   <div style="padding:56px 64px 32px 64px;">
     <h1 style="font-size:34px;font-weight:700;letter-spacing:-.01em;">Look up a posting</h1>
-    <p style="font-size:15px;color:var(--muted);margin:8px 0 28px 0;">Search by company plus a title or req number. We never let you browse the full registry.</p>
+    <p style="font-size:15px;color:var(--muted);margin:8px 0 28px 0;">Search by company plus a title or postID. We never let you browse the full registry.</p>
     <form id="searchForm" novalidate style="display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;max-width:880px;">
       <div style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
         <label for="company" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;">Company</label>
@@ -33,7 +33,7 @@
       </div>
       <div style="width:1px;background:var(--line);"></div>
       <div style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
-        <label for="titleq" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;">Title or req code</label>
+        <label for="titleq" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;">Title or postID</label>
         <input id="titleq" type="text" maxlength="80" autocomplete="off" placeholder="e.g. Data Analyst, or XXXX-XXXX-XXXX" style="border:none;padding:4px 0;">
       </div>
       <button type="submit" id="searchBtn" class="btn btn-dark">Search</button>

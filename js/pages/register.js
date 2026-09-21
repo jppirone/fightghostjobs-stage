@@ -101,9 +101,9 @@ function showResult(p, kind, problem) {
   result.append(h("dl", { style: "margin:18px 0 0 0;display:grid;grid-template-columns:auto 1fr;gap:8px 18px;font-size:14px;" },
     rows.flatMap(([k, v]) => [h("dt", { style: "color:var(--faint);font-weight:600;" }, k), h("dd", { style: "margin:0;" }, v)])));
   result.append(h("div", { style: "margin-top:20px;" },
-    h("div", { style: "font-size:13px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;" }, "Your req code"),
-    h("span", { class: "code-box", id: "publicCode" }, groupCode(p.public_code)),
-    h("p", { style: "font-size:13px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;" }, "Candidates find this posting by your company name plus either the job title or this code. They only ever see the last four characters of it.")));
+    h("div", { style: "font-size:13px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;" }, "Your postID"),
+    h("span", { class: "code-box", id: "postId" }, groupCode(p.public_code)),
+    h("p", { style: "font-size:13px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;" }, "Candidates find this posting by your company name plus either the job title or this postID. They only ever see the last four characters of it.")));
   const actions = h("div", { style: "margin-top:22px;display:flex;gap:12px;flex-wrap:wrap;" });
   if (kind === "live") actions.append(h("a", { class: "btn btn-dark btn-sm", href: "search.html" }, "Look it up as a candidate →"));
   actions.append(h("button", { type: "button", class: "btn btn-outline btn-sm", onclick: registerAnother }, "Register another posting"));

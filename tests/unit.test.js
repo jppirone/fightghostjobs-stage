@@ -106,8 +106,8 @@ test("one box, two meanings: a code (with a digit or grouped) versus a title", (
   assert.equal(classifyQuery("C++ Developer").kind, "phrase");
 });
 
-test("the empty-result message echoes exactly what was searched, then says closed or expired postings appear only by req code", () => {
-  assert.ok(NO_MATCH_NOTE.endsWith("Closed or expired postings appear only when you search by req code."));
+test("the empty-result message echoes exactly what was searched, then says closed or expired postings appear only by postID", () => {
+  assert.ok(NO_MATCH_NOTE.endsWith("Closed or expired postings appear only when you search by postID."));
   const m = noMatchMessage("Fight Ghost Jobs", "Senior Product Manager", "phrase");
   assert.ok(m.startsWith("No postings found for \"Fight Ghost Jobs\" + \"Senior Product Manager\". "), m);
   assert.ok(m.endsWith(NO_MATCH_NOTE));

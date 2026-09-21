@@ -63,8 +63,8 @@ control("target=_blank without noopener in markup", "S12", edit("index.html", (s
 control("a new tab opened without noopener", "S12", append("js/pages/index.js", "window.open('x.html', '_blank');"));
 control("app.css loaded before styles.css", "S13", edit("register.html", (s) => s.replace('<link rel="stylesheet" href="styles.css">\n<link rel="stylesheet" href="app.css">', '<link rel="stylesheet" href="app.css">\n<link rel="stylesheet" href="styles.css">')));
 
-control("the closed-or-expired sentence removed from the note", "S14", edit("js/search-input.js", (s) => s.replace(" Closed or expired postings appear only when you search by req code.", "")));
-control("the sentence reworded", "S14", edit("js/search-input.js", (s) => s.replace("appear only when you search by req code.", "may appear if you search by req code.")));
+control("the closed-or-expired sentence removed from the note", "S14", edit("js/search-input.js", (s) => s.replace(" Closed or expired postings appear only when you search by postID.", "")));
+control("the sentence reworded", "S14", edit("js/search-input.js", (s) => s.replace("appear only when you search by postID.", "may appear if you search by postID.")));
 control("search.js goes back to its own hand-written message", "S14", edit("js/pages/search.js", (s) => s.replace("noMatchMessage(searched.company, searched.query, searched.kind))", "\"No postings found. Check the name.\")")));
 control("search.js no longer imports the message builder", "S14", edit("js/pages/search.js", (s) => s.replace("classifyQuery, noMatchMessage }", "classifyQuery }")));
 control("the message stops echoing what was searched", "S14", edit("js/search-input.js", (s) => s.replace("return \"No postings found for", "return \"Nothing for")));

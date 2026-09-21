@@ -13,7 +13,7 @@
 //   S11 every font file the stylesheet names exists; nothing is @imported
 //   S12 links that open a new tab carry rel="noopener"
 //   S13 styles.css is loaded before app.css on every page
-//   S14 the empty-search note says closed or expired postings appear only by req code, and search.js uses that note
+//   S14 the empty-search note says closed or expired postings appear only by postID, and search.js uses that note
 //   S15 the register form's window is 14 to 45 days (default 45), matches the backend range, and the extended tier is not offered
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
@@ -114,7 +114,7 @@ export function checkSite(root) {
   const si = path.join(root, "js", "search-input.js"), sp = path.join(root, "js", "pages", "search.js");
   if (fs.existsSync(si) && fs.existsSync(sp)) {
     const note = (read(si).match(/export const NO_MATCH_NOTE = "([^"]*)";/) || [])[1] || "";
-    if (!note.endsWith("Closed or expired postings appear only when you search by req code.")) add("S14", si, "NO_MATCH_NOTE must end with the closed-or-expired-by-code sentence");
+    if (!note.endsWith("Closed or expired postings appear only when you search by postID.")) add("S14", si, "NO_MATCH_NOTE must end with the closed-or-expired-by-code sentence");
     const src = read(si);
     const fn = (src.match(/export function noMatchMessage\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1] || "";
     if (!/\+\s*NO_MATCH_NOTE;\s*$/.test(fn.trim())) add("S14", si, "noMatchMessage must end with NO_MATCH_NOTE");

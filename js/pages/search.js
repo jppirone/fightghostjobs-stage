@@ -1,4 +1,4 @@
-// search.js - a verified candidate looks up a posting: company + (title or req code). No browsing, ever: the backend refuses anything else.
+// search.js - a verified candidate looks up a posting: company + (title or postID). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
 import { api, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js";
@@ -63,7 +63,7 @@ function renderCard(row) {
       h("div", {},
         h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
         h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
-        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, locationLine(row.is_remote, row.locations) + " · Req " + row.masked_code)),
+        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, locationLine(row.is_remote, row.locations) + " · postID " + row.masked_code)),
       h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }, "✓ Verified")),
     h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, chips),
     h("div", { style: "margin-top:22px;border-top:1px solid var(--line);padding-top:20px;display:flex;gap:12px;align-items:center;" },
