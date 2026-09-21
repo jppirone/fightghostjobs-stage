@@ -63,6 +63,11 @@ control("target=_blank without noopener in markup", "S12", edit("index.html", (s
 control("a new tab opened without noopener", "S12", append("js/pages/index.js", "window.open('x.html', '_blank');"));
 control("app.css loaded before styles.css", "S13", edit("register.html", (s) => s.replace('<link rel="stylesheet" href="styles.css">\n<link rel="stylesheet" href="app.css">', '<link rel="stylesheet" href="app.css">\n<link rel="stylesheet" href="styles.css">')));
 
+control("the closed-or-expired sentence removed from the note", "S14", edit("js/search-input.js", (s) => s.replace(" Closed or expired postings appear only when you search by req code.", "")));
+control("the sentence reworded", "S14", edit("js/search-input.js", (s) => s.replace("appear only when you search by req code.", "may appear if you search by req code.")));
+control("search.js goes back to its own hand-written message", "S14", edit("js/pages/search.js", (s) => s.replace("empty-note\", style: \"margin-top:0;\" }, NO_MATCH_NOTE))", "empty-note\", style: \"margin-top:0;\" }, \"No posting matched. Check the name.\"))")));
+control("search.js no longer imports the note", "S14", edit("js/pages/search.js", (s) => s.replace("classifyQuery, NO_MATCH_NOTE }", "classifyQuery }")));
+
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");
 process.exit(missed ? 1 : 0);

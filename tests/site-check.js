@@ -13,6 +13,7 @@
 //   S11 every font file the stylesheet names exists; nothing is @imported
 //   S12 links that open a new tab carry rel="noopener"
 //   S13 styles.css is loaded before app.css on every page
+//   S14 the empty-search note says closed or expired postings appear only by req code, and search.js uses that note
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -106,7 +107,17 @@ export function checkSite(root) {
   if (fs.existsSync(cfg)) { if (!/export const PUBLISHABLE_KEY = "sb_publishable_[A-Za-z0-9_-]+";/.test(read(cfg))) add("S9", cfg, "config.js must hold exactly the publishable key"); if (/sb_secret_/.test(read(cfg))) add("S9", cfg, "SECRET KEY in config.js"); }
   else add("S6", root, "js/config.js is missing");
 
-  const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec = path.join(root, "tests", "vendor-hash.txt");
+  // S14: the empty-search note keeps its last sentence (a title search never lists closed or expired postings, so "no match" must say where they can be found), and the page uses that one note.
+  const si = path.join(root, "js", "search-input.js"), sp = path.join(root, "js", "pages", "search.js");
+  if (fs.existsSync(si) && fs.existsSync(sp)) {
+    const note = (read(si).match(/export const NO_MATCH_NOTE = "([^"]*)";/) || [])[1] || "";
+    if (!note.endsWith("Closed or expired postings appear only when you search by req code.")) add("S14", si, "NO_MATCH_NOTE must end with the closed-or-expired-by-code sentence");
+    const page = read(sp);
+    if (!/import\s*\{[^}]*\bNO_MATCH_NOTE\b[^}]*\}\s*from\s*"\.\.\/search-input\.js"/.test(page) || !/empty-note[^\n]*NO_MATCH_NOTE\)\)/.test(page)) add("S14", sp, "the empty-result message must be NO_MATCH_NOTE");
+    if (/No posting matched\./.test(page)) add("S14", sp, "a second, hand-written empty-result message");
+  } else add("S14", root, "js/search-input.js or js/pages/search.js is missing");
+
+  const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");
   if (!fs.existsSync(vendor) || !fs.existsSync(rec)) add("S10", vendor, "vendored Auth client or its recorded hash is missing");
   else if (crypto.createHash("sha256").update(fs.readFileSync(vendor)).digest("hex") !== fs.readFileSync(rec, "utf8").trim()) add("S10", vendor, "the vendored Auth client does not match tests/vendor-hash.txt");
   return findings;

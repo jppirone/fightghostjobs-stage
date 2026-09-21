@@ -7,6 +7,10 @@
 
 const CODE_RE = /^[0-9A-HJKMNP-TV-Z]{12}$/;
 
+// What the page says when a search finds nothing. The last sentence is deliberate: a title search lists only live or paused postings (candidate_search_postings), so a posting that has
+// closed or expired is found only by its req code, and without that sentence "no match" would read as "never registered".
+export const NO_MATCH_NOTE = "No posting matched. A posting appears here only if a real employer has registered it with FightGhostJobs, so a missing posting is itself worth knowing. Check the company name and try a shorter part of the title. Closed or expired postings appear only when you search by req code.";
+
 export function normalizeCode(text) {
   return String(text).toUpperCase().replace(/[ -]+/g, "").replace(/[IL]/g, "1").replace(/O/g, "0");
 }

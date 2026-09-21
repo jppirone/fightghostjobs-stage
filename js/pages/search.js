@@ -6,7 +6,7 @@ import { requestLink } from "../session.js";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js";
 import { locationLine, waitText } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
-import { checkCompany, classifyQuery } from "../search-input.js";
+import { checkCompany, classifyQuery, NO_MATCH_NOTE } from "../search-input.js";
 
 const PENDING_KEY = "fgj-pending-search";
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), searchBtn = $("#searchBtn"), formError = $("#formError");
@@ -76,7 +76,7 @@ function showResults(data) {
   const n = data.results.length;
   if (n === 0) {
     countEl.textContent = "No matching postings";
-    resultsEl.append(h("div", { class: "empty-note", style: "margin-top:0;" }, "No posting matched. A posting appears here only if a real employer has registered it with FightGhostJobs, so a missing posting is itself worth knowing. Check the company name and try a shorter part of the title."));
+    resultsEl.append(h("div", { class: "empty-note", style: "margin-top:0;" }, NO_MATCH_NOTE));
     return;
   }
   countEl.textContent = n + (n === 1 ? " matching posting" : " matching postings") + (data.truncated ? " — showing the first 25; add more of the title to narrow it" : "");

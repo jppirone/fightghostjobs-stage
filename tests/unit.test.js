@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { fmtDate, fmtStamp, groupCode, locationLine, initials, plural, waitText } from "../js/format.js";
 import { postingChips, aiFilteringChip, aiInterviewChip, statusChips, notOpenMessage, TOOLTIP_FILTERING, TOOLTIP_INTERVIEW } from "../js/chips.js";
-import { classifyQuery, checkCompany, normalizeCode } from "../js/search-input.js";
+import { classifyQuery, checkCompany, normalizeCode, NO_MATCH_NOTE } from "../js/search-input.js";
 import { validateForm, buildCreateBody, mapServerErrors } from "../js/register-form.js";
 
 test("dates read like the design (Sep 2), in UTC when asked", () => {
@@ -91,6 +91,11 @@ test("one box, two meanings: a code (with a digit or grouped) versus a title", (
   assert.equal(classifyQuery("x".repeat(81)).ok, false);
   assert.equal(classifyQuery("C++").ok, false);                        // fewer than 3 letters/digits
   assert.equal(classifyQuery("C++ Developer").kind, "phrase");
+});
+
+test("the empty-result note tells a candidate that closed or expired postings are found only by req code", () => {
+  assert.ok(NO_MATCH_NOTE.endsWith("Closed or expired postings appear only when you search by req code."));
+  assert.ok(NO_MATCH_NOTE.startsWith("No posting matched."));
 });
 
 test("code normalisation matches the database (I,L -> 1; O -> 0; spaces and hyphens ignored)", () => {
