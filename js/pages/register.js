@@ -5,10 +5,10 @@ import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFai
 import { rememberNext } from "../session.js";
 import { $, $$, h, clear, alertBox } from "../dom.js";
 import { fmtClose, groupCode, waitText } from "../format.js";
-import { validateForm, buildCreateBody, mapServerErrors } from "../register-form.js";
+import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq } from "../register-form.js";
 import { mountLocationPicker } from "../location-picker.js";
 
-const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false };
+const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false, dupAsked: false };
 const form = $("#form"), result = $("#result"), pageAlert = $("#pageAlert"), formAlert = $("#formAlert");
 const registerBtn = $("#registerBtn"), draftBtn = $("#draftBtn");
 const picker = mountLocationPicker({ isRemote: () => $("#remote").checked });
@@ -30,11 +30,19 @@ wireToggle("#recruiterToggle", "recruiter");
 
 const val = (id) => $(id).value;
 const collect = () => ({ title: val("#jtitle"), req: val("#req"), company: val("#company"), locEntries: picker.get().entries, attested: picker.get().attested, remote: $("#remote").checked, appcap: val("#appcap"), win: val("#livedays"), closeout: val("#closeout"), desc: val("#desc"),
-  aiFilter: state.aiFilter, aiInterview: state.aiInterview, recruiter: state.recruiter });
+  aiFilter: state.aiFilter, aiInterview: state.aiInterview, recruiter: state.recruiter, dupAsked: state.dupAsked, dupNote: val("#dupnote") });
 
 function showErrors(byField) {
   for (const el of $$("[data-error-for]")) { const id = el.dataset.errorFor; const msg = byField[id]; el.hidden = !msg; el.textContent = msg || ""; const inp = $("#" + (id === "locpicker" ? "locq" : id)); if (inp) inp.setAttribute("aria-invalid", msg ? "true" : "false"); }
 }
+// The reused-req prompt: shown when the backend says this company already has a posting with this req number; the explanation is then required and sent with the next attempt. Not a block.
+function askWhyReused() {
+  state.dupAsked = true; $("#dupPrompt").hidden = false; $("#dupnote").focus();
+  say(formAlert, "error", "");
+}
+function dropReusedPrompt() { state.dupAsked = false; $("#dupPrompt").hidden = true; $("#dupnote").value = ""; showErrors({}); }
+$("#dupChange").addEventListener("click", () => { dropReusedPrompt(); $("#req").focus(); });
+$("#req").addEventListener("input", () => { if (state.dupAsked) dropReusedPrompt(); });          // the explanation belongs to one req number
 function setBusy(on) { state.busy = on; registerBtn.disabled = on; draftBtn.disabled = on; }
 function say(box, kind, text) { clear(box); box.hidden = !text; if (text) box.append(alertBox(kind, text)); }
 
@@ -59,6 +67,7 @@ async function submit(mode) {
     const created = await api.createPosting(buildCreateBody(values));
     if (!created.ok) {
       if (isAuthFailure(created.error)) return sessionEnded();
+      if (isDuplicateReq(created.error)) { askWhyReused(); return; }
       const m = mapServerErrors(created.error);
       showErrors(m.byField);
       say(formAlert, "error", m.general || (Object.keys(m.byField).length ? "Some fields were not accepted. Nothing was saved." : failureText(created.error)));
@@ -121,7 +130,7 @@ function registerAnother() {
   $("#remote").checked = false;
   for (const [id, key] of [["#aiFilterToggle", "aiFilter"], ["#aiInterviewToggle", "aiInterview"], ["#recruiterToggle", "recruiter"]]) { state[key] = false; $(id).classList.remove("on"); $(id).setAttribute("aria-checked", "false"); }
   $("#recruiterPanel").style.display = "none";
-  showErrors({}); say(formAlert, "error", "");
+  dropReusedPrompt(); say(formAlert, "error", "");
   unlockForm(); $("#jtitle").focus();
 }
 

@@ -11,10 +11,14 @@ export const MIN_WINDOW_DAYS = 14, MAX_WINDOW_DAYS = 45;      // the standard-ti
 // The form's input ids -> the backend's field names (for showing a server refusal under the right input)
 export const FIELD_OF_SERVER_NAME = {
   title: "jtitle", req_number: "req", company_name: "company", location_ids: "locpicker", locations: "locpicker", is_remote: "locpicker", locations_attested: "attest", applicant_cap: "appcap",
-  initial_closeout_condition: "closeout", description_text: "desc", window_days: "livedays",
+  initial_closeout_condition: "closeout", description_text: "desc", window_days: "livedays", duplicate_explanation: "dupnote",
 };
+export const MAX_DUP_NOTE = 300;      // create-posting refuses a longer explanation
 
-// values: { title, req, company, locEntries, attested, remote, appcap, win, closeout, desc, aiFilter, aiInterview, recruiter }     (locEntries: the catalog entries chosen in the picker, [{ id, kind, display }]; attested: the "one opening, fillable from any of these" box;  win: the days the posting stays live, as typed; empty means the default, 45)
+// The backend answers 409 code "duplicate_req" when this company already has a posting (any status) with this req number and no explanation came with the request.
+export const isDuplicateReq = (err) => !!err && err.code === "duplicate_req";
+
+// values: { title, req, company, locEntries, attested, remote, appcap, win, closeout, desc, aiFilter, aiInterview, recruiter, dupAsked, dupNote }      (dupAsked: the reused-req prompt is showing, so a one-line explanation is required; dupNote: what was typed there)     (locEntries: the catalog entries chosen in the picker, [{ id, kind, display }]; attested: the "one opening, fillable from any of these" box;  win: the days the posting stays live, as typed; empty means the default, 45)
 export function validateForm(v) {
   const e = {};
   const need = (id, text, what) => { if (String(text || "").trim() === "") e[id] = "Enter " + what + "."; };
@@ -23,6 +27,12 @@ export function validateForm(v) {
   need("closeout", v.closeout, "what ends this posting");
   need("req", v.req, "your req number");
   need("desc", v.desc, "the job description");
+  if (v.dupAsked === true) {
+    const t = String(v.dupNote || "").trim();
+    if (t === "") e.dupnote = "Enter a short explanation.";
+    else if (t.length > MAX_DUP_NOTE) e.dupnote = "Keep the explanation to " + MAX_DUP_NOTE + " characters or fewer.";
+    else if (Array.from(t).some((ch) => { const c = ch.codePointAt(0); return c < 32 || c === 127; })) e.dupnote = "Keep the explanation to a single line of plain text.";
+  }
   if (String(v.appcap || "").trim() !== "") {
     const t = String(v.appcap).trim();
     if (!/^\d+$/.test(t) || Number(t) < 1 || Number(t) > MAX_APPLICANT_CAP) e.appcap = "The cap must be a whole number of 1 or more, or left empty.";
@@ -50,6 +60,7 @@ export function buildCreateBody(v) {
     third_party_recruiter: v.recruiter === true,
   };
   // Locations are sent as catalog ids ONLY (free text is refused by the backend); the display text is derived by the database. The attestation is sent when it applies (two or more locations).
+  if (v.dupAsked === true) body.duplicate_explanation = String(v.dupNote).trim();          // only when the person was asked (the backend ignores it when there is no duplicate)
   if (chosen.length) body.location_ids = chosen.map((c) => c.id);
   if (chosen.length >= 2) body.locations_attested = v.attested === true;
   if (String(v.appcap || "").trim() !== "") body.applicant_cap = Number(String(v.appcap).trim());

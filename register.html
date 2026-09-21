@@ -57,6 +57,15 @@
         </div>
         <div><label for="livedays">Keep it live for (days)</label><input id="livedays" type="text" inputmode="numeric" maxlength="3" value="45" autocomplete="off"><div class="field-error" data-error-for="livedays" hidden></div><div class="field-hint">14 to 45 days. Never longer than 45.</div></div>
       </div>
+      <div id="dupPrompt" class="alert alert-notice" role="group" aria-labelledby="dupTitle" hidden>
+        <strong id="dupTitle" style="color:var(--ink);">This company already has a posting with this req number.</strong>
+        Reusing a req number is allowed. Add one line saying why (for example, the role was reopened or reposted); it is recorded with the posting. Nothing is judged and nothing is blocked.
+        <label for="dupnote" style="margin-top:12px;">Why is this req number being reused?</label>
+        <input id="dupnote" type="text" maxlength="300" autocomplete="off" aria-describedby="dupHint">
+        <div class="field-error" data-error-for="dupnote" hidden></div>
+        <div id="dupHint" class="field-hint">One line, 300 characters at most. Then press Register posting again.</div>
+        <button type="button" id="dupChange" class="btn btn-outline btn-sm" style="margin-top:10px;">Change the req number</button>
+      </div>
       <div style="font-size:12px;color:var(--muted);margin-top:-10px;">If set, the cap is shown to candidates too. Reaching it doesn't auto-close the posting — that's on you to come back and pause or close it. Pausing never resets this cap or the close date.</div>
       <div class="alert alert-notice" id="windowNote" role="note">
         <strong style="color:var(--ink);">How long it stays live: you choose, 14 to 45 days.</strong>

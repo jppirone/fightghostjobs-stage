@@ -5,6 +5,7 @@ import { fmtDate, fmtStamp, fmtDateTz, fmtClose, tzLabel, groupCode, locationLin
 import { postingChips, aiFilteringChip, aiInterviewChip, statusChips, notOpenMessage, TOOLTIP_FILTERING, TOOLTIP_INTERVIEW } from "../js/chips.js";
 import { classifyQuery, checkCompany, normalizeCode, noMatchMessage, NO_MATCH_NOTE } from "../js/search-input.js";
 import { checkReq, resolveSearch, noMatchMessage as noMatchMsg, NO_MATCH_NOTE_REQ } from "../js/search-input.js";
+import { isDuplicateReq } from "../js/register-form.js";
 import { validateForm, buildCreateBody, mapServerErrors, MIN_WINDOW_DAYS, MAX_WINDOW_DAYS } from "../js/register-form.js";
 
 test("dates read like the design (Sep 2), in UTC when asked", () => {
@@ -206,4 +207,18 @@ test("a req lookup that finds nothing never echoes the req (it was typed into a 
   assert.ok(!m.includes("SECRET-REQ-991"));
   assert.ok(m.includes("Acme Inc") && m.endsWith(NO_MATCH_NOTE_REQ));
   assert.match(noMatchMsg("Acme", "Analyst", "phrase"), /"Analyst"/);                    // the other modes still echo what was searched
+});
+
+test("reused req number: once the person is asked, a one-line explanation is required and sent; before that, nothing extra is sent", () => {
+  assert.equal("duplicate_explanation" in buildCreateBody(good), false);
+  assert.equal(validateForm(good).dupnote, undefined);
+  const asked = Object.assign({}, good, { dupAsked: true });
+  for (const blank of ["", "   ", undefined, null]) assert.ok(validateForm(Object.assign({}, asked, { dupNote: blank })).dupnote, JSON.stringify(blank));
+  assert.ok(validateForm(Object.assign({}, asked, { dupNote: "x".repeat(301) })).dupnote);
+  assert.ok(validateForm(Object.assign({}, asked, { dupNote: "line one" + String.fromCharCode(10) + "line two" })).dupnote);
+  assert.equal(validateForm(Object.assign({}, asked, { dupNote: "x".repeat(300) })).dupnote, undefined);
+  assert.equal(buildCreateBody(Object.assign({}, asked, { dupNote: "  Role reopened after the offer fell through  " })).duplicate_explanation, "Role reopened after the offer fell through");
+  assert.equal(isDuplicateReq({ code: "duplicate_req", field: "duplicate_explanation" }), true);
+  for (const other of [{ code: "invalid_request" }, { code: "rate_limited" }, null, undefined]) assert.equal(isDuplicateReq(other), false);
+  assert.equal(mapServerErrors({ field: "duplicate_explanation", message: "too long" }).byField.dupnote, "too long");
 });
