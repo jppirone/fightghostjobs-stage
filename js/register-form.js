@@ -1,17 +1,18 @@
 // register-form.js - what the "Register a posting" form sends, and the checks made before it is sent. Pure (no DOM): tested in Node.
 // The backend (create-posting) is the authority and refuses anything wrong; these checks only spare the employer a round trip and a rate-limit token.
-// Facts fixed by the backend: the tier is always "standard" in this build (45-day window, live on registration); both AI disclosures are REQUIRED and are always sent as true or false
-// (never omitted, never null); the acting employer and organization are never sent (the server reads them from the session).
+// Facts fixed by the backend: the tier is always "standard" in this build (live on registration; the window is the poster's choice from 14 to 45 days, 45 when left alone; the extended tier is not
+// offered); both AI disclosures are REQUIRED and are always sent as true or false (never omitted, never null); the acting employer and organization are never sent (the server reads them from the session).
 
 export const MAX_APPLICANT_CAP = 2147483647;
+export const MIN_WINDOW_DAYS = 14, MAX_WINDOW_DAYS = 45;      // the standard-tier window range: create-posting refuses anything else and so does the database (postings_window_days_check)
 
 // The form's input ids -> the backend's field names (for showing a server refusal under the right input)
 export const FIELD_OF_SERVER_NAME = {
   title: "jtitle", req_number: "req", company_name: "company", locations: "loc", is_remote: "loc", applicant_cap: "appcap",
-  initial_closeout_condition: "closeout", description_text: "desc",
+  initial_closeout_condition: "closeout", description_text: "desc", window_days: "livedays",
 };
 
-// values: { title, req, company, loc, remote, appcap, closeout, desc, aiFilter, aiInterview, recruiter }
+// values: { title, req, company, loc, remote, appcap, win, closeout, desc, aiFilter, aiInterview, recruiter }     (win: the days the posting stays live, as typed; empty means the default, 45)
 export function validateForm(v) {
   const e = {};
   const need = (id, text, what) => { if (String(text || "").trim() === "") e[id] = "Enter " + what + "."; };
@@ -24,6 +25,8 @@ export function validateForm(v) {
     const t = String(v.appcap).trim();
     if (!/^\d+$/.test(t) || Number(t) < 1 || Number(t) > MAX_APPLICANT_CAP) e.appcap = "The cap must be a whole number of 1 or more, or left empty.";
   }
+  const w = String(v.win == null ? "" : v.win).trim();
+  if (w !== "" && (!/^\d{1,3}$/.test(w) || Number(w) < MIN_WINDOW_DAYS || Number(w) > MAX_WINDOW_DAYS)) e.livedays = "Enter a whole number of days from " + MIN_WINDOW_DAYS + " to " + MAX_WINDOW_DAYS + ".";
   if (v.remote !== true && String(v.loc || "").trim() === "") e.loc = "Enter a location, or tick Remote role.";
   return e;
 }
@@ -44,6 +47,8 @@ export function buildCreateBody(v) {
     third_party_recruiter: v.recruiter === true,
   };
   if (String(v.appcap || "").trim() !== "") body.applicant_cap = Number(String(v.appcap).trim());
+  const w = String(v.win == null ? "" : v.win).trim();
+  if (w !== "") body.window_days = Number(w);          // omitted means 45 (the backend's default); a value outside 14-45 is refused by the backend, whatever this page checked
   return body;
 }
 

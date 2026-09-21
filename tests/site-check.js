@@ -14,6 +14,7 @@
 //   S12 links that open a new tab carry rel="noopener"
 //   S13 styles.css is loaded before app.css on every page
 //   S14 the empty-search note says closed or expired postings appear only by req code, and search.js uses that note
+//   S15 the register form's window is 14 to 45 days (default 45), matches the backend range, and the extended tier is not offered
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -112,10 +113,24 @@ export function checkSite(root) {
   if (fs.existsSync(si) && fs.existsSync(sp)) {
     const note = (read(si).match(/export const NO_MATCH_NOTE = "([^"]*)";/) || [])[1] || "";
     if (!note.endsWith("Closed or expired postings appear only when you search by req code.")) add("S14", si, "NO_MATCH_NOTE must end with the closed-or-expired-by-code sentence");
+    const src = read(si);
+    const fn = (src.match(/export function noMatchMessage\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1] || "";
+    if (!/\+\s*NO_MATCH_NOTE;\s*$/.test(fn.trim())) add("S14", si, "noMatchMessage must end with NO_MATCH_NOTE");
+    if (!/No postings found for/.test(fn)) add("S14", si, "noMatchMessage must echo what was searched (\"No postings found for ...\")");
     const page = read(sp);
-    if (!/import\s*\{[^}]*\bNO_MATCH_NOTE\b[^}]*\}\s*from\s*"\.\.\/search-input\.js"/.test(page) || !/empty-note[^\n]*NO_MATCH_NOTE\)\)/.test(page)) add("S14", sp, "the empty-result message must be NO_MATCH_NOTE");
-    if (/No posting matched\./.test(page)) add("S14", sp, "a second, hand-written empty-result message");
+    if (!/import\s*\{[^}]*\bnoMatchMessage\b[^}]*\}\s*from\s*"\.\.\/search-input\.js"/.test(page) || !/empty-note[^\n]*noMatchMessage\(searched\.company, searched\.query, searched\.kind\)\)/.test(page)) add("S14", sp, "the empty-result message must be noMatchMessage(company, query, kind)");
+    if (/No postings? (found|matched)/.test(page)) add("S14", sp, "a second, hand-written empty-result message");
   } else add("S14", root, "js/search-input.js or js/pages/search.js is missing");
+
+  // S15: the register form offers the standard window range the backend and the database enforce (14 to 45 days, 45 by default) and offers nothing longer.
+  const rf = path.join(root, "js", "register-form.js"), rh = path.join(root, "register.html");
+  if (fs.existsSync(rf) && fs.existsSync(rh)) {
+    if (!read(rf).includes("export const MIN_WINDOW_DAYS = 14, MAX_WINDOW_DAYS = 45;")) add("S15", rf, "the window range must be exactly 14 to 45 (the backend and the database enforce the same)");
+    const rhtml = read(rh);
+    if (!/<input id="livedays"[^>]*value="45"/.test(rhtml)) add("S15", rh, "the window input (id=livedays) must exist and default to 45");
+    if (!rhtml.includes("14 to 45 days")) add("S15", rh, "the form must say the window is 14 to 45 days");
+    if (/id="tier"|extended tier|value="extended"/i.test(rhtml)) add("S15", rh, "the extended tier must not be offered in the form");
+  } else add("S15", root, "js/register-form.js or register.html is missing");
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");
   if (!fs.existsSync(vendor) || !fs.existsSync(rec)) add("S10", vendor, "vendored Auth client or its recorded hash is missing");

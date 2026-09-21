@@ -7,9 +7,18 @@
 
 const CODE_RE = /^[0-9A-HJKMNP-TV-Z]{12}$/;
 
-// What the page says when a search finds nothing. The last sentence is deliberate: a title search lists only live or paused postings (candidate_search_postings), so a posting that has
-// closed or expired is found only by its req code, and without that sentence "no match" would read as "never registered".
-export const NO_MATCH_NOTE = "No posting matched. A posting appears here only if a real employer has registered it with FightGhostJobs, so a missing posting is itself worth knowing. Check the company name and try a shorter part of the title. Closed or expired postings appear only when you search by req code.";
+// What the page says when a search finds nothing: an echo of exactly what was searched, then the note. The last sentence of the note is deliberate: a title search lists only live or
+// paused postings (candidate_search_postings), so a posting that has closed or expired is found only by its req code, and without that sentence "no match" would read as "never registered".
+// The echo lets a person see at a glance that they typed "Acme" where the employer registered "Acme Inc" (the company must match the registered name; it is not a prefix search).
+export const NO_MATCH_NOTE = "A posting appears here only if a real employer has registered it with FightGhostJobs, so a missing posting is itself worth knowing. Check the company name and try a shorter part of the title. Closed or expired postings appear only when you search by req code.";
+
+const clip = (s, n) => { const t = String(s == null ? "" : s).replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1) + "…" : t; };
+
+// kind: "phrase" | "code"  ->  No postings found for "Acme Inc" + "Senior Analyst". <note>
+export function noMatchMessage(company, query, kind) {
+  const what = kind === "code" ? "code \"" + clip(query, 40) + "\"" : "\"" + clip(query, 80) + "\"";
+  return "No postings found for \"" + clip(company, 80) + "\" + " + what + ". " + NO_MATCH_NOTE;
+}
 
 export function normalizeCode(text) {
   return String(text).toUpperCase().replace(/[ -]+/g, "").replace(/[IL]/g, "1").replace(/O/g, "0");

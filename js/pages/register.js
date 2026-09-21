@@ -4,7 +4,7 @@
 import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js";
 import { rememberNext } from "../session.js";
 import { $, $$, h, clear, alertBox } from "../dom.js";
-import { fmtDate, groupCode, waitText } from "../format.js";
+import { fmtClose, groupCode, waitText } from "../format.js";
 import { validateForm, buildCreateBody, mapServerErrors } from "../register-form.js";
 
 const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false };
@@ -26,7 +26,7 @@ wireToggle("#aiInterviewToggle", "aiInterview");
 wireToggle("#recruiterToggle", "recruiter");
 
 const val = (id) => $(id).value;
-const collect = () => ({ title: val("#jtitle"), req: val("#req"), company: val("#company"), loc: val("#loc"), remote: $("#remote").checked, appcap: val("#appcap"), closeout: val("#closeout"), desc: val("#desc"),
+const collect = () => ({ title: val("#jtitle"), req: val("#req"), company: val("#company"), loc: val("#loc"), remote: $("#remote").checked, appcap: val("#appcap"), win: val("#livedays"), closeout: val("#closeout"), desc: val("#desc"),
   aiFilter: state.aiFilter, aiInterview: state.aiInterview, recruiter: state.recruiter });
 
 function showErrors(byField) {
@@ -94,7 +94,7 @@ function showResult(p, kind, problem) {
       h("div", { style: "margin-top:16px;display:flex;gap:12px;" }, h("button", { type: "button", class: "btn btn-dark btn-sm", id: "retryPublish", onclick: async (ev) => { ev.currentTarget.disabled = true; await publish(); } }, "Try publishing again")));
   }
   const rows = [["Title", p.title], ["Status", p.status]];
-  if (kind === "live" || kind === "other") rows.push(["Closes", fmtDate(p.expiration_date)]);
+  if (kind === "live" || kind === "other") rows.push(["Closes", fmtClose(p.expiration_date)]);
   result.append(h("dl", { style: "margin:18px 0 0 0;display:grid;grid-template-columns:auto 1fr;gap:8px 18px;font-size:14px;" },
     rows.flatMap(([k, v]) => [h("dt", { style: "color:var(--faint);font-weight:600;" }, k), h("dd", { style: "margin:0;" }, v)])));
   result.append(h("div", { style: "margin-top:20px;" },
@@ -111,6 +111,7 @@ function showResult(p, kind, problem) {
 function registerAnother() {
   state.saved = null; result.hidden = true; clear(result);
   for (const id of ["#jtitle", "#req", "#loc", "#appcap", "#closeout", "#desc"]) $(id).value = "";
+  $("#livedays").value = "45";
   $("#remote").checked = false;
   for (const [id, key] of [["#aiFilterToggle", "aiFilter"], ["#aiInterviewToggle", "aiInterview"], ["#recruiterToggle", "recruiter"]]) { state[key] = false; $(id).classList.remove("on"); $(id).setAttribute("aria-checked", "false"); }
   $("#recruiterPanel").style.display = "none";

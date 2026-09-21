@@ -6,7 +6,7 @@ import { requestLink } from "../session.js";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js";
 import { locationLine, waitText } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
-import { checkCompany, classifyQuery, NO_MATCH_NOTE } from "../search-input.js";
+import { checkCompany, classifyQuery, noMatchMessage } from "../search-input.js";
 
 const PENDING_KEY = "fgj-pending-search";
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), searchBtn = $("#searchBtn"), formError = $("#formError");
@@ -70,13 +70,13 @@ function renderCard(row) {
       h("button", { type: "button", class: "btn btn-outline view-details", style: "flex:1;justify-content:center;", onclick: (ev) => openDetails(row, ev.currentTarget) }, "View posting details")));
 }
 
-function showResults(data) {
+function showResults(data, searched) {
   clear(resultsEl);
   countEl.hidden = false;
   const n = data.results.length;
   if (n === 0) {
     countEl.textContent = "No matching postings";
-    resultsEl.append(h("div", { class: "empty-note", style: "margin-top:0;" }, NO_MATCH_NOTE));
+    resultsEl.append(h("div", { class: "empty-note", style: "margin-top:0;" }, noMatchMessage(searched.company, searched.query, searched.kind)));
     return;
   }
   countEl.textContent = n + (n === 1 ? " matching posting" : " matching postings") + (data.truncated ? " — showing the first 25; add more of the title to narrow it" : "");
@@ -102,7 +102,7 @@ async function runSearch() {
     let r = await api.candidateSearch(q.kind === "code" ? { company: c.value, code: q.value } : { company: c.value, phrase: q.value });
     if (q.alsoTryCode && r.ok && r.data.results.length === 0) r = await api.candidateSearch({ company: c.value, code: q.value });
     if (!r.ok && r.status === 404 && r.error.code === "not_found") r = { ok: true, data: { mode: "code", truncated: false, results: [] } };   // a code that matches nothing is a plain "no such posting"
-    if (r.ok) { showResults(r.data); return; }
+    if (r.ok) { showResults(r.data, { company: c.value, query: q.value, kind: q.kind }); return; }
     clear(resultsEl); countEl.hidden = true;
     if (isAuthFailure(r.error)) { session = null; applySession(); showSignIn(r.error.code === "reverification_required" ? "Your email verification has expired. Please verify your email again." : "Please verify your email to search."); return; }
     if (r.error.code === "rate_limited") { cooldown = r.error.retryAfter || 30; setFormError("You are searching too fast. Try again in " + waitText(cooldown) + "."); return; }

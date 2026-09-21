@@ -1,7 +1,7 @@
 // chips.js - what a posting's facts are called on screen. Pure (no DOM): tested in Node.
 // The wording of the two AI disclosures and their tooltips is the FINAL design copy (design brief addendum, section 12): the tooltip describes the mechanism, never an outcome.
 
-import { fmtDate } from "./format.js";
+import { fmtDateTz, fmtClose } from "./format.js";
 
 export const TOOLTIP_FILTERING = "Resume screening or keyword/ATS-style matching used to prioritize applications before a human reviews them.";
 export const TOOLTIP_INTERVIEW = "Any AI that interacts with a candidate directly — an AI-conducted interview, a chatbot screening call, or similar.";
@@ -18,7 +18,7 @@ export const CLOSED_REASON_LABEL = { filled: "Filled", withdrawn: "Withdrawn", e
 
 // The status statement a candidate sees (design brief 13): live -> the close date; paused; expired (the system's auto-close); closed (what the employer chose).
 export function statusChips(p, tz) {
-  const closes = fmtDate(p.closes_at, tz);
+  const closes = fmtClose(p.closes_at, tz);      // the exact moment with its time zone: "Nov 4, 9:08 PM EST"
   switch (p.status) {
     case "live": return [{ text: "Closes " + closes, bold: true }];
     case "paused": return [{ text: "Paused", bold: true }, { text: "Close date " + closes + " (the clock keeps running)" }];
@@ -30,12 +30,12 @@ export function statusChips(p, tz) {
 
 // Every chip of a search result / posting header, in the designed order.
 export function postingChips(p, tz) {
-  const chips = [{ text: "Posted " + fmtDate(p.posted_at, tz) }];
+  const chips = [{ text: "Posted " + fmtDateTz(p.posted_at, tz) }];
   chips.push(...statusChips(p, tz));
   chips.push(aiFilteringChip(p.ai_filtering), aiInterviewChip(p.ai_interview_other));
   chips.push({ text: p.third_party_recruiter === true ? "Third-party recruiter involved" : "No recruiter" });
   chips.push({ text: Number.isInteger(p.applicant_cap) ? "Capped at " + p.applicant_cap + " applicants" : "No applicant cap set" });
-  if (typeof p.last_edited_at === "string" && p.last_edited_at !== "") chips.push({ text: "Edited " + fmtDate(p.last_edited_at, tz) });
+  if (typeof p.last_edited_at === "string" && p.last_edited_at !== "") chips.push({ text: "Edited " + fmtDateTz(p.last_edited_at, tz) });
   return chips;
 }
 

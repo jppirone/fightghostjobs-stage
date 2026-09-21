@@ -1,10 +1,10 @@
 // unit.test.js - the pure logic of the site (formatting, disclosure wording, search-input rules, the register form). Run: node --test tests/
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fmtDate, fmtStamp, groupCode, locationLine, initials, plural, waitText } from "../js/format.js";
+import { fmtDate, fmtStamp, fmtDateTz, fmtClose, tzLabel, groupCode, locationLine, initials, plural, waitText } from "../js/format.js";
 import { postingChips, aiFilteringChip, aiInterviewChip, statusChips, notOpenMessage, TOOLTIP_FILTERING, TOOLTIP_INTERVIEW } from "../js/chips.js";
-import { classifyQuery, checkCompany, normalizeCode, NO_MATCH_NOTE } from "../js/search-input.js";
-import { validateForm, buildCreateBody, mapServerErrors } from "../js/register-form.js";
+import { classifyQuery, checkCompany, normalizeCode, noMatchMessage, NO_MATCH_NOTE } from "../js/search-input.js";
+import { validateForm, buildCreateBody, mapServerErrors, MIN_WINDOW_DAYS, MAX_WINDOW_DAYS } from "../js/register-form.js";
 
 test("dates read like the design (Sep 2), in UTC when asked", () => {
   assert.equal(fmtDate("2026-09-02T12:00:00Z", "UTC"), "Sep 2");
@@ -12,6 +12,17 @@ test("dates read like the design (Sep 2), in UTC when asked", () => {
   assert.equal(fmtDate("nope"), ""); assert.equal(fmtDate(null), "");
   assert.equal(fmtStamp("2026-09-18T16:12:00Z", "UTC"), "Sep 18, 2026 · 4:12 PM");
   assert.equal(fmtStamp("2026-09-18T00:05:00Z", "UTC"), "Sep 18, 2026 · 12:05 AM");
+});
+
+test("dates name the zone they are read in, and the close date is an exact moment", () => {
+  assert.equal(fmtDateTz("2026-09-02T12:00:00Z", "UTC"), "Sep 2 (UTC)");
+  assert.equal(fmtClose("2026-11-05T02:08:44Z", "UTC"), "Nov 5, 2:08 AM UTC");
+  assert.equal(fmtClose("2026-11-05T14:30:00Z", "UTC"), "Nov 5, 2:30 PM UTC");
+  assert.equal(fmtClose("2026-11-05T00:00:00Z", "UTC"), "Nov 5, 12:00 AM UTC");
+  assert.equal(fmtClose("2026-11-05T12:00:00Z", "UTC"), "Nov 5, 12:00 PM UTC");
+  assert.equal(fmtClose("nope"), ""); assert.equal(fmtDateTz(null), ""); assert.equal(tzLabel(undefined), "");
+  // in the viewer's own zone the label is whatever that zone is called (EST, GMT+1, ...): never empty, never a raw offset of a different zone
+  for (const iso of ["2026-09-21T02:08:44Z", "2026-11-05T02:08:44Z"]) { const z = tzLabel(iso); assert.ok(z !== "" && z.length <= 12, z); assert.ok(fmtClose(iso).endsWith(" " + z)); assert.ok(fmtDateTz(iso).endsWith(" (" + z + ")")); }
 });
 
 test("the employer's code is grouped, never invented", () => {
@@ -51,19 +62,21 @@ const base = { company_name: "Meridian", title: "Senior Data Analyst", locations
 
 test("a live posting's chips, in the designed order", () => {
   const t = postingChips(base, "UTC").map((c) => c.text);
-  assert.deepEqual(t, ["Posted Sep 2", "Closes Oct 17", "No AI filtering", "No AI interview/other", "No recruiter", "Capped at 250 applicants"]);
+  assert.deepEqual(t, ["Posted Sep 2 (UTC)", "Closes Oct 17, 12:00 PM UTC", "No AI filtering", "No AI interview/other", "No recruiter", "Capped at 250 applicants"]);
   assert.equal(postingChips(base, "UTC")[1].bold, true);
 });
 
 test("cap, recruiter and last-edited variants", () => {
   const p = Object.assign({}, base, { applicant_cap: null, third_party_recruiter: true, ai_filtering: true, last_edited_at: "2026-09-20T09:00:00Z" });
   const t = postingChips(p, "UTC").map((c) => c.text);
-  assert.ok(t.includes("No applicant cap set")); assert.ok(t.includes("Third-party recruiter involved")); assert.ok(t.includes("AI-assisted filtering")); assert.ok(t.includes("Edited Sep 20"));
+  assert.ok(t.includes("No applicant cap set")); assert.ok(t.includes("Third-party recruiter involved")); assert.ok(t.includes("AI-assisted filtering")); assert.ok(t.includes("Edited Sep 20 (UTC)"));
 });
 
 test("status wording for every state a candidate can be shown", () => {
-  assert.deepEqual(statusChips(base, "UTC"), [{ text: "Closes Oct 17", bold: true }]);
+  assert.deepEqual(statusChips(base, "UTC"), [{ text: "Closes Oct 17, 12:00 PM UTC", bold: true }]);
   assert.equal(statusChips(Object.assign({}, base, { status: "paused" }), "UTC")[0].text, "Paused");
+  assert.equal(statusChips(Object.assign({}, base, { status: "paused" }), "UTC")[1].text, "Close date Oct 17, 12:00 PM UTC (the clock keeps running)");
+  assert.equal(statusChips(Object.assign({}, base, { status: "expired", closed_reason: "expired_no_action" }), "UTC")[1].text, "Was set to close Oct 17, 12:00 PM UTC");
   assert.equal(statusChips(Object.assign({}, base, { status: "expired", closed_reason: "expired_no_action" }), "UTC")[0].text, "Expired · No action taken");
   assert.equal(statusChips(Object.assign({}, base, { status: "closed", closed_reason: "filled" }), "UTC")[0].text, "Closed · Filled");
   assert.equal(statusChips(Object.assign({}, base, { status: "closed", closed_reason: "withdrawn" }), "UTC")[0].text, "Closed · Withdrawn");
@@ -93,9 +106,15 @@ test("one box, two meanings: a code (with a digit or grouped) versus a title", (
   assert.equal(classifyQuery("C++ Developer").kind, "phrase");
 });
 
-test("the empty-result note tells a candidate that closed or expired postings are found only by req code", () => {
+test("the empty-result message echoes exactly what was searched, then says closed or expired postings appear only by req code", () => {
   assert.ok(NO_MATCH_NOTE.endsWith("Closed or expired postings appear only when you search by req code."));
-  assert.ok(NO_MATCH_NOTE.startsWith("No posting matched."));
+  const m = noMatchMessage("Fight Ghost Jobs", "Senior Product Manager", "phrase");
+  assert.ok(m.startsWith("No postings found for \"Fight Ghost Jobs\" + \"Senior Product Manager\". "), m);
+  assert.ok(m.endsWith(NO_MATCH_NOTE));
+  assert.ok(noMatchMessage("Acme", "D21M-48YB-ZQBF", "code").startsWith("No postings found for \"Acme\" + code \"D21M-48YB-ZQBF\". "));
+  assert.ok(noMatchMessage("  Acme   Inc ", " a   b c ", "phrase").startsWith("No postings found for \"Acme Inc\" + \"a b c\". "));      // whitespace tidied
+  assert.ok(noMatchMessage("x".repeat(500), "y".repeat(500), "phrase").length < 500);                                                         // never echoes an unbounded string
+  assert.match(noMatchMessage("<b>x</b>", "<img src=x>", "phrase"), /<b>x<\/b>/);                                                              // plain text: the page inserts it as text, never as HTML
 });
 
 test("code normalisation matches the database (I,L -> 1; O -> 0; spaces and hyphens ignored)", () => {
@@ -132,6 +151,17 @@ test("register form: what is missing is named; the cap, remote and location rule
   assert.equal(validateForm(Object.assign({}, good, { appcap: "" })).appcap, undefined);
   assert.equal("applicant_cap" in buildCreateBody(Object.assign({}, good, { appcap: "" })), false);
   assert.equal(buildCreateBody(Object.assign({}, good, { appcap: " 1 " })).applicant_cap, 1);
+});
+
+test("the window: 14 to 45 days, empty means the default, anything else is named under its input", () => {
+  for (const ok of ["14", "15", "30", "44", "45", " 21 ", ""]) assert.equal(validateForm(Object.assign({}, good, { win: ok })).livedays, undefined, JSON.stringify(ok));
+  for (const bad of ["13", "0", "-1", "46", "60", "100", "1e1", "14.5", "abc", "1 4", "9999"]) assert.ok(validateForm(Object.assign({}, good, { win: bad })).livedays, bad);
+  assert.equal(buildCreateBody(Object.assign({}, good, { win: "21" })).window_days, 21);
+  assert.strictEqual(buildCreateBody(Object.assign({}, good, { win: " 45 " })).window_days, 45);
+  assert.equal("window_days" in buildCreateBody(Object.assign({}, good, { win: "" })), false);        // left alone -> the backend's default (45)
+  assert.equal("window_days" in buildCreateBody(good), false);
+  assert.deepEqual(mapServerErrors({ errors: [{ field: "window_days", message: "window_days must be between 14 and 45 when tier is 'standard' (received 13)" }] }).byField, { livedays: "window_days must be between 14 and 45 when tier is 'standard' (received 13)" });
+  assert.equal(MIN_WINDOW_DAYS, 14); assert.equal(MAX_WINDOW_DAYS, 45);
 });
 
 test("a server refusal lands under the right input", () => {

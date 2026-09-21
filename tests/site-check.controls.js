@@ -65,9 +65,16 @@ control("app.css loaded before styles.css", "S13", edit("register.html", (s) => 
 
 control("the closed-or-expired sentence removed from the note", "S14", edit("js/search-input.js", (s) => s.replace(" Closed or expired postings appear only when you search by req code.", "")));
 control("the sentence reworded", "S14", edit("js/search-input.js", (s) => s.replace("appear only when you search by req code.", "may appear if you search by req code.")));
-control("search.js goes back to its own hand-written message", "S14", edit("js/pages/search.js", (s) => s.replace("empty-note\", style: \"margin-top:0;\" }, NO_MATCH_NOTE))", "empty-note\", style: \"margin-top:0;\" }, \"No posting matched. Check the name.\"))")));
-control("search.js no longer imports the note", "S14", edit("js/pages/search.js", (s) => s.replace("classifyQuery, NO_MATCH_NOTE }", "classifyQuery }")));
+control("search.js goes back to its own hand-written message", "S14", edit("js/pages/search.js", (s) => s.replace("noMatchMessage(searched.company, searched.query, searched.kind))", "\"No postings found. Check the name.\")")));
+control("search.js no longer imports the message builder", "S14", edit("js/pages/search.js", (s) => s.replace("classifyQuery, noMatchMessage }", "classifyQuery }")));
+control("the message stops echoing what was searched", "S14", edit("js/search-input.js", (s) => s.replace("return \"No postings found for", "return \"Nothing for")));
+control("the message stops carrying the note", "S14", edit("js/search-input.js", (s) => s.replace("+ what + \". \" + NO_MATCH_NOTE;", "+ what + \".\";")));
 
+control("the form range drifts (floor 7)", "S15", edit("js/register-form.js", (s) => s.replace("MIN_WINDOW_DAYS = 14", "MIN_WINDOW_DAYS = 7")));
+control("the form allows more than 45", "S15", edit("js/register-form.js", (s) => s.replace("MAX_WINDOW_DAYS = 45", "MAX_WINDOW_DAYS = 60")));
+control("the window input is removed", "S15", edit("register.html", (s) => s.replace('id="livedays"', 'id="somethingelse"')));
+control("the window input defaults to 60", "S15", edit("register.html", (s) => s.replace('value="45" autocomplete', 'value="60" autocomplete')));
+control("the extended tier appears in the form", "S15", edit("register.html", (s) => s.replace("How long it stays live:", "Extended tier: staff review. How long it stays live:")));
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");
 process.exit(missed ? 1 : 0);
