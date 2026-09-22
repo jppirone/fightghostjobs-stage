@@ -20,12 +20,12 @@ export const successorChoices = (roster, targetId) => roster.filter((p) => p.pos
 export const statusText = (p) => (p.status === "active" ? "Active" : "Invited (has not signed in yet)");
 export const roleText = (p) => (p.is_org_admin ? "Admin" : "Member");
 
-// Can this row be acted on by the signed-in admin? (The backend decides for real; this only hides what would certainly be refused.)
+// Can this row be acted on by the signed-in admin? Never your own row: removing yourself or giving up your own admin rights would lock you out of this page. (The backend decides for real; this only hides what would certainly be refused.)
 export function actionsFor(p, me, roster) {
   const admins = roster.filter((x) => x.is_org_admin).length;
   const out = [];
   if (p.poster_id !== me) out.push("remove");
-  if (p.is_org_admin ? admins > 1 : true) out.push(p.is_org_admin ? "demote" : "promote");      // the last admin cannot be demoted
+  if (p.poster_id !== me && (p.is_org_admin ? admins > 1 : true)) out.push(p.is_org_admin ? "demote" : "promote");      // never your own admin flag (you could not undo it); the last admin cannot be demoted
   return out;
 }
 

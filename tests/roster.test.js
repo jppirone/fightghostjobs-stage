@@ -13,12 +13,12 @@ test("adding a person: a work email and a name are required, trimmed; the admin 
   assert.ok(checkAdd("", "Bob").errors.email); assert.ok(checkAdd("not an address", "Bob").errors.email); assert.ok(checkAdd("bob@acme.example", " ").errors.name); assert.ok(checkAdd("bob@acme.example", "x".repeat(121)).errors.name);
 });
 
-test("row actions: never remove yourself here; the last admin cannot be demoted; a member can be promoted", () => {
+test("row actions: never your own row; the last admin cannot be demoted; a member can be promoted", () => {
   const me = row(), other = row({ poster_id: ID2, full_name: "Bob", is_org_admin: false }), admin2 = row({ poster_id: ID3, full_name: "Cy" });
   assert.deepEqual(actionsFor(me, ID1, [me, other]), []);                                  // the only admin, and it is me
   assert.deepEqual(actionsFor(other, ID1, [me, other]), ["remove", "promote"]);
   assert.deepEqual(actionsFor(admin2, ID1, [me, other, admin2]), ["remove", "demote"]);      // two admins: this one can be demoted
-  assert.deepEqual(actionsFor(me, ID1, [me, other, admin2]), ["demote"]);
+  assert.deepEqual(actionsFor(me, ID1, [me, other, admin2]), []);                              // never your own row, even with a second admin
   assert.deepEqual(successorChoices([me, other, admin2], ID2).map((p) => p.poster_id), [ID1, ID3]);
 });
 
