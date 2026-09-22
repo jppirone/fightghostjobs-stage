@@ -125,6 +125,11 @@ control("the comments page names the author", "S29", edit("js/pages/comments.js"
 control("the wrong-link report stops saying it is private", "S29", edit("comments.html", (s) => s.replace("Tell us here, privately:", "Tell us here:")));
 control("the dashboard stops linking the comments", "S29", edit("js/pages/dashboard.js", (s) => s.replace('"comments.html?id=" + encodeURIComponent(p.id)', '"dashboard.html"')));
 control("the privacy page stops saying comments are anonymous", "S29", edit("privacy.html", (s) => s.replace("never who wrote it", "and who wrote it")));
+control("the stage gate stops checking the host (it would run on the real site)", "S30", edit("js/stage-gate.js", (s) => s.replace("if (location.hostname !== HOST) return;", "if (false) return;")));
+control("the stage gate is bound to the wrong host", "S30", edit("js/stage-gate.js", (s) => s.replace('HOST = "stage.fightghostjobs.com"', 'HOST = "fightghostjobs.com"')));
+control("the stage gate loses its MUST NOT SHIP flag", "S30", edit("js/stage-gate.js", (s) => s.replace("MUST NOT SHIP", "may ship")));
+control("a page loses the stage gate", "S30", edit("search.html", (s) => s.replace('<script src="js/stage-gate.js"></script>', "")));
+control("a page loads the stage gate at the end of the body (data would show first)", "S30", edit("search.html", (s) => s.replace('<script src="js/stage-gate.js"></script>\n', "").replace("</body>", '<script src="js/stage-gate.js"></script></body>')));
 control("the team page loses its add form", "S24", edit("team.html", (s) => s.replace('id="addForm"', 'id="addFormX"')));
 control("the team page no longer removes through the API", "S24", edit("js/pages/team.js", (s) => s.replace("api.rosterRemove(", "api.somethingElse(")));
 control("the edit page has no change note input", "S19", edit("edit.html", (s) => s.replace('<input id="note" type="text" maxlength="500"', '<input id="notx" type="text" maxlength="500"')));

@@ -66,7 +66,9 @@ export function checkSite(root) {
       if (!/\bsrc="/.test(attrs) || m[2].trim() !== "") add("S3", f, "inline <script>");
       else {
         const src = (attrs.match(/\bsrc="([^"]*)"/) || [])[1] || "";
-        if (!/\btype="module"/.test(attrs) || !/^js\/[a-z0-9\/-]+\.js$/i.test(src)) add("S4", f, "script must be a module from js/: " + src);
+        // the one non-module script allowed is the STAGE-ONLY gate (S30), which must run before the page renders
+        if (src === "js/stage-gate.js" && !/\btype="module"/.test(attrs)) { if (!fs.existsSync(path.join(root, src))) add("S4", f, "script does not exist: " + src); }
+        else if (!/\btype="module"/.test(attrs) || !/^js\/[a-z0-9\/-]+\.js$/i.test(src)) add("S4", f, "script must be a module from js/: " + src);
         else if (!fs.existsSync(path.join(root, src))) add("S4", f, "script does not exist: " + src);
       }
     }
@@ -314,6 +316,23 @@ export function checkSite(root) {
     const sj2 = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj2)) { const c = read(sj2); if (!c.includes('"comments.html?ref=" + encodeURIComponent(row.posting_ref)')) add("S29", sj2, "the details dialog must link to the posting's comments by its reference"); if (!c.includes("Report a wrong link")) add("S29", sj2, "the details dialog must offer Report a wrong link"); }
     const dj = path.join(root, "js", "pages", "dashboard.js"); if (fs.existsSync(dj) && !read(dj).includes('"comments.html?id=" + encodeURIComponent(p.id)')) add("S29", dj, "the dashboard must link each posting's comments");
     const ph2 = path.join(root, "privacy.html"); if (fs.existsSync(ph2)) { const t = read(ph2); for (const need of ['id="privacyComments"', "never who wrote it", "read only by us"]) if (!t.includes(need)) add("S29", ph2, "privacy.html must say: " + need); }
+  }
+  // S30 (STAGE ONLY): while js/stage-gate.js exists, it is bound to the stage host by name, says so, and is loaded (once, in the head) by every app page so no page shows data without it.
+  // When the site moves stage -> alpha the gate file and every script line go away together, and this rule then has nothing to check.
+  {
+    const gate = path.join(root, "js", "stage-gate.js");
+    if (fs.existsSync(gate)) {
+      const g = read(gate);
+      if (!g.includes('if (location.hostname !== HOST) return;') || !g.includes('HOST = "stage.fightghostjobs.com"')) add("S30", gate, "the stage gate must do nothing off the stage host");
+      if (!g.includes("STAGE ONLY") || !g.includes("MUST NOT SHIP")) add("S30", gate, "the stage gate must be flagged STAGE ONLY / MUST NOT SHIP in its header");
+      if (!g.includes('KEY = "fgj_stage_gate"') || !g.includes('localStorage.setItem(KEY, "open")')) add("S30", gate, "the stage gate must remember the answer under fgj_stage_gate");
+      for (const f of html) {
+        if (path.basename(f) === "404.html") continue;
+        const s = read(f), n = (s.match(/<script src="js\/stage-gate\.js"><\/script>/g) || []).length;
+        if (n !== 1) add("S30", f, "an app page must load the stage gate exactly once (found " + n + ")");
+        else if (s.indexOf('<script src="js/stage-gate.js"></script>') > s.indexOf("<body")) add("S30", f, "the stage gate must be loaded in the head, before the body renders");
+      }
+    }
   }
   if (fs.existsSync(path.join(root, "index.html")) && !/fictional employer/i.test(read(path.join(root, "index.html")))) add("S23", path.join(root, "index.html"), "the sample card must say it is a fictional employer");
   // S24: the Team page (roster) exists with its controls and talks to the roster functions only through api.js
