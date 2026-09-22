@@ -5,6 +5,7 @@
 // Company name, dates, tier and the closeout condition are never editable.
 
 import { problems as locationProblems } from "./location-rules.js";
+import { aiNoteProblem } from "./ai-notes.js";
 
 export const MAX_NOTE = 500, MAX_DESC = 20000, MAX_REQ = 100;
 export const MAX_APPLICANT_CAP = 2147483647;
@@ -12,6 +13,7 @@ export const MAX_APPLICANT_CAP = 2147483647;
 // The input each server field is shown under (the ids on edit.html)
 export const FIELD_OF_SERVER_NAME = {
   title: "jtitle", req_number: "req", description_text: "desc", location_ids: "locpicker", is_remote: "locpicker", locations_attested: "attest", applicant_cap: "appcap", change_note: "note",
+  ai_filtering_note: "aiFilterNote", ai_interview_note: "aiInterviewNote",
 };
 
 // how req numbers are compared everywhere (case, spaces and punctuation ignored)
@@ -36,6 +38,11 @@ export function changedFields(orig, v) {
   if (attested !== orig.locations_attested) ch.locations_attested = attested;
   if (v.aiFilter !== null && v.aiFilter !== undefined && v.aiFilter !== orig.ai_filtering) ch.ai_filtering = v.aiFilter;
   if (v.aiInterview !== null && v.aiInterview !== undefined && v.aiInterview !== orig.ai_interview_other) ch.ai_interview_other = v.aiInterview;
+  // the employer's AI notes (pass D): a note lives only while its toggle is on; turning the toggle off clears it in the same edit (the backend refuses the pair otherwise)
+  const fNote = v.aiFilter === true ? (String(v.aiFilterNote == null ? "" : v.aiFilterNote).trim() || null) : null;
+  if (fNote !== (orig.ai_filtering_note == null ? null : orig.ai_filtering_note)) ch.ai_filtering_note = fNote;
+  const iNote = v.aiInterview === true ? (String(v.aiInterviewNote == null ? "" : v.aiInterviewNote).trim() || null) : null;
+  if (iNote !== (orig.ai_interview_note == null ? null : orig.ai_interview_note)) ch.ai_interview_note = iNote;
   if ((v.recruiter === true) !== orig.third_party_recruiter) ch.third_party_recruiter = v.recruiter === true;
   if (typeof v.exclusive === "boolean" && v.exclusive !== (orig.destination_links_exclusive === true)) ch.destination_links_exclusive = v.exclusive;
   const capText = String(v.appcap == null ? "" : v.appcap).trim(), cap = capText === "" ? null : Number(capText);
@@ -60,6 +67,8 @@ export function checkEdit(orig, v) {
   const chosen = Array.isArray(v.locEntries) ? v.locEntries : [];
   if (v.remote !== true && chosen.length === 0) e.locpicker = "Choose a location from the list, or tick Remote role.";
   else Object.assign(e, locationProblems(chosen, v.remote === true, v.attested === true));
+  if (v.aiFilter === true) { const p = aiNoteProblem(String(v.aiFilterNote == null ? "" : v.aiFilterNote).trim()); if (p) e.aiFilterNote = p; }
+  if (v.aiInterview === true) { const p = aiNoteProblem(String(v.aiInterviewNote == null ? "" : v.aiInterviewNote).trim()); if (p) e.aiInterviewNote = p; }
   const note = String(v.note == null ? "" : v.note).trim();
   if (note.length > MAX_NOTE) e.note = "Keep the note to " + MAX_NOTE + " characters or fewer.";
   else if (hasControl(note)) e.note = "Keep the note to plain text.";

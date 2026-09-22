@@ -40,13 +40,16 @@ function wireToggle(id, key) {
     state[key] = key === "recruiter" ? !state.recruiter : state[key] !== true;
     setToggle(id, state[key] === true);
     if (key === "recruiter" && state.doc) renderFirms(state.doc, true);
+    if (key === "aiFilter" || key === "aiInterview") syncNoteRows();
   });
 }
 wireToggle("#aiFilterToggle", "aiFilter"); wireToggle("#aiInterviewToggle", "aiInterview"); wireToggle("#recruiterToggle", "recruiter"); wireToggle("#exclusiveToggle", "exclusive");
 const planActive = () => !!state.plan && state.plan.verified === true;
+// the employer's AI notes (pass D) are offered only while their toggle is on
+function syncNoteRows() { $("#aiFilterNoteRow").hidden = state.aiFilter !== true; $("#aiInterviewNoteRow").hidden = state.aiInterview !== true; }
 
 const collect = () => ({ title: val("#jtitle"), req: val("#req"), desc: val("#desc"), locEntries: picker.get().entries, attested: picker.get().attested, remote: $("#remote").checked, appcap: val("#appcap"),
-  aiFilter: state.aiFilter, aiInterview: state.aiInterview, recruiter: state.recruiter, exclusive: planActive() ? state.exclusive : undefined, note: val("#note") });
+  aiFilter: state.aiFilter, aiInterview: state.aiInterview, aiFilterNote: val("#aiFilterNote"), aiInterviewNote: val("#aiInterviewNote"), recruiter: state.recruiter, exclusive: planActive() ? state.exclusive : undefined, note: val("#note") });
 
 // the catalog entries for the stored ids (a place the catalog no longer has still shows, by the display text the database stored)
 async function entriesFor(p) {
@@ -184,8 +187,9 @@ async function populate(doc) {
   $("#jtitle").value = p.title; $("#req").value = p.req_number || ""; $("#desc").value = p.description_text; $("#appcap").value = p.applicant_cap === null ? "" : String(p.applicant_cap);
   $("#remote").checked = p.is_remote; $("#companyShown").textContent = p.company_name; $("#note").value = "";
   setToggle("#aiFilterToggle", p.ai_filtering === true); setToggle("#aiInterviewToggle", p.ai_interview_other === true); setToggle("#recruiterToggle", p.third_party_recruiter);
-  $("#aiFilterNote").textContent = p.ai_filtering === null ? "Not stated yet. Once you state it, it can be changed but not cleared." : "Shown to candidates as a plain fact, never scored.";
-  $("#aiInterviewNote").textContent = p.ai_interview_other === null ? "Not stated yet. Once you state it, it can be changed but not cleared." : "Independent of filtering — an employer can have neither, either, or both on.";
+  $("#aiFilterNote").value = p.ai_filtering_note || ""; $("#aiInterviewNote").value = p.ai_interview_note || ""; syncNoteRows();
+  $("#aiFilterHint").textContent = p.ai_filtering === null ? "Not stated yet. Once you state it, it can be changed but not cleared." : "Shown to candidates as a plain fact, never scored.";
+  $("#aiInterviewHint").textContent = p.ai_interview_other === null ? "Not stated yet. Once you state it, it can be changed but not cleared." : "Independent of filtering — an employer can have neither, either, or both on.";
   const chip = statusChip(p, Date.now());
   const line = $("#statusLine"); line.hidden = false; clear(line);
   line.append(h("span", { class: "status " + chip.cls }, chip.text), " ", p.stored_status === "draft" ? (p.go_live_at ? "Scheduled: not visible to candidates until it goes live." : "Not visible to candidates yet.") : (p.status === "live" || p.status === "paused") && p.expiration_date ? "Closes " + fmtClose(p.expiration_date) + "." : "");
@@ -225,7 +229,7 @@ async function submit() {
   showErrors(check.errors);
   if (!check.body) {
     if (check.errors.form) { say(formAlert, "notice", check.errors.form + " Change something, then save."); return; }
-    const first = ["jtitle", "req", "locpicker", "attest", "appcap", "desc", "note"].find((k) => check.errors[k]);
+    const first = ["jtitle", "req", "locpicker", "attest", "appcap", "desc", "aiFilterNote", "aiInterviewNote", "note"].find((k) => check.errors[k]);
     if (first === "locpicker" || first === "attest") picker.focusFor(first); else if (first) $("#" + first).focus();
     return;
   }

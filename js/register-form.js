@@ -6,6 +6,7 @@
 import { problems as locationProblems } from "./location-rules.js";
 import { checkGoLive } from "./schedule-form.js";
 import { checkLinks, checkFirms } from "./edit-form.js";
+import { aiNoteProblem } from "./ai-notes.js";
 
 // The recruiter-firm rows (pass C) are OPTIONAL too, and only matter while the "third-party recruiter involved" toggle is on: blank rows mean "no firms named".
 export function collectFirms(rows, recruiterOn) {
@@ -44,7 +45,7 @@ export const MIN_WINDOW_DAYS = 14, MAX_WINDOW_DAYS = 45;      // the standard-ti
 // The form's input ids -> the backend's field names (for showing a server refusal under the right input)
 export const FIELD_OF_SERVER_NAME = {
   title: "jtitle", req_number: "req", company_name: "company", location_ids: "locpicker", locations: "locpicker", is_remote: "locpicker", locations_attested: "attest", applicant_cap: "appcap",
-  initial_closeout_condition: "closeout", description_text: "desc", window_days: "livedays", duplicate_explanation: "dupnote",
+  initial_closeout_condition: "closeout", description_text: "desc", window_days: "livedays", duplicate_explanation: "dupnote", ai_filtering_note: "aiFilterNote", ai_interview_note: "aiInterviewNote",
 };
 export const MAX_DUP_NOTE = 300;      // create-posting refuses a longer explanation
 
@@ -73,6 +74,9 @@ export function validateForm(v) {
   const w = String(v.win == null ? "" : v.win).trim();
   if (w !== "" && (!/^\d{1,3}$/.test(w) || Number(w) < MIN_WINDOW_DAYS || Number(w) > MAX_WINDOW_DAYS)) e.livedays = "Enter a whole number of days from " + MIN_WINDOW_DAYS + " to " + MAX_WINDOW_DAYS + ".";
   if (v.goLater === true) { const g = checkGoLive(v.goLive, typeof v.nowMs === "number" ? v.nowMs : Date.now()); if (!g.ok) e.gldate = g.error; }      // goLater: "on a date and time I choose" is selected; goLive: the datetime-local text
+  // the AI notes (pass D) count only while their toggle is on; a blank note is no note
+  if (v.aiFilter === true) { const p = aiNoteProblem(String(v.aiFilterNote == null ? "" : v.aiFilterNote).trim()); if (p) e.aiFilterNote = p; }
+  if (v.aiInterview === true) { const p = aiNoteProblem(String(v.aiInterviewNote == null ? "" : v.aiInterviewNote).trim()); if (p) e.aiInterviewNote = p; }
   const chosen = Array.isArray(v.locEntries) ? v.locEntries : [];
   if (v.remote !== true && chosen.length === 0) e.locpicker = "Choose a location from the list, or tick Remote role.";
   else Object.assign(e, locationProblems(chosen, v.remote === true, v.attested === true));
@@ -95,6 +99,9 @@ export function buildCreateBody(v) {
   };
   // Locations are sent as catalog ids ONLY (free text is refused by the backend); the display text is derived by the database. The attestation is sent when it applies (two or more locations).
   if (v.dupAsked === true) body.duplicate_explanation = String(v.dupNote).trim();          // only when the person was asked (the backend ignores it when there is no duplicate)
+  const fNote = String(v.aiFilterNote == null ? "" : v.aiFilterNote).trim(), iNote = String(v.aiInterviewNote == null ? "" : v.aiInterviewNote).trim();
+  if (v.aiFilter === true && fNote !== "") body.ai_filtering_note = fNote;                  // the employer's words travel only with a toggle that is on (the backend refuses them otherwise)
+  if (v.aiInterview === true && iNote !== "") body.ai_interview_note = iNote;
   if (chosen.length) body.location_ids = chosen.map((c) => c.id);
   if (chosen.length >= 2) body.locations_attested = v.attested === true;
   if (String(v.appcap || "").trim() !== "") body.applicant_cap = Number(String(v.appcap).trim());

@@ -24,6 +24,7 @@
 //   S25 the AI-disclosure "i" tooltips are on the register AND edit pages (designed wording), positioned and tap-able; the destination-link rows are on both pages and register.js saves them
 //   S26 the candidate's details dialog explains the one-time links and what to do when one is wrong; the employer pages say the label is theirs only; api.js accepts the derived label + check
 //   S27 the recruiter-firm editor is on register AND edit (no "coming soon"), saved through api.setRecruiterFirms; the search page renders "Recruiter firm: <name>"
+//   S28 the employer's AI notes: a 300-char box under each AI toggle on both pages (shown to candidates, no web addresses), checked by the shared rule, shown on the search card as the employer's words
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
@@ -276,6 +277,21 @@ export function checkSite(root) {
     }
     for (const rel of ["js/pages/register.js", "js/pages/edit.js"]) { const p = path.join(root, rel); if (!fs.existsSync(p)) continue; const c = read(p); if (!c.includes("mountFirmRowsById()")) add("S27", p, rel + " must mount the shared firm rows"); if (!c.includes("api.setRecruiterFirms(")) add("S27", p, rel + " must save the firms through api.setRecruiterFirms"); }
     const sj = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj) && !read(sj).includes('"Recruiter firm: " + link.firm')) add("S27", sj, "search.js must render a named firm as Recruiter firm: <name>");
+  }
+  // S28 (pass D): the employer's AI notes. Both pages carry a 300-character box under each AI toggle that says it is shown to candidates and refuses web addresses; the pages check the note with the
+  // shared rule (js/ai-notes.js) before sending; the search page shows the notes attributed as the employer's words.
+  {
+    for (const name of ["register.html", "edit.html"]) {
+      const p = path.join(root, name); if (!fs.existsSync(p)) continue; const t = read(p);
+      for (const id of ["aiFilterNoteRow", "aiFilterNote", "aiInterviewNoteRow", "aiInterviewNote"]) if (!t.includes('id="' + id + '"')) add("S28", p, name + " is missing #" + id);
+      if ((t.match(/id="ai(Filter|Interview)Note" type="text" maxlength="300"/g) || []).length !== 2) add("S28", p, name + ": both AI note boxes must be text inputs capped at 300");
+      if ((t.match(/In your own words \(optional, shown to candidates\)/g) || []).length !== 2) add("S28", p, name + ": both AI note labels must say the words are shown to candidates");
+      if ((t.match(/no web addresses/g) || []).length !== 2) add("S28", p, name + ": both AI note labels must say no web addresses");
+    }
+    for (const rel of ["js/register-form.js", "js/edit-form.js"]) { const p = path.join(root, rel); if (fs.existsSync(p) && !read(p).includes('import { aiNoteProblem } from "./ai-notes.js";')) add("S28", p, rel + " must check the notes with the shared rule"); }
+    const an = path.join(root, "js", "ai-notes.js"); if (!fs.existsSync(an)) add("S28", an, "js/ai-notes.js is missing"); else { const c = read(an); if (!c.includes("MAX_AI_NOTE = 300")) add("S28", an, "the note cap must be 300"); if (!c.includes("www[.]") || !c.includes("://")) add("S28", an, "the rule must refuse web addresses"); }
+    const sj = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj) && !read(sj).includes("aiNotes(row).map(")) add("S28", sj, "search.js must show the employer's AI notes on the card");
+    if (fs.existsSync(an) && !read(an).includes("in the employer's words")) add("S28", an, "the notes must be attributed as the employer's words");
   }
   if (fs.existsSync(path.join(root, "index.html")) && !/fictional employer/i.test(read(path.join(root, "index.html")))) add("S23", path.join(root, "index.html"), "the sample card must say it is a fictional employer");
   // S24: the Team page (roster) exists with its controls and talks to the roster functions only through api.js

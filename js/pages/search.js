@@ -6,6 +6,7 @@ import { requestLink } from "../session.js";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js";
 import { locationLine, waitText } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
+import { aiNotes } from "../ai-notes.js";
 import { checkCompany, resolveSearch, noMatchMessage } from "../search-input.js";
 
 const PENDING_KEY = "fgj-pending-search";
@@ -66,6 +67,8 @@ function renderCard(row) {
         h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, locationLine(row.is_remote, row.locations) + " · postID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : ""))),
       h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }, "✓ Verified")),
     h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, chips),
+    // the employer's own words about their AI use (pass D): shown verbatim, plainly attributed, only under a toggle that is on
+    ...aiNotes(row).map((n) => h("div", { class: "ai-note", style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text)),
     h("div", { style: "margin-top:22px;border-top:1px solid var(--line);padding-top:20px;display:flex;gap:12px;align-items:center;" },
       h("button", { type: "button", class: "btn btn-outline view-details", style: "flex:1;justify-content:center;", onclick: (ev) => openDetails(row, ev.currentTarget) }, "View posting details")));
 }

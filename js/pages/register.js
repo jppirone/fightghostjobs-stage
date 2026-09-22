@@ -29,6 +29,8 @@ function wireToggle(id, key) {
     btn.classList.toggle("on", state[key]);
     btn.setAttribute("aria-checked", state[key] ? "true" : "false");
     if (key === "recruiter") $("#recruiterPanel").hidden = !state[key];
+    if (key === "aiFilter") $("#aiFilterNoteRow").hidden = !state[key];
+    if (key === "aiInterview") $("#aiInterviewNoteRow").hidden = !state[key];
   });
 }
 wireToggle("#aiFilterToggle", "aiFilter");
@@ -41,7 +43,7 @@ const goLater = () => $("#glLater").checked;
 function syncGoLive() { $("#glWhen").hidden = !goLater(); registerBtn.textContent = goLater() ? "Register and schedule" : "Register posting"; }
 $("#glNow").addEventListener("change", syncGoLive); $("#glLater").addEventListener("change", syncGoLive);
 const collect = () => ({ title: val("#jtitle"), req: val("#req"), company: val("#company"), locEntries: picker.get().entries, attested: picker.get().attested, remote: $("#remote").checked, appcap: val("#appcap"), win: val("#livedays"), closeout: val("#closeout"), desc: val("#desc"),
-  aiFilter: state.aiFilter, aiInterview: state.aiInterview, recruiter: state.recruiter, dupAsked: state.dupAsked, dupNote: val("#dupnote"), goLater: goLater(), goLive: val("#gldate") });
+  aiFilter: state.aiFilter, aiInterview: state.aiInterview, aiFilterNote: val("#aiFilterNote"), aiInterviewNote: val("#aiInterviewNote"), recruiter: state.recruiter, dupAsked: state.dupAsked, dupNote: val("#dupnote"), goLater: goLater(), goLive: val("#gldate") });
 
 function showErrors(byField) {
   for (const el of $$("[data-error-for]")) { const id = el.dataset.errorFor; const msg = byField[id]; el.hidden = !msg; el.textContent = msg || ""; const inp = $("#" + (id === "locpicker" ? "locq" : id)); if (inp) inp.setAttribute("aria-invalid", msg ? "true" : "false"); }
@@ -209,7 +211,8 @@ function showResult(p, kind, problem, goLiveAt) {
 
 function registerAnother() {
   state.saved = null; result.hidden = true; clear(result);
-  for (const id of ["#jtitle", "#req", "#appcap", "#closeout", "#desc"]) $(id).value = "";
+  for (const id of ["#jtitle", "#req", "#appcap", "#closeout", "#desc", "#aiFilterNote", "#aiInterviewNote"]) $(id).value = "";
+  $("#aiFilterNoteRow").hidden = true; $("#aiInterviewNoteRow").hidden = true;
   picker.reset();
   $("#livedays").value = "45";
   $("#remote").checked = false;

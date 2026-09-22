@@ -115,6 +115,11 @@ control("the register page loses its firm rows", "S27", edit("register.html", (s
 control("the edit page says coming soon again", "S27", edit("edit.html", (s) => s.replace("Up to 3 firms.", "Naming the recruiter firm: coming soon.")));
 control("edit.js stops saving the firms through the API", "S27", edit("js/pages/edit.js", (s) => s.replace("api.setRecruiterFirms(", "api.somethingElse(")));
 control("the search page stops naming the firm", "S27", edit("js/pages/search.js", (s) => s.replace('"Recruiter firm: " + link.firm', '"Firm: " + link.firm')));
+control("the edit page loses an AI note box", "S28", edit("edit.html", (s) => s.replace('id="aiInterviewNote"', 'id="aiInterviewNoteX"')));
+control("the register page's note box grows past 300", "S28", edit("register.html", (s) => s.replace('id="aiFilterNote" type="text" maxlength="300"', 'id="aiFilterNote" type="text" maxlength="500"')));
+control("the note label stops saying the words are shown to candidates", "S28", edit("register.html", (s) => s.replace("In your own words (optional, shown to candidates): how AI is used to filter", "In your own words (optional): how AI is used to filter")));
+control("the register form stops checking the notes with the shared rule", "S28", edit("js/register-form.js", (s) => s.replace('import { aiNoteProblem } from "./ai-notes.js";', "const aiNoteProblem = () => null;")));
+control("the search card stops showing the notes", "S28", edit("js/pages/search.js", (s) => s.replace("...aiNotes(row).map(", "...[].map(")));
 control("the team page loses its add form", "S24", edit("team.html", (s) => s.replace('id="addForm"', 'id="addFormX"')));
 control("the team page no longer removes through the API", "S24", edit("js/pages/team.js", (s) => s.replace("api.rosterRemove(", "api.somethingElse(")));
 control("the edit page has no change note input", "S19", edit("edit.html", (s) => s.replace('<input id="note" type="text" maxlength="500"', '<input id="notx" type="text" maxlength="500"')));

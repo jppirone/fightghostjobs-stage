@@ -73,17 +73,27 @@
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div>
           <div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">AI used for initial filtering<span class="info-icon" tabindex="0">i<span class="info-tooltip">Resume screening or keyword/ATS-style matching used to prioritize applications before a human reviews them.</span></span></div>
-          <div id="aiFilterNote" style="font-size:13px;color:var(--muted);margin-top:2px;">Shown to candidates as a plain fact, never scored.</div>
+          <div id="aiFilterHint" style="font-size:13px;color:var(--muted);margin-top:2px;">Shown to candidates as a plain fact, never scored.</div>
         </div>
         <button type="button" id="aiFilterToggle" class="toggle" role="switch" aria-checked="false" aria-label="AI used for initial filtering"><span class="toggle-knob"></span></button>
+      </div>
+      <div id="aiFilterNoteRow" hidden>
+        <label for="aiFilterNote" style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px;">In your own words (optional, shown to candidates): how AI is used to filter applications here. One paragraph, no web addresses.</label>
+        <input id="aiFilterNote" type="text" maxlength="300" autocomplete="off" placeholder="e.g. Resumes are scored by an ATS keyword match before a recruiter reviews them.">
+        <div class="field-error" data-error-for="aiFilterNote" hidden></div>
       </div>
 
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div>
           <div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">AI used for interviewing or other<span class="info-icon" tabindex="0">i<span class="info-tooltip">Any AI that interacts with a candidate directly — an AI-conducted interview, a chatbot screening call, or similar.</span></span></div>
-          <div id="aiInterviewNote" style="font-size:13px;color:var(--muted);margin-top:2px;">Independent of filtering — an employer can have neither, either, or both on.</div>
+          <div id="aiInterviewHint" style="font-size:13px;color:var(--muted);margin-top:2px;">Independent of filtering — an employer can have neither, either, or both on.</div>
         </div>
         <button type="button" id="aiInterviewToggle" class="toggle" role="switch" aria-checked="false" aria-label="AI used for interviewing or other"><span class="toggle-knob"></span></button>
+      </div>
+      <div id="aiInterviewNoteRow" hidden>
+        <label for="aiInterviewNote" style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px;">In your own words (optional, shown to candidates): how AI interacts with candidates here. One paragraph, no web addresses.</label>
+        <input id="aiInterviewNote" type="text" maxlength="300" autocomplete="off" placeholder="e.g. A recorded video interview is transcribed and summarised for the hiring manager.">
+        <div class="field-error" data-error-for="aiInterviewNote" hidden></div>
       </div>
 
       <div style="display:flex;align-items:center;justify-content:space-between;">

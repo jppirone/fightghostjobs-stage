@@ -27,10 +27,14 @@ const EFFECTIVE_STATUSES = POSTING_STATUSES.concat(["scheduled"]);      // what 
 export const shapes = {
   // the organization's plan (item 3): verified now?, where it came from, when it ends, and whether it HAS ended (lapsed: links and named recruiter firms are stored but hidden)
   plan: (d) => isObj(d) && isBool(d.verified) && isNullable(d.source, isStr) && isNullable(d.expires_at, isStr) && isBool(d.lapsed),
+  // pass D: the employer's own words under each AI toggle (null, or at most 300 characters); an answer without the fields is one from before the pass
+  aiNotes: (r) => (r.ai_filtering_note === undefined || (isNullable(r.ai_filtering_note, isStr) && (r.ai_filtering_note === null || r.ai_filtering_note.length <= 300)))
+    && (r.ai_interview_note === undefined || (isNullable(r.ai_interview_note, isStr) && (r.ai_interview_note === null || r.ai_interview_note.length <= 300))),
   posterSession: (d) => isObj(d) && isObj(d.poster) && UUID_RE.test(d.poster.poster_id) && isStr(d.poster.full_name) && isBool(d.poster.is_org_admin) && isObj(d.organization) && isStr(d.organization.name) && isStr(d.verified_at) && (d.plan === undefined || shapes.plan(d.plan)),
   posting: (d) => isObj(d) && UUID_RE.test(d.id) && isStr(d.status) && isStr(d.title) && isStr(d.expiration_date) && /^[0-9A-Z]{12}$/.test(d.public_code) && REF_RE.test(d.posting_ref) && isNullable(d.closed_reason, isStr),
   searchRow: (r) => isObj(r) && isStr(r.company_name) && isStr(r.title) && Array.isArray(r.locations) && r.locations.every(isStr) && isBool(r.is_remote) && isStr(r.posted_at) && isStr(r.closes_at)
     && isNullable(r.applicant_cap, Number.isInteger) && isStr(r.status) && isNullable(r.closed_reason, isStr) && isNullable(r.ai_filtering, isBool) && isNullable(r.ai_interview_other, isBool) && isBool(r.ai_disclosure_shown)
+    && shapes.aiNotes(r)
     && isBool(r.third_party_recruiter) && MASK_RE.test(r.masked_code) && isNullable(r.masked_req, (v) => isStr(v) && MASKED_REQ_RE.test(v)) && REF_RE.test(r.posting_ref) && isNullable(r.last_edited_at, isStr),
   search: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req") && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.searchRow),
   detail: (d) => isObj(d) && isObj(d.posting) && shapes.searchRow(Object.assign({ }, d.posting)) && Array.isArray(d.links) && d.links.length <= 13
@@ -46,7 +50,7 @@ export const shapes = {
   // get-my-posting (one posting, for the edit page): the fields the form starts from, checked; recent_changes: the newest five log entries (when, note, kind, the NAMES of the fields; never values)
   openPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && isStr(p.company_name) && /^[0-9A-Z]{12}$/.test(p.post_id) && EFFECTIVE_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
     && isNullable(p.closed_reason, isStr) && isBool(p.is_remote) && Array.isArray(p.locations) && p.locations.every(isStr) && Array.isArray(p.location_ids) && p.location_ids.every(isStr) && isBool(p.locations_attested)
-    && isNullable(p.ai_filtering, isBool) && isNullable(p.ai_interview_other, isBool) && isBool(p.third_party_recruiter) && isBool(p.destination_links_exclusive) && isNullable(p.applicant_cap, Number.isInteger) && isStr(p.description_text) && Number.isInteger(p.window_days)
+    && isNullable(p.ai_filtering, isBool) && isNullable(p.ai_interview_other, isBool) && shapes.aiNotes(p) && isBool(p.third_party_recruiter) && isBool(p.destination_links_exclusive) && isNullable(p.applicant_cap, Number.isInteger) && isStr(p.description_text) && Number.isInteger(p.window_days)
     && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isNullable(p.go_live_at, isStr) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr),
   // the destination links the employer stored: position and label only, NEVER the address (the server keeps that encrypted and does not send it back)
   // pass B: a stored link may also say what candidates see for it (shown_as: derived from where it goes, never from the label; null for a firm without a link) and how the liveness check went when it was saved.
