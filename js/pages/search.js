@@ -127,7 +127,7 @@ function openModal(row) {
   $("#modalTitle").textContent = row.title;
   $("#modalRefs").textContent = "postID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : "");
   $("#modalIntro").textContent = "This listing is verified: a real employer registered it directly with FightGhostJobs, with the dates and disclosures shown on the search page.";
-  clear($("#modalLinks")); const empty = $("#modalEmpty"); empty.hidden = true; empty.textContent = "";
+  clear($("#modalLinks")); const empty = $("#modalEmpty"); empty.hidden = true; empty.textContent = ""; $("#modalLinksNote").hidden = true;
   backdrop.classList.add("open");
   return { links: $("#modalLinks"), empty };
 }
@@ -148,6 +148,7 @@ async function openDetails(row, button) {
         m.empty.textContent = "This employer has confirmed the posting is live but hasn't provided a link to where you can apply. That's their choice to make, not a sign the posting is any less real.";
       } else {
         for (const l of r.data.links) m.links.append(linkRow(row, l));
+        $("#modalLinksNote").hidden = false;   // why the links look odd, and what to do when one is wrong
       }
       return;
     }

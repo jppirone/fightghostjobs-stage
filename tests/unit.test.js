@@ -246,3 +246,8 @@ test("register form: what the result says about the links", () => {
   const plan = linksOutcome(null, { rows: {}, general: "Destination links are part of the verified plan.", planRequired: true });
   assert.match(plan.text, /^Destination links are part of the verified plan\. The posting itself is saved\. You can add links/);
 });
+
+test("register form: a liveness warning turns the links line into a notice", () => {
+  assert.deepEqual(linksOutcome(2, null, "When we checked, link 2 answered HTTP 404. It is saved anyway — make sure it is right."), { kind: "notice", text: "2 destination links are stored with it. When we checked, link 2 answered HTTP 404. It is saved anyway — make sure it is right." });
+  assert.equal(linksOutcome(1, null, null).kind, "ok");
+});

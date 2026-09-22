@@ -16,11 +16,13 @@ export function collectLinks(rows) {
   return Object.assign({ used: true }, checkLinks(list));
 }
 
-// What the result panel says about the links once the posting itself exists. saved: how many are stored (null when none were sent); problem: the mapped refusal (mapLinksErrors), or null
-export function linksOutcome(saved, problem) {
+// What the result panel says about the links once the posting itself exists. saved: how many are stored (null when none were sent); problem: the mapped refusal (mapLinksErrors), or null;
+// warning: what the liveness check found (checkWarnings), or null
+export function linksOutcome(saved, problem, warning) {
   if (problem) return { kind: "error", text: (problem.general || "The destination links were not accepted.") + " The posting itself is saved" + (problem.planRequired ? "" : "; see the messages under the addresses") + ". You can add links from My postings (Edit)." };
   if (saved === null || saved === undefined) return null;
-  return { kind: "ok", text: saved === 1 ? "1 destination link is stored with it." : saved + " destination links are stored with it." };
+  const text = saved === 1 ? "1 destination link is stored with it." : saved + " destination links are stored with it.";
+  return warning ? { kind: "notice", text: text + " " + warning } : { kind: "ok", text };
 }
 
 export const MAX_APPLICANT_CAP = 2147483647;

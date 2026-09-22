@@ -1,7 +1,7 @@
 // edit.test.js - the edit page's pure logic (js/edit-form.js) and the answers it relies on.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { changedFields, checkEdit, mapEditErrors, reqKey, MAX_NOTE, MAX_DESC, KIND_TEXT, checkLinks, mapLinksErrors, planNotice, MAX_LINKS } from "../js/edit-form.js";
+import { changedFields, checkEdit, mapEditErrors, reqKey, MAX_NOTE, MAX_DESC, KIND_TEXT, checkLinks, mapLinksErrors, planNotice, MAX_LINKS, checkWarnings, storedLinkText } from "../js/edit-form.js";
 import { shapes } from "../js/api.js";
 
 const ID = "3f1d5b1e-0000-4000-8000-000000000001";
@@ -152,4 +152,14 @@ test("the plan and the stored links in the answers: fail closed; an address is n
   assert.equal(shapes.posterSession({ poster: { poster_id: ID, full_name: "J", is_org_admin: true }, organization: { name: "Acme" }, verified_at: "2026-09-01T00:00:00Z" }), true);          // plan optional here
   assert.equal(shapes.posterSession({ poster: { poster_id: ID, full_name: "J", is_org_admin: true }, organization: { name: "Acme" }, verified_at: "2026-09-01T00:00:00Z", plan: PILOT }), true);
   assert.equal(shapes.posterSession({ poster: { poster_id: ID, full_name: "J", is_org_admin: true }, organization: { name: "Acme" }, verified_at: "2026-09-01T00:00:00Z", plan: { verified: 1 } }), false);
+});
+
+test("pass B: the liveness warning names the links that did not answer, and a stored link reads as label + what candidates see", () => {
+  assert.equal(checkWarnings([]), null); assert.equal(checkWarnings(undefined), null);
+  assert.equal(checkWarnings([{ position: 1, check_status: "ok", check_http: 200 }, { position: 2, check_status: "skipped", check_http: null }]), null);
+  assert.equal(checkWarnings([{ position: 2, check_status: "failed", check_http: 404 }]), "When we checked, link 2 answered HTTP 404. It is saved anyway — make sure it is right.");
+  assert.equal(checkWarnings([{ position: 1, check_status: "failed", check_http: null }, { position: 3, check_status: "failed", check_http: 999 }]), "When we checked, link 1 could not be reached; link 3 answered HTTP 999. They are saved anyway — make sure they are right.");
+  assert.equal(storedLinkText({ position: 1, label: "Careers", shown_as: "LinkedIn", check_status: "ok", check_http: 200 }), "1. Careers — candidates see “LinkedIn”");
+  assert.equal(storedLinkText({ position: 2, label: null, shown_as: "Employer-provided link — not verified by us", check_status: "failed", check_http: 503 }), "2. candidates see “Employer-provided link — not verified by us” (did not answer when we checked: HTTP 503)");
+  assert.equal(storedLinkText({ position: 3, label: null }), "3. candidates see “Application link 3”");            // an answer from before pass B
 });

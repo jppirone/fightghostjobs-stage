@@ -7,7 +7,7 @@ import { $, $$, h, clear, alertBox } from "../dom.js";
 import { fmtClose, groupCode, waitText } from "../format.js";
 import { checkGoLive, mapScheduleError } from "../schedule-form.js";
 import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome } from "../register-form.js";
-import { mapLinksErrors, planNotice } from "../edit-form.js";
+import { mapLinksErrors, planNotice, checkWarnings } from "../edit-form.js";
 import { mountLinkRowsById } from "../link-rows.js";
 import { mountLocationPicker } from "../location-picker.js";
 import { wireInfoIcons } from "../info-icon.js";
@@ -102,7 +102,7 @@ async function submit(mode) {
 // -> "saved" | "refused" | "gone" (the session ended: the posting is saved on the server, the person is sent to sign in)
 async function saveLinks(lc) {
   const r = await api.setDestinationLinks(state.saved.id, lc.links);
-  if (r.ok) { state.linksSaved = r.data.active_links; state.linksProblem = null; return "saved"; }
+  if (r.ok) { state.linksSaved = r.data.active_links; state.linksAnswer = r.data.links; state.linksProblem = null; return "saved"; }
   if (isAuthFailure(r.error)) { await sessionEnded(); return "gone"; }
   state.linksProblem = mapLinksErrors(r.error, lc.rowOf);
   if (!state.linksProblem.general && !Object.keys(state.linksProblem.rows).length) state.linksProblem.general = failureText(r.error);
@@ -167,7 +167,7 @@ function showResult(p, kind, problem, goLiveAt) {
   if (typeof state.linksSaved === "number") rows.push(["Destination links", String(state.linksSaved)]);
   result.append(h("dl", { style: "margin:18px 0 0 0;display:grid;grid-template-columns:auto 1fr;gap:8px 18px;font-size:14px;" },
     rows.flatMap(([k, v]) => [h("dt", { style: "color:var(--faint);font-weight:600;" }, k), h("dd", { style: "margin:0;" }, v)])));
-  const lo = linksOutcome(state.linksSaved, state.linksProblem);
+  const lo = linksOutcome(state.linksSaved, state.linksProblem, checkWarnings(state.linksAnswer));
   if (lo) result.append(h("div", { style: "margin-top:12px;" }, alertBox(lo.kind, lo.text)));
   result.append(h("div", { style: "margin-top:20px;" },
     h("div", { style: "font-size:13px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;" }, "Your postID"),
@@ -191,7 +191,7 @@ function registerAnother() {
   $("#remote").checked = false;
   for (const [id, key] of [["#aiFilterToggle", "aiFilter"], ["#aiInterviewToggle", "aiInterview"], ["#recruiterToggle", "recruiter"]]) { state[key] = false; $(id).classList.remove("on"); $(id).setAttribute("aria-checked", "false"); }
   $("#recruiterPanel").style.display = "none";
-  state.linksSaved = null; state.linksProblem = null; if (state.links) { state.links.reset(); say($("#linksAlert"), "error", ""); }
+  state.linksSaved = null; state.linksAnswer = null; state.linksProblem = null; if (state.links) { state.links.reset(); say($("#linksAlert"), "error", ""); }
   dropReusedPrompt(); say(formAlert, "error", "");
   unlockForm(); $("#jtitle").focus();
 }

@@ -6,7 +6,7 @@ import { rememberNext } from "../session.js";
 import { $, $$, h, clear, alertBox } from "../dom.js";
 import { fmtClose, fmtStamp, waitText } from "../format.js";
 import { statusChip } from "../dashboard-model.js";
-import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, mapLinksErrors, planNotice } from "../edit-form.js";
+import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, mapLinksErrors, planNotice, checkWarnings, storedLinkText } from "../edit-form.js";
 import { mountLocationPicker } from "../location-picker.js";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js";
 import { loadCatalog } from "../location-catalog.js";
@@ -124,7 +124,7 @@ function renderLinks(doc, editable) {
   const stored = $("#linksStored"); clear(stored);
   if (notice.state === "active") {
     const n = doc.destination_links.length;
-    stored.append(n === 0 ? "No destination links are stored for this posting yet." : h("span", {}, h("strong", {}, n === 1 ? "1 link is stored" : n + " links are stored"), ": ", doc.destination_links.map((x) => x.position + ". " + (x.label || "Application link " + x.position)).join(", "), "."));
+    stored.append(n === 0 ? "No destination links are stored for this posting yet." : h("span", {}, h("strong", {}, n === 1 ? "1 link is stored" : n + " links are stored"), ": ", doc.destination_links.map(storedLinkText).join("; "), "."));
     $("#clearLinksBtn").hidden = n === 0;
     if (!state.linksBusy) resetLinkRows();
   }
@@ -227,7 +227,8 @@ async function submitLinks(clearAll) {
     state.linksBusy = false;
     const reload = await api.getMyPosting(postingId);
     if (reload.ok) await populate(reload.data);
-    say($("#linksAlert"), "ok", r.data.changed === false ? (clearAll ? "There were no links stored, so nothing was changed." : "These are the links already stored, so nothing was changed.") : clearAll ? "Removed. No destination links are stored; candidates will see no apply link for this posting." : "Saved. " + (r.data.active_links === 1 ? "1 destination link is" : r.data.active_links + " destination links are") + " now stored.");
+    const warn = clearAll ? null : checkWarnings(r.data.links);
+    say($("#linksAlert"), warn ? "notice" : "ok", (r.data.changed === false ? (clearAll ? "There were no links stored, so nothing was changed." : "These are the links already stored, so nothing was changed.") : clearAll ? "Removed. No destination links are stored; candidates will see no apply link for this posting." : "Saved. " + (r.data.active_links === 1 ? "1 destination link is" : r.data.active_links + " destination links are") + " now stored.") + (warn ? " " + warn : ""));
   } finally { state.linksBusy = false; $("#saveLinksBtn").disabled = false; }
 }
 $("#linksForm").addEventListener("submit", (ev) => { ev.preventDefault(); submitLinks(false); });

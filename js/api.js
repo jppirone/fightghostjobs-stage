@@ -49,7 +49,9 @@ export const shapes = {
     && isNullable(p.ai_filtering, isBool) && isNullable(p.ai_interview_other, isBool) && isBool(p.third_party_recruiter) && isBool(p.destination_links_exclusive) && isNullable(p.applicant_cap, Number.isInteger) && isStr(p.description_text) && Number.isInteger(p.window_days)
     && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isNullable(p.go_live_at, isStr) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr),
   // the destination links the employer stored: position and label only, NEVER the address (the server keeps that encrypted and does not send it back)
-  storedLinks: (l) => Array.isArray(l) && l.length <= 10 && l.every((x) => isObj(x) && Number.isInteger(x.position) && x.position >= 1 && x.position <= 10 && isNullable(x.label, isStr)),
+  // pass B: a stored link may also say what candidates see for it (shown_as: derived from where it goes, never from the label) and how the liveness check went when it was saved
+  linkExtras: (x) => (x.shown_as === undefined || isStr(x.shown_as)) && (x.check_status === undefined || x.check_status === null || ["ok", "failed", "skipped"].includes(x.check_status)) && (x.check_http === undefined || x.check_http === null || Number.isInteger(x.check_http)),
+  storedLinks: (l) => Array.isArray(l) && l.length <= 10 && l.every((x) => isObj(x) && Number.isInteger(x.position) && x.position >= 1 && x.position <= 10 && isNullable(x.label, isStr) && shapes.linkExtras(x)),
   linksAnswer: (d) => isObj(d) && Number.isInteger(d.active_links) && shapes.storedLinks(d.links),
   openAnswer: (d) => isObj(d) && shapes.openPosting(d.posting) && shapes.storedLinks(d.destination_links) && shapes.plan(d.plan) && Array.isArray(d.recent_changes) && d.recent_changes.length <= 5
     && d.recent_changes.every((c) => isObj(c) && isStr(c.at) && isStr(c.note) && isNullable(c.kind, isStr) && Array.isArray(c.fields) && c.fields.every(isStr)),

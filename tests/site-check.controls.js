@@ -107,6 +107,10 @@ control("the register page loses its link rows", "S25", edit("register.html", (s
 control("the register page loses the locked panel", "S25", edit("register.html", (s) => s.replace('id="linksLocked"', 'id="linksLockedX"')));
 control("register.js stops saving the links", "S25", edit("js/pages/register.js", (s) => s.replace("api.setDestinationLinks(", "api.somethingElse(")));
 control("the edit page grows its own rows again", "S25", edit("js/pages/edit.js", (s) => s.replace("mountLinkRowsById()", "myOwnRows()")));
+control("the details dialog loses the links note", "S26", edit("search.html", (s) => s.replace('id="modalLinksNote"', 'id="modalLinksNoteX"')));
+control("the links note stops saying what to do when a link is wrong", "S26", edit("search.html", (s) => s.replace("If a link does not lead to this job", "If you like this job")));
+control("search.js stops showing the links note", "S26", edit("js/pages/search.js", (s) => s.replace('$("#modalLinksNote").hidden = false;', "")));
+control("the edit page says the label is shown to candidates again", "S26", edit("edit.html", (s) => s.replace("The label is a note for you only", "The label is shown to candidates")));
 control("the team page loses its add form", "S24", edit("team.html", (s) => s.replace('id="addForm"', 'id="addFormX"')));
 control("the team page no longer removes through the API", "S24", edit("js/pages/team.js", (s) => s.replace("api.rosterRemove(", "api.somethingElse(")));
 control("the edit page has no change note input", "S19", edit("edit.html", (s) => s.replace('<input id="note" type="text" maxlength="500"', '<input id="notx" type="text" maxlength="500"')));

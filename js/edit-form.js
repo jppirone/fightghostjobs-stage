@@ -144,6 +144,21 @@ export function mapLinksErrors(err, rowOf) {
   return { rows, general, planRequired: false };
 }
 
+// What the employer is told about the liveness check taken when the links were saved (pass B). Advisory only: the links are saved either way (some real destinations
+// refuse automated requests). links: [{ position, check_status, check_http }] -> a sentence, or null when every link answered
+export function checkWarnings(links) {
+  const bad = (Array.isArray(links) ? links : []).filter((l) => l && l.check_status === "failed");
+  if (!bad.length) return null;
+  const one = (l) => "link " + l.position + (Number.isInteger(l.check_http) ? " answered HTTP " + l.check_http : " could not be reached");
+  return "When we checked, " + bad.map(one).join("; ") + ". " + (bad.length === 1 ? "It is saved anyway — make sure it is right." : "They are saved anyway — make sure they are right.");
+}
+
+// How a stored link reads on the employer's own page: their label (a private note, never shown to candidates) and the text candidates actually see for it
+export function storedLinkText(x) {
+  return x.position + ". " + (x.label ? x.label + " — " : "") + "candidates see “" + (x.shown_as || "Application link " + x.position) + "”"
+    + (x.check_status === "failed" ? " (did not answer when we checked" + (Number.isInteger(x.check_http) ? ": HTTP " + x.check_http : "") + ")" : "");
+}
+
 // What the page says about the plan. plan: what get-my-posting / poster-session returned.
 // -> { state: "active" | "lapsed" | "locked" | "unknown", endsAt, endsSoon }   (active: verified now; lapsed: it ended, the links and names are kept but hidden; locked: never verified)
 export function planNotice(plan, nowMs) {
