@@ -37,10 +37,14 @@ export const shapes = {
     && shapes.aiNotes(r)
     && isBool(r.third_party_recruiter) && MASK_RE.test(r.masked_code) && isNullable(r.masked_req, (v) => isStr(v) && MASKED_REQ_RE.test(v)) && REF_RE.test(r.posting_ref) && isNullable(r.last_edited_at, isStr),
   search: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req") && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.searchRow),
-  detail: (d) => isObj(d) && isObj(d.posting) && shapes.searchRow(Object.assign({ }, d.posting)) && Array.isArray(d.links) && d.links.length <= 13
+  detail: (d) => isObj(d) && isObj(d.posting) && shapes.searchRow(Object.assign({ }, d.posting)) && (d.comment_count === undefined || (Number.isInteger(d.comment_count) && d.comment_count >= 0)) && Array.isArray(d.links) && d.links.length <= 13
     && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && l.position >= 1 && l.position <= 10 && isNullable(l.label, isStr) && (l.kind === undefined || l.kind === "apply" || l.kind === "recruiter") && (l.firm === undefined || isNullable(l.firm, isStr)) && (l.kind !== "recruiter" || isStr(l.firm))),
   linkIssue: (d) => isObj(d) && isStr(d.expires_at) && Array.isArray(d.links) && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && isNullable(l.label, isStr) && isStr(l.go_url) && /^https:\/\//.test(l.go_url) && (l.kind === undefined || l.kind === "apply" || l.kind === "recruiter")),
-  comments: (d) => isObj(d) && Number.isInteger(d.total) && Array.isArray(d.comments) && d.comments.every((c) => isObj(c) && isStr(c.body) && isStr(c.created_at)) && isNullable(d.next_offset, Number.isInteger),
+  // a comment as a candidate or the owner reads it: an id (to report it), the text, the time; never an author. A page is at most 25, newest first.
+  commentItem: (c) => isObj(c) && Number.isInteger(c.id) && c.id > 0 && isStr(c.body) && isStr(c.created_at),
+  comments: (d) => isObj(d) && Number.isInteger(d.total) && d.total >= 0 && Array.isArray(d.comments) && d.comments.length <= 25 && d.comments.every(shapes.commentItem) && isNullable(d.next_offset, Number.isInteger),
+  employerComments: (d) => isObj(d) && UUID_RE.test(d.posting_id) && shapes.comments(d),
+  reportAnswer: (d) => isObj(d) && Number.isInteger(d.report_id) && d.report_id > 0,
   // list-my-postings (the employer's own list): every field the dashboard reads, checked; anything else is ignored
   myPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && /^[0-9A-Z]{12}$/.test(p.post_id) && EFFECTIVE_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
     && isNullable(p.closed_reason, isStr) && isBool(p.is_remote) && Array.isArray(p.locations) && p.locations.every(isStr) && Array.isArray(p.location_ids) && p.location_ids.every(isStr) && isBool(p.locations_attested)
@@ -143,6 +147,11 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     candidateLinkIssue: (postingRef) => call("candidate-link-issue", { posting_ref: postingRef }, { validate: shapes.linkIssue }),
     candidateListComments: (postingRef, offset) => call("candidate-list-comments", offset ? { posting_ref: postingRef, offset } : { posting_ref: postingRef }, { validate: shapes.comments }),
     candidatePostComment: (postingRef, text) => call("candidate-post-comment", { posting_ref: postingRef, body: text }, { validate: shapes.comment }),
+    // the two private report channels (pass 21): a comment someone should look at; a link that does not lead where it says (URLs are fine here: the operator reads it, nobody else)
+    candidateReportComment: (commentId, reason) => call("candidate-report-comment", { comment_id: commentId, reason }, { validate: shapes.reportAnswer }),
+    candidateReportLink: (postingRef, kind, position, detail) => call("candidate-report-link", Object.assign({ posting_ref: postingRef, detail }, kind ? { kind, position } : {}), { validate: shapes.reportAnswer }),
+    // the owner reads the comments on their own posting (read-only; the same anonymous items)
+    employerListComments: (postingId, offset) => call("list-posting-comments", offset ? { posting_id: postingId, offset } : { posting_id: postingId }, { validate: shapes.employerComments }),
   };
 }
 

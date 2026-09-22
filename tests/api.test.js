@@ -103,7 +103,7 @@ test("poster session shape; comments shape", async () => {
   const ps = { poster: { poster_id: uuid, full_name: "John", is_org_admin: true }, organization: { organization_id: uuid, name: "Acme" }, verified_at: "2026-09-20T00:00:00Z", reverify_by: "2026-10-20T00:00:00Z" };
   assert.equal((await mk(() => ({ status: 200, body: ps })).api.posterSession()).ok, true);
   assert.equal((await mk(() => ({ status: 200, body: { poster: { poster_id: "nope" } } })).api.posterSession()).ok, false);
-  assert.equal((await mk(() => ({ status: 200, body: { total: 1, comments: [{ body: "hi", created_at: "2026-09-20T00:00:00Z" }], next_offset: null } })).api.candidateListComments(ref)).ok, true);
+  assert.equal((await mk(() => ({ status: 200, body: { total: 1, comments: [{ id: 1, body: "hi", created_at: "2026-09-20T00:00:00Z" }], next_offset: null } })).api.candidateListComments(ref)).ok, true);
   assert.equal((await mk(() => ({ status: 200, body: { total: "1", comments: [] , next_offset: null } })).api.candidateListComments(ref)).ok, false);
 });
 

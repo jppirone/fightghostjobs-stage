@@ -120,6 +120,11 @@ control("the register page's note box grows past 300", "S28", edit("register.htm
 control("the note label stops saying the words are shown to candidates", "S28", edit("register.html", (s) => s.replace("In your own words (optional, shown to candidates): how AI is used to filter", "In your own words (optional): how AI is used to filter")));
 control("the register form stops checking the notes with the shared rule", "S28", edit("js/register-form.js", (s) => s.replace('import { aiNoteProblem } from "./ai-notes.js";', "const aiNoteProblem = () => null;")));
 control("the search card stops showing the notes", "S28", edit("js/pages/search.js", (s) => s.replace("...aiNotes(row).map(", "...[].map(")));
+control("a page links to comments.html without a reference (a listing in the making)", "S29", append("index.html", '<a href="comments.html">All comments</a>'));
+control("the comments page names the author", "S29", edit("js/pages/comments.js", (s) => s.replace('"Verified candidate ' + String.fromCharCode(183) + ' "', '"Candidate #" + c.id + " ' + String.fromCharCode(183) + ' "')));
+control("the wrong-link report stops saying it is private", "S29", edit("comments.html", (s) => s.replace("Tell us here, privately:", "Tell us here:")));
+control("the dashboard stops linking the comments", "S29", edit("js/pages/dashboard.js", (s) => s.replace('"comments.html?id=" + encodeURIComponent(p.id)', '"dashboard.html"')));
+control("the privacy page stops saying comments are anonymous", "S29", edit("privacy.html", (s) => s.replace("never who wrote it", "and who wrote it")));
 control("the team page loses its add form", "S24", edit("team.html", (s) => s.replace('id="addForm"', 'id="addFormX"')));
 control("the team page no longer removes through the API", "S24", edit("js/pages/team.js", (s) => s.replace("api.rosterRemove(", "api.somethingElse(")));
 control("the edit page has no change note input", "S19", edit("edit.html", (s) => s.replace('<input id="note" type="text" maxlength="500"', '<input id="notx" type="text" maxlength="500"')));

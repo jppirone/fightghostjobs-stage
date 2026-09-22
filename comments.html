@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src https://tpmvkjuhbbwftqoodzcn.supabase.co; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta name="referrer" content="same-origin">
+<meta name="robots" content="noindex, nofollow">
+<title>FightGhostJobs — Comments</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="nav">
+  <a class="nav-logo" href="index.html"><span class="nav-dot"></span><span class="nav-wordmark">FightGhostJobs</span></a>
+  <div class="nav-links">
+    <a href="index.html#candidates">For Candidates</a>
+    <a href="index.html#employers">For Employers</a>
+    <a href="search.html">Search Postings</a>
+  </div>
+  <div id="navAccount" style="display:flex;align-items:center;"></div>
+</div>
+
+<div style="max-width:880px;margin:0 auto;padding:48px 32px 64px 32px;display:flex;flex-direction:column;gap:20px;">
+  <div id="pageAlert" hidden></div>
+  <div id="roleNotice" hidden></div>
+
+  <div id="signinWrap" hidden>
+    <div class="card signin-card">
+      <h2>Verify your email to read and post comments</h2>
+      <p>One quick step: we email you a link, and that keeps you verified for 90 days. No password, no account form, no cost. Your email is only used to confirm you are a person and is never shown to anyone. <a href="privacy.html">Privacy</a>.</p>
+      <form id="signinForm" novalidate>
+        <div class="signin-row">
+          <div><label for="candEmail">Your email</label><input id="candEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
+          <button type="submit" id="candSend" class="btn btn-dark">Send link</button>
+        </div>
+        <div id="candEmailError" class="field-error" hidden></div>
+      </form>
+      <div id="candSent" hidden></div>
+    </div>
+  </div>
+
+  <div id="recap" class="card" hidden>
+    <div id="recapCompany" style="font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;"></div>
+    <div id="recapTitle" style="font-size:24px;font-weight:700;margin-top:4px;"></div>
+    <div id="recapMeta" style="font-size:14px;color:var(--muted);margin-top:2px;"></div>
+    <div id="recapChips" style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;"></div>
+    <div id="recapNotes"></div>
+    <div id="recapNote" style="font-size:13px;color:var(--muted);margin-top:14px;line-height:1.6;"></div>
+  </div>
+
+  <div id="threadWrap" hidden style="display:flex;flex-direction:column;gap:14px;">
+    <h2 id="threadHead" style="font-size:20px;font-weight:700;margin:0;">Comments</h2>
+    <p id="threadIntro" style="font-size:14px;color:var(--muted);line-height:1.6;margin:0;">Written by verified candidates, newest first, anonymous. A comment is about the posting, never about a person. Anyone can report a comment; we read every report.</p>
+    <div id="thread" style="display:flex;flex-direction:column;gap:12px;"></div>
+    <div id="threadEmpty" class="empty-note" hidden>No comments yet.</div>
+    <div><button type="button" id="loadMore" class="btn btn-outline btn-sm" hidden>Load older comments</button></div>
+  </div>
+
+  <div id="composeWrap" class="card" hidden>
+    <h2 style="font-size:16px;font-weight:700;margin:0 0 6px 0;">Add a comment</h2>
+    <p id="composeRules" class="field-hint" style="margin:0 0 12px 0;"></p>
+    <form id="composeForm" novalidate style="display:flex;flex-direction:column;gap:10px;">
+      <textarea id="commentText" rows="4" maxlength="2000" aria-label="Your comment" placeholder="What should other candidates know about this posting?"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div id="commentCount" class="field-hint" style="margin:0;">0 / 2,000</div>
+        <button type="submit" id="commentSend" class="btn btn-dark btn-sm">Post comment</button>
+      </div>
+      <div id="commentError" class="field-error" hidden></div>
+      <div id="composeAlert" hidden></div>
+    </form>
+  </div>
+
+  <div id="reportWrap" class="card" hidden>
+    <h2 style="font-size:16px;font-weight:700;margin:0 0 6px 0;">Report a wrong link</h2>
+    <p class="field-hint" style="margin:0 0 12px 0;">Did a link on this posting not lead to this job's own page or application? Tell us here, privately: this goes to us, not to the thread, so you can say exactly where it took you (an address is fine here).</p>
+    <form id="reportForm" novalidate style="display:flex;flex-direction:column;gap:10px;">
+      <label for="reportLink" style="font-size:13px;color:var(--muted);">Which link?</label>
+      <select id="reportLink" aria-label="Which link"></select>
+      <textarea id="reportDetail" rows="3" maxlength="500" aria-label="What happened" placeholder="e.g. The link labelled Employer's own site opened a job board listing for a different role."></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div id="reportCount" class="field-hint" style="margin:0;">0 / 500</div>
+        <button type="submit" id="reportSend" class="btn btn-outline btn-sm">Send report</button>
+      </div>
+      <div id="reportError" class="field-error" hidden></div>
+      <div id="reportAlert" hidden></div>
+    </form>
+  </div>
+
+  <div id="employerNote" hidden style="font-size:13px;color:var(--muted);line-height:1.6;">Comments are written by verified candidates and are anonymous to everyone, you included. To have one looked at, write to <a href="mailto:sales@fightghostjobs.com?subject=Comment%20on%20a%20posting">sales@fightghostjobs.com</a> with the posting's postID. <a href="dashboard.html">Back to My postings</a></div>
+</div>
+
+<div class="site-footer"><span>FightGhostJobs</span><a href="privacy.html">Privacy</a><a href="mailto:privacy@fightghostjobs.com">privacy@fightghostjobs.com</a></div>
+
+<script type="module" src="js/pages/comments.js"></script>
+</body>
+</html>

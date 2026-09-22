@@ -25,6 +25,7 @@
 //   S26 the candidate's details dialog explains the one-time links and what to do when one is wrong; the employer pages say the label is theirs only; api.js accepts the derived label + check
 //   S27 the recruiter-firm editor is on register AND edit (no "coming soon"), saved through api.setRecruiterFirms; the search page renders "Recruiter firm: <name>"
 //   S28 the employer's AI notes: a 300-char box under each AI toggle on both pages (shown to candidates, no web addresses), checked by the shared rule, shown on the search card as the employer's words
+//   S29 candidate comments: comments.html (thread, compose, private wrong-link report, employer read-only) reached only with ?ref= / ?id=, through api.js; anonymous; the privacy page says what is kept
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
@@ -261,7 +262,7 @@ export function checkSite(root) {
   // wrong; search.js shows that note whenever links are listed; the employer pages say the label is theirs only and that shorteners are refused; api.js accepts shown_as and the check result.
   {
     const sh2 = path.join(root, "search.html");
-    if (fs.existsSync(sh2)) { const t = read(sh2); if (!t.includes('id="modalLinksNote"')) add("S26", sh2, "search.html is missing #modalLinksNote"); for (const need of ["look unusual on purpose", "one-time link through FightGhostJobs", "protected from scraping", "wherever the employer told us to send you", "we could not verify it", "If a link does not lead to this job", "mailto:sales@fightghostjobs.com"]) if (!t.includes(need)) add("S26", sh2, "the links note must say: " + need); }
+    if (fs.existsSync(sh2)) { const t = read(sh2); if (!t.includes('id="modalLinksNote"')) add("S26", sh2, "search.html is missing #modalLinksNote"); for (const need of ["look unusual on purpose", "one-time link through FightGhostJobs", "protected from scraping", "wherever the employer told us to send you", "we could not verify it", "If a link does not lead to this job", "Report a wrong link"]) if (!t.includes(need)) add("S26", sh2, "the links note must say: " + need); }
     const sj = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj) && !read(sj).includes('$("#modalLinksNote").hidden = false')) add("S26", sj, "search.js must show the links note when links are listed");
     for (const name of ["register.html", "edit.html"]) { const p = path.join(root, name); if (fs.existsSync(p)) { const t = read(p); if (!t.includes("The label is a note for you only")) add("S26", p, name + " must say the label is the employer's note only"); if (!t.includes("a link shortener or redirect is not accepted")) add("S26", p, name + " must say shorteners are refused"); } }
     const aj = path.join(root, "js", "api.js"); if (fs.existsSync(aj) && !/linkExtras: \(x\) => \(x\.shown_as === undefined \|\| isNullable\(x\.shown_as, isStr\)\)/.test(read(aj))) add("S26", aj, "api.js must accept shown_as on a stored link");
@@ -292,6 +293,27 @@ export function checkSite(root) {
     const an = path.join(root, "js", "ai-notes.js"); if (!fs.existsSync(an)) add("S28", an, "js/ai-notes.js is missing"); else { const c = read(an); if (!c.includes("MAX_AI_NOTE = 300")) add("S28", an, "the note cap must be 300"); if (!c.includes("www[.]") || !c.includes("://")) add("S28", an, "the rule must refuse web addresses"); }
     const sj = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj) && !read(sj).includes("aiNotes(row).map(")) add("S28", sj, "search.js must show the employer's AI notes on the card");
     if (fs.existsSync(an) && !read(an).includes("in the employer's words")) add("S28", an, "the notes must be attributed as the employer's words");
+  }
+  // S29 (candidate comments): the thread is a page of its own (comments.html: sign-in, thread, compose, the private wrong-link report, and the employer's read-only mode), reached ONLY with a
+  // posting's opaque reference or an owner's posting id (every link to it carries ?ref= or ?id=; the site never lists postings), through api.js only; the details dialog points there; the
+  // privacy page says what a comment and a report keep; the comments page is anonymous ("Verified candidate") and says comments are public and reportable.
+  {
+    const ch = path.join(root, "comments.html"), cj = path.join(root, "js", "pages", "comments.js"), cm = path.join(root, "js", "comments-model.js");
+    if (!fs.existsSync(ch) || !fs.existsSync(cj) || !fs.existsSync(cm)) add("S29", ch, "comments.html / js/pages/comments.js / js/comments-model.js are missing");
+    else {
+      const t = read(ch); for (const id of ["signinWrap", "recap", "thread", "loadMore", "composeForm", "commentText", "reportForm", "reportLink", "reportDetail", "employerNote"]) if (!t.includes('id="' + id + '"')) add("S29", ch, "comments.html is missing #" + id);
+      if (!t.includes('maxlength="2000"')) add("S29", ch, "the comment box must be capped at 2000"); if (!t.includes("privately")) add("S29", ch, "the wrong-link report must say it is private");
+      const c = read(cj); for (const m of ["api.candidateListComments(", "api.candidatePostComment(", "api.candidateReportComment(", "api.candidateReportLink(", "api.employerListComments(", "api.candidateDetail(", "api.getMyPosting("]) if (!c.includes(m)) add("S29", cj, "comments.js must use " + m);
+      if (!c.includes('"Verified candidate ' + String.fromCharCode(183) + ' "')) add("S29", cj, "a comment must be attributed as Verified candidate, never by name");
+      if (!read(cm).includes("Comments are public and anonymous; anyone can report one.")) add("S29", cm, "the rules text must say comments are public, anonymous and reportable");
+    }
+    for (const f of files.filter((x) => (x.endsWith(".html") || x.endsWith(".js")) && !x.includes(path.sep + "tests" + path.sep) && !x.includes(path.sep + "vendor" + path.sep))) {
+      const t = read(f);
+      for (const m of t.matchAll(/comments\.html([^"'`\s)]*)/g)) if (!/^\?(ref|id)=/.test(m[1]) && !(path.basename(f) === "comments.js" && m[1] === "")) add("S29", f, "a link to comments.html must carry ?ref= or ?id= (no listing): " + m[0].slice(0, 60));
+    }
+    const sj2 = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj2)) { const c = read(sj2); if (!c.includes('"comments.html?ref=" + encodeURIComponent(row.posting_ref)')) add("S29", sj2, "the details dialog must link to the posting's comments by its reference"); if (!c.includes("Report a wrong link")) add("S29", sj2, "the details dialog must offer Report a wrong link"); }
+    const dj = path.join(root, "js", "pages", "dashboard.js"); if (fs.existsSync(dj) && !read(dj).includes('"comments.html?id=" + encodeURIComponent(p.id)')) add("S29", dj, "the dashboard must link each posting's comments");
+    const ph2 = path.join(root, "privacy.html"); if (fs.existsSync(ph2)) { const t = read(ph2); for (const need of ['id="privacyComments"', "never who wrote it", "read only by us"]) if (!t.includes(need)) add("S29", ph2, "privacy.html must say: " + need); }
   }
   if (fs.existsSync(path.join(root, "index.html")) && !/fictional employer/i.test(read(path.join(root, "index.html")))) add("S23", path.join(root, "index.html"), "the sample card must say it is a fictional employer");
   // S24: the Team page (roster) exists with its controls and talks to the roster functions only through api.js

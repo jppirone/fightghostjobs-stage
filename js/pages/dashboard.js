@@ -54,7 +54,7 @@ function row(p, now) {
     h("td", { style: "color:var(--muted);" }, postedCell(p)),
     h("td", { style: "color:var(--muted);" }, closesCell(p), p.bump_used ? h("div", { class: "row-note" }, "extended " + p.bump_days + (p.bump_days === 1 ? " day" : " days")) : null),
     h("td", { style: "color:var(--muted);" }, capCell(p)),
-    h("td", { style: "color:var(--muted);white-space:nowrap;" }, "💬 " + p.comment_count));
+    h("td", { style: "white-space:nowrap;" }, h("a", { class: "row-action", href: "comments.html?id=" + encodeURIComponent(p.id), title: "Read the comments" }, "💬 " + p.comment_count)));
 }
 
 function render() {

@@ -130,9 +130,16 @@ function openModal(row) {
   $("#modalTitle").textContent = row.title;
   $("#modalRefs").textContent = "postID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : "");
   $("#modalIntro").textContent = "This listing is verified: a real employer registered it directly with FightGhostJobs, with the dates and disclosures shown on the search page.";
-  clear($("#modalLinks")); const empty = $("#modalEmpty"); empty.hidden = true; empty.textContent = ""; $("#modalLinksNote").hidden = true;
+  clear($("#modalLinks")); const empty = $("#modalEmpty"); empty.hidden = true; empty.textContent = ""; $("#modalLinksNote").hidden = true; $("#modalMore").hidden = true; clear($("#modalMore"));
   backdrop.classList.add("open");
   return { links: $("#modalLinks"), empty };
+}
+// the thread and the private wrong-link report live on the posting's own comments page (reached only with the posting's opaque reference; never listed anywhere)
+function moreLinks(row, count, withReport) {
+  const more = $("#modalMore"); clear(more); more.hidden = false;
+  const page = "comments.html?ref=" + encodeURIComponent(row.posting_ref);
+  more.append(h("a", { href: page }, "Comments" + (Number.isInteger(count) ? " (" + count + ")" : "") + " →"));
+  if (withReport) more.append(h("a", { href: page + "#report" }, "Report a wrong link →"));
 }
 function closeModal() { backdrop.classList.remove("open"); }
 $("#modalClose").addEventListener("click", closeModal);
@@ -153,8 +160,10 @@ async function openDetails(row, button) {
         for (const l of r.data.links) m.links.append(linkRow(row, l));
         $("#modalLinksNote").hidden = false;   // why the links look odd, and what to do when one is wrong
       }
+      moreLinks(row, r.data.comment_count, r.data.links.length > 0);
       return;
     }
+    moreLinks(row, null, false);   // a closed or expired posting keeps its thread: what happened after it closed is what other candidates want to know
     m.empty.hidden = false;
     if (r.status === 409 && r.data && r.data.code === "posting_not_open") m.empty.textContent = notOpenMessage(r.data.status, r.data.closed_reason || null);
     else if (r.error.code === "not_found") m.empty.textContent = "This posting is no longer available.";
