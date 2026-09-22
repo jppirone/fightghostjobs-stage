@@ -1,5 +1,5 @@
 // search-input.js - turns what a candidate typed into exactly what candidate-search accepts, and refuses early what the backend would refuse (so a typo costs no rate-limit budget).
-// The backend is the authority: it accepts { company, phrase } OR { company, code }. Rules mirrored here (public.candidate_search_postings):
+// The backend is the authority: it accepts { company, phrase } OR { company, code }. Rules mirrored here (public.candidate_search_postings_v2):
 //   company : at least 2 letters/digits, at most 200 characters
 //   phrase  : at least 3 letters/digits (spaces excluded), at most 80 characters
 //   code    : 12 characters of 0-9 A-Z minus I L O U (I and L read as 1, O as 0); spaces and hyphens ignored; at most 40 typed characters, printable ASCII only
@@ -8,7 +8,7 @@
 const CODE_RE = /^[0-9A-HJKMNP-TV-Z]{12}$/;
 
 // What the page says when a search finds nothing: an echo of exactly what was searched, then the note. The last sentence of the note is deliberate: a title search lists only live or
-// paused postings (candidate_search_postings), so a posting that has closed or expired is found only by its postID, and without that sentence "no match" would read as "never registered".
+// paused postings (candidate_search_postings_v2), so a posting that has closed or expired is found only by its postID, and without that sentence "no match" would read as "never registered".
 // The echo lets a person see at a glance that they typed "Acme" where the employer registered "Acme Inc" (the company must match the registered name; it is not a prefix search).
 export const NO_MATCH_NOTE = "A posting appears here only if a real employer has registered it with FightGhostJobs, so a missing posting is itself worth knowing. Check the company name and try a shorter part of the title. Closed or expired postings appear only when you search by postID.";
 
