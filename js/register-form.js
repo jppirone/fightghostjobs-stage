@@ -5,7 +5,20 @@
 
 import { problems as locationProblems } from "./location-rules.js";
 import { checkGoLive } from "./schedule-form.js";
-import { checkLinks } from "./edit-form.js";
+import { checkLinks, checkFirms } from "./edit-form.js";
+
+// The recruiter-firm rows (pass C) are OPTIONAL too, and only matter while the "third-party recruiter involved" toggle is on: blank rows mean "no firms named".
+export function collectFirms(rows, recruiterOn) {
+  const list = Array.isArray(rows) ? rows : [];
+  const used = recruiterOn === true && list.some((r) => String(r && r.name != null ? r.name : "").trim() !== "" || String(r && r.url != null ? r.url : "").trim() !== "");
+  if (!used) return { used: false, ok: true, links: [], rowOf: [], errors: {} };
+  return Object.assign({ used: true }, checkFirms(list));
+}
+export function firmsOutcome(saved, problem) {
+  if (problem) return { kind: "error", text: (problem.general || "The recruiter firms were not accepted.") + " The posting itself is saved" + (problem.planRequired || problem.recruiterOff ? "" : "; see the messages under the firms") + ". You can name them from My postings (Edit)." };
+  if (saved === null || saved === undefined) return null;
+  return { kind: "ok", text: saved === 1 ? "1 recruiter firm is named on it." : saved + " recruiter firms are named on it." };
+}
 
 // The destination-link rows on the register form are OPTIONAL: rows left blank mean "no links" and nothing is sent. Once any row holds something,
 // the same rules as the edit page apply (checkLinks). -> { used, ok, links, rowOf, errors, form? }

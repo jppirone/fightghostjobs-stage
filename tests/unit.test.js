@@ -6,7 +6,7 @@ import { postingChips, aiFilteringChip, aiInterviewChip, statusChips, notOpenMes
 import { classifyQuery, checkCompany, normalizeCode, noMatchMessage, NO_MATCH_NOTE } from "../js/search-input.js";
 import { checkReq, resolveSearch, noMatchMessage as noMatchMsg, NO_MATCH_NOTE_REQ } from "../js/search-input.js";
 import { isDuplicateReq } from "../js/register-form.js";
-import { validateForm, buildCreateBody, mapServerErrors, MIN_WINDOW_DAYS, MAX_WINDOW_DAYS, collectLinks, linksOutcome } from "../js/register-form.js";
+import { validateForm, buildCreateBody, mapServerErrors, MIN_WINDOW_DAYS, MAX_WINDOW_DAYS, collectLinks, linksOutcome, collectFirms, firmsOutcome } from "../js/register-form.js";
 
 test("dates read like the design (Sep 2), in UTC when asked", () => {
   assert.equal(fmtDate("2026-09-02T12:00:00Z", "UTC"), "Sep 2");
@@ -250,4 +250,13 @@ test("register form: what the result says about the links", () => {
 test("register form: a liveness warning turns the links line into a notice", () => {
   assert.deepEqual(linksOutcome(2, null, "When we checked, link 2 answered HTTP 404. It is saved anyway — make sure it is right."), { kind: "notice", text: "2 destination links are stored with it. When we checked, link 2 answered HTTP 404. It is saved anyway — make sure it is right." });
   assert.equal(linksOutcome(1, null, null).kind, "ok");
+});
+
+test("register form: recruiter-firm rows count only while the toggle is on; the result wording", () => {
+  assert.equal(collectFirms([{ name: "Acme", url: "" }], false).used, false);
+  const on = collectFirms([{ name: "Acme", url: "" }, { name: "", url: "" }], true);
+  assert.equal(on.used, true); assert.equal(on.ok, true); assert.deepEqual(on.links, [{ name: "Acme" }]);
+  assert.equal(collectFirms([{ name: "", url: "https://a.example.com" }], true).ok, false);
+  assert.equal(firmsOutcome(null, null), null); assert.equal(firmsOutcome(1, null).text, "1 recruiter firm is named on it."); assert.equal(firmsOutcome(2, null).text, "2 recruiter firms are named on it.");
+  assert.match(firmsOutcome(null, { rows: {}, general: "Recruiter firms can be named only while the posting says a third-party recruiter is involved.", recruiterOff: true }).text, /^Recruiter firms can be named only.*The posting itself is saved\. You can name them/);
 });

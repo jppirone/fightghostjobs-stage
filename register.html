@@ -126,10 +126,17 @@
         <button type="button" id="recruiterToggle" class="toggle" role="switch" aria-checked="false" aria-label="Third-party recruiter involved"><span class="toggle-knob"></span></button>
       </div>
 
-      <div id="recruiterPanel" style="display:none;align-items:center;justify-content:space-between;background:var(--panel);border:1px dashed #C9C1B4;border-radius:10px;padding:14px 18px;">
-        <div style="display:flex;align-items:center;gap:10px;">
+      <div id="recruiterPanel" hidden style="display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px dashed #C9C1B4;border-radius:10px;padding:14px 18px;">
+        <div style="font-size:13px;font-weight:700;">Recruiter firms</div>
+        <div id="firmsLocked" hidden style="display:flex;align-items:center;gap:10px;">
           <span style="color:var(--faint);">🔒</span>
-          <span style="font-size:13px;color:var(--muted);">Naming the recruiter firm: coming soon.</span>
+          <span style="font-size:13px;color:var(--muted);">Naming the firm is part of the verified plan. <a href="mailto:sales@fightghostjobs.com?subject=Verified%20tier" style="font-weight:600;">Write to sales@fightghostjobs.com →</a></span>
+        </div>
+        <div id="firmsForm" hidden style="display:flex;flex-direction:column;gap:12px;">
+          <div class="field-hint" style="margin-top:0;">Optional, up to 3. Candidates see the name as "Recruiter firm: …". The address is optional and, like a destination link, is never shown to them: they see where it goes. Saved right after the posting is registered; you can change the firms from My postings (Edit).</div>
+          <div id="firmRows" style="display:flex;flex-direction:column;gap:12px;"></div>
+          <div><button type="button" id="addFirmBtn" class="btn btn-outline btn-sm">Add another firm</button></div>
+          <div id="firmsAlert" hidden></div>
         </div>
       </div>
 

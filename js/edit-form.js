@@ -129,19 +129,52 @@ export function checkLinks(rows) {
   return out;
 }
 
-// A refusal from set-destination-links -> { rows: { rowIndex: { url?, label? } }, general, planRequired }. rowOf: the row each SENT link came from (the server counts the links it was sent).
+// ---- recruiter firms (pass C): the same call replaces the posting's whole set of named firms (kind = recruiter): 1 to 3 rows of { name, url? }; the name is required, the link optional.
+export const MAX_FIRMS = 3, MAX_FIRM_NAME = 200;
+// rows: [{ name, url }] as typed (a row with both boxes empty is ignored). -> { ok, errors: { rowIndex: { name?, url? } }, form?, links: [{ name, url? }] (the rows that are fine, in order), rowOf }
+export function checkFirms(rows) {
+  const errors = {}, links = [], rowOf = [], seen = new Set(); let used = 0;
+  (Array.isArray(rows) ? rows : []).forEach((r, i) => {
+    const name = String(r && r.name != null ? r.name : "").trim(), url = String(r && r.url != null ? r.url : "").trim();
+    if (name === "" && url === "") return;
+    used++;
+    const e = {};
+    if (name === "") e.name = "Enter the firm's name, or clear this row.";
+    else if (Array.from(name).length > MAX_FIRM_NAME) e.name = "Keep the name to " + MAX_FIRM_NAME + " characters or fewer.";
+    else if (hasControl(name)) e.name = "Keep the name to plain text.";
+    if (url !== "") {
+      if (url.length > MAX_URL) e.url = "Keep the address to " + MAX_URL + " characters or fewer.";
+      else if (!/^https:\/\//i.test(url)) e.url = "The address must start with https://";
+      else {
+        let href = null; try { const u = new URL(url); if (u.protocol === "https:" && u.hostname !== "") href = u.href; } catch { /* not an address */ }
+        if (href === null) e.url = "That does not look like a web address.";
+        else if (seen.has(href)) e.url = "This address is already in the list.";
+        else seen.add(href);
+      }
+    }
+    if (Object.keys(e).length) errors[i] = e; else { links.push(url === "" ? { name } : { name, url }); rowOf.push(i); }
+  });
+  const out = { ok: false, errors, links, rowOf };
+  if (used === 0) out.form = "Enter at least one firm.";
+  else if (used > MAX_FIRMS) out.form = "Up to " + MAX_FIRMS + " recruiter firms.";
+  out.ok = !out.form && Object.keys(errors).length === 0;
+  return out;
+}
+
+// A refusal from set-destination-links -> { rows: { rowIndex: { url?, label?, name? } }, general, planRequired, recruiterOff }. rowOf: the row each SENT link came from (the server counts the links it was sent).
 export function mapLinksErrors(err, rowOf) {
   const rows = {}; let general = null;
-  if (!err) return { rows, general: "Something went wrong.", planRequired: false };
-  if (err.code === "plan_required") return { rows, general: err.message || "Destination links are part of the verified plan. Your organization is not on it (or the plan has ended), so nothing was changed.", planRequired: true };
+  if (!err) return { rows, general: "Something went wrong.", planRequired: false, recruiterOff: false };
+  if (err.code === "plan_required") return { rows, general: err.message || "Destination links are part of the verified plan. Your organization is not on it (or the plan has ended), so nothing was changed.", planRequired: true, recruiterOff: false };
+  if (err.code === "recruiter_off") return { rows, general: err.message || "Recruiter firms can be named only while the posting says a third-party recruiter is involved. Turn that on and save the posting first.", planRequired: false, recruiterOff: true };
   const list = Array.isArray(err.errors) && err.errors.length ? err.errors : err.field ? [{ field: err.field, message: err.message || "Not accepted." }] : [];
   for (const x of list) {
-    const m = /^links\[(\d+)\]\.(url|label)/.exec(x.field);
+    const m = /^links\[(\d+)\]\.(url|label|name)/.exec(x.field);
     const row = m && Array.isArray(rowOf) ? rowOf[Number(m[1])] : undefined;
     if (m && row !== undefined) { rows[row] = rows[row] || {}; if (!rows[row][m[2]]) rows[row][m[2]] = x.message; } else if (!general) general = x.message;
   }
   if (!list.length && err.message) general = err.message;
-  return { rows, general, planRequired: false };
+  return { rows, general, planRequired: false, recruiterOff: false };
 }
 
 // What the employer is told about the liveness check taken when the links were saved (pass B). Advisory only: the links are saved either way (some real destinations
@@ -155,9 +188,13 @@ export function checkWarnings(links) {
 
 // How a stored link reads on the employer's own page: their label (a private note, never shown to candidates) and the text candidates actually see for it
 export function storedLinkText(x) {
+  if (x.kind === "recruiter") return x.position + ". " + x.firm + (x.shown_as ? " — with a link, shown as “" + x.shown_as + "”" : " — no link") + (x.check_status === "failed" ? " (did not answer when we checked" + (Number.isInteger(x.check_http) ? ": HTTP " + x.check_http : "") + ")" : "");
   return x.position + ". " + (x.label ? x.label + " — " : "") + "candidates see “" + (x.shown_as || "Application link " + x.position) + "”"
     + (x.check_status === "failed" ? " (did not answer when we checked" + (Number.isInteger(x.check_http) ? ": HTTP " + x.check_http : "") + ")" : "");
 }
+// the two kinds a stored set holds (get-my-posting lists both together); an answer from before pass C has no kind and is all application links
+export const applyLinks = (list) => (Array.isArray(list) ? list : []).filter((x) => x.kind !== "recruiter");
+export const recruiterFirms = (list) => (Array.isArray(list) ? list : []).filter((x) => x.kind === "recruiter");
 
 // What the page says about the plan. plan: what get-my-posting / poster-session returned.
 // -> { state: "active" | "lapsed" | "locked" | "unknown", endsAt, endsSoon }   (active: verified now; lapsed: it ended, the links and names are kept but hidden; locked: never verified)

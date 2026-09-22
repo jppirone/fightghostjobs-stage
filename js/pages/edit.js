@@ -6,17 +6,17 @@ import { rememberNext } from "../session.js";
 import { $, $$, h, clear, alertBox } from "../dom.js";
 import { fmtClose, fmtStamp, waitText } from "../format.js";
 import { statusChip } from "../dashboard-model.js";
-import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, mapLinksErrors, planNotice, checkWarnings, storedLinkText } from "../edit-form.js";
+import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, checkFirms, mapLinksErrors, planNotice, checkWarnings, storedLinkText, applyLinks, recruiterFirms } from "../edit-form.js";
 import { mountLocationPicker } from "../location-picker.js";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js";
 import { loadCatalog } from "../location-catalog.js";
-import { mountLinkRowsById } from "../link-rows.js";
+import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js";
 import { wireInfoIcons } from "../info-icon.js";
 
 wireInfoIcons();
 
 const postingId = new URLSearchParams(location.search).get("id") || "";
-const state = { orig: null, aiFilter: null, aiInterview: null, recruiter: false, exclusive: false, plan: null, busy: false, needNote: false, linksBusy: false, linkRowOf: [] };
+const state = { orig: null, doc: null, aiFilter: null, aiInterview: null, recruiter: false, exclusive: false, plan: null, busy: false, needNote: false, linksBusy: false, firmsBusy: false };
 const form = $("#form"), pageAlert = $("#pageAlert"), formAlert = $("#formAlert"), saveBtn = $("#saveBtn");
 const picker = mountLocationPicker({ isRemote: () => $("#remote").checked });
 $("#remote").addEventListener("change", () => picker.refresh());
@@ -39,6 +39,7 @@ function wireToggle(id, key) {
     if (state.busy || !state.orig) return;
     state[key] = key === "recruiter" ? !state.recruiter : state[key] !== true;
     setToggle(id, state[key] === true);
+    if (key === "recruiter" && state.doc) renderFirms(state.doc, true);
   });
 }
 wireToggle("#aiFilterToggle", "aiFilter"); wireToggle("#aiInterviewToggle", "aiInterview"); wireToggle("#recruiterToggle", "recruiter"); wireToggle("#exclusiveToggle", "exclusive");
@@ -123,15 +124,61 @@ function renderLinks(doc, editable) {
   }
   const stored = $("#linksStored"); clear(stored);
   if (notice.state === "active") {
-    const n = doc.destination_links.length;
-    stored.append(n === 0 ? "No destination links are stored for this posting yet." : h("span", {}, h("strong", {}, n === 1 ? "1 link is stored" : n + " links are stored"), ": ", doc.destination_links.map(storedLinkText).join("; "), "."));
+    const mine = applyLinks(doc.destination_links), n = mine.length;
+    stored.append(n === 0 ? "No destination links are stored for this posting yet." : h("span", {}, h("strong", {}, n === 1 ? "1 link is stored" : n + " links are stored"), ": ", mine.map(storedLinkText).join("; "), "."));
     $("#clearLinksBtn").hidden = n === 0;
     if (!state.linksBusy) resetLinkRows();
   }
 }
 
+// ---- recruiter firms (pass C): the same plan gate as the links; the rows are usable only while the SAVED posting says a recruiter is involved (the toggle above, saved)
+const firms = mountFirmRowsById();
+function renderFirms(doc, editable) {
+  const panel = $("#firmsPanel"), stored = recruiterFirms(doc.destination_links);
+  panel.hidden = !editable || (!state.recruiter && stored.length === 0);
+  if (panel.hidden) return;
+  const notice = planNotice(doc.plan, Date.now()), note = $("#firmsNote"); clear(note); note.hidden = true;
+  $("#firmsLocked").hidden = notice.state === "active" || notice.state === "lapsed";
+  const savedOn = doc.posting.third_party_recruiter === true;
+  $("#firmsForm").hidden = !(notice.state === "active" && savedOn && state.recruiter);
+  if (notice.state === "lapsed") { note.hidden = false; note.append(alertBox("notice", "Your verified plan ended. " + (stored.length ? "The " + stored.length + " firm" + (stored.length === 1 ? "" : "s") + " you named " + (stored.length === 1 ? "is" : "are") + " kept but hidden from candidates until it is renewed." : "Naming a recruiter firm is paused until it is renewed."))); }
+  else if (notice.state === "active" && !state.recruiter && stored.length) { note.hidden = false; note.append(alertBox("notice", "The toggle is off: " + (stored.length === 1 ? "the firm you named is" : "the " + stored.length + " firms you named are") + " kept but hidden from candidates. Turn it on and save to show them again.")); }
+  else if (notice.state === "active" && state.recruiter && !savedOn) { note.hidden = false; note.append(alertBox("notice", "Save the posting with the toggle on first; then you can name the firm here.")); }
+  if (!$("#firmsForm").hidden) {
+    const box = $("#firmsStored"); clear(box);
+    box.append(stored.length === 0 ? "No recruiter firm is named yet." : h("span", {}, h("strong", {}, stored.length === 1 ? "1 firm is named" : stored.length + " firms are named"), ": ", stored.map(storedLinkText).join("; "), "."));
+    $("#clearFirmsBtn").hidden = stored.length === 0;
+    if (!state.firmsBusy) firms.reset();
+  }
+}
+async function submitFirms(clearAll) {
+  if (state.firmsBusy || !state.orig) return;
+  const box = $("#firmsAlert"); say(box, "error", "");
+  const check = clearAll ? { ok: true, links: [], rowOf: [], errors: {} } : checkFirms(firms.values());
+  firms.showErrors(check.errors);
+  if (!check.ok) { if (check.form) say(box, "error", check.form); firms.focus(check.errors); return; }
+  state.firmsBusy = true; $("#saveFirmsBtn").disabled = true;
+  try {
+    const r = await api.setRecruiterFirms(postingId, check.links);
+    if (!r.ok) {
+      if (isAuthFailure(r.error)) return sessionEnded();
+      const m = mapLinksErrors(r.error, check.rowOf);
+      firms.showErrors(m.rows);
+      say(box, "error", m.general || (Object.keys(m.rows).length ? "Nothing was saved. See the message under the firm." : failureText(r.error)));
+      return;
+    }
+    state.firmsBusy = false;
+    const reload = await api.getMyPosting(postingId);
+    if (reload.ok) await populate(reload.data);
+    const warn = clearAll ? null : checkWarnings(r.data.links);
+    say($("#firmsAlert"), warn ? "notice" : "ok", (r.data.changed === false ? (clearAll ? "No firm was named, so nothing was changed." : "These are the firms already named, so nothing was changed.") : clearAll ? "Removed. No recruiter firm is named on this posting." : "Saved. " + (r.data.active_links === 1 ? "1 recruiter firm is" : r.data.active_links + " recruiter firms are") + " now named.") + (warn ? " " + warn : ""));
+  } finally { state.firmsBusy = false; $("#saveFirmsBtn").disabled = false; }
+}
+$("#saveFirmsBtn").addEventListener("click", () => submitFirms(false));
+$("#clearFirmsBtn").addEventListener("click", () => { if (window.confirm("Remove every recruiter firm from this posting? You can name them again at any time.")) submitFirms(true); });
+
 async function populate(doc) {
-  const p = doc.posting; state.orig = p;
+  const p = doc.posting; state.orig = p; state.doc = doc;
   state.aiFilter = p.ai_filtering; state.aiInterview = p.ai_interview_other; state.recruiter = p.third_party_recruiter; state.needNote = false;
   state.plan = doc.plan; state.exclusive = p.destination_links_exclusive === true; setToggle("#exclusiveToggle", state.exclusive);
   $("#jtitle").value = p.title; $("#req").value = p.req_number || ""; $("#desc").value = p.description_text; $("#appcap").value = p.applicant_cap === null ? "" : String(p.applicant_cap);
@@ -148,6 +195,7 @@ async function populate(doc) {
   const editable = p.stored_status === "draft" || ((p.stored_status === "live" || p.stored_status === "paused") && p.status === p.stored_status);
   form.hidden = !editable;
   renderLinks(doc, editable);
+  renderFirms(doc, editable);
   renderSchedule(p, editable);
   const ro = $("#readonlyNote"); ro.hidden = editable; clear(ro);
   if (!editable) {

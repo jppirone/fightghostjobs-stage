@@ -1,7 +1,7 @@
 // edit.test.js - the edit page's pure logic (js/edit-form.js) and the answers it relies on.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { changedFields, checkEdit, mapEditErrors, reqKey, MAX_NOTE, MAX_DESC, KIND_TEXT, checkLinks, mapLinksErrors, planNotice, MAX_LINKS, checkWarnings, storedLinkText } from "../js/edit-form.js";
+import { changedFields, checkEdit, mapEditErrors, reqKey, MAX_NOTE, MAX_DESC, KIND_TEXT, checkLinks, mapLinksErrors, planNotice, MAX_LINKS, checkWarnings, storedLinkText, checkFirms, applyLinks, recruiterFirms } from "../js/edit-form.js";
 import { shapes } from "../js/api.js";
 
 const ID = "3f1d5b1e-0000-4000-8000-000000000001";
@@ -145,7 +145,7 @@ test("the plan and the stored links in the answers: fail closed; an address is n
   assert.equal(shapes.openAnswer({ posting: orig(), recent_changes: [] }), false);                                    // an answer without the plan is not trusted
   assert.equal(shapes.openAnswer(OPEN({ plan: { verified: "yes" } })), false);
   assert.equal(shapes.openAnswer(OPEN({ destination_links: [{ position: 0, label: null }] })), false);
-  assert.equal(shapes.openAnswer(OPEN({ destination_links: Array.from({ length: 11 }, (_, i) => ({ position: 1 + (i % 10), label: null })) })), false);
+  assert.equal(shapes.openAnswer(OPEN({ destination_links: Array.from({ length: 14 }, (_, i) => ({ position: 1 + (i % 10), label: null })) })), false);
   assert.equal(shapes.openAnswer({ posting: orig({ destination_links_exclusive: undefined }), destination_links: [], plan: FREE, recent_changes: [] }), false);
   assert.equal(shapes.linksAnswer({ posting_id: ID, changed: true, active_links: 2, links: [{ position: 1, label: "A" }, { position: 2, label: null }] }), true);
   assert.equal(shapes.linksAnswer({ active_links: "2", links: [] }), false);
@@ -162,4 +162,22 @@ test("pass B: the liveness warning names the links that did not answer, and a st
   assert.equal(storedLinkText({ position: 1, label: "Careers", shown_as: "LinkedIn", check_status: "ok", check_http: 200 }), "1. Careers — candidates see “LinkedIn”");
   assert.equal(storedLinkText({ position: 2, label: null, shown_as: "Employer-provided link — not verified by us", check_status: "failed", check_http: 503 }), "2. candidates see “Employer-provided link — not verified by us” (did not answer when we checked: HTTP 503)");
   assert.equal(storedLinkText({ position: 3, label: null }), "3. candidates see “Application link 3”");            // an answer from before pass B
+});
+
+test("pass C: recruiter-firm rows: the name is required, the link optional; blank rows ignored; up to 3; refusals map under name or url; the toggle-off refusal is named", () => {
+  const ok = checkFirms([{ name: " Acme Staffing ", url: "" }, { name: "", url: "" }, { name: "Beta Search", url: " https://www.linkedin.com/company/beta/ " }]);
+  assert.equal(ok.ok, true); assert.deepEqual(ok.links, [{ name: "Acme Staffing" }, { name: "Beta Search", url: "https://www.linkedin.com/company/beta/" }]); assert.deepEqual(ok.rowOf, [0, 2]);
+  assert.equal(checkFirms([]).form, "Enter at least one firm."); assert.equal(checkFirms([{ name: "", url: "" }]).ok, false);
+  assert.match(checkFirms([{ name: "", url: "https://a.example.com" }]).errors[0].name, /Enter the firm's name/);
+  assert.ok(checkFirms([{ name: "x".repeat(201), url: "" }]).errors[0].name); assert.ok(checkFirms([{ name: "Acme" + String.fromCharCode(7), url: "" }]).errors[0].name);
+  assert.match(checkFirms([{ name: "Acme", url: "http://a.example.com" }]).errors[0].url, /https:\/\//);
+  assert.match(checkFirms([{ name: "A", url: "https://a.example.com/x" }, { name: "B", url: "https://a.example.com/x" }]).errors[1].url, /already in the list/);
+  assert.match(checkFirms(Array.from({ length: 4 }, (_, i) => ({ name: "F" + i, url: "" }))).form, /Up to 3/);
+  assert.equal(mapLinksErrors({ code: "recruiter_off", message: "Turn it on first." }, [0]).recruiterOff, true);
+  const m = mapLinksErrors({ field: "links[0].name", message: "name must not be empty", errors: [{ field: "links[0].name", message: "name must not be empty" }] }, [2]);
+  assert.deepEqual(m.rows, { 2: { name: "name must not be empty" } });
+  assert.equal(storedLinkText({ position: 1, kind: "recruiter", firm: "Acme Staffing", label: null, shown_as: null }), "1. Acme Staffing — no link");
+  assert.equal(storedLinkText({ position: 2, kind: "recruiter", firm: "Beta Search", label: null, shown_as: "LinkedIn", check_status: "ok" }), "2. Beta Search — with a link, shown as “LinkedIn”");
+  const both = [{ position: 1, kind: "apply", label: "x" }, { position: 1, kind: "recruiter", firm: "Acme" }, { position: 2, label: null }];
+  assert.equal(applyLinks(both).length, 2); assert.equal(recruiterFirms(both).length, 1);
 });

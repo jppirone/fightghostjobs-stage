@@ -33,9 +33,9 @@ export const shapes = {
     && isNullable(r.applicant_cap, Number.isInteger) && isStr(r.status) && isNullable(r.closed_reason, isStr) && isNullable(r.ai_filtering, isBool) && isNullable(r.ai_interview_other, isBool) && isBool(r.ai_disclosure_shown)
     && isBool(r.third_party_recruiter) && MASK_RE.test(r.masked_code) && isNullable(r.masked_req, (v) => isStr(v) && MASKED_REQ_RE.test(v)) && REF_RE.test(r.posting_ref) && isNullable(r.last_edited_at, isStr),
   search: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req") && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.searchRow),
-  detail: (d) => isObj(d) && isObj(d.posting) && shapes.searchRow(Object.assign({ }, d.posting)) && Array.isArray(d.links) && d.links.length <= 10
-    && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && l.position >= 1 && l.position <= 10 && isNullable(l.label, isStr)),
-  linkIssue: (d) => isObj(d) && isStr(d.expires_at) && Array.isArray(d.links) && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && isNullable(l.label, isStr) && isStr(l.go_url) && /^https:\/\//.test(l.go_url)),
+  detail: (d) => isObj(d) && isObj(d.posting) && shapes.searchRow(Object.assign({ }, d.posting)) && Array.isArray(d.links) && d.links.length <= 13
+    && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && l.position >= 1 && l.position <= 10 && isNullable(l.label, isStr) && (l.kind === undefined || l.kind === "apply" || l.kind === "recruiter") && (l.firm === undefined || isNullable(l.firm, isStr)) && (l.kind !== "recruiter" || isStr(l.firm))),
+  linkIssue: (d) => isObj(d) && isStr(d.expires_at) && Array.isArray(d.links) && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && isNullable(l.label, isStr) && isStr(l.go_url) && /^https:\/\//.test(l.go_url) && (l.kind === undefined || l.kind === "apply" || l.kind === "recruiter")),
   comments: (d) => isObj(d) && Number.isInteger(d.total) && Array.isArray(d.comments) && d.comments.every((c) => isObj(c) && isStr(c.body) && isStr(c.created_at)) && isNullable(d.next_offset, Number.isInteger),
   // list-my-postings (the employer's own list): every field the dashboard reads, checked; anything else is ignored
   myPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && /^[0-9A-Z]{12}$/.test(p.post_id) && EFFECTIVE_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
@@ -49,9 +49,11 @@ export const shapes = {
     && isNullable(p.ai_filtering, isBool) && isNullable(p.ai_interview_other, isBool) && isBool(p.third_party_recruiter) && isBool(p.destination_links_exclusive) && isNullable(p.applicant_cap, Number.isInteger) && isStr(p.description_text) && Number.isInteger(p.window_days)
     && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isNullable(p.go_live_at, isStr) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr),
   // the destination links the employer stored: position and label only, NEVER the address (the server keeps that encrypted and does not send it back)
-  // pass B: a stored link may also say what candidates see for it (shown_as: derived from where it goes, never from the label) and how the liveness check went when it was saved
-  linkExtras: (x) => (x.shown_as === undefined || isStr(x.shown_as)) && (x.check_status === undefined || x.check_status === null || ["ok", "failed", "skipped"].includes(x.check_status)) && (x.check_http === undefined || x.check_http === null || Number.isInteger(x.check_http)),
-  storedLinks: (l) => Array.isArray(l) && l.length <= 10 && l.every((x) => isObj(x) && Number.isInteger(x.position) && x.position >= 1 && x.position <= 10 && isNullable(x.label, isStr) && shapes.linkExtras(x)),
+  // pass B: a stored link may also say what candidates see for it (shown_as: derived from where it goes, never from the label; null for a firm without a link) and how the liveness check went when it was saved.
+  // pass C: kind 'apply' (an application link, up to 10) or 'recruiter' (a named recruiter firm, up to 3; firm = its name, a link optional)
+  linkExtras: (x) => (x.shown_as === undefined || isNullable(x.shown_as, isStr)) && (x.check_status === undefined || x.check_status === null || ["ok", "failed", "skipped"].includes(x.check_status)) && (x.check_http === undefined || x.check_http === null || Number.isInteger(x.check_http))
+    && (x.kind === undefined || x.kind === "apply" || x.kind === "recruiter") && (x.firm === undefined || isNullable(x.firm, isStr)) && (x.kind !== "recruiter" || isStr(x.firm)),
+  storedLinks: (l) => Array.isArray(l) && l.length <= 13 && l.every((x) => isObj(x) && Number.isInteger(x.position) && x.position >= 1 && x.position <= 10 && isNullable(x.label, isStr) && shapes.linkExtras(x)),
   linksAnswer: (d) => isObj(d) && Number.isInteger(d.active_links) && shapes.storedLinks(d.links),
   openAnswer: (d) => isObj(d) && shapes.openPosting(d.posting) && shapes.storedLinks(d.destination_links) && shapes.plan(d.plan) && Array.isArray(d.recent_changes) && d.recent_changes.length <= 5
     && d.recent_changes.every((c) => isObj(c) && isStr(c.at) && isStr(c.note) && isNullable(c.kind, isStr) && Array.isArray(c.fields) && c.fields.every(isStr)),
@@ -122,6 +124,8 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     rosterSetAdmin: (targetId, isAdmin) => call("poster-roster-set-admin", { target_poster_id: targetId, is_org_admin: isAdmin }, { validate: shapes.rosterAdmin }),
     // replaces the posting's whole set of destination links (verified plan): [{ url, label? }], 1 to 10; an EMPTY list removes them all (candidates then see no apply link)
     setDestinationLinks: (postingId, links) => call("set-destination-links", { posting_id: postingId, links }, { validate: shapes.linksAnswer }),
+    // replaces the posting's whole set of named recruiter firms (verified plan, and only while the posting says a recruiter is involved): [{ name, url? }], 0 to 3; [] removes them all
+    setRecruiterFirms: (postingId, firms) => call("set-destination-links", { posting_id: postingId, kind: "recruiter", links: firms }, { validate: shapes.linksAnswer }),
     listMyPostings: (offset) => call("list-my-postings", offset ? { offset } : {}, { validate: shapes.myPostings }),
     pausePosting: (postingId) => call("pause-posting", { posting_id: postingId }, { validate: shapes.actionAnswer }),
     resumePosting: (postingId) => call("resume-posting", { posting_id: postingId }, { validate: shapes.actionAnswer }),

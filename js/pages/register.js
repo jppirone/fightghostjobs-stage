@@ -6,15 +6,16 @@ import { rememberNext } from "../session.js";
 import { $, $$, h, clear, alertBox } from "../dom.js";
 import { fmtClose, groupCode, waitText } from "../format.js";
 import { checkGoLive, mapScheduleError } from "../schedule-form.js";
-import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome } from "../register-form.js";
+import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome, collectFirms, firmsOutcome } from "../register-form.js";
 import { mapLinksErrors, planNotice, checkWarnings } from "../edit-form.js";
-import { mountLinkRowsById } from "../link-rows.js";
+import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js";
 import { mountLocationPicker } from "../location-picker.js";
 import { wireInfoIcons } from "../info-icon.js";
 
 wireInfoIcons();
 // links: the destination-link rows, mounted only when the organization's plan allows links (null otherwise); linksSaved / linksProblem: what happened to them after the posting was created
-const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false, dupAsked: false, goLiveIso: null, links: null, linksSaved: null, linksProblem: null };
+// firms: the recruiter-firm rows (pass C), mounted with the links when the plan allows; they matter only while the recruiter toggle is on
+const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false, dupAsked: false, goLiveIso: null, links: null, linksSaved: null, linksAnswer: null, linksProblem: null, firms: null, firmsSaved: null, firmsProblem: null };
 const form = $("#form"), result = $("#result"), pageAlert = $("#pageAlert"), formAlert = $("#formAlert");
 const registerBtn = $("#registerBtn"), draftBtn = $("#draftBtn");
 const picker = mountLocationPicker({ isRemote: () => $("#remote").checked });
@@ -27,7 +28,7 @@ function wireToggle(id, key) {
     state[key] = !state[key];
     btn.classList.toggle("on", state[key]);
     btn.setAttribute("aria-checked", state[key] ? "true" : "false");
-    if (key === "recruiter") $("#recruiterPanel").style.display = state[key] ? "flex" : "none";
+    if (key === "recruiter") $("#recruiterPanel").hidden = !state[key];
   });
 }
 wireToggle("#aiFilterToggle", "aiFilter");
@@ -75,6 +76,9 @@ async function submit(mode) {
   const lc = state.links ? collectLinks(state.links.values()) : { used: false, ok: true, links: [], rowOf: [], errors: {} };
   if (state.links) { state.links.showErrors(lc.errors); say($("#linksAlert"), "error", lc.ok ? "" : lc.form || "Nothing was saved. See the message under the address."); }
   if (!lc.ok) { state.links.focus(lc.errors); return; }
+  const fc = state.firms ? collectFirms(state.firms.values(), state.recruiter) : { used: false, ok: true, links: [], rowOf: [], errors: {} };
+  if (state.firms) { state.firms.showErrors(fc.errors); say($("#firmsAlert"), "error", fc.ok ? "" : fc.form || "Nothing was saved. See the message under the firm."); }
+  if (!fc.ok) { state.firms.focus(fc.errors); return; }
   setBusy(true);
   try {
     // 1. create (a draft)
@@ -91,6 +95,7 @@ async function submit(mode) {
     lockForm();
     // 2. the destination links, if any were entered: the posting exists now, so a refusal here is reported with the result, never as a failed registration
     if (lc.used && await saveLinks(lc) === "gone") return;
+    if (fc.used && await saveFirms(fc) === "gone") return;
     if (mode === "draft") { showResult(created.data, "draft"); return; }
     // 3. publish now, or schedule the go-live for the time chosen
     if (goLater()) { state.goLiveIso = checkGoLive(val("#gldate"), Date.now()).iso || null; await schedule(); } else await publish();
@@ -111,9 +116,26 @@ async function saveLinks(lc) {
   return "refused";
 }
 
-// The link rows follow the organization's plan (poster-session): verified -> the rows; lapsed -> the paused notice; never verified -> the locked panel; plan unknown -> nothing is promised.
+async function saveFirms(fc) {
+  const r = await api.setRecruiterFirms(state.saved.id, fc.links);
+  if (r.ok) { state.firmsSaved = r.data.active_links; state.firmsProblem = null; return "saved"; }
+  if (isAuthFailure(r.error)) { await sessionEnded(); return "gone"; }
+  state.firmsProblem = mapLinksErrors(r.error, fc.rowOf);
+  if (!state.firmsProblem.general && !Object.keys(state.firmsProblem.rows).length) state.firmsProblem.general = failureText(r.error);
+  state.firms.showErrors(state.firmsProblem.rows);
+  say($("#firmsAlert"), "error", state.firmsProblem.general || "The firms were not accepted. See the message under the firm.");
+  return "refused";
+}
+
+// The link rows (and the recruiter-firm rows) follow the organization's plan (poster-session): verified -> the rows; lapsed -> the paused notice; never verified -> the locked panel; plan unknown -> nothing is promised.
 function setupLinks(plan) {
   const notice = planNotice(plan, Date.now());
+  $("#firmsLocked").hidden = notice.state === "active";
+  $("#firmsForm").hidden = notice.state !== "active";
+  if (notice.state === "active") state.firms = mountFirmRowsById();
+  setupLinkRows(notice);
+}
+function setupLinkRows(notice) {
   $("#linksSection").hidden = notice.state === "unknown";
   $("#linksLocked").hidden = notice.state !== "locked";
   $("#linksForm").hidden = notice.state !== "active";
@@ -146,8 +168,8 @@ async function schedule() {
   showResult(state.saved, "scheduled", null, r.data.go_live_at);
 }
 
-function lockForm() { for (const el of $$("input, textarea", form)) el.disabled = true; picker.setLocked(true); if (state.links) state.links.setLocked(true); registerBtn.hidden = true; draftBtn.hidden = true; }
-function unlockForm() { for (const el of $$("input, textarea", form)) el.disabled = false; picker.setLocked(false); if (state.links) state.links.setLocked(false); registerBtn.hidden = false; draftBtn.hidden = false; }
+function lockForm() { for (const el of $$("input, textarea", form)) el.disabled = true; picker.setLocked(true); if (state.links) state.links.setLocked(true); if (state.firms) state.firms.setLocked(true); registerBtn.hidden = true; draftBtn.hidden = true; }
+function unlockForm() { for (const el of $$("input, textarea", form)) el.disabled = false; picker.setLocked(false); if (state.links) state.links.setLocked(false); if (state.firms) state.firms.setLocked(false); registerBtn.hidden = false; draftBtn.hidden = false; }
 
 function showResult(p, kind, problem, goLiveAt) {
   result.hidden = false; clear(result);
@@ -169,6 +191,8 @@ function showResult(p, kind, problem, goLiveAt) {
     rows.flatMap(([k, v]) => [h("dt", { style: "color:var(--faint);font-weight:600;" }, k), h("dd", { style: "margin:0;" }, v)])));
   const lo = linksOutcome(state.linksSaved, state.linksProblem, checkWarnings(state.linksAnswer));
   if (lo) result.append(h("div", { style: "margin-top:12px;" }, alertBox(lo.kind, lo.text)));
+  const fo = firmsOutcome(state.firmsSaved, state.firmsProblem);
+  if (fo) result.append(h("div", { style: "margin-top:12px;" }, alertBox(fo.kind, fo.text)));
   result.append(h("div", { style: "margin-top:20px;" },
     h("div", { style: "font-size:13px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;" }, "Your postID"),
     h("span", { class: "code-box", id: "postId" }, groupCode(p.public_code)),
@@ -190,8 +214,9 @@ function registerAnother() {
   $("#livedays").value = "45";
   $("#remote").checked = false;
   for (const [id, key] of [["#aiFilterToggle", "aiFilter"], ["#aiInterviewToggle", "aiInterview"], ["#recruiterToggle", "recruiter"]]) { state[key] = false; $(id).classList.remove("on"); $(id).setAttribute("aria-checked", "false"); }
-  $("#recruiterPanel").style.display = "none";
+  $("#recruiterPanel").hidden = true;
   state.linksSaved = null; state.linksAnswer = null; state.linksProblem = null; if (state.links) { state.links.reset(); say($("#linksAlert"), "error", ""); }
+  state.firmsSaved = null; state.firmsProblem = null; if (state.firms) { state.firms.reset(); say($("#firmsAlert"), "error", ""); }
   dropReusedPrompt(); say(formAlert, "error", "");
   unlockForm(); $("#jtitle").focus();
 }

@@ -87,7 +87,7 @@ test("detail: live answer, and the 409 not-open answer keeps its reason", async 
   assert.equal((await mk(() => ({ status: 200, body: live })).api.candidateDetail(ref)).ok, true);
   const r = await mk(() => ({ status: 409, body: { error: "posting_not_open", code: "posting_not_open", status: "closed", closed_reason: "filled" } })).api.candidateDetail(ref);
   assert.equal(r.ok, false); assert.equal(r.status, 409); assert.equal(r.data.status, "closed"); assert.equal(r.data.closed_reason, "filled");
-  assert.equal((await mk(() => ({ status: 200, body: { posting: live.posting, links: Array.from({ length: 11 }, (_, i) => ({ position: 1, label: "x" })) } })).api.candidateDetail(ref)).ok, false);
+  assert.equal((await mk(() => ({ status: 200, body: { posting: live.posting, links: Array.from({ length: 14 }, (_, i) => ({ position: 1, label: "x" })) } })).api.candidateDetail(ref)).ok, false);
 });
 
 test("link issue: only https go-links are accepted", async () => {
@@ -179,4 +179,19 @@ test("setDestinationLinks sends the posting id and the full link set to set-dest
   assert.equal(bad.ok, false); assert.equal(bad.error.code, "bad_response");
   const refused = await mk(() => ({ status: 403, body: { error: "This feature is part of the verified plan.", code: "plan_required" } })).api.setDestinationLinks(uuid, links);
   assert.equal(refused.ok, false); assert.equal(refused.status, 403); assert.equal(refused.error.code, "plan_required"); assert.equal(refused.error.message, "This feature is part of the verified plan.");
+});
+
+test("pass C: setRecruiterFirms sends kind recruiter with the firms; the shapes accept kind + firm on stored, detail and issue links, up to 13 rows, and refuse a firm without a name", async () => {
+  const firms = [{ name: "Acme Staffing" }, { name: "Beta Search", url: "https://www.linkedin.com/company/beta/" }];
+  const ok = mk(() => ({ status: 200, body: { posting_id: uuid, kind: "recruiter", changed: true, active_links: 2, links: [{ position: 1, kind: "recruiter", firm: "Acme Staffing", label: null, shown_as: null, check_status: null, check_http: null }, { position: 2, kind: "recruiter", firm: "Beta Search", label: null, shown_as: "LinkedIn", check_status: "ok", check_http: 200 }] } }));
+  const r = await ok.api.setRecruiterFirms(uuid, firms);
+  assert.equal(r.ok, true); assert.deepEqual(ok.calls[0].body, { posting_id: uuid, kind: "recruiter", links: firms }); assert.equal(r.data.links[1].shown_as, "LinkedIn");
+  const noName = await mk(() => ({ status: 200, body: { posting_id: uuid, changed: true, active_links: 1, links: [{ position: 1, kind: "recruiter", firm: null, label: null }] } })).api.setRecruiterFirms(uuid, firms);
+  assert.equal(noName.ok, false); assert.equal(noName.error.code, "bad_response");
+  const off = await mk(() => ({ status: 409, body: { error: "Recruiter firms can be named only while the posting says a third-party recruiter is involved.", code: "recruiter_off" } })).api.setRecruiterFirms(uuid, firms);
+  assert.equal(off.ok, false); assert.equal(off.status, 409); assert.equal(off.error.code, "recruiter_off");
+  const thirteen = Array.from({ length: 10 }, (_, i) => ({ position: i + 1, kind: "apply", firm: null, label: null })).concat([1, 2, 3].map((p) => ({ position: p, kind: "recruiter", firm: "F" + p, label: null })));
+  assert.equal((await mk(() => ({ status: 200, body: { posting: searchRow, links: thirteen } })).api.candidateDetail(ref)).ok, true);
+  assert.equal((await mk(() => ({ status: 200, body: { posting: searchRow, links: thirteen.concat([{ position: 4, kind: "recruiter", firm: "F4", label: null }]) } })).api.candidateDetail(ref)).ok, false);
+  assert.equal((await mk(() => ({ status: 200, body: { expires_at: "t", links: [{ position: 1, kind: "recruiter", label: "LinkedIn", go_url: "https://x.supabase.co/functions/v1/go/1.abc" }] } })).api.candidateLinkIssue(ref)).ok, true);
 });

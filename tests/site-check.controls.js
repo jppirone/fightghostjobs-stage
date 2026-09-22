@@ -79,7 +79,7 @@ control("the register form loses the requirements-text hint wording", "S19", edi
 control("the edit page loses the requirements-text hint wording", "S19", edit("edit.html", (s) => s.replace("we'll ask you to register it as a new posting with its own req number", "we'll ask you")));
 control("the edit page's note label is changed", "S19", edit("edit.html", (s) => s.replace("(required; kept with the posting).", "(optional).")));
 control("the edit page loses its destination-links form", "S20", edit("edit.html", (s) => s.replace('id="linksForm"', 'id="linksFormX"')));
-control("the locked section no longer points to sales", "S20", edit("edit.html", (s) => s.replace("Write to sales@fightghostjobs.com →", "Ask around")));
+control("the locked section no longer points to sales", "S20", edit("edit.html", (s) => s.split("Write to sales@fightghostjobs.com →").join("Ask around")));
 control("the edit page no longer saves links through the API", "S20", edit("js/pages/edit.js", (s) => s.replace("api.setDestinationLinks(", "api.somethingElse(")));
 control("the edit page reads an address back from a stored link", "S20", append("js/pages/edit.js", "const leak = (doc) => doc.destination_links.map((x) => x.url);"));
 control("the register form's go-live disclosure is reworded", "S21", edit("register.html", (s) => s.replace("Your posting goes live within 15 minutes after that time", "Your posting goes live at that time")));
@@ -96,7 +96,7 @@ control("the candidate email box loses the privacy one-liner", "S22", edit("sear
 control("the landing page promises a cross-posting count again", "S23", append("index.html", "<div>Posted in 2 places</div>"));
 control("the register page promises ATS import again", "S23", append("register.html", "<li>Bulk import from your ATS</li>"));
 control("the sample card stops saying it is fictional", "S23", edit("index.html", (s) => s.replace("(a fictional employer)", "")));
-control("'Upgrade to add' outside the links panel (the recruiter panel)", "S23", edit("register.html", (s) => s.replace("Naming the recruiter firm: coming soon.", "Upgrade to add the recruiter firm.")));
+control("'Upgrade to add' outside the links panel (the recruiter-firms panel)", "S23", edit("register.html", (s) => s.replace("Naming the firm is part of the verified plan.", "Upgrade to add the recruiter firm.")));
 control("'Upgrade to add' on another page", "S23", append("edit.html", "<p>Upgrade to add named recruiter firms</p>"));
 control("the edit page loses the filtering tooltip", "S25", edit("edit.html", (s) => s.replace('AI used for initial filtering<span class="info-icon" tabindex="0">i<span class="info-tooltip">Resume screening', 'AI used for initial filtering<span class="info-icon" tabindex="0">i<span class="info-tooltip">Automated rejection')));
 control("the register page's interviewing tooltip is reworded", "S25", edit("register.html", (s) => s.replace("Any AI that interacts with a candidate directly", "Any AI at all")));
@@ -111,6 +111,10 @@ control("the details dialog loses the links note", "S26", edit("search.html", (s
 control("the links note stops saying what to do when a link is wrong", "S26", edit("search.html", (s) => s.replace("If a link does not lead to this job", "If you like this job")));
 control("search.js stops showing the links note", "S26", edit("js/pages/search.js", (s) => s.replace('$("#modalLinksNote").hidden = false;', "")));
 control("the edit page says the label is shown to candidates again", "S26", edit("edit.html", (s) => s.replace("The label is a note for you only", "The label is shown to candidates")));
+control("the register page loses its firm rows", "S27", edit("register.html", (s) => s.replace('id="firmRows"', 'id="firmRowsX"')));
+control("the edit page says coming soon again", "S27", edit("edit.html", (s) => s.replace("Up to 3 firms.", "Naming the recruiter firm: coming soon.")));
+control("edit.js stops saving the firms through the API", "S27", edit("js/pages/edit.js", (s) => s.replace("api.setRecruiterFirms(", "api.somethingElse(")));
+control("the search page stops naming the firm", "S27", edit("js/pages/search.js", (s) => s.replace('"Recruiter firm: " + link.firm', '"Firm: " + link.firm')));
 control("the team page loses its add form", "S24", edit("team.html", (s) => s.replace('id="addForm"', 'id="addFormX"')));
 control("the team page no longer removes through the API", "S24", edit("js/pages/team.js", (s) => s.replace("api.rosterRemove(", "api.somethingElse(")));
 control("the edit page has no change note input", "S19", edit("edit.html", (s) => s.replace('<input id="note" type="text" maxlength="500"', '<input id="notx" type="text" maxlength="500"')));

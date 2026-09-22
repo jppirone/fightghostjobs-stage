@@ -1,39 +1,45 @@
-// link-rows.js - the destination-link rows (Address | Label) that the register form and the edit page share. The rows are only inputs: what they hold is
-// checked by checkLinks (edit-form.js) and sent by the page. One row is shown by default; "Add another link" adds one, up to MAX_LINKS.
+// link-rows.js - the two-box rows the register form and the edit page share: destination links (Address | Label, up to 10) and, since pass C, recruiter firms (Name | Address, up to 3).
+// The rows are only inputs: what they hold is checked by checkLinks / checkFirms (edit-form.js) and sent by the page. One row is shown by default; the add button adds one, up to the cap.
 import { $, h, clear } from "./dom.js";
-import { MAX_LINKS, MAX_URL, MAX_LABEL } from "./edit-form.js";
+import { MAX_LINKS, MAX_URL, MAX_LABEL, MAX_FIRMS, MAX_FIRM_NAME } from "./edit-form.js";
 
-// host: the element the rows go in; addBtn: the "Add another link" button. -> { rows, add, reset, values, showErrors, focus, setLocked }
-export function mountLinkRows({ host, addBtn }) {
-  const rows = [];   // [{ u, l, ue, le }]: the address input, the label input, and the error line under each
-  function add(url, label) {
+const MODES = {
+  links: { max: MAX_LINKS, keys: ["url", "label"], a: (i) => ({ type: "text", inputmode: "url", maxlength: MAX_URL, autocomplete: "off", spellcheck: "false", "aria-label": "Destination address " + (i + 1), placeholder: "Address, starting with https://" }), b: (i) => ({ type: "text", maxlength: MAX_LABEL, autocomplete: "off", "aria-label": "Label for link " + (i + 1) + " (optional)", placeholder: "Label (optional, for you only)" }), grid: "minmax(0,3fr) minmax(0,2fr)" },
+  firms: { max: MAX_FIRMS, keys: ["name", "url"], a: (i) => ({ type: "text", maxlength: MAX_FIRM_NAME, autocomplete: "organization", "aria-label": "Recruiter firm " + (i + 1), placeholder: "Firm name" }), b: (i) => ({ type: "text", inputmode: "url", maxlength: MAX_URL, autocomplete: "off", spellcheck: "false", "aria-label": "Address of firm " + (i + 1) + " (optional)", placeholder: "Address (optional), starting with https://" }), grid: "minmax(0,2fr) minmax(0,3fr)" },
+};
+
+// host: the element the rows go in; addBtn: the add button; mode: "links" (default) | "firms". -> { rows, add, reset, values, showErrors, focus, setLocked }
+export function mountLinkRows({ host, addBtn, mode = "links" }) {
+  const M = MODES[mode] || MODES.links;
+  const rows = [];   // [{ a, b, ae, be }]: the two inputs and the error line under each
+  function add(first, second) {
     const i = rows.length;
-    const u = h("input", { type: "text", inputmode: "url", maxlength: MAX_URL, autocomplete: "off", spellcheck: "false", "aria-label": "Destination address " + (i + 1), placeholder: "Address, starting with https://" });
-    const l = h("input", { type: "text", maxlength: MAX_LABEL, autocomplete: "off", "aria-label": "Label for link " + (i + 1) + " (optional)", placeholder: "Label (optional)" });
-    const ue = h("div", { class: "field-error", hidden: true }), le = h("div", { class: "field-error", hidden: true });
-    u.value = url || ""; l.value = label || "";
-    host.append(h("div", { style: "display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:12px;" }, h("div", {}, u, ue), h("div", {}, l, le)));
-    rows.push({ u, l, ue, le });
-    addBtn.disabled = rows.length >= MAX_LINKS;
+    const a = h("input", M.a(i)), b = h("input", M.b(i));
+    const ae = h("div", { class: "field-error", hidden: true }), be = h("div", { class: "field-error", hidden: true });
+    a.value = first || ""; b.value = second || "";
+    host.append(h("div", { style: "display:grid;grid-template-columns:" + M.grid + ";gap:12px;" }, h("div", {}, a, ae), h("div", {}, b, be)));
+    rows.push({ a, b, ae, be });
+    addBtn.disabled = rows.length >= M.max;
   }
   function reset() { clear(host); rows.length = 0; add(); addBtn.disabled = false; }
-  const values = () => rows.map((r) => ({ url: r.u.value, label: r.l.value }));
+  const values = () => rows.map((r) => ({ [M.keys[0]]: r.a.value, [M.keys[1]]: r.b.value }));
   function showErrors(byRow) {
     rows.forEach((r, i) => {
       const e = (byRow && byRow[i]) || {};
-      for (const [inp, box, key] of [[r.u, r.ue, "url"], [r.l, r.le, "label"]]) { box.hidden = !e[key]; box.textContent = e[key] || ""; inp.setAttribute("aria-invalid", e[key] ? "true" : "false"); }
+      for (const [inp, box, key] of [[r.a, r.ae, M.keys[0]], [r.b, r.be, M.keys[1]]]) { box.hidden = !e[key]; box.textContent = e[key] || ""; inp.setAttribute("aria-invalid", e[key] ? "true" : "false"); }
     });
   }
-  // the first row that has an error gets the focus (its address box, or its label box when only the label is wrong)
+  // the first row that has an error gets the focus (its first box, or its second when only that one is wrong)
   function focus(errors) {
     const bad = Object.keys(errors || {})[0];
-    if (bad !== undefined && rows[bad]) (errors[bad].url ? rows[bad].u : rows[bad].l).focus(); else if (rows[0]) rows[0].u.focus();
+    if (bad !== undefined && rows[bad]) (errors[bad][M.keys[0]] ? rows[bad].a : rows[bad].b).focus(); else if (rows[0]) rows[0].a.focus();
   }
-  function setLocked(on) { for (const r of rows) { r.u.disabled = on; r.l.disabled = on; } addBtn.disabled = on || rows.length >= MAX_LINKS; }
-  addBtn.addEventListener("click", () => { if (rows.length < MAX_LINKS) { add(); rows[rows.length - 1].u.focus(); } });
+  function setLocked(on) { for (const r of rows) { r.a.disabled = on; r.b.disabled = on; } addBtn.disabled = on || rows.length >= M.max; }
+  addBtn.addEventListener("click", () => { if (rows.length < M.max) { add(); rows[rows.length - 1].a.focus(); } });
   add();
   return { rows, add, reset, values, showErrors, focus, setLocked };
 }
 
 // convenience for pages that only have the ids
 export const mountLinkRowsById = () => mountLinkRows({ host: $("#linkRows"), addBtn: $("#addLinkBtn") });
+export const mountFirmRowsById = () => mountLinkRows({ host: $("#firmRows"), addBtn: $("#addFirmBtn"), mode: "firms" });

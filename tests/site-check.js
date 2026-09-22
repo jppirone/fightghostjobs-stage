@@ -23,6 +23,7 @@
 //   S24 the Team page exists with its controls and calls the roster only through api.js
 //   S25 the AI-disclosure "i" tooltips are on the register AND edit pages (designed wording), positioned and tap-able; the destination-link rows are on both pages and register.js saves them
 //   S26 the candidate's details dialog explains the one-time links and what to do when one is wrong; the employer pages say the label is theirs only; api.js accepts the derived label + check
+//   S27 the recruiter-firm editor is on register AND edit (no "coming soon"), saved through api.setRecruiterFirms; the search page renders "Recruiter firm: <name>"
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
@@ -262,7 +263,19 @@ export function checkSite(root) {
     if (fs.existsSync(sh2)) { const t = read(sh2); if (!t.includes('id="modalLinksNote"')) add("S26", sh2, "search.html is missing #modalLinksNote"); for (const need of ["look unusual on purpose", "one-time link through FightGhostJobs", "protected from scraping", "wherever the employer told us to send you", "we could not verify it", "If a link does not lead to this job", "mailto:sales@fightghostjobs.com"]) if (!t.includes(need)) add("S26", sh2, "the links note must say: " + need); }
     const sj = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj) && !read(sj).includes('$("#modalLinksNote").hidden = false')) add("S26", sj, "search.js must show the links note when links are listed");
     for (const name of ["register.html", "edit.html"]) { const p = path.join(root, name); if (fs.existsSync(p)) { const t = read(p); if (!t.includes("The label is a note for you only")) add("S26", p, name + " must say the label is the employer's note only"); if (!t.includes("a link shortener or redirect is not accepted")) add("S26", p, name + " must say shorteners are refused"); } }
-    const aj = path.join(root, "js", "api.js"); if (fs.existsSync(aj) && !/linkExtras: \(x\) => \(x\.shown_as === undefined \|\| isStr\(x\.shown_as\)\)/.test(read(aj))) add("S26", aj, "api.js must accept shown_as on a stored link");
+    const aj = path.join(root, "js", "api.js"); if (fs.existsSync(aj) && !/linkExtras: \(x\) => \(x\.shown_as === undefined \|\| isNullable\(x\.shown_as, isStr\)\)/.test(read(aj))) add("S26", aj, "api.js must accept shown_as on a stored link");
+  }
+  // S27 (pass C): the recruiter-firm editor exists on BOTH register.html and edit.html (rows, add button, the locked text), the "coming soon" placeholder is gone, both page scripts mount the
+  // shared firm rows and save through api.setRecruiterFirms, and the candidate's search page renders a named firm as "Recruiter firm: …".
+  {
+    for (const name of ["register.html", "edit.html"]) {
+      const p = path.join(root, name); if (!fs.existsSync(p)) continue; const t = read(p);
+      for (const id of ["firmRows", "addFirmBtn", "firmsLocked", "firmsForm", "firmsAlert"]) if (!t.includes('id="' + id + '"')) add("S27", p, name + " is missing #" + id);
+      if (/coming soon/i.test(t)) add("S27", p, "the recruiter-firm placeholder must be gone (the editor exists)");
+      if (!t.includes('Candidates see the name as "Recruiter firm:')) add("S27", p, name + " must say how a firm is shown to candidates");
+    }
+    for (const rel of ["js/pages/register.js", "js/pages/edit.js"]) { const p = path.join(root, rel); if (!fs.existsSync(p)) continue; const c = read(p); if (!c.includes("mountFirmRowsById()")) add("S27", p, rel + " must mount the shared firm rows"); if (!c.includes("api.setRecruiterFirms(")) add("S27", p, rel + " must save the firms through api.setRecruiterFirms"); }
+    const sj = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj) && !read(sj).includes('"Recruiter firm: " + link.firm')) add("S27", sj, "search.js must render a named firm as Recruiter firm: <name>");
   }
   if (fs.existsSync(path.join(root, "index.html")) && !/fictional employer/i.test(read(path.join(root, "index.html")))) add("S23", path.join(root, "index.html"), "the sample card must say it is a fictional employer");
   // S24: the Team page (roster) exists with its controls and talks to the roster functions only through api.js

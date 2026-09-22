@@ -164,15 +164,18 @@ async function openDetails(row, button) {
 }
 
 // One destination. Clicking asks the server for a fresh single-use link (valid 2 minutes) for THIS candidate and opens it in a new tab.
+// A named recruiter firm (pass C) reads "Recruiter firm: <name>"; when the employer gave no link for it there is nothing to click.
+const rowText = (link) => link.kind === "recruiter" ? "Recruiter firm: " + link.firm + (link.label ? " · " + link.label : "") : (link.label || "Application link " + link.position);
 function linkRow(row, link) {
+  if (link.kind === "recruiter" && link.label === null) return h("div", { class: "source-row", style: "cursor:default;" }, h("span", { class: "source-row-label" }, rowText(link)), h("span", { class: "go", style: "color:var(--faint);" }, "No link given"));
   const go_ = h("span", { class: "go" }, "Continue →");
-  const el = h("button", { type: "button", class: "source-row" }, h("span", { class: "source-row-label" }, link.label || "Application link " + link.position), go_);
+  const el = h("button", { type: "button", class: "source-row" }, h("span", { class: "source-row-label" }, rowText(link)), go_);
   el.addEventListener("click", async () => {
     if (el.disabled) return;
     el.disabled = true; go_.textContent = "Redirecting…";
     try {
       const r = await api.candidateLinkIssue(row.posting_ref);
-      const found = r.ok ? r.data.links.find((x) => x.position === link.position) : null;
+      const found = r.ok ? r.data.links.find((x) => x.position === link.position && (x.kind || "apply") === (link.kind || "apply")) : null;
       if (!found) {
         go_.textContent = r.ok ? "Unavailable" : r.error.code === "rate_limited" ? "Try again in " + waitText(r.error.retryAfter || 30) : r.status === 409 ? "Not open" : "Try again";
         return;
@@ -181,7 +184,7 @@ function linkRow(row, link) {
       const w = url ? window.open(url, "_blank", "noopener,noreferrer") : null;
       if (w === null && url) {
         // the browser held back the new tab: give a real link the person can click themselves (it stays valid for 2 minutes)
-        el.replaceWith(h("a", { class: "source-row", href: url, target: "_blank", rel: "noopener noreferrer", style: "text-decoration:none;" }, h("span", { class: "source-row-label" }, link.label || "Application link " + link.position), h("span", { class: "go" }, "Open link →")));
+        el.replaceWith(h("a", { class: "source-row", href: url, target: "_blank", rel: "noopener noreferrer", style: "text-decoration:none;" }, h("span", { class: "source-row-label" }, rowText(link)), h("span", { class: "go" }, "Open link →")));
         return;
       }
       go_.textContent = "Opened ✓";
