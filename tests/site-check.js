@@ -221,7 +221,7 @@ export function checkSite(root) {
     if (!fs.existsSync(ph)) add("S22", ph, "privacy.html is missing");
     else {
       const t = read(ph);
-      for (const need of ["If you look up postings", "If you register postings", "Cookies", "Who processes the data", "How long", "<code>__cf_bm</code>", "We set no cookies of our own", "privacy@fightghostjobs.com", "for as long as the registry exists"]) if (!t.includes(need)) add("S22", ph, "privacy.html must say: " + need);
+      for (const need of ["If you look up postings", "If you register postings", "Cookies", "Who processes the data", "How long", "<code>__cf_bm</code>", "We set no cookies of our own", "privacy@fightghostjobs.com", "for as long as the registry exists", 'id="privacyEmails"', "five days and one day from closing", "at most once every six hours", "never its description, a comment's text or an apply link", "no unsubscribe for these operational messages yet"]) if (!t.includes(need)) add("S22", ph, "privacy.html must say: " + need);
     }
     for (const f of html) { const t = read(f); if (!/<a href="privacy\.html">Privacy<\/a>/.test(t)) add("S22", f, "every page must link to privacy.html from its footer"); if (!t.includes('href="mailto:privacy@fightghostjobs.com"')) add("S22", f, "every page must carry the privacy contact"); }
     if (fs.existsSync(sh) && !/never shown to anyone\. <a href="privacy\.html">Privacy<\/a>\./.test(read(sh))) add("S22", sh, "the candidate email box must end with the privacy one-liner and link");

@@ -89,6 +89,8 @@ control("the register form loses its 'on a date and time' choice", "S21", edit("
 control("the register page no longer schedules through the API", "S21", edit("js/pages/register.js", (s) => s.replace("api.schedulePosting(", "api.somethingElse(")));
 control("the edit page no longer schedules through the API", "S21", edit("js/pages/edit.js", (s) => s.replace("api.schedulePosting(", "api.somethingElse(")));
 control("privacy.html loses the cookie sentence", "S22", edit("privacy.html", (s) => s.replace("We set no cookies of our own", "We set cookies")));
+control("privacy.html loses the email paragraph", "S22", edit("privacy.html", (s) => s.replace('id="privacyEmails"', 'id="privacyEmailsX"')));
+control("privacy.html stops saying what an email never carries", "S22", edit("privacy.html", (s) => s.replace("never its description, a comment's text or an apply link", "never much")));
 control("a page loses its privacy footer link", "S22", edit("dashboard.html", (s) => s.replace('<a href="privacy.html">Privacy</a>', '<a href="index.html">Privacy</a>')));
 control("the candidate email box loses the privacy one-liner", "S22", edit("search.html", (s) => s.replace('never shown to anyone. <a href="privacy.html">Privacy</a>.', "never shown to anyone.")));
 control("the landing page promises a cross-posting count again", "S23", append("index.html", "<div>Posted in 2 places</div>"));
