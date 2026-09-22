@@ -6,7 +6,7 @@ import { postingChips, aiFilteringChip, aiInterviewChip, statusChips, notOpenMes
 import { classifyQuery, checkCompany, normalizeCode, noMatchMessage, NO_MATCH_NOTE } from "../js/search-input.js";
 import { checkReq, resolveSearch, noMatchMessage as noMatchMsg, NO_MATCH_NOTE_REQ } from "../js/search-input.js";
 import { isDuplicateReq } from "../js/register-form.js";
-import { validateForm, buildCreateBody, mapServerErrors, MIN_WINDOW_DAYS, MAX_WINDOW_DAYS } from "../js/register-form.js";
+import { validateForm, buildCreateBody, mapServerErrors, MIN_WINDOW_DAYS, MAX_WINDOW_DAYS, collectLinks, linksOutcome } from "../js/register-form.js";
 
 test("dates read like the design (Sep 2), in UTC when asked", () => {
   assert.equal(fmtDate("2026-09-02T12:00:00Z", "UTC"), "Sep 2");
@@ -221,4 +221,28 @@ test("reused req number: once the person is asked, a one-line explanation is req
   assert.equal(isDuplicateReq({ code: "duplicate_req", field: "duplicate_explanation" }), true);
   for (const other of [{ code: "invalid_request" }, { code: "rate_limited" }, null, undefined]) assert.equal(isDuplicateReq(other), false);
   assert.equal(mapServerErrors({ field: "duplicate_explanation", message: "too long" }).byField.dupnote, "too long");
+});
+
+test("register form: the destination-link rows are optional; once used, the edit page's rules apply and blank rows are ignored", () => {
+  const none = collectLinks([{ url: "", label: "" }, { url: "  ", label: "" }]);
+  assert.deepEqual(none, { used: false, ok: true, links: [], rowOf: [], errors: {} });
+  assert.equal(collectLinks([]).used, false); assert.equal(collectLinks(undefined).used, false);
+  const one = collectLinks([{ url: "https://acme.example/apply", label: "Careers site" }, { url: "", label: "" }]);
+  assert.equal(one.used, true); assert.equal(one.ok, true); assert.deepEqual(one.links, [{ url: "https://acme.example/apply", label: "Careers site" }]); assert.deepEqual(one.rowOf, [0]);
+  const bad = collectLinks([{ url: "http://acme.example/apply", label: "" }]);
+  assert.equal(bad.used, true); assert.equal(bad.ok, false); assert.match(bad.errors[0].url, /https:\/\//);
+  const labelOnly = collectLinks([{ url: "", label: "Careers" }]);                       // a label without an address is a mistake, not "no links"
+  assert.equal(labelOnly.used, true); assert.equal(labelOnly.ok, false); assert.match(labelOnly.errors[0].url, /Enter the address/);
+  const eleven = collectLinks(Array.from({ length: 11 }, (_, i) => ({ url: "https://acme.example/" + i, label: "" })));
+  assert.equal(eleven.ok, false); assert.match(eleven.form, /Up to 10/);
+});
+
+test("register form: what the result says about the links", () => {
+  assert.equal(linksOutcome(null, null), null); assert.equal(linksOutcome(undefined, null), null);
+  assert.deepEqual(linksOutcome(1, null), { kind: "ok", text: "1 destination link is stored with it." });
+  assert.equal(linksOutcome(3, null).text, "3 destination links are stored with it.");
+  const rowProblem = linksOutcome(null, { rows: { 0: { url: "url host is not allowed" } }, general: null, planRequired: false });
+  assert.equal(rowProblem.kind, "error"); assert.match(rowProblem.text, /see the messages under the addresses/); assert.match(rowProblem.text, /My postings \(Edit\)/);
+  const plan = linksOutcome(null, { rows: {}, general: "Destination links are part of the verified plan.", planRequired: true });
+  assert.match(plan.text, /^Destination links are part of the verified plan\. The posting itself is saved\. You can add links/);
 });

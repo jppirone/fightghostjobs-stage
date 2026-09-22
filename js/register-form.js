@@ -5,6 +5,23 @@
 
 import { problems as locationProblems } from "./location-rules.js";
 import { checkGoLive } from "./schedule-form.js";
+import { checkLinks } from "./edit-form.js";
+
+// The destination-link rows on the register form are OPTIONAL: rows left blank mean "no links" and nothing is sent. Once any row holds something,
+// the same rules as the edit page apply (checkLinks). -> { used, ok, links, rowOf, errors, form? }
+export function collectLinks(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  const used = list.some((r) => String(r && r.url != null ? r.url : "").trim() !== "" || String(r && r.label != null ? r.label : "").trim() !== "");
+  if (!used) return { used: false, ok: true, links: [], rowOf: [], errors: {} };
+  return Object.assign({ used: true }, checkLinks(list));
+}
+
+// What the result panel says about the links once the posting itself exists. saved: how many are stored (null when none were sent); problem: the mapped refusal (mapLinksErrors), or null
+export function linksOutcome(saved, problem) {
+  if (problem) return { kind: "error", text: (problem.general || "The destination links were not accepted.") + " The posting itself is saved" + (problem.planRequired ? "" : "; see the messages under the addresses") + ". You can add links from My postings (Edit)." };
+  if (saved === null || saved === undefined) return null;
+  return { kind: "ok", text: saved === 1 ? "1 destination link is stored with it." : saved + " destination links are stored with it." };
+}
 
 export const MAX_APPLICANT_CAP = 2147483647;
 export const MIN_WINDOW_DAYS = 14, MAX_WINDOW_DAYS = 45;      // the standard-tier window range: create-posting refuses anything else and so does the database (postings_window_days_check)

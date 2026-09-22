@@ -21,6 +21,7 @@
 //   S22 privacy.html with the approved sections; every page links to it (footer) and carries the privacy contact; both email boxes link to it
 //   S23 no page promises what is not built (cross-posting count, ATS import, company-wide view, "1 in 5", "Upgrade to add"); the sample card says it is fictional
 //   S24 the Team page exists with its controls and calls the roster only through api.js
+//   S25 the AI-disclosure "i" tooltips are on the register AND edit pages (designed wording), positioned and tap-able; the destination-link rows are on both pages and register.js saves them
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
@@ -228,10 +229,30 @@ export function checkSite(root) {
     const si = path.join(root, "employer-signin.html");
     if (fs.existsSync(si) && !/keep nothing else from this form\. <a href="privacy\.html">Privacy<\/a>\./.test(read(si))) add("S22", si, "the employer email box must carry the privacy one-liner and link");
   }
-  // S23: no page promises what is not built (launch readiness): no cross-posting count, no ATS import claim, no company-wide view, no unsourced statistic, no "upgrade to add" for the recruiter name
+  // S23: no page promises what is not built (launch readiness): no cross-posting count, no ATS import claim, no company-wide view, no unsourced statistic, no "upgrade to add" for the recruiter name.
+  // The ONE place "Upgrade to add" is allowed: the locked destination-links panel on register.html (that editor genuinely exists for the verified plan), between id="linksLocked" and <!-- /linksLocked -->.
   for (const f of html) {
-    const t = read(f);
-    for (const [re, why] of [[/places posted|posted in \d+ places|other places it'?s posted/i, "the cross-posting count does not exist"], [/bulk import|from your ATS/i, "there is no import page"], [/company-wide/i, "there is no company-wide view"], [/1 in 5/, "an unsourced statistic"], [/Upgrade to add/i, "the recruiter-name editor does not exist on any tier"]]) if (re.test(t)) add("S23", f, why + ": " + re.source);
+    let t = read(f);
+    if (path.basename(f) === "register.html") t = t.replace(/<div id="linksLocked"[\s\S]*?<!-- \/linksLocked -->/, "");
+    for (const [re, why] of [[/places posted|posted in \d+ places|other places it'?s posted/i, "the cross-posting count does not exist"], [/bulk import|from your ATS/i, "there is no import page"], [/company-wide/i, "there is no company-wide view"], [/1 in 5/, "an unsourced statistic"], [/Upgrade to add/i, "the recruiter-name editor does not exist on any tier (only the register page's locked links panel may say it)"]]) if (re.test(t)) add("S23", f, why + ": " + re.source);
+  }
+  // S25: the AI-disclosure tooltips and the destination-link rows (pass A). Both toggles on register.html AND edit.html carry the designed "i" tooltip, word for word; the stylesheet positions the
+  // icon (position:relative, or the tooltip lands off the page) and shows the tooltip on hover, focus AND the tap/click state; the pages with icons wire the click handler; register.html has the
+  // links section (locked panel, rows, add button) and register.js saves them through api.setDestinationLinks after the posting is created; both pages use the shared row component.
+  {
+    const TIP1 = "Resume screening or keyword/ATS-style matching used to prioritize applications before a human reviews them.", TIP2 = "Any AI that interacts with a candidate directly — an AI-conducted interview, a chatbot screening call, or similar.";
+    for (const name of ["register.html", "edit.html"]) {
+      const p = path.join(root, name); if (!fs.existsSync(p)) { add("S25", p, name + " is missing"); continue; }
+      const t = read(p);
+      for (const [tip, what] of [[TIP1, "filtering"], [TIP2, "interviewing"]]) if (!t.includes('<span class="info-icon" tabindex="0">i<span class="info-tooltip">' + tip + "</span></span>")) add("S25", p, "the " + what + " toggle must carry the designed tooltip");
+      for (const id of ["linkRows", "addLinkBtn", "linksForm", "linksLocked", "linksAlert"]) if (!t.includes('id="' + id + '"')) add("S25", p, name + " is missing #" + id);
+    }
+    const css = path.join(root, "styles.css"), c = fs.existsSync(css) ? read(css) : "";
+    if (!/\.info-icon\{position:relative;/.test(c)) add("S25", css, ".info-icon must be position:relative (the tooltip is positioned against it)");
+    if (!/\.info-icon:hover \.info-tooltip,\.info-icon:focus \.info-tooltip,\.info-icon\.open \.info-tooltip\{display:block\}/.test(c)) add("S25", css, "the tooltip must show on hover, focus and the open (tap) state");
+    for (const rel of ["js/pages/register.js", "js/pages/edit.js", "js/pages/index.js"]) { const p = path.join(root, rel); if (!fs.existsSync(p) || !read(p).includes("wireInfoIcons()")) add("S25", p, rel + " must call wireInfoIcons()"); }
+    for (const rel of ["js/pages/register.js", "js/pages/edit.js"]) { const p = path.join(root, rel); if (!fs.existsSync(p) || !read(p).includes("mountLinkRowsById()")) add("S25", p, rel + " must mount the shared link rows"); }
+    const rj = path.join(root, "js", "pages", "register.js"); if (fs.existsSync(rj) && !read(rj).includes("api.setDestinationLinks(")) add("S25", rj, "register.js must save the links through api.setDestinationLinks");
   }
   if (fs.existsSync(path.join(root, "index.html")) && !/fictional employer/i.test(read(path.join(root, "index.html")))) add("S23", path.join(root, "index.html"), "the sample card must say it is a fictional employer");
   // S24: the Team page (roster) exists with its controls and talks to the roster functions only through api.js

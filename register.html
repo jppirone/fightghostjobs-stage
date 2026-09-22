@@ -134,6 +134,25 @@
       </div>
 
       <div style="height:1px;background:var(--line);"></div>
+      <div id="linksSection" style="display:flex;flex-direction:column;gap:14px;">
+        <div style="font-size:14px;font-weight:700;">Destination links</div>
+        <div id="linksLocked" hidden>
+          <p style="font-size:14px;line-height:1.6;margin:0;">Destination links let a candidate who chooses to apply be sent from the posting to your own application page. They are part of the verified plan.</p>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:10px;background:var(--panel);border:1px dashed #C9C1B4;border-radius:10px;padding:14px 18px;">
+            <span style="color:var(--faint);">🔒</span>
+            <span style="font-size:13px;color:var(--muted);">Upgrade to add destination links. <a href="mailto:sales@fightghostjobs.com?subject=Verified%20tier" style="font-weight:600;">Write to sales@fightghostjobs.com →</a></span>
+          </div>
+        </div><!-- /linksLocked -->
+        <div id="linksPlan" hidden></div>
+        <div id="linksForm" hidden style="display:flex;flex-direction:column;gap:12px;">
+          <div class="field-hint" style="margin-top:0;">Optional. Candidates never see these addresses. When a candidate chooses to apply, they are sent through a one-time link to the address you enter here (position 1 first). For safety the addresses are not shown back to you afterwards; from My postings (Edit) you can replace the set at any time. Up to 10; the label is optional (a candidate sees "Application link 2" when there is none).</div>
+          <div id="linkRows" style="display:flex;flex-direction:column;gap:12px;"></div>
+          <div><button type="button" id="addLinkBtn" class="btn btn-outline btn-sm">Add another link</button></div>
+          <div id="linksAlert" hidden></div>
+        </div>
+      </div>
+
+      <div style="height:1px;background:var(--line);"></div>
       <div id="formAlert" hidden></div>
       <div style="display:flex;gap:12px;">
         <button type="submit" id="registerBtn" class="btn btn-dark" style="flex:1;justify-content:center;">Register posting</button>

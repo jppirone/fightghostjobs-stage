@@ -6,10 +6,15 @@ import { rememberNext } from "../session.js";
 import { $, $$, h, clear, alertBox } from "../dom.js";
 import { fmtClose, groupCode, waitText } from "../format.js";
 import { checkGoLive, mapScheduleError } from "../schedule-form.js";
-import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq } from "../register-form.js";
+import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome } from "../register-form.js";
+import { mapLinksErrors, planNotice } from "../edit-form.js";
+import { mountLinkRowsById } from "../link-rows.js";
 import { mountLocationPicker } from "../location-picker.js";
+import { wireInfoIcons } from "../info-icon.js";
 
-const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false, dupAsked: false, goLiveIso: null };
+wireInfoIcons();
+// links: the destination-link rows, mounted only when the organization's plan allows links (null otherwise); linksSaved / linksProblem: what happened to them after the posting was created
+const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false, dupAsked: false, goLiveIso: null, links: null, linksSaved: null, linksProblem: null };
 const form = $("#form"), result = $("#result"), pageAlert = $("#pageAlert"), formAlert = $("#formAlert");
 const registerBtn = $("#registerBtn"), draftBtn = $("#draftBtn");
 const picker = mountLocationPicker({ isRemote: () => $("#remote").checked });
@@ -66,6 +71,10 @@ async function submit(mode) {
   const problems = validateForm(values);
   showErrors(problems);
   if (Object.keys(problems).length) { const first = Object.keys(problems)[0]; if (first === "locpicker" || first === "attest") picker.focusFor(first); else $("#" + first).focus(); return; }
+  // the link rows are checked BEFORE anything is created, so a mistyped address never leaves a posting half done
+  const lc = state.links ? collectLinks(state.links.values()) : { used: false, ok: true, links: [], rowOf: [], errors: {} };
+  if (state.links) { state.links.showErrors(lc.errors); say($("#linksAlert"), "error", lc.ok ? "" : lc.form || "Nothing was saved. See the message under the address."); }
+  if (!lc.ok) { state.links.focus(lc.errors); return; }
   setBusy(true);
   try {
     // 1. create (a draft)
@@ -80,13 +89,40 @@ async function submit(mode) {
     }
     state.saved = created.data;
     lockForm();
+    // 2. the destination links, if any were entered: the posting exists now, so a refusal here is reported with the result, never as a failed registration
+    if (lc.used && await saveLinks(lc) === "gone") return;
     if (mode === "draft") { showResult(created.data, "draft"); return; }
-    // 2. publish now, or schedule the go-live for the time chosen
+    // 3. publish now, or schedule the go-live for the time chosen
     if (goLater()) { state.goLiveIso = checkGoLive(val("#gldate"), Date.now()).iso || null; await schedule(); } else await publish();
   } finally {
     setBusy(false);
   }
 }
+
+// -> "saved" | "refused" | "gone" (the session ended: the posting is saved on the server, the person is sent to sign in)
+async function saveLinks(lc) {
+  const r = await api.setDestinationLinks(state.saved.id, lc.links);
+  if (r.ok) { state.linksSaved = r.data.active_links; state.linksProblem = null; return "saved"; }
+  if (isAuthFailure(r.error)) { await sessionEnded(); return "gone"; }
+  state.linksProblem = mapLinksErrors(r.error, lc.rowOf);
+  if (!state.linksProblem.general && !Object.keys(state.linksProblem.rows).length) state.linksProblem.general = failureText(r.error);
+  state.links.showErrors(state.linksProblem.rows);
+  say($("#linksAlert"), "error", state.linksProblem.general || "The links were not accepted. See the message under the address.");
+  return "refused";
+}
+
+// The link rows follow the organization's plan (poster-session): verified -> the rows; lapsed -> the paused notice; never verified -> the locked panel; plan unknown -> nothing is promised.
+function setupLinks(plan) {
+  const notice = planNotice(plan, Date.now());
+  $("#linksSection").hidden = notice.state === "unknown";
+  $("#linksLocked").hidden = notice.state !== "locked";
+  $("#linksForm").hidden = notice.state !== "active";
+  const box = $("#linksPlan"); clear(box); box.hidden = true;
+  if (notice.state === "lapsed") { box.hidden = false; box.append(alertBox("notice", "Your verified plan ended" + (notice.endsAt ? " on " + planDay(notice.endsAt) : "") + ". Destination links are paused until it is renewed; the posting can still be registered without them. To renew, write to sales@fightghostjobs.com.")); }
+  else if (notice.state === "active" && notice.endsSoon) { box.hidden = false; box.append(alertBox("notice", "Your verified plan ends on " + planDay(notice.endsAt) + ". After that, destination links are paused (kept, but candidates do not see them) until it is renewed.")); }
+  if (notice.state === "active") state.links = mountLinkRowsById();
+}
+const planDay = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
 async function publish() {
   const r = await api.publishPosting(state.saved.id);
@@ -110,8 +146,8 @@ async function schedule() {
   showResult(state.saved, "scheduled", null, r.data.go_live_at);
 }
 
-function lockForm() { for (const el of $$("input, textarea", form)) el.disabled = true; picker.setLocked(true); registerBtn.hidden = true; draftBtn.hidden = true; }
-function unlockForm() { for (const el of $$("input, textarea", form)) el.disabled = false; picker.setLocked(false); registerBtn.hidden = false; draftBtn.hidden = false; }
+function lockForm() { for (const el of $$("input, textarea", form)) el.disabled = true; picker.setLocked(true); if (state.links) state.links.setLocked(true); registerBtn.hidden = true; draftBtn.hidden = true; }
+function unlockForm() { for (const el of $$("input, textarea", form)) el.disabled = false; picker.setLocked(false); if (state.links) state.links.setLocked(false); registerBtn.hidden = false; draftBtn.hidden = false; }
 
 function showResult(p, kind, problem, goLiveAt) {
   result.hidden = false; clear(result);
@@ -128,8 +164,11 @@ function showResult(p, kind, problem, goLiveAt) {
   const rows = [["Title", p.title], ["Status", kind === "scheduled" ? "Scheduled" : p.status]];
   if (kind === "scheduled") rows.push(["Goes live", fmtClose(goLiveAt) + " (within 15 minutes after that time)"]);
   if (kind === "live" || kind === "other") rows.push(["Closes", fmtClose(p.expiration_date)]);
+  if (typeof state.linksSaved === "number") rows.push(["Destination links", String(state.linksSaved)]);
   result.append(h("dl", { style: "margin:18px 0 0 0;display:grid;grid-template-columns:auto 1fr;gap:8px 18px;font-size:14px;" },
     rows.flatMap(([k, v]) => [h("dt", { style: "color:var(--faint);font-weight:600;" }, k), h("dd", { style: "margin:0;" }, v)])));
+  const lo = linksOutcome(state.linksSaved, state.linksProblem);
+  if (lo) result.append(h("div", { style: "margin-top:12px;" }, alertBox(lo.kind, lo.text)));
   result.append(h("div", { style: "margin-top:20px;" },
     h("div", { style: "font-size:13px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;" }, "Your postID"),
     h("span", { class: "code-box", id: "postId" }, groupCode(p.public_code)),
@@ -152,6 +191,7 @@ function registerAnother() {
   $("#remote").checked = false;
   for (const [id, key] of [["#aiFilterToggle", "aiFilter"], ["#aiInterviewToggle", "aiInterview"], ["#recruiterToggle", "recruiter"]]) { state[key] = false; $(id).classList.remove("on"); $(id).setAttribute("aria-checked", "false"); }
   $("#recruiterPanel").style.display = "none";
+  state.linksSaved = null; state.linksProblem = null; if (state.links) { state.links.reset(); say($("#linksAlert"), "error", ""); }
   dropReusedPrompt(); say(formAlert, "error", "");
   unlockForm(); $("#jtitle").focus();
 }
@@ -166,4 +206,5 @@ draftBtn.addEventListener("click", () => submit("draft"));
   if (!ctx.info) { say(pageAlert, "error", describeError(ctx.error) + " Reload the page to try again."); setBusy(true); return; }
   $("#orgName").textContent = ctx.info.organization.name;
   $("#company").value = ctx.info.organization.name;
+  setupLinks(ctx.info.plan);
 })();

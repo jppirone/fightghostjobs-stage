@@ -6,10 +6,14 @@ import { rememberNext } from "../session.js";
 import { $, $$, h, clear, alertBox } from "../dom.js";
 import { fmtClose, fmtStamp, waitText } from "../format.js";
 import { statusChip } from "../dashboard-model.js";
-import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, mapLinksErrors, planNotice, MAX_LINKS, MAX_URL, MAX_LABEL } from "../edit-form.js";
+import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, mapLinksErrors, planNotice } from "../edit-form.js";
 import { mountLocationPicker } from "../location-picker.js";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js";
 import { loadCatalog } from "../location-catalog.js";
+import { mountLinkRowsById } from "../link-rows.js";
+import { wireInfoIcons } from "../info-icon.js";
+
+wireInfoIcons();
 
 const postingId = new URLSearchParams(location.search).get("id") || "";
 const state = { orig: null, aiFilter: null, aiInterview: null, recruiter: false, exclusive: false, plan: null, busy: false, needNote: false, linksBusy: false, linkRowOf: [] };
@@ -102,24 +106,8 @@ $("#unscheduleBtn").addEventListener("click", () => submitSchedule(true));
 
 // ---- destination links: shown only for a posting that can be edited; a verified plan gets the form, a lapsed one a notice, anyone else the sales note
 const planDay = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-const linkRows = [];   // the row inputs: [{ u, l, ue, le }]
-function addLinkRow(url, label) {
-  const i = linkRows.length, host = $("#linkRows");
-  const u = h("input", { type: "text", inputmode: "url", maxlength: MAX_URL, autocomplete: "off", spellcheck: "false", "aria-label": "Destination address " + (i + 1), placeholder: "Address, starting with https://" });
-  const l = h("input", { type: "text", maxlength: MAX_LABEL, autocomplete: "off", "aria-label": "Label for link " + (i + 1) + " (optional)", placeholder: "Label (optional)" });
-  const ue = h("div", { class: "field-error", hidden: true }), le = h("div", { class: "field-error", hidden: true });
-  u.value = url || ""; l.value = label || "";
-  host.append(h("div", { style: "display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:12px;" }, h("div", {}, u, ue), h("div", {}, l, le)));
-  linkRows.push({ u, l, ue, le });
-  $("#addLinkBtn").disabled = linkRows.length >= MAX_LINKS;
-}
-function resetLinkRows() { clear($("#linkRows")); linkRows.length = 0; addLinkRow(); $("#addLinkBtn").disabled = false; }
-function showLinkErrors(byRow) {
-  linkRows.forEach((r, i) => {
-    const e = byRow[i] || {};
-    for (const [inp, box, key] of [[r.u, r.ue, "url"], [r.l, r.le, "label"]]) { box.hidden = !e[key]; box.textContent = e[key] || ""; inp.setAttribute("aria-invalid", e[key] ? "true" : "false"); }
-  });
-}
+const links = mountLinkRowsById();   // the shared Address | Label rows (link-rows.js); the register form uses the same component
+const resetLinkRows = links.reset, showLinkErrors = links.showErrors;
 function renderLinks(doc, editable) {
   const card = $("#linksCard"); card.hidden = !editable; if (!editable) return;
   const notice = planNotice(doc.plan, Date.now()), plan = $("#linksPlan"); clear(plan); plan.hidden = true;
@@ -218,11 +206,11 @@ async function submit() {
 async function submitLinks(clearAll) {
   if (state.linksBusy || !state.orig) return;
   const box = $("#linksAlert"); say(box, "error", "");
-  const check = clearAll ? { ok: true, links: [], rowOf: [], errors: {} } : checkLinks(linkRows.map((r) => ({ url: r.u.value, label: r.l.value })));
+  const check = clearAll ? { ok: true, links: [], rowOf: [], errors: {} } : checkLinks(links.values());
   showLinkErrors(check.errors);
   if (!check.ok) {
     if (check.form) say(box, "error", check.form);
-    const bad = Object.keys(check.errors)[0]; if (bad !== undefined) (check.errors[bad].url ? linkRows[bad].u : linkRows[bad].l).focus(); else linkRows[0].u.focus();
+    links.focus(check.errors);
     return;
   }
   state.linksBusy = true; $("#saveLinksBtn").disabled = true;
@@ -242,7 +230,6 @@ async function submitLinks(clearAll) {
     say($("#linksAlert"), "ok", r.data.changed === false ? (clearAll ? "There were no links stored, so nothing was changed." : "These are the links already stored, so nothing was changed.") : clearAll ? "Removed. No destination links are stored; candidates will see no apply link for this posting." : "Saved. " + (r.data.active_links === 1 ? "1 destination link is" : r.data.active_links + " destination links are") + " now stored.");
   } finally { state.linksBusy = false; $("#saveLinksBtn").disabled = false; }
 }
-$("#addLinkBtn").addEventListener("click", () => { if (linkRows.length < MAX_LINKS) { addLinkRow(); linkRows[linkRows.length - 1].u.focus(); } });
 $("#linksForm").addEventListener("submit", (ev) => { ev.preventDefault(); submitLinks(false); });
 $("#clearLinksBtn").addEventListener("click", () => { if (window.confirm("Remove all destination links from this posting? Candidates will then see no apply link. You can add links again at any time.")) submitLinks(true); });
 form.addEventListener("submit", (ev) => { ev.preventDefault(); submit(); });

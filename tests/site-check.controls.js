@@ -96,6 +96,17 @@ control("the candidate email box loses the privacy one-liner", "S22", edit("sear
 control("the landing page promises a cross-posting count again", "S23", append("index.html", "<div>Posted in 2 places</div>"));
 control("the register page promises ATS import again", "S23", append("register.html", "<li>Bulk import from your ATS</li>"));
 control("the sample card stops saying it is fictional", "S23", edit("index.html", (s) => s.replace("(a fictional employer)", "")));
+control("'Upgrade to add' outside the links panel (the recruiter panel)", "S23", edit("register.html", (s) => s.replace("Naming the recruiter firm: coming soon.", "Upgrade to add the recruiter firm.")));
+control("'Upgrade to add' on another page", "S23", append("edit.html", "<p>Upgrade to add named recruiter firms</p>"));
+control("the edit page loses the filtering tooltip", "S25", edit("edit.html", (s) => s.replace('AI used for initial filtering<span class="info-icon" tabindex="0">i<span class="info-tooltip">Resume screening', 'AI used for initial filtering<span class="info-icon" tabindex="0">i<span class="info-tooltip">Automated rejection')));
+control("the register page's interviewing tooltip is reworded", "S25", edit("register.html", (s) => s.replace("Any AI that interacts with a candidate directly", "Any AI at all")));
+control("the icon loses position:relative (the tooltip lands off the page)", "S25", edit("styles.css", (s) => s.replace(".info-icon{position:relative;", ".info-icon{")));
+control("the tap state stops showing the tooltip", "S25", edit("styles.css", (s) => s.replace(",.info-icon.open .info-tooltip{display:block}", "{display:block}")));
+control("the edit page stops wiring the icons", "S25", edit("js/pages/edit.js", (s) => s.replace("wireInfoIcons();", "")));
+control("the register page loses its link rows", "S25", edit("register.html", (s) => s.replace('id="linkRows"', 'id="linkRowsX"')));
+control("the register page loses the locked panel", "S25", edit("register.html", (s) => s.replace('id="linksLocked"', 'id="linksLockedX"')));
+control("register.js stops saving the links", "S25", edit("js/pages/register.js", (s) => s.replace("api.setDestinationLinks(", "api.somethingElse(")));
+control("the edit page grows its own rows again", "S25", edit("js/pages/edit.js", (s) => s.replace("mountLinkRowsById()", "myOwnRows()")));
 control("the team page loses its add form", "S24", edit("team.html", (s) => s.replace('id="addForm"', 'id="addFormX"')));
 control("the team page no longer removes through the API", "S24", edit("js/pages/team.js", (s) => s.replace("api.rosterRemove(", "api.somethingElse(")));
 control("the edit page has no change note input", "S19", edit("edit.html", (s) => s.replace('<input id="note" type="text" maxlength="500"', '<input id="notx" type="text" maxlength="500"')));

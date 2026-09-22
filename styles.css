@@ -50,8 +50,8 @@ button{font-family:'Work Sans',sans-serif;cursor:pointer}
 .badge-verified{background:#E5F3EC;color:var(--verified)}
 .chip{background:var(--panel);padding:8px 12px;border-radius:8px;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px;position:relative}
 
-.info-icon{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;flex-shrink:0;border-radius:999px;background:var(--faint);color:#fff;font-size:10px;font-weight:700;font-style:italic;font-family:Georgia,serif;cursor:default}
-.info-icon:hover .info-tooltip,.info-icon:focus .info-tooltip{display:block}
+.info-icon{position:relative;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;flex-shrink:0;border-radius:999px;background:var(--faint);color:#fff;font-size:10px;font-weight:700;font-style:italic;font-family:Georgia,serif;cursor:default}
+.info-icon:hover .info-tooltip,.info-icon:focus .info-tooltip,.info-icon.open .info-tooltip{display:block}
 .info-tooltip{display:none;position:absolute;bottom:calc(100% + 9px);left:0;width:230px;background:var(--ink);color:#F4F1EA;font-size:12px;font-weight:500;font-style:normal;line-height:1.55;padding:10px 12px;border-radius:8px;z-index:20;box-shadow:0 10px 24px -8px rgba(23,20,18,.35)}
 .info-tooltip::after{content:'';position:absolute;top:100%;left:9px;border:5px solid transparent;border-top-color:var(--ink)}
 
