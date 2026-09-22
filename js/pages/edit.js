@@ -137,6 +137,7 @@ function renderLinks(doc, editable) {
   if (notice.state === "active") {
     const n = doc.destination_links.length;
     stored.append(n === 0 ? "No destination links are stored for this posting yet." : h("span", {}, h("strong", {}, n === 1 ? "1 link is stored" : n + " links are stored"), ": ", doc.destination_links.map((x) => x.position + ". " + (x.label || "Application link " + x.position)).join(", "), "."));
+    $("#clearLinksBtn").hidden = n === 0;
     if (!state.linksBusy) resetLinkRows();
   }
 }
@@ -214,10 +215,10 @@ async function submit() {
   } finally { setBusy(false); }
 }
 
-async function submitLinks() {
+async function submitLinks(clearAll) {
   if (state.linksBusy || !state.orig) return;
   const box = $("#linksAlert"); say(box, "error", "");
-  const check = checkLinks(linkRows.map((r) => ({ url: r.u.value, label: r.l.value })));
+  const check = clearAll ? { ok: true, links: [], rowOf: [], errors: {} } : checkLinks(linkRows.map((r) => ({ url: r.u.value, label: r.l.value })));
   showLinkErrors(check.errors);
   if (!check.ok) {
     if (check.form) say(box, "error", check.form);
@@ -238,11 +239,12 @@ async function submitLinks() {
     state.linksBusy = false;
     const reload = await api.getMyPosting(postingId);
     if (reload.ok) await populate(reload.data);
-    say($("#linksAlert"), "ok", r.data.changed === false ? "These are the links already stored, so nothing was changed." : "Saved. " + (r.data.active_links === 1 ? "1 destination link is" : r.data.active_links + " destination links are") + " now stored.");
+    say($("#linksAlert"), "ok", r.data.changed === false ? (clearAll ? "There were no links stored, so nothing was changed." : "These are the links already stored, so nothing was changed.") : clearAll ? "Removed. No destination links are stored; candidates will see no apply link for this posting." : "Saved. " + (r.data.active_links === 1 ? "1 destination link is" : r.data.active_links + " destination links are") + " now stored.");
   } finally { state.linksBusy = false; $("#saveLinksBtn").disabled = false; }
 }
 $("#addLinkBtn").addEventListener("click", () => { if (linkRows.length < MAX_LINKS) { addLinkRow(); linkRows[linkRows.length - 1].u.focus(); } });
-$("#linksForm").addEventListener("submit", (ev) => { ev.preventDefault(); submitLinks(); });
+$("#linksForm").addEventListener("submit", (ev) => { ev.preventDefault(); submitLinks(false); });
+$("#clearLinksBtn").addEventListener("click", () => { if (window.confirm("Remove all destination links from this posting? Candidates will then see no apply link. You can add links again at any time.")) submitLinks(true); });
 form.addEventListener("submit", (ev) => { ev.preventDefault(); submit(); });
 
 (async () => {

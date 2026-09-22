@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src https://tpmvkjuhbbwftqoodzcn.supabase.co; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta name="referrer" content="same-origin">
+<meta name="robots" content="noindex, nofollow">
+<title>FightGhostJobs — Team</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="nav">
+  <a class="nav-logo" href="index.html"><span class="nav-dot"></span><span class="nav-wordmark">FightGhostJobs</span></a>
+  <div class="nav-links">
+    <a href="index.html#candidates">For Candidates</a>
+    <a href="index.html#employers">For Employers</a>
+    <a href="search.html">Search Postings</a>
+  </div>
+  <div id="navAccount" style="display:flex;align-items:center;"></div>
+</div>
+
+<div style="max-width:1100px;margin:0 auto;padding:44px 32px;display:flex;flex-direction:column;gap:24px;">
+  <div>
+    <div id="orgName" style="font-size:13px;font-weight:700;color:var(--faint);">&nbsp;</div>
+    <h1 style="font-size:28px;font-weight:700;margin-top:4px;">Team</h1>
+    <p style="font-size:14px;color:var(--muted);margin:4px 0 0 0;">The people who can register postings for your organization. Each person sees and manages the postings they registered themselves.</p>
+  </div>
+
+  <div id="pageAlert" hidden></div>
+  <div id="actionNote" role="status" hidden></div>
+
+  <div id="notAdmin" class="card" hidden>
+    <p style="font-size:15px;line-height:1.6;margin:0;">Only an admin of your organization can see and change the roster. Ask your admin to add or remove people.</p>
+  </div>
+
+  <div id="adminArea" hidden style="display:flex;flex-direction:column;gap:24px;">
+    <div class="card" style="padding:0;overflow-x:auto;">
+      <table class="dash-table">
+        <thead><tr><th>Name</th><th>Work email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div id="tableNote" class="empty-note" style="margin:0;border-radius:0;" hidden></div>
+    </div>
+
+    <form id="addForm" class="card" novalidate style="display:flex;flex-direction:column;gap:16px;">
+      <div style="font-size:14px;font-weight:700;">Add a person</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6;">We do not email them. Tell them to go to the employer sign-in page and request a link with this address; their first sign-in activates them. One address can belong to one organization only.</div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;">
+        <div><label for="addName">Name</label><input id="addName" type="text" maxlength="120" autocomplete="off"><div class="field-error" data-error-for="addName" hidden></div></div>
+        <div><label for="addEmail">Work email</label><input id="addEmail" type="email" autocomplete="off"><div class="field-error" data-error-for="addEmail" hidden></div></div>
+      </div>
+      <label class="check-row" for="addAdmin"><input id="addAdmin" type="checkbox"> Make them an admin (they can manage this roster too)</label>
+      <div id="addAlert" hidden></div>
+      <div><button type="submit" id="addBtn" class="btn btn-dark btn-sm">Add to roster</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="site-footer"><span>FightGhostJobs</span><a href="privacy.html">Privacy</a><a href="mailto:privacy@fightghostjobs.com">privacy@fightghostjobs.com</a></div>
+
+<script type="module" src="js/pages/team.js"></script>
+</body>
+</html>

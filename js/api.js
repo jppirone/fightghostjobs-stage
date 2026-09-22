@@ -55,6 +55,12 @@ export const shapes = {
     && d.recent_changes.every((c) => isObj(c) && isStr(c.at) && isStr(c.note) && isNullable(c.kind, isStr) && Array.isArray(c.fields) && c.fields.every(isStr)),
   // schedule-posting: whether anything changed, the go-live time now stored (null = removed) and the resulting status
   scheduleAnswer: (d) => isObj(d) && isBool(d.changed) && isNullable(d.go_live_at, isStr) && (d.status === "draft" || d.status === "scheduled"),
+  // the roster (poster-roster-list): every field the Team page reads
+  rosterRow: (p) => isObj(p) && UUID_RE.test(p.poster_id) && isStr(p.full_name) && isStr(p.email) && isBool(p.is_org_admin) && (p.status === "active" || p.status === "invited") && isStr(p.added_at),
+  roster: (d) => isObj(d) && Array.isArray(d.posters) && d.posters.length <= 50 && d.posters.every(shapes.rosterRow),
+  rosterAdded: (d) => isObj(d) && UUID_RE.test(d.poster_id) && d.status === "invited",
+  rosterRemoved: (d) => isObj(d) && Number.isInteger(d.transferred),
+  rosterAdmin: (d) => isObj(d) && isBool(d.changed),
   // edit-posting: what the page reads is whether anything changed, which fields, and (for a requirements-text edit) how much of the wording was kept
   editAnswer: (d) => isObj(d) && Array.isArray(d.changed_fields) && d.changed_fields.every(isStr) && isBool(d.edited) && isNullable(d.similarity_pct === undefined ? null : d.similarity_pct, Number.isInteger),
   // pause / resume / bump / close: only the fact that it worked and the posting's new status are read
@@ -107,7 +113,12 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     editPosting: (body) => call("edit-posting", body, { validate: shapes.editAnswer }),
     // sets, changes or removes (null) a DRAFT's scheduled go-live time; goLiveAt: an ISO instant with a time zone
     schedulePosting: (postingId, goLiveAt) => call("schedule-posting", { posting_id: postingId, go_live_at: goLiveAt }, { validate: shapes.scheduleAnswer }),
-    // replaces the posting's whole set of destination links (verified plan): [{ url, label? }], 1 to 10
+    // the roster (admins only): list, add (invited until their first sign-in), remove (naming a successor when they own postings), make / unmake an admin
+    rosterList: () => call("poster-roster-list", {}, { validate: shapes.roster }),
+    rosterAdd: (body) => call("poster-roster-add", body, { validate: shapes.rosterAdded }),
+    rosterRemove: (targetId, successorId) => call("poster-roster-remove", successorId ? { target_poster_id: targetId, successor_poster_id: successorId } : { target_poster_id: targetId }, { validate: shapes.rosterRemoved }),
+    rosterSetAdmin: (targetId, isAdmin) => call("poster-roster-set-admin", { target_poster_id: targetId, is_org_admin: isAdmin }, { validate: shapes.rosterAdmin }),
+    // replaces the posting's whole set of destination links (verified plan): [{ url, label? }], 1 to 10; an EMPTY list removes them all (candidates then see no apply link)
     setDestinationLinks: (postingId, links) => call("set-destination-links", { posting_id: postingId, links }, { validate: shapes.linksAnswer }),
     listMyPostings: (offset) => call("list-my-postings", offset ? { offset } : {}, { validate: shapes.myPostings }),
     pausePosting: (postingId) => call("pause-posting", { posting_id: postingId }, { validate: shapes.actionAnswer }),

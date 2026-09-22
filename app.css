@@ -64,3 +64,9 @@ a.row-action:hover{text-decoration:underline}
 .dash-table th{padding:13px 12px}
 .dash-table td{padding:14px 12px}
 .dash-table .row-action:first-child{margin-left:0}
+
+/* the footer every page carries: the privacy page and the privacy contact (tests/site-check.js S22) */
+.site-footer{max-width:1440px;margin:0 auto;padding:28px 32px;border-top:1px solid var(--line);display:flex;gap:24px;align-items:center;font-size:13px;color:var(--faint)}
+.site-footer a{color:var(--faint)}
+.privacy-h{font-size:19px;font-weight:700;margin-top:12px}
+.privacy-p{font-size:15px;line-height:1.7;color:#4A453F;margin:0}

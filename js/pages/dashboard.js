@@ -39,7 +39,7 @@ function renderFilters() {
 function actionCells(p, now) {
   // Edit is a page of its own (a link); the others are one-click dialogs
   const out = actionsFor(p, now).map((k) => k === "edit" ? h("a", { class: "row-action", href: "edit.html?id=" + encodeURIComponent(p.id) }, ACTION_LABEL[k]) : h("button", { type: "button", class: "row-action", onclick: () => runAction(k, p, deps) }, ACTION_LABEL[k]));
-  if (publishWindowEnded(p, now)) out.push(h("span", { class: "row-note" }, "Publish window ended"));
+  if (publishWindowEnded(p, now)) out.push(h("span", { class: "row-note" }, "Publish window ended: a draft can be published for 14 days after it was saved. To use it, "), h("a", { class: "row-action", href: "register.html" }, "register it again"), h("span", { class: "row-note" }, " as a new posting."));
   return out;
 }
 

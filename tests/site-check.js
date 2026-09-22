@@ -18,6 +18,9 @@
 //   S17 a table is never wrapped in an element that clips it (overflow:hidden): a too-wide table must scroll sideways, or its last column (the row actions once) silently disappears off the edge
 //   S18 the req number: the candidate's req box on search.html is MASKED as it is typed (type=password) with a show/hide toggle, and the register hint says it is required, searchable by candidates, masked, rate-limited and always visible to the employer
 //   S19 the requirements-text hint ("compared with any later changes ...") is on the register form AND the edit page, word for word, and the edit page's note label is the approved one
+//   S22 privacy.html with the approved sections; every page links to it (footer) and carries the privacy contact; both email boxes link to it
+//   S23 no page promises what is not built (cross-posting count, ATS import, company-wide view, "1 in 5", "Upgrade to add"); the sample card says it is fictional
+//   S24 the Team page exists with its controls and calls the roster only through api.js
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
@@ -210,6 +213,36 @@ export function checkSite(root) {
     if (fs.existsSync(rh)) for (const id of ["glNow", "glLater", "glWhen"]) if (!read(rh).includes('id="' + id + '"')) add("S21", rh, "the register form is missing #" + id + " (when should it go live)");
     for (const js of ["register.js", "edit.js"]) { const p = path.join(root, "js", "pages", js); if (fs.existsSync(p) && !read(p).includes("api.schedulePosting(")) add("S21", p, js + " must schedule through api.schedulePosting");
       if (fs.existsSync(p) && /posted_at|start_date|expiration_date\s*:/.test(read(p).split("\n").filter((l) => /schedulePosting|go_live/.test(l)).join("\n"))) add("S21", p, js + " must not send a start or posted date: only go_live_at is sent"); }
+  }
+
+  // S22: privacy (launch readiness). privacy.html exists with the approved sections and the cookie sentence; EVERY page carries the footer link to it and the privacy contact; the two email boxes link to it too.
+  {
+    const ph = path.join(root, "privacy.html");
+    if (!fs.existsSync(ph)) add("S22", ph, "privacy.html is missing");
+    else {
+      const t = read(ph);
+      for (const need of ["If you look up postings", "If you register postings", "Cookies", "Who processes the data", "How long", "<code>__cf_bm</code>", "We set no cookies of our own", "privacy@fightghostjobs.com", "for as long as the registry exists"]) if (!t.includes(need)) add("S22", ph, "privacy.html must say: " + need);
+    }
+    for (const f of html) { const t = read(f); if (!/<a href="privacy\.html">Privacy<\/a>/.test(t)) add("S22", f, "every page must link to privacy.html from its footer"); if (!t.includes('href="mailto:privacy@fightghostjobs.com"')) add("S22", f, "every page must carry the privacy contact"); }
+    if (fs.existsSync(sh) && !/never shown to anyone\. <a href="privacy\.html">Privacy<\/a>\./.test(read(sh))) add("S22", sh, "the candidate email box must end with the privacy one-liner and link");
+    const si = path.join(root, "employer-signin.html");
+    if (fs.existsSync(si) && !/keep nothing else from this form\. <a href="privacy\.html">Privacy<\/a>\./.test(read(si))) add("S22", si, "the employer email box must carry the privacy one-liner and link");
+  }
+  // S23: no page promises what is not built (launch readiness): no cross-posting count, no ATS import claim, no company-wide view, no unsourced statistic, no "upgrade to add" for the recruiter name
+  for (const f of html) {
+    const t = read(f);
+    for (const [re, why] of [[/places posted|posted in \d+ places|other places it'?s posted/i, "the cross-posting count does not exist"], [/bulk import|from your ATS/i, "there is no import page"], [/company-wide/i, "there is no company-wide view"], [/1 in 5/, "an unsourced statistic"], [/Upgrade to add/i, "the recruiter-name editor does not exist on any tier"]]) if (re.test(t)) add("S23", f, why + ": " + re.source);
+  }
+  if (fs.existsSync(path.join(root, "index.html")) && !/fictional employer/i.test(read(path.join(root, "index.html")))) add("S23", path.join(root, "index.html"), "the sample card must say it is a fictional employer");
+  // S24: the Team page (roster) exists with its controls and talks to the roster functions only through api.js
+  {
+    const th = path.join(root, "team.html"), tj = path.join(root, "js", "pages", "team.js");
+    if (!fs.existsSync(th) || !fs.existsSync(tj)) add("S24", th, "team.html / js/pages/team.js are missing");
+    else {
+      const t = read(th); for (const id of ["rows", "addForm", "addEmail", "addName", "addAdmin", "notAdmin"]) if (!t.includes('id="' + id + '"')) add("S24", th, "team.html is missing #" + id);
+      if (!t.includes("We do not email them")) add("S24", th, "the add form must say that nobody is emailed");
+      const c = read(tj); for (const m of ["api.rosterList(", "api.rosterAdd(", "api.rosterRemove(", "api.rosterSetAdmin("]) if (!c.includes(m)) add("S24", tj, "team.js must use " + m);
+    }
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

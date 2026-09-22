@@ -88,6 +88,14 @@ control("the go-live input is a plain text box", "S21", edit("register.html", (s
 control("the register form loses its 'on a date and time' choice", "S21", edit("register.html", (s) => s.replace('id="glLater"', 'id="glLaterX"')));
 control("the register page no longer schedules through the API", "S21", edit("js/pages/register.js", (s) => s.replace("api.schedulePosting(", "api.somethingElse(")));
 control("the edit page no longer schedules through the API", "S21", edit("js/pages/edit.js", (s) => s.replace("api.schedulePosting(", "api.somethingElse(")));
+control("privacy.html loses the cookie sentence", "S22", edit("privacy.html", (s) => s.replace("We set no cookies of our own", "We set cookies")));
+control("a page loses its privacy footer link", "S22", edit("dashboard.html", (s) => s.replace('<a href="privacy.html">Privacy</a>', '<a href="index.html">Privacy</a>')));
+control("the candidate email box loses the privacy one-liner", "S22", edit("search.html", (s) => s.replace('never shown to anyone. <a href="privacy.html">Privacy</a>.', "never shown to anyone.")));
+control("the landing page promises a cross-posting count again", "S23", append("index.html", "<div>Posted in 2 places</div>"));
+control("the register page promises ATS import again", "S23", append("register.html", "<li>Bulk import from your ATS</li>"));
+control("the sample card stops saying it is fictional", "S23", edit("index.html", (s) => s.replace("(a fictional employer)", "")));
+control("the team page loses its add form", "S24", edit("team.html", (s) => s.replace('id="addForm"', 'id="addFormX"')));
+control("the team page no longer removes through the API", "S24", edit("js/pages/team.js", (s) => s.replace("api.rosterRemove(", "api.somethingElse(")));
 control("the edit page has no change note input", "S19", edit("edit.html", (s) => s.replace('<input id="note" type="text" maxlength="500"', '<input id="notx" type="text" maxlength="500"')));
 control("the register hint loses the approved wording", "S18", edit("register.html", (s) => s.replace("Required. Your own reference, such as your ATS number.", "Not shown to candidates.")));
 control("the register hint stops telling employers the req is masked", "S18", edit("register.html", (s) => s.replace("They see it masked (for example FGJ****45)", "They see it")));
