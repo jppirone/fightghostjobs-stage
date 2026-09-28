@@ -18,12 +18,16 @@ function failureText(err) {
   return describeError(err, { what: "Your analytics" });
 }
 
-function kpiCard(label, value, sub) {
+function kpiCard(label, value, sub, caveat) {
   return h("div", { class: "kpi" },
     h("div", { class: "lbl" }, label),
     h("div", { class: "num" }, value),
-    sub ? h("div", { style: "font-size:12px;color:var(--muted);margin-top:8px;" }, sub) : null);
+    sub ? h("div", { style: "font-size:12px;color:var(--muted);margin-top:8px;" }, sub) : null,
+    caveat ? h("div", { style: "font-size:11px;color:var(--faint);margin-top:6px;line-height:1.4;" }, caveat) : null);
 }
+
+// this metric only ever sees a click on the link WE gave the candidate: it is not a proxy for "applied" and it cannot see an application made any other way. Shown directly on the card, not a footnote.
+const LINK_CLICK_CAVEAT = "Reflects activity on the link shown here, not a complete picture of where candidates applied. A candidate may have applied elsewhere without our visibility.";
 
 function renderKpis(d) {
   const box = $("#kpiRow"); clear(box);
@@ -31,7 +35,7 @@ function renderKpis(d) {
     kpiCard("Live postings", String(d.live_postings)),
     kpiCard("Searches that found you", String(d.searches)),
     kpiCard("Posting detail views", String(d.detail_views)),
-    kpiCard("Destination link clicks", String(d.link_clicks), clickThroughLabel(d.detail_views, d.link_clicks) === "—" ? null : clickThroughLabel(d.detail_views, d.link_clicks) + " of viewers clicked through"),
+    kpiCard("Destination link clicks", String(d.link_clicks), clickThroughLabel(d.detail_views, d.link_clicks) === "—" ? null : clickThroughLabel(d.detail_views, d.link_clicks) + " of viewers clicked through", LINK_CLICK_CAVEAT),
     kpiCard("Share of registry traffic", sharePctLabel(d.share_of_registry_pct), "Of all searches + detail views on the registry"),
   );
 }
