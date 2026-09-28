@@ -13,7 +13,7 @@ export const MAX_APPLICANT_CAP = 2147483647;
 // The input each server field is shown under (the ids on edit.html)
 export const FIELD_OF_SERVER_NAME = {
   title: "jtitle", req_number: "req", description_text: "desc", location_ids: "locpicker", is_remote: "locpicker", locations_attested: "attest", applicant_cap: "appcap", change_note: "note",
-  ai_filtering_note: "aiFilterNote", ai_interview_note: "aiInterviewNote",
+  ai_filtering_note: "aiFilterNote", ai_interview_note: "aiInterviewNote", req_searchable: "reqSearchToggle",
 };
 
 // how req numbers are compared everywhere (case, spaces and punctuation ignored)
@@ -23,7 +23,8 @@ const sameList = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === 
 const hasControl = (s) => Array.from(String(s)).some((ch) => { const c = ch.codePointAt(0); return c < 32 || c === 127; });
 
 // orig: the posting object get-my-posting returned.
-// v: { title, req, desc, locEntries, attested, remote, appcap, aiFilter, aiInterview, recruiter, exclusive, note }     (aiFilter / aiInterview: true, false or null = never stated and not touched; exclusive: true / false, or undefined = the employer's plan does not offer it, so it is not touched)
+// v: { title, req, desc, locEntries, attested, remote, appcap, aiFilter, aiInterview, recruiter, reqSearchable, exclusive, note }     (aiFilter / aiInterview: true, false or null = never stated and not touched;
+//   reqSearchable: true / false, the req-number search toggle (pass 26), default true; exclusive: true / false, or undefined = the employer's plan does not offer it, so it is not touched)
 // -> the fields that changed, by their backend names.
 export function changedFields(orig, v) {
   const ch = {};
@@ -44,6 +45,7 @@ export function changedFields(orig, v) {
   const iNote = v.aiInterview === true ? (String(v.aiInterviewNote == null ? "" : v.aiInterviewNote).trim() || null) : null;
   if (iNote !== (orig.ai_interview_note == null ? null : orig.ai_interview_note)) ch.ai_interview_note = iNote;
   if ((v.recruiter === true) !== orig.third_party_recruiter) ch.third_party_recruiter = v.recruiter === true;
+  if ((v.reqSearchable !== false) !== (orig.req_searchable !== false)) ch.req_searchable = v.reqSearchable !== false;
   if (typeof v.exclusive === "boolean" && v.exclusive !== (orig.destination_links_exclusive === true)) ch.destination_links_exclusive = v.exclusive;
   const capText = String(v.appcap == null ? "" : v.appcap).trim(), cap = capText === "" ? null : Number(capText);
   if (/^[0-9]+$/.test(capText) ? cap !== orig.applicant_cap : (capText === "" && orig.applicant_cap !== null)) ch.applicant_cap = cap;

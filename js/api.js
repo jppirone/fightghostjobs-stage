@@ -54,7 +54,7 @@ export const shapes = {
   // get-my-posting (one posting, for the edit page): the fields the form starts from, checked; recent_changes: the newest five log entries (when, note, kind, the NAMES of the fields; never values)
   openPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && isStr(p.company_name) && /^[0-9A-Z]{12}$/.test(p.post_id) && EFFECTIVE_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
     && isNullable(p.closed_reason, isStr) && isBool(p.is_remote) && Array.isArray(p.locations) && p.locations.every(isStr) && Array.isArray(p.location_ids) && p.location_ids.every(isStr) && isBool(p.locations_attested)
-    && isNullable(p.ai_filtering, isBool) && isNullable(p.ai_interview_other, isBool) && shapes.aiNotes(p) && isBool(p.third_party_recruiter) && isBool(p.destination_links_exclusive) && isNullable(p.applicant_cap, Number.isInteger) && isStr(p.description_text) && Number.isInteger(p.window_days)
+    && isNullable(p.ai_filtering, isBool) && isNullable(p.ai_interview_other, isBool) && shapes.aiNotes(p) && isBool(p.third_party_recruiter) && isBool(p.req_searchable) && isBool(p.destination_links_exclusive) && isNullable(p.applicant_cap, Number.isInteger) && isStr(p.description_text) && Number.isInteger(p.window_days)
     && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isNullable(p.go_live_at, isStr) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr),
   // the destination links the employer stored: position and label only, NEVER the address (the server keeps that encrypted and does not send it back)
   // pass B: a stored link may also say what candidates see for it (shown_as: derived from where it goes, never from the label; null for a firm without a link) and how the liveness check went when it was saved.
@@ -78,6 +78,13 @@ export const shapes = {
   // pause / resume / bump / close: only the fact that it worked and the posting's new status are read
   actionAnswer: (d) => { const p = d && isObj(d.posting) ? d.posting : d; return isObj(p) && isStr(p.status); },
   comment: (d) => isObj(d) && isObj(d.comment) && isStr(d.comment.body) && isStr(d.comment.created_at),
+  // employer-analytics (pass 24): the caller's own six metrics, plus the three breakdowns the dashboard charts. isInt/isNum here, not elsewhere, since every count must be a whole number.
+  analyticsByPosting: (p) => isObj(p) && UUID_RE.test(p.posting_id) && isStr(p.title) && POSTING_STATUSES.includes(p.status) && isNullable(p.closed_reason, isStr) && isNullable(p.expiration_date, isStr)
+    && Number.isInteger(p.searches) && Number.isInteger(p.detail_views) && Number.isInteger(p.link_clicks),
+  analyticsByLink: (l) => isObj(l) && UUID_RE.test(l.link_id) && UUID_RE.test(l.posting_id) && isNullable(l.source_label, isStr) && (l.kind === "apply" || l.kind === "recruiter") && isNullable(l.firm_name, isStr) && Number.isInteger(l.display_order) && Number.isInteger(l.clicks),
+  analytics: (d) => isObj(d) && Number.isInteger(d.live_postings) && Number.isInteger(d.searches) && Number.isInteger(d.detail_views) && Number.isInteger(d.link_clicks) && Number.isInteger(d.platform_activity_total)
+    && isNullable(d.share_of_registry_pct, (v) => typeof v === "number") && Array.isArray(d.by_posting) && d.by_posting.every(shapes.analyticsByPosting)
+    && Array.isArray(d.by_link) && d.by_link.every(shapes.analyticsByLink) && isObj(d.by_search_mode) && Object.values(d.by_search_mode).every(Number.isInteger),
 };
 
 export function createApi({ baseUrl, key, getToken, fetchImpl }) {
@@ -135,6 +142,8 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     // replaces the posting's whole set of named recruiter firms (verified plan, and only while the posting says a recruiter is involved): [{ name, url? }], 0 to 3; [] removes them all
     setRecruiterFirms: (postingId, firms) => call("set-destination-links", { posting_id: postingId, kind: "recruiter", links: firms }, { validate: shapes.linksAnswer }),
     listMyPostings: (offset) => call("list-my-postings", offset ? { offset } : {}, { validate: shapes.myPostings }),
+    // the caller's own six analytics metrics over [from, to) (pass 24); from/to are ISO-8601 instants. The organization is taken server-side from the signed-in session, never sent here.
+    employerAnalytics: (from, to) => call("employer-analytics", { from, to }, { validate: shapes.analytics }),
     pausePosting: (postingId) => call("pause-posting", { posting_id: postingId }, { validate: shapes.actionAnswer }),
     resumePosting: (postingId) => call("resume-posting", { posting_id: postingId }, { validate: shapes.actionAnswer }),
     bumpPosting: (postingId, days, reason) => call("bump-posting", { posting_id: postingId, bump_days: days, bump_reason: reason }, { validate: shapes.actionAnswer }),

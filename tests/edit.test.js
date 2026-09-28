@@ -30,6 +30,23 @@ test("an AI answer that was never stated is not sent until it is touched; a stat
   assert.equal("ai_filtering" in changedFields(orig(), same({ aiFilter: null })), false);
 });
 
+test("pass 26: the req-number search toggle defaults to true (on) when the loaded posting predates the field, and only a real change is sent", () => {
+  assert.equal(changedFields(orig(), same()).req_searchable, undefined);            // orig has no req_searchable at all (pre-pass-26 shape): both sides read as "on", so nothing is sent
+  assert.equal(changedFields(orig({ req_searchable: true }), same()).req_searchable, undefined);
+  assert.equal(changedFields(orig({ req_searchable: true }), same({ reqSearchable: true })).req_searchable, undefined);
+  // v (the collected form state) is always initialized from orig by populate() in real use, so an unset v.reqSearchable against an orig of false is not a real scenario;
+  // as a pure function changedFields still reads an unset v.reqSearchable as "on" (the default), which against orig=false correctly reads as a change to true
+  assert.equal(changedFields(orig({ req_searchable: false }), same()).req_searchable, true);
+});
+
+test("pass 26: turning the toggle off (or back on) is sent as an explicit boolean, never omitted or inverted", () => {
+  assert.equal(changedFields(orig({ req_searchable: true }), same({ reqSearchable: false })).req_searchable, false);
+  assert.equal(changedFields(orig({ req_searchable: false }), same({ reqSearchable: true })).req_searchable, true);
+  assert.equal(changedFields(orig({ req_searchable: false }), same({ reqSearchable: false })).req_searchable, undefined);
+  const r = checkEdit(orig({ req_searchable: true }), same({ reqSearchable: false, note: "opting out of req search" }));
+  assert.deepEqual(r.errors, {}); assert.equal(r.body.req_searchable, false);
+});
+
 test("a posting that is not a draft: the note is required for every edit", () => {
   for (const blank of ["", "   ", undefined, null]) { const r = checkEdit(orig(), same({ title: "Data Analyst II", note: blank })); assert.ok(r.errors.note, JSON.stringify(blank)); assert.equal(r.body, undefined); }
   assert.ok(checkEdit(orig(), same({ title: "Data Analyst II", note: "x".repeat(MAX_NOTE + 1) })).errors.note);
@@ -79,8 +96,8 @@ test("server refusals land under the right input; the 'too much changed' ones of
 
 test("get-my-posting and edit-posting answers: the page fails closed on a shape it does not expect", () => {
   const change = { at: "2026-09-02T00:00:00Z", note: "n", kind: "edit", fields: ["title"] };
-  assert.equal(shapes.openAnswer({ posting: orig(), destination_links: [], plan: FREE, recent_changes: [change] }), true);
-  assert.equal(shapes.openAnswer({ posting: orig({ ai_filtering: null, applicant_cap: 5 }), destination_links: [], plan: FREE, recent_changes: [] }), true);
+  assert.equal(shapes.openAnswer({ posting: orig({ req_searchable: true }), destination_links: [], plan: FREE, recent_changes: [change] }), true);
+  assert.equal(shapes.openAnswer({ posting: orig({ req_searchable: true, ai_filtering: null, applicant_cap: 5 }), destination_links: [], plan: FREE, recent_changes: [] }), true);
   assert.equal(shapes.openAnswer({ posting: orig({ description_text: 5 }), destination_links: [], plan: FREE, recent_changes: [] }), false);
   assert.equal(shapes.openAnswer({ posting: orig({ status: "bogus" }), destination_links: [], plan: FREE, recent_changes: [] }), false);
   assert.equal(shapes.openAnswer({ posting: orig(), destination_links: [], plan: FREE, recent_changes: [{ at: 5, note: "n", kind: null, fields: [] }] }), false);
@@ -90,8 +107,16 @@ test("get-my-posting and edit-posting answers: the page fails closed on a shape 
   assert.equal(shapes.editAnswer({ changed_fields: "title", edited: true }), false);
 });
 
+test("pass 26: get-my-posting's answer is trusted only with a real boolean req_searchable", () => {
+  assert.equal(shapes.openAnswer({ posting: orig({ req_searchable: true }), destination_links: [], plan: FREE, recent_changes: [] }), true);
+  assert.equal(shapes.openAnswer({ posting: orig({ req_searchable: false }), destination_links: [], plan: FREE, recent_changes: [] }), true);
+  assert.equal(shapes.openAnswer({ posting: orig({ req_searchable: null }), destination_links: [], plan: FREE, recent_changes: [] }), false);
+  assert.equal(shapes.openAnswer({ posting: orig({ req_searchable: undefined }), destination_links: [], plan: FREE, recent_changes: [] }), false);
+  assert.equal(shapes.openAnswer({ posting: orig(), destination_links: [], plan: FREE, recent_changes: [] }), false);   // orig()'s own base has no req_searchable key at all
+});
+
 // ---- item 3: the organization's plan, destination links, the exclusive flag
-const OPEN = (extra) => Object.assign({ posting: orig(), destination_links: [], plan: FREE, recent_changes: [] }, extra || {});
+const OPEN = (extra) => Object.assign({ posting: orig({ req_searchable: true }), destination_links: [], plan: FREE, recent_changes: [] }, extra || {});
 
 test("the exclusive flag is sent only when the plan offers it (a boolean) and it differs", () => {
   assert.equal("destination_links_exclusive" in changedFields(orig(), same()), false);                      // not offered (undefined): never sent

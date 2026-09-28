@@ -15,6 +15,15 @@ input[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--embe
 .alert-notice{background:var(--panel);color:var(--muted)}
 .alert-ok{background:#E5F3EC;color:var(--verified)}
 
+/* analytics dashboard (pass 24): same tokens as everywhere else, carried over from the design mock (fightghostjobs-web/analytics.html) */
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 20px}
+.kpi .num{font-size:32px;font-weight:700;font-family:'Space Grotesk',sans-serif}
+.kpi .lbl{font-size:13px;color:var(--muted);margin-top:6px}
+.bar-track{background:var(--panel);border-radius:5px;height:8px;width:100%;overflow:hidden}
+.bar-fill{background:var(--ember);height:100%;border-radius:5px}
+.bar-fill-alt{background:var(--verified);height:100%;border-radius:5px}
+.eyebrow{font-size:13px;font-weight:700;color:var(--ember);text-transform:uppercase;letter-spacing:.08em}
+
 .signin-card{max-width:560px}
 .signin-card h2{font-size:22px;font-weight:700;margin-bottom:8px}
 .signin-card p{font-size:14px;line-height:1.6;color:var(--muted);margin:0 0 18px 0}
@@ -24,6 +33,16 @@ input[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--embe
 .check-row{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;margin:0}
 .check-row input{width:auto}
 .toggle:focus-visible{outline:2px solid var(--ember);outline-offset:3px}
+
+/* a wider info-tooltip for a title line + bullet list (search field help); same component, same hover/focus trigger, just more room.
+   text-transform:none guards against sitting inside an uppercase field label (search.html's column labels are all-caps; the tooltip body must not inherit that). */
+.info-tooltip-wide{width:280px;text-transform:none}
+.info-tooltip .tip-title{display:block;margin-bottom:6px;font-weight:700}
+.info-tooltip ul{margin:0;padding-left:16px}
+.info-tooltip li+li{margin-top:6px}
+/* opens below the icon instead of above: for a field row close to the top of the page, opening upward can push the tooltip off-screen */
+.info-tooltip-down{bottom:auto;top:calc(100% + 9px)}
+.info-tooltip-down::after{top:auto;bottom:100%;border-top-color:transparent;border-bottom-color:var(--ink)}
 
 .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(23,20,18,.45);align-items:center;justify-content:center;z-index:50}
 .modal-backdrop.open{display:flex}

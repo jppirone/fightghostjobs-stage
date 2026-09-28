@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src https://tpmvkjuhbbwftqoodzcn.supabase.co; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta name="referrer" content="same-origin">
+<meta name="robots" content="noindex, nofollow">
+<script src="js/stage-gate.js"></script>
+<title>FightGhostJobs — Analytics</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="nav">
+  <a class="nav-logo" href="index.html"><span class="nav-dot"></span><span class="nav-wordmark">FightGhostJobs</span></a>
+  <div class="nav-links">
+    <a href="index.html#candidates">For Candidates</a>
+    <a href="index.html#employers">For Employers</a>
+    <a href="search.html">Search Postings</a>
+  </div>
+  <div id="navAccount" style="display:flex;align-items:center;"></div>
+</div>
+
+<div style="max-width:1280px;margin:0 auto;padding:44px 32px 64px 32px;display:flex;flex-direction:column;gap:8px;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;">
+    <div>
+      <div class="eyebrow">Analytics</div>
+      <div id="orgName" style="font-size:13px;font-weight:700;color:var(--faint);margin-top:2px;">&nbsp;</div>
+      <h1 style="font-size:30px;font-weight:700;margin-top:6px;">Your postings, at a glance.</h1>
+      <p style="font-size:14px;color:var(--muted);margin:8px 0 0 0;max-width:600px;">How candidates are finding your postings, how many open the details, and how many click through — across everything your organization has registered.</p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <label for="rangeSelect" style="font-size:13px;font-weight:600;margin:0;">Date range</label>
+      <select id="rangeSelect" style="border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14px;font-family:'Work Sans',sans-serif;background:#fff;color:var(--ink);">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="365">Last 12 months</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="pageAlert" hidden style="margin-top:16px;"></div>
+  <div id="thinDataNote" hidden style="margin-top:16px;"></div>
+
+  <!-- KPI ROW -->
+  <div id="kpiRow" style="margin-top:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;"></div>
+
+  <!-- TRAFFIC BY POSTING -->
+  <div style="margin-top:40px;">
+    <h2 style="font-size:19px;font-weight:700;">Traffic by posting</h2>
+    <p style="font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6;">Searches that matched a posting, how many opened its detail view, and how many clicked a destination link.</p>
+    <div class="card" style="margin-top:14px;padding:0;overflow-x:auto;">
+      <table id="postingTable">
+        <thead><tr><th>Posting</th><th>Searches</th><th>Detail views</th><th>Link clicks</th><th>Click-through</th></tr></thead>
+        <tbody id="postingRows"></tbody>
+      </table>
+      <div id="postingEmpty" class="empty-note" style="margin:0;border-radius:0;" hidden></div>
+    </div>
+  </div>
+
+  <!-- TWO COLUMN: SEARCH MODE + LINK PERFORMANCE -->
+  <div style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+    <div>
+      <h2 style="font-size:19px;font-weight:700;">How candidates found you</h2>
+      <p style="font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6;">What candidates searched that matched one of your postings.</p>
+      <div class="card" id="modeCard" style="margin-top:14px;padding:20px;display:flex;flex-direction:column;gap:14px;"></div>
+      <div id="modeEmpty" class="empty-note" hidden></div>
+    </div>
+    <div>
+      <h2 style="font-size:19px;font-weight:700;">Destination link performance</h2>
+      <p style="font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6;">Clicks per link, by the label you gave it — never the raw address.</p>
+      <div class="card" id="linkCard" style="margin-top:14px;padding:20px;display:flex;flex-direction:column;gap:14px;"></div>
+      <div id="linkEmpty" class="empty-note" hidden></div>
+    </div>
+  </div>
+
+  <div id="loadNote" class="field-hint" role="status" style="margin-top:24px;"></div>
+</div>
+
+<div class="site-footer"><span>FightGhostJobs</span><a href="privacy.html">Privacy</a><a href="mailto:privacy@fightghostjobs.com">privacy@fightghostjobs.com</a></div>
+
+<script type="module" src="js/pages/analytics.js"></script>
+</body>
+</html>

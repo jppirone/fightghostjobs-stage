@@ -105,6 +105,14 @@
         <button type="button" id="recruiterToggle" class="toggle" role="switch" aria-checked="false" aria-label="Third-party recruiter involved"><span class="toggle-knob"></span></button>
       </div>
 
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:14px;font-weight:600;">Let candidates search for your postings by req number</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px;">On by default. Turning it off does not hide this posting: candidates can still find it by company name plus title. The req number stays required either way.</div>
+        </div>
+        <button type="button" id="reqSearchToggle" class="toggle" role="switch" aria-checked="true" aria-label="Let candidates search for your postings by req number"><span class="toggle-knob"></span></button>
+      </div>
+
       <div id="firmsPanel" hidden style="display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px dashed #C9C1B4;border-radius:10px;padding:14px 18px;">
         <div style="font-size:13px;font-weight:700;">Recruiter firms</div>
         <div id="firmsLocked" hidden style="font-size:13px;color:var(--muted);line-height:1.6;">Naming the recruiter firm is part of the verified plan. Your organization is not on it. <a href="mailto:sales@fightghostjobs.com?subject=Verified%20tier" style="font-weight:600;">Write to sales@fightghostjobs.com →</a></div>

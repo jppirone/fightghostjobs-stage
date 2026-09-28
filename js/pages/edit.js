@@ -16,7 +16,7 @@ import { wireInfoIcons } from "../info-icon.js";
 wireInfoIcons();
 
 const postingId = new URLSearchParams(location.search).get("id") || "";
-const state = { orig: null, doc: null, aiFilter: null, aiInterview: null, recruiter: false, exclusive: false, plan: null, busy: false, needNote: false, linksBusy: false, firmsBusy: false };
+const state = { orig: null, doc: null, aiFilter: null, aiInterview: null, recruiter: false, reqSearchable: true, exclusive: false, plan: null, busy: false, needNote: false, linksBusy: false, firmsBusy: false };
 const form = $("#form"), pageAlert = $("#pageAlert"), formAlert = $("#formAlert"), saveBtn = $("#saveBtn");
 const picker = mountLocationPicker({ isRemote: () => $("#remote").checked });
 $("#remote").addEventListener("change", () => picker.refresh());
@@ -43,13 +43,13 @@ function wireToggle(id, key) {
     if (key === "aiFilter" || key === "aiInterview") syncNoteRows();
   });
 }
-wireToggle("#aiFilterToggle", "aiFilter"); wireToggle("#aiInterviewToggle", "aiInterview"); wireToggle("#recruiterToggle", "recruiter"); wireToggle("#exclusiveToggle", "exclusive");
+wireToggle("#aiFilterToggle", "aiFilter"); wireToggle("#aiInterviewToggle", "aiInterview"); wireToggle("#recruiterToggle", "recruiter"); wireToggle("#exclusiveToggle", "exclusive"); wireToggle("#reqSearchToggle", "reqSearchable");
 const planActive = () => !!state.plan && state.plan.verified === true;
 // the employer's AI notes (pass D) are offered only while their toggle is on
 function syncNoteRows() { $("#aiFilterNoteRow").hidden = state.aiFilter !== true; $("#aiInterviewNoteRow").hidden = state.aiInterview !== true; }
 
 const collect = () => ({ title: val("#jtitle"), req: val("#req"), desc: val("#desc"), locEntries: picker.get().entries, attested: picker.get().attested, remote: $("#remote").checked, appcap: val("#appcap"),
-  aiFilter: state.aiFilter, aiInterview: state.aiInterview, aiFilterNote: val("#aiFilterNote"), aiInterviewNote: val("#aiInterviewNote"), recruiter: state.recruiter, exclusive: planActive() ? state.exclusive : undefined, note: val("#note") });
+  aiFilter: state.aiFilter, aiInterview: state.aiInterview, aiFilterNote: val("#aiFilterNote"), aiInterviewNote: val("#aiInterviewNote"), recruiter: state.recruiter, reqSearchable: state.reqSearchable, exclusive: planActive() ? state.exclusive : undefined, note: val("#note") });
 
 // the catalog entries for the stored ids (a place the catalog no longer has still shows, by the display text the database stored)
 async function entriesFor(p) {
@@ -184,6 +184,7 @@ async function populate(doc) {
   const p = doc.posting; state.orig = p; state.doc = doc;
   state.aiFilter = p.ai_filtering; state.aiInterview = p.ai_interview_other; state.recruiter = p.third_party_recruiter; state.needNote = false;
   state.plan = doc.plan; state.exclusive = p.destination_links_exclusive === true; setToggle("#exclusiveToggle", state.exclusive);
+  state.reqSearchable = p.req_searchable !== false; setToggle("#reqSearchToggle", state.reqSearchable);
   $("#jtitle").value = p.title; $("#req").value = p.req_number || ""; $("#desc").value = p.description_text; $("#appcap").value = p.applicant_cap === null ? "" : String(p.applicant_cap);
   $("#remote").checked = p.is_remote; $("#companyShown").textContent = p.company_name; $("#note").value = "";
   setToggle("#aiFilterToggle", p.ai_filtering === true); setToggle("#aiInterviewToggle", p.ai_interview_other === true); setToggle("#recruiterToggle", p.third_party_recruiter);
