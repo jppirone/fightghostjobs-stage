@@ -11,10 +11,11 @@
 // ============================================================================================================
 (function () {
   "use strict";
-  var HOST = "stage.fightghostjobs.com", KEY = "fgj_stage_gate", SALT = "BDFKhUtqpbnhpIpwIaxLNQ==", HASH = "aUY1wmbrLYl3Ev37oOhAY/fCC8qQ6UbRF1l4wzeucGA=", ITER = 310000;
+  var HOST = "stage.fightghostjobs.com", KEY = "fgj_stage_gate", SALT = "BDFKhUtqpbnhpIpwIaxLNQ==", HASH = "aUY1wmbrLYl3Ev37oOhAY/fCC8qQ6UbRF1l4wzeucGA=", ITER = 310000, TAG = KEY + "_v", VER = HASH.slice(0, 16);
   if (location.hostname !== HOST) return;
   var open = false;
-  try { open = localStorage.getItem(KEY) === "open"; } catch (e) { open = false; }
+  // unlocked only if it was unlocked with THIS password: a browser that entered an older password is asked again
+  try { open = localStorage.getItem(KEY) === "open" && localStorage.getItem(TAG) === VER; } catch (e) { open = false; }
   if (open) return;
 
   var root = document.documentElement;
@@ -54,7 +55,7 @@
       button.disabled = true; msg.textContent = "Checking...";
       matches(input.value).then(function (ok) {
         if (ok) {
-          try { localStorage.setItem(KEY, "open"); } catch (e2) { /* the page opens for this load anyway */ }
+          try { localStorage.setItem(KEY, "open"); localStorage.setItem(TAG, VER); } catch (e2) { /* the page opens for this load anyway */ }
           root.removeAttribute("data-stage-gate");
           form.parentNode.removeChild(form);
         } else {
