@@ -20,6 +20,7 @@
 //   S18 the req number: the candidate's req box on search.html is MASKED as it is typed (type=password) with a show/hide toggle, and the register hint says it is required, searchable by candidates, masked, rate-limited and always visible to the employer
 //   S19 the requirements-text hint ("compared with any later changes ...") is on the register form AND the edit page, word for word, and the edit page's note label is the approved one
 //   S22 privacy.html with the approved sections; every page links to it (footer) and carries the privacy contact; both email boxes link to it
+//   S32 public wording: the app never says or implies it confirms a posting is real (the badge says Registered, the details dialog says what it does not confirm), and makes no price promise (no always, forever, permanently, no cost)
 //   S23 no page promises what is not built (cross-posting count, ATS import, company-wide view, "1 in 5", "Upgrade to add"); the sample card says it is fictional
 //   S24 the Team page exists with its controls and calls the roster only through api.js
 //   S25 the AI-disclosure "i" tooltips are on the register AND edit pages (designed wording), positioned and tap-able; the destination-link rows are on both pages and register.js saves them
@@ -190,7 +191,7 @@ export function checkSite(root) {
   // S19: the approved requirements-text hint and the change-note label (slice C)
   const eh = path.join(root, "edit.html");
   if (fs.existsSync(rh) && fs.existsSync(eh)) {
-    const REQ_TEXT_HINT = "This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to register it as a new posting with its own req number, so candidates can always tell which role they're looking at. Each change is saved with a short note.";
+    const REQ_TEXT_HINT = "This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to register it as a new posting with its own req number, so candidates can tell which role they're looking at. Each change is saved with a short note.";
     for (const f of [rh, eh]) if (!read(f).includes('<div id="reqTextHint" class="field-hint">' + REQ_TEXT_HINT + "</div>")) add("S19", f, "the requirements-text hint (#reqTextHint) must carry the approved wording, word for word");
     if (!read(eh).includes("What changed, and why? (required; kept with the posting).")) add("S19", eh, "the change-note label must be the approved wording");
     if (!/<input id="note" type="text" maxlength="500"/.test(read(eh))) add("S19", eh, "the change note input (id=note, at most 500 characters) is missing");
@@ -374,6 +375,38 @@ export function checkSite(root) {
     const sh = path.join(root, "search.html");
     if (fs.existsSync(sh) && !/<a href="search\.html" class="active" aria-current="page">/.test(read(sh))) add("S31", sh, "the current page in the header must carry aria-current=\"page\"");
     for (const f of css.concat(js)) if (OLD_COLORS.test(read(f))) add("S31", f, "an old (lower contrast) brand color is still in the code");
+  }
+
+  // S32: public wording (decided 2026-09-30). FightGhostJobs is a registry of job postings disclosed by employers: it never says or implies that it confirms a posting is real, and it makes no price or permanence promise beyond what is decided.
+  // The old claims are caught wherever they come back (page text, attributes, script strings), and the approved replacements must be where they belong. "verified plan" / "Verified tier" (the plan name) and candidate email verification are NOT in this rule.
+  {
+    const RETIRED = [
+      [/\u2713 Verified/, "the posting badge must say Registered, not Verified"],
+      [/This listing is verified/i, "the details dialog must not say the listing is verified"],
+      [/a real employer|real employer/i, "no text may say a real employer registered or disclosed a posting"],
+      [/(has|have) confirmed (it|the posting)/i, "no text may say an employer confirmed a posting"],
+      [/any less real/i, "no text may talk about a posting being real or less real"],
+      [/Prove your listing/i, "no text may promise to prove a listing is real"],
+      [/free public registry/i, "the registry is described as a registry of job postings disclosed by employers, not a free public registry"],
+      [/Free, always|register and disclose, always|always free/i, "no always-free promise"],
+      [/tier, permanently|free, forever|free forever|never pay for anything|ever paywalled/i, "no forever or permanent price promise"],
+      [/costs? nothing|no cost/i, "no cost promise (say Free for job seekers where it is decided)"],
+      [/Company and title always works/i, "no always promise about search"],
+      [/specific verified posting/i, "a Post ID belongs to a specific posting, not a verified one"],
+      [/itself worth knowing/i, "a missing posting must not be presented as meaningful about the job"],
+    ];
+    for (const f of html.concat(js)) {
+      const t = f.endsWith(".html") ? read(f).replace(/<!--[\s\S]*?-->/g, "") : stripJsComments(read(f));
+      for (const [re, why] of RETIRED) if (re.test(t)) add("S32", f, why);
+    }
+    const need = (rel, str, why) => { const p = path.join(root, rel); if (!fs.existsSync(p) || !read(p).includes(str)) add("S32", p, why); };
+    need("js/pages/search.js", '"\u2713 Registered"', "the badge on every search result must say Registered");
+    need("js/pages/search.js", "This posting was registered through FightGhostJobs by a registered poster. The dates and disclosures are the poster's own. FightGhostJobs has not confirmed that the job exists, that the poster works for the company named, or that the employer will respond.", "the details dialog must carry the approved sentence, including what FightGhostJobs has not confirmed");
+    need("index.html", '<div class="pill badge-verified">\u2713 Registered</div>', "the sample card badge must say Registered");
+    need("index.html", ">A registry of job postings disclosed by employers</div>", "the home pill must describe the registry as job postings disclosed by employers");
+    need("register.html", ">Free on every tier</div>", "the register page price label must be Free on every tier");
+    need("js/chips.js", "The employer has paused it, so it is not accepting applicants right now.", "the paused message must say the employer paused it");
+    need("js/search-input.js", "A missing posting may simply not be registered; it says nothing about whether the job exists.", "the empty-search note must say a missing posting says nothing about whether the job exists");
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

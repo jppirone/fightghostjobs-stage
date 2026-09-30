@@ -41,7 +41,7 @@ export function postingChips(p, tz) {
 
 // What the detail dialog says when a posting is not live (candidate-posting-detail answers 409 posting_not_open).
 export function notOpenMessage(status, closedReason) {
-  if (status === "paused") return "This posting is paused. The employer has confirmed it, but it is not accepting applicants right now.";
+  if (status === "paused") return "This posting is paused. The employer has paused it, so it is not accepting applicants right now.";
   if (status === "expired") return "This posting has expired" + (closedReason === "expired_no_action" ? " with no action taken by the employer." : ".");
   if (status === "closed") return closedReason === "filled" ? "This posting is closed: the employer reports the role was filled." : closedReason === "withdrawn" ? "This posting is closed: the employer withdrew it." : "This posting is closed.";
   return "This posting is not open.";

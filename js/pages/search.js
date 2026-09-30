@@ -65,7 +65,7 @@ function renderCard(row) {
         h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
         h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
         h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, locationLine(row.is_remote, row.locations) + " · postID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : ""))),
-      h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }, "✓ Verified")),
+      h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }, "✓ Registered")),
     h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, chips),
     // the employer's own words about their AI use (pass D): shown verbatim, plainly attributed, only under a toggle that is on
     ...aiNotes(row).map((n) => h("div", { class: "ai-note", style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text)),
@@ -129,7 +129,7 @@ function openModal(row) {
   $("#modalCompany").textContent = row.company_name;
   $("#modalTitle").textContent = row.title;
   $("#modalRefs").textContent = "postID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : "");
-  $("#modalIntro").textContent = "This listing is verified: a real employer registered it directly with FightGhostJobs, with the dates and disclosures shown on the search page.";
+  $("#modalIntro").textContent = "This posting was registered through FightGhostJobs by a registered poster. The dates and disclosures are the poster's own. FightGhostJobs has not confirmed that the job exists, that the poster works for the company named, or that the employer will respond.";
   clear($("#modalLinks")); const empty = $("#modalEmpty"); empty.hidden = true; empty.textContent = ""; $("#modalLinksNote").hidden = true; $("#modalMore").hidden = true; clear($("#modalMore"));
   backdrop.classList.add("open");
   return { links: $("#modalLinks"), empty };
@@ -155,7 +155,7 @@ async function openDetails(row, button) {
     if (r.ok) {
       if (r.data.links.length === 0) {
         m.empty.hidden = false;
-        m.empty.textContent = "This employer has confirmed the posting is live but hasn't provided a link to where you can apply. That's their choice to make, not a sign the posting is any less real.";
+        m.empty.textContent = "This employer has marked the posting live but hasn't provided a link to where you can apply. That's their choice to make.";
       } else {
         for (const l of r.data.links) m.links.append(linkRow(row, l));
         $("#modalLinksNote").hidden = false;   // why the links look odd, and what to do when one is wrong

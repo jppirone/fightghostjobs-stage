@@ -160,6 +160,25 @@ control("the catalog is loaded eagerly", "S16", edit("js/location-catalog.js", (
 control("the window input is removed", "S15", edit("register.html", (s) => s.replace('id="livedays"', 'id="somethingelse"')));
 control("the window input defaults to 60", "S15", edit("register.html", (s) => s.replace('value="45" autocomplete', 'value="60" autocomplete')));
 control("the extended tier appears in the form", "S15", edit("register.html", (s) => s.replace("How long it stays live:", "Extended tier: staff review. How long it stays live:")));
+// S32: public wording (2026-09-30)
+control("the search badge goes back to Verified", "S32", edit("js/pages/search.js", (s) => s.replace('"\u2713 Registered"', '"\u2713 Verified"')));
+control("the details dialog says the listing is verified again", "S32", edit("js/pages/search.js", (s) => s.replace("This posting was registered through FightGhostJobs by a registered poster.", "This listing is verified: a real employer registered it directly with FightGhostJobs.")));
+control("the details dialog loses what FightGhostJobs has not confirmed", "S32", edit("js/pages/search.js", (s) => s.replace(", that the poster works for the company named, or that the employer will respond.", ".")));
+control("the sample card badge says Verified again", "S32", edit("index.html", (s) => s.replace('<div class="pill badge-verified">\u2713 Registered</div>', '<div class="pill badge-verified">\u2713 Verified</div>')));
+control("the home pill says a free public registry again", "S32", edit("index.html", (s) => s.replace(">A registry of job postings disclosed by employers</div>", ">A free public registry</div>")));
+control("the home page promises free, always", "S32", edit("index.html", (s) => s.replace(">to register and disclose</div>", ">to register and disclose, always</div>")));
+control("the home page says permanently", "S32", edit("index.html", (s) => s.replace("Included on every tier.", "Free, on every tier, permanently.")));
+control("the home page says it costs nothing", "S32", edit("index.html", (s) => s.replace("Show candidates the facts about your listing. The core facts are free to publish.", "Prove your listing is real. It costs nothing to start.")));
+control("the home page says free, forever", "S32", edit("index.html", (s) => s.replace("The facts candidates see are free for employers to publish on every tier", "Every trust field is free, forever")));
+control("the register page label goes back to Free, always", "S32", edit("register.html", (s) => s.replace(">Free on every tier</div>", ">Free, always</div>")));
+control("the search page signup line says no cost again", "S32", edit("search.html", (s) => s.replace("No password, no account form. Free for job seekers.", "No password, no account form, no cost.")));
+control("the search page says company and title always works", "S32", edit("search.html", (s) => s.replace("Company and title are the main way to search;", "Company and title always works,")));
+control("the Post ID help says verified posting again", "S32", edit("search.html", (s) => s.replace("this specific posting", "this specific verified posting")));
+control("the no-match note says a missing posting is worth knowing", "S32", edit("js/search-input.js", (s) => s.replace("A missing posting may simply not be registered; it says nothing about whether the job exists.", "A real employer registers it, so a missing posting is itself worth knowing.")));
+control("the paused message says the employer confirmed it", "S32", edit("js/chips.js", (s) => s.replace("The employer has paused it, so it is not accepting", "The employer has confirmed it, but it is not accepting")));
+control("the no-link message says not any less real", "S32", edit("js/pages/search.js", (s) => s.replace("That's their choice to make.\"", "That's their choice to make, not a sign the posting is any less real.\"")));
+control("a real employer sentence is appended to a page", "S32", append("comments.html", "<p>Disclosed by a real employer</p>"));
+control("the requirements hint goes back to always tell (S19 pins the new wording)", "S19", edit("edit.html", (s) => s.replace("so candidates can tell which role", "so candidates can always tell which role")));
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");
 process.exit(missed ? 1 : 0);
