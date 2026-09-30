@@ -7,7 +7,7 @@
 //   S5  no way to turn text into HTML or code (innerHTML, outerHTML, insertAdjacentHTML, document.write, eval, new Function, string timers)
 //   S6  every import resolves to a real file
 //   S7  every local href / src / stylesheet exists
-//   S8  no network address other than the project's API appears in code, markup or styles (no CDN, no analytics, no font host)
+//   S8  no network address other than the project's API appears in code, markup or styles (no CDN, no analytics, no font host); the one exception is the pricing card's link to https://www.fightghostjobs.com/plans.html
 //   S31 the brand and accessibility structure: skip link, header with the logo as the way home, main, footer, the darker palette, the shared accessibility rules
 //   S9  no secret: no secret key, no token, no database URL; the publishable key appears only in js/config.js
 //   S10 the vendored Auth client is byte-identical to the recorded hash
@@ -20,6 +20,8 @@
 //   S18 the req number: the candidate's req box on search.html is MASKED as it is typed (type=password) with a show/hide toggle, and the register hint says it is required, searchable by candidates, masked, rate-limited and always visible to the employer
 //   S19 the requirements-text hint ("compared with any later changes ...") is on the register form AND the edit page, word for word, and the edit page's note label is the approved one
 //   S22 privacy.html with the approved sections; every page links to it (footer) and carries the privacy contact; both email boxes link to it
+//   S34 the register form has no editable company field: the company name is shown read only from the organization, the form never reads or sends one (the server takes it from the organization and ignores any in the request)
+//   S33 links: every link goes somewhere real: a mailto only to an approved address and only where its text says it opens an email, no tel or # or empty or javascript: link, every internal target and #anchor exists, new-tab links have rel=noopener, external links only to the marketing site, and the pricing card's "See what's included" goes to the marketing plans page
 //   S32 public wording: the app never says or implies it confirms a posting is real (the badge says Registered, the details dialog says what it does not confirm), and makes no price promise (no always, forever, permanently, no cost)
 //   S23 no page promises what is not built (cross-posting count, ATS import, company-wide view, "1 in 5", "Upgrade to add"); the sample card says it is fictional
 //   S24 the Team page exists with its controls and calls the roster only through api.js
@@ -80,7 +82,7 @@ export function checkSite(root) {
     for (const m of s.matchAll(/\b(?:href|src)\s*=\s*"([^"]*)"/g)) {
       const u = m[1];
       if (u === "" || u.startsWith("#") || u.startsWith("mailto:")) continue;
-      if (/^https?:\/\//i.test(u)) { if (!u.startsWith(API_ORIGIN)) add("S8", f, "external address in markup: " + u); continue; }
+      if (/^https?:\/\//i.test(u)) { if (!u.startsWith(API_ORIGIN) && u !== "https://www.fightghostjobs.com/plans.html") add("S8", f, "external address in markup: " + u); continue; }   // the one exception: the pricing card's navigation link to the marketing plans page (rule S33 pins where it may appear)
       const target = u.split("#")[0].split("?")[0];
       const p = target.startsWith("/") ? path.join(root, target) : path.join(path.dirname(f), target);
       if (!fs.existsSync(p)) add("S7", f, "broken local reference: " + u);
@@ -197,10 +199,10 @@ export function checkSite(root) {
     if (!/<input id="note" type="text" maxlength="500"/.test(read(eh))) add("S19", eh, "the change note input (id=note, at most 500 characters) is missing");
   }
 
-  // S20: destination links on the edit page (item 3, verified plan): the section and its controls exist, a free organization is pointed to sales, the page saves through setDestinationLinks, and it never reads an address back (the server sends position and label only)
+  // S20: destination links on the edit page (item 3, destination links tier): the section and its controls exist, a free organization is pointed to sales, the page saves through setDestinationLinks, and it never reads an address back (the server sends position and label only)
   if (fs.existsSync(eh)) {
     const eht = read(eh), ejs = path.join(root, "js", "pages", "edit.js");
-    for (const id of ["linksCard", "linksLocked", "linksForm", "linkRows", "exclusiveRow", "exclusiveToggle"]) if (!eht.includes('id="' + id + '"')) add("S20", eh, "the edit page is missing #" + id + " (destination links, verified plan)");
+    for (const id of ["linksCard", "linksLocked", "linksForm", "linkRows", "exclusiveRow", "exclusiveToggle"]) if (!eht.includes('id="' + id + '"')) add("S20", eh, "the edit page is missing #" + id + " (destination links, destination links tier)");
     if (!/<a href="mailto:sales@fightghostjobs\.com[^"]*"[^>]*>Write to sales@fightghostjobs\.com/.test(eht)) add("S20", eh, "the locked destination-links section must point to sales@fightghostjobs.com");
     if (fs.existsSync(ejs)) {
       const code = read(ejs);
@@ -238,7 +240,7 @@ export function checkSite(root) {
     if (fs.existsSync(si) && !/keep nothing else from this form\. <a href="privacy\.html">Privacy<\/a>\./.test(read(si))) add("S22", si, "the employer email box must carry the privacy one-liner and link");
   }
   // S23: no page promises what is not built (launch readiness): no cross-posting count, no ATS import claim, no company-wide view, no unsourced statistic, no "upgrade to add" for the recruiter name.
-  // The ONE place "Upgrade to add" is allowed: the locked destination-links panel on register.html (that editor genuinely exists for the verified plan), between id="linksLocked" and <!-- /linksLocked -->.
+  // The ONE place "Upgrade to add" is allowed: the locked destination-links panel on register.html (that editor genuinely exists for the destination links tier), between id="linksLocked" and <!-- /linksLocked -->.
   for (const f of html) {
     let t = read(f);
     if (path.basename(f) === "register.html") t = t.replace(/<div id="linksLocked"[\s\S]*?<!-- \/linksLocked -->/, "");
@@ -377,8 +379,76 @@ export function checkSite(root) {
     for (const f of css.concat(js)) if (OLD_COLORS.test(read(f))) add("S31", f, "an old (lower contrast) brand color is still in the code");
   }
 
+  // S34: no editable company field (phase 2a, 2026-09-30). A posting's company name is the organization's own name, set by the server. The register form shows it read only and never reads or sends one; the edit page never had one.
+  {
+    const rg = path.join(root, "register.html"), eg = path.join(root, "edit.html"), rf = path.join(root, "js", "register-form.js"), rj = path.join(root, "js", "pages", "register.js");
+    const fields = (t) => [...t.matchAll(/<(input|textarea|select)\b[^>]*>/gi)].map((m) => m[0]).filter((x) => /\b(id|name)\s*=\s*"[^"]*compan/i.test(x));
+    for (const f of [rg, eg]) if (fs.existsSync(f) && fields(read(f)).length) add("S34", f, "a form control for the company name exists: the company name is not editable");
+    if (fs.existsSync(rg)) {
+      const t = read(rg);
+      if (!/<div id="companyShown"[^>]*><\/div>/.test(t)) add("S34", rg, "the read-only company display (#companyShown, a plain div) is missing");
+      if (/<label\b[^>]*for="company/i.test(t)) add("S34", rg, "a label points at a company control that must not exist");
+    }
+    if (fs.existsSync(rf)) { const t = stripJsComments(read(rf)); if (/company_name|\bv\.company\b|["']company["']/.test(t)) add("S34", rf, "the form code must not read, validate or send a company name"); }
+    if (fs.existsSync(rj)) {
+      const t = stripJsComments(read(rj));
+      if (/#company["'`]|val\(\s*["']#company/.test(t) || /\bcompany\s*:/.test(t)) add("S34", rj, "the page must not read a company value from the form");
+      if (!/\$\(\s*"#companyShown"\s*\)\.textContent\s*=\s*ctx\.info\.organization\.name/.test(t)) add("S34", rj, "the page must show the organization's name in #companyShown");
+    }
+  }
+
+  // S33: links (2026-09-30 link audit). A mailto is allowed only where the visible text clearly says it opens an email (the address itself, or "Email us") and only to an address on the approved list below. Every other link must go to a real page.
+  {
+    const APPROVED_MAILTO = ["sales@fightghostjobs.com", "privacy@fightghostjobs.com"];   // changing this list needs John's approval
+    const APPROVED_EXTERNAL = ["https://www.fightghostjobs.com/"];
+    const PLANS_URL = "https://www.fightghostjobs.com/plans.html";
+    const aText = (h) => h.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+    const linksIn = (t) => [...t.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)].map((m) => { const g = (n) => { const r = m[1].match(new RegExp("\\b" + n + "\\s*=\\s*\"([^\"]*)\"", "i")); return r ? r[1] : null; }; return { href: g("href"), text: aText(m[2]), target: g("target"), rel: g("rel") }; });
+    const idsIn = (t) => new Set([...t.matchAll(/\bid\s*=\s*"([^"]*)"/g)].map((m) => m[1]));
+    const mailAddr = (h) => decodeURIComponent(h.replace(/^mailto:/i, "").split("?")[0]).toLowerCase();
+    const internal = (h) => h.trim() !== "" && !/^([a-z][a-z0-9+.-]*:|\/\/|#)/i.test(h.trim());
+    const target = (from, h) => { const p = h.split("#")[0].split("?")[0]; return p === "" ? from : path.join(root, p.replace(/^\//, "")); };
+    for (const f of html) {
+      const t = read(f).replace(/<!--[\s\S]*?-->/g, ""), me = path.basename(f);
+      for (const l of linksIn(t)) {
+        const h = l.href, why = (m) => add("S33", f, m + ': "' + l.text.slice(0, 50) + '" -> ' + String(h).slice(0, 80));
+        if (h === null || h.trim() === "" || h.trim() === "#" || /^javascript:/i.test(h.trim())) { why("a link with a missing, empty, # or javascript: target"); continue; }
+        if (/^tel:/i.test(h.trim())) { why("a tel link"); continue; }
+        if (/^mailto:/i.test(h.trim())) {
+          const a = mailAddr(h);
+          if (!APPROVED_MAILTO.includes(a)) why("a mailto to an address that is not approved");
+          else if (!(l.text.toLowerCase().includes(a) || /\bemail us\b/i.test(l.text))) why("a mailto whose visible text does not say it opens an email (show the address, or say Email us)");
+          continue;
+        }
+        if (/^#./.test(h.trim())) { if (!idsIn(t).has(h.trim().slice(1))) why("an anchor to an id that is not on the page"); continue; }
+        if (/^(https?:)?\/\//i.test(h.trim())) { if (!APPROVED_EXTERNAL.some((p) => h.trim().startsWith(p))) why("an external link to a host that is not approved"); if (l.target === "_blank" && !/noopener/.test(l.rel || "")) why("a new-tab link without rel=noopener"); continue; }
+        if (internal(h)) {
+          const tp = target(f, h);
+          if (!fs.existsSync(tp) || !fs.statSync(tp).isFile()) { why("an internal link to a file that does not exist"); continue; }
+          const frag = h.split("#")[1];
+          if (frag && tp.endsWith(".html") && !idsIn(read(tp)).has(frag)) why("an anchor to an id that is not on the page it names");
+        }
+        if (l.target === "_blank" && !/noopener/.test(l.rel || "")) why("a new-tab link without rel=noopener");
+      }
+      if (linksIn(t).some((l) => /included|each tier|plans?\b/i.test(l.text) && /^mailto:/i.test(l.href || ""))) add("S33", f, "a link about what is included or the tiers must not be a mailto");
+    }
+    // links built by the scripts
+    for (const f of js) {
+      const t = stripJsComments(read(f));
+      if (/href["']?\s*[:=]\s*["'`]#["'`]/.test(t)) add("S33", f, "a script builds a link with # as its target");
+      for (const m of t.matchAll(/["'`]mailto:([^"'`?]*)/g)) if (!APPROVED_MAILTO.includes(decodeURIComponent(m[1]).toLowerCase())) add("S33", f, "a script builds a mailto to an address that is not approved: " + m[1]);
+      for (const m of t.matchAll(/["'`]([A-Za-z0-9_\-\/]+\.html)(?:[?#][^"'`]*)?["'`]/g)) { const p = path.join(root, m[1].replace(/^\//, "")); if (!fs.existsSync(p)) add("S33", f, "a script points at a page that does not exist: " + m[1]); }
+    }
+    // the pricing card
+    const rg = path.join(root, "register.html");
+    if (fs.existsSync(rg)) {
+      const rl = linksIn(read(rg).replace(/<!--[\s\S]*?-->/g, "")).filter((l) => l.text === "See what's included \u2192");
+      if (rl.length !== 1 || rl[0].href !== PLANS_URL) add("S33", rg, "the pricing card must have exactly one \"See what's included\" link and it must go to " + PLANS_URL);
+    }
+  }
+
   // S32: public wording (decided 2026-09-30). FightGhostJobs is a registry of job postings disclosed by employers: it never says or implies that it confirms a posting is real, and it makes no price or permanence promise beyond what is decided.
-  // The old claims are caught wherever they come back (page text, attributes, script strings), and the approved replacements must be where they belong. "verified plan" / "Verified tier" (the plan name) and candidate email verification are NOT in this rule.
+  // The old claims are caught wherever they come back (page text, attributes, script strings), and the approved replacements must be where they belong. Candidate email verification ("Verified candidate", "keeps you verified for 90 days", rule S29) is NOT in this rule.
   {
     const RETIRED = [
       [/\u2713 Verified/, "the posting badge must say Registered, not Verified"],
@@ -393,6 +463,7 @@ export function checkSite(root) {
       [/costs? nothing|no cost/i, "no cost promise (say Free for job seekers where it is decided)"],
       [/Company and title always works/i, "no always promise about search"],
       [/specific verified posting/i, "a Post ID belongs to a specific posting, not a verified one"],
+      [/verified[- ](plan|tier)/i, "the paid tier's user-facing name is Destination links tier (the database value and function names keep their names, but no page, script text or attribute says verified plan or verified tier)"],
       [/itself worth knowing/i, "a missing posting must not be presented as meaningful about the job"],
     ];
     for (const f of html.concat(js)) {

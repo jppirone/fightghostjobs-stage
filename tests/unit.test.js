@@ -129,9 +129,16 @@ const good = { title: "Senior Data Analyst", req: "4471", company: "Acme Corp", 
 test("register form: a complete form has no problems and builds exactly the body the backend wants", () => {
   assert.deepEqual(validateForm(good), {});
   const b = buildCreateBody(good);
-  assert.deepEqual(b, { req_number: "4471", title: "Senior Data Analyst", company_name: "Acme Corp", tier: "standard", initial_closeout_condition: "Closes when the role is filled", description_text: "About the job...",
+  assert.deepEqual(b, { req_number: "4471", title: "Senior Data Analyst", tier: "standard", initial_closeout_condition: "Closes when the role is filled", description_text: "About the job...",
     is_remote: false, location_ids: ["gn:4174757"], ai_filtering: false, ai_interview_other: true, third_party_recruiter: false, applicant_cap: 250 });
   assert.equal("poster_id" in b || "organization_id" in b || "status" in b, false);      // identity and status are never the page's to send
+});
+
+test("register form: the company name is never asked for and never sent (the server takes it from the organization)", () => {
+  assert.equal("company" in validateForm(Object.assign({}, good, { company: "" })), false);   // a blank or missing company is not a problem
+  assert.deepEqual(validateForm(Object.assign({}, good, { company: undefined })), {});
+  for (const c of ["Acme Corp", "Some Other Company", "", undefined]) assert.equal("company_name" in buildCreateBody(Object.assign({}, good, { company: c })), false);
+  assert.equal(JSON.stringify(buildCreateBody(good)).includes("Acme Corp"), false);          // the typed value (if a script ever supplied one) never reaches the request
 });
 
 test("both AI disclosures are ALWAYS sent as real booleans, off included (never omitted, never null)", () => {
@@ -145,7 +152,7 @@ test("both AI disclosures are ALWAYS sent as real booleans, off included (never 
 
 test("register form: what is missing is named; the cap, remote and location rules", () => {
   const e = validateForm({ title: " ", req: "", company: "", locEntries: [], remote: false, appcap: "", closeout: "", desc: "" });
-  assert.deepEqual(Object.keys(e).sort(), ["closeout", "company", "desc", "jtitle", "locpicker", "req"]);
+  assert.deepEqual(Object.keys(e).sort(), ["closeout", "desc", "jtitle", "locpicker", "req"]);
   assert.equal(validateForm(Object.assign({}, good, { locEntries: [], remote: true })).locpicker, undefined);
   assert.equal(buildCreateBody(Object.assign({}, good, { locEntries: [], remote: true })).is_remote, true);
   assert.equal("location_ids" in buildCreateBody(Object.assign({}, good, { locEntries: [], remote: true })), false);
@@ -243,8 +250,8 @@ test("register form: what the result says about the links", () => {
   assert.equal(linksOutcome(3, null).text, "3 destination links are stored with it.");
   const rowProblem = linksOutcome(null, { rows: { 0: { url: "url host is not allowed" } }, general: null, planRequired: false });
   assert.equal(rowProblem.kind, "error"); assert.match(rowProblem.text, /see the messages under the addresses/); assert.match(rowProblem.text, /My postings \(Edit\)/);
-  const plan = linksOutcome(null, { rows: {}, general: "Destination links are part of the verified plan.", planRequired: true });
-  assert.match(plan.text, /^Destination links are part of the verified plan\. The posting itself is saved\. You can add links/);
+  const plan = linksOutcome(null, { rows: {}, general: "Destination links are part of the destination links tier.", planRequired: true });
+  assert.match(plan.text, /^Destination links are part of the destination links tier\. The posting itself is saved\. You can add links/);
 });
 
 test("register form: a liveness warning turns the links line into a notice", () => {

@@ -44,7 +44,7 @@ export const MIN_WINDOW_DAYS = 14, MAX_WINDOW_DAYS = 45;      // the standard-ti
 
 // The form's input ids -> the backend's field names (for showing a server refusal under the right input)
 export const FIELD_OF_SERVER_NAME = {
-  title: "jtitle", req_number: "req", company_name: "company", location_ids: "locpicker", locations: "locpicker", is_remote: "locpicker", locations_attested: "attest", applicant_cap: "appcap",
+  title: "jtitle", req_number: "req", location_ids: "locpicker", locations: "locpicker", is_remote: "locpicker", locations_attested: "attest", applicant_cap: "appcap",
   initial_closeout_condition: "closeout", description_text: "desc", window_days: "livedays", duplicate_explanation: "dupnote", ai_filtering_note: "aiFilterNote", ai_interview_note: "aiInterviewNote",
 };
 export const MAX_DUP_NOTE = 300;      // create-posting refuses a longer explanation
@@ -57,7 +57,6 @@ export function validateForm(v) {
   const e = {};
   const need = (id, text, what) => { if (String(text || "").trim() === "") e[id] = "Enter " + what + "."; };
   need("jtitle", v.title, "the job title");
-  need("company", v.company, "the company name");
   need("closeout", v.closeout, "what ends this posting");
   need("req", v.req, "your req number");
   need("desc", v.desc, "the job description");
@@ -88,7 +87,6 @@ export function buildCreateBody(v) {
   const body = {
     req_number: String(v.req).trim(),
     title: String(v.title).trim(),
-    company_name: String(v.company).trim(),
     tier: "standard",
     initial_closeout_condition: String(v.closeout).trim(),
     description_text: String(v.desc).trim(),

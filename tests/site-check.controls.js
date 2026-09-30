@@ -105,7 +105,7 @@ control("the candidate email box loses the privacy one-liner", "S22", edit("sear
 control("the landing page promises a cross-posting count again", "S23", append("index.html", "<div>Posted in 2 places</div>"));
 control("the register page promises ATS import again", "S23", append("register.html", "<li>Bulk import from your ATS</li>"));
 control("the sample card stops saying it is fictional", "S23", edit("index.html", (s) => s.replace("(a fictional employer)", "")));
-control("'Upgrade to add' outside the links panel (the recruiter-firms panel)", "S23", edit("register.html", (s) => s.replace("Naming the firm is part of the verified plan.", "Upgrade to add the recruiter firm.")));
+control("'Upgrade to add' outside the links panel (the recruiter-firms panel)", "S23", edit("register.html", (s) => s.replace("Naming the firm is part of the destination links tier.", "Upgrade to add the recruiter firm.")));
 control("'Upgrade to add' on another page", "S23", append("edit.html", "<p>Upgrade to add named recruiter firms</p>"));
 control("the edit page loses the filtering tooltip", "S25", edit("edit.html", (s) => s.replace('AI used for initial filtering<span class="info-icon" tabindex="0">i<span class="info-tooltip">Resume screening', 'AI used for initial filtering<span class="info-icon" tabindex="0">i<span class="info-tooltip">Automated rejection')));
 control("the register page's interviewing tooltip is reworded", "S25", edit("register.html", (s) => s.replace("Any AI that interacts with a candidate directly", "Any AI at all")));
@@ -179,6 +179,38 @@ control("the paused message says the employer confirmed it", "S32", edit("js/chi
 control("the no-link message says not any less real", "S32", edit("js/pages/search.js", (s) => s.replace("That's their choice to make.\"", "That's their choice to make, not a sign the posting is any less real.\"")));
 control("a real employer sentence is appended to a page", "S32", append("comments.html", "<p>Disclosed by a real employer</p>"));
 control("the requirements hint goes back to always tell (S19 pins the new wording)", "S19", edit("edit.html", (s) => s.replace("so candidates can tell which role", "so candidates can always tell which role")));
+// S33: links (2026-09-30)
+control("a mailto to an address that is not approved", "S33", edit("comments.html", (s) => s.replace("</main>", '<p><a href="mailto:info@fightghostjobs.com">info@fightghostjobs.com</a></p></main>')));
+control("a mailto whose text does not say it opens an email", "S33", edit("comments.html", (s) => s.replace("</main>", '<p><a href="mailto:sales@fightghostjobs.com">See what is included</a></p></main>')));
+control("the pricing card link is a mailto again", "S33", edit("register.html", (s) => s.replace('<a href="https://www.fightghostjobs.com/plans.html" style="display:inline-block', '<a href="mailto:sales@fightghostjobs.com?subject=Destination%20links%20tier" style="display:inline-block')));
+control("the pricing card link points somewhere else", "S33", edit("register.html", (s) => s.replace('href="https://www.fightghostjobs.com/plans.html"', 'href="https://www.fightghostjobs.com/index.html"')));
+control("the pricing card link is removed", "S33", edit("register.html", (s) => s.replace(/<a href="https:\/\/www\.fightghostjobs\.com\/plans\.html"[^>]*>See what's included \u2192<\/a>/, "")));
+control("a link with # as its target", "S33", edit("team.html", (s) => s.replace("</main>", '<p><a href="#">More</a></p></main>')));
+control("a link with an empty target", "S33", edit("team.html", (s) => s.replace("</main>", '<p><a href="">More</a></p></main>')));
+control("a javascript: link", "S33", edit("team.html", (s) => s.replace("</main>", '<p><a href="javascript:void(0)">More</a></p></main>')));
+control("a tel link", "S33", edit("team.html", (s) => s.replace("</main>", '<p><a href="tel:+15555550100">+1 555 555 0100</a></p></main>')));
+control("an internal link to a page that does not exist", "S33", edit("search.html", (s) => s.replace("</main>", '<p><a href="pricing.html">Pricing</a></p></main>')));
+control("an anchor to an id that is not on the page", "S33", edit("search.html", (s) => s.replace("</main>", '<p><a href="#nowhere">Jump</a></p></main>')));
+control("an anchor to an id that is not on the page it names", "S33", edit("search.html", (s) => s.replace("</main>", '<p><a href="register.html#nowhere">Jump</a></p></main>')));
+control("a new-tab link without noopener", "S33", edit("privacy.html", (s) => s.replace("</main>", '<p><a href="https://www.fightghostjobs.com/" target="_blank">Site</a></p></main>')));
+control("an external link to an unapproved host", "S33", edit("privacy.html", (s) => s.replace("</main>", '<p><a href="https://example.com/">Elsewhere</a></p></main>')));
+control("a link about the tiers that is a mailto", "S33", edit("team.html", (s) => s.replace("</main>", '<p><a href="mailto:sales@fightghostjobs.com">Compare the tiers at sales@fightghostjobs.com</a></p><p><a href="mailto:sales@fightghostjobs.com">Compare each tier</a></p></main>')));
+control("a script builds a link with # as its target", "S33", append("js/pages/team.js", 'const _x = { href: "#" };'));
+control("a script builds a mailto to an unapproved address", "S33", append("js/pages/team.js", 'const _y = "mailto:info@fightghostjobs.com";'));
+control("a script points at a page that does not exist", "S33", append("js/pages/team.js", 'const _z = "pricing.html";'));
+control("the old tier name returns in a page", "S32", edit("edit.html", (s) => s.replace("part of the destination links tier.", "part of the verified plan.")));
+control("the old tier name returns in a script message", "S32", edit("js/pages/edit.js", (s) => s.replace("Your destination links tier ended.", "Your verified plan ended.")));
+control("the old tier name returns as a label", "S32", edit("register.html", (s) => s.replace(">Destination links tier</div>", ">Verified tier</div>")));
+// S34: no editable company field (2026-09-30)
+control("an editable company input is added back to the register form", "S34", edit("register.html", (s) => s.replace('<div id="companyShown"', '<input id="company" type="text"><div id="companyShown"')));
+control("a company control with another name is added to the register form", "S34", edit("register.html", (s) => s.replace('<div id="companyShown"', '<input name="companyName" type="text"><div id="companyShown"')));
+control("a company textarea is added to the edit page", "S34", edit("edit.html", (s) => s.replace("</main>", '<textarea id="company"></textarea></main>')));
+control("the read-only display is removed", "S34", edit("register.html", (s) => s.replace(/<div id="companyShown"[^>]*><\/div>/, "")));
+control("the read-only display turns into an input", "S34", edit("register.html", (s) => s.replace('<div id="companyShown" style="', '<input id="companyShown" style="').replace("min-height:20px;\"></div>", 'min-height:20px;">')));
+control("the form code sends a company name again", "S34", edit("js/register-form.js", (s) => s.replace("    tier: \"standard\",", "    company_name: String(v.company).trim(),\n    tier: \"standard\",")));
+control("the form code asks for a company name again", "S34", edit("js/register-form.js", (s) => s.replace('  need("closeout", v.closeout, "what ends this posting");', '  need("company", v.company, "the company name");\n  need("closeout", v.closeout, "what ends this posting");')));
+control("the page reads a company value from the form again", "S34", edit("js/pages/register.js", (s) => s.replace('req: val("#req"), locEntries:', 'req: val("#req"), company: val("#company"), locEntries:')));
+control("the page stops showing the organization's name", "S34", edit("js/pages/register.js", (s) => s.replace('$("#companyShown").textContent = ctx.info.organization.name;', "")));
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");
 process.exit(missed ? 1 : 0);

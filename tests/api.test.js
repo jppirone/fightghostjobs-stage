@@ -177,8 +177,8 @@ test("setDestinationLinks sends the posting id and the full link set to set-dest
   assert.equal(badCheck.ok, false); assert.equal(badCheck.error.code, "bad_response");
   const bad = await mk(() => ({ status: 200, body: { active_links: 2, links: [{ position: 1, label: "x", url: "https://leak.example.com" }, { position: "2" }] } })).api.setDestinationLinks(uuid, links);
   assert.equal(bad.ok, false); assert.equal(bad.error.code, "bad_response");
-  const refused = await mk(() => ({ status: 403, body: { error: "This feature is part of the verified plan.", code: "plan_required" } })).api.setDestinationLinks(uuid, links);
-  assert.equal(refused.ok, false); assert.equal(refused.status, 403); assert.equal(refused.error.code, "plan_required"); assert.equal(refused.error.message, "This feature is part of the verified plan.");
+  const refused = await mk(() => ({ status: 403, body: { error: "This feature is part of the destination links tier.", code: "plan_required" } })).api.setDestinationLinks(uuid, links);
+  assert.equal(refused.ok, false); assert.equal(refused.status, 403); assert.equal(refused.error.code, "plan_required"); assert.equal(refused.error.message, "This feature is part of the destination links tier.");
 });
 
 test("pass C: setRecruiterFirms sends kind recruiter with the firms; the shapes accept kind + firm on stored, detail and issue links, up to 13 rows, and refuse a firm without a name", async () => {

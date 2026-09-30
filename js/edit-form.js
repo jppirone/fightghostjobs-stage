@@ -176,7 +176,7 @@ export function checkFirms(rows) {
 export function mapLinksErrors(err, rowOf) {
   const rows = {}; let general = null;
   if (!err) return { rows, general: "Something went wrong.", planRequired: false, recruiterOff: false };
-  if (err.code === "plan_required") return { rows, general: err.message || "Destination links are part of the verified plan. Your organization is not on it (or the plan has ended), so nothing was changed.", planRequired: true, recruiterOff: false };
+  if (err.code === "plan_required") return { rows, general: err.message || "Destination links are part of the destination links tier. Your organization is not on it (or the tier has ended), so nothing was changed.", planRequired: true, recruiterOff: false };
   if (err.code === "recruiter_off") return { rows, general: err.message || "Recruiter firms can be named only while the posting says a third-party recruiter is involved. Turn that on and save the posting first.", planRequired: false, recruiterOff: true };
   const list = Array.isArray(err.errors) && err.errors.length ? err.errors : err.field ? [{ field: err.field, message: err.message || "Not accepted." }] : [];
   for (const x of list) {

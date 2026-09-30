@@ -145,8 +145,8 @@ test("destination links: the rows are checked before anything is sent; blank row
 });
 
 test("a refusal from set-destination-links: plan_required is said in words; row errors land on the row the employer typed it in", () => {
-  const p = mapLinksErrors({ code: "plan_required", message: "This feature is part of the verified plan." }, [0]); assert.equal(p.planRequired, true); assert.equal(p.general, "This feature is part of the verified plan.");
-  assert.equal(mapLinksErrors({ code: "plan_required" }, [0]).general.includes("verified plan"), true);
+  const p = mapLinksErrors({ code: "plan_required", message: "This feature is part of the destination links tier." }, [0]); assert.equal(p.planRequired, true); assert.equal(p.general, "This feature is part of the destination links tier.");
+  assert.equal(mapLinksErrors({ code: "plan_required" }, [0]).general.includes("destination links tier"), true);
   const r = mapLinksErrors({ code: "invalid_request", field: "links[1].url", message: "url host is not a valid domain name", errors: [{ field: "links[1].url", message: "url host is not a valid domain name" }] }, [0, 3]);
   assert.deepEqual(r.rows, { 3: { url: "url host is not a valid domain name" } }); assert.equal(r.general, null); assert.equal(r.planRequired, false);
   assert.equal(mapLinksErrors({ code: "invalid_request", field: "links", message: "links must contain between 1 and 10 entries", errors: [{ field: "links", message: "links must contain between 1 and 10 entries" }] }, [0]).general, "links must contain between 1 and 10 entries");

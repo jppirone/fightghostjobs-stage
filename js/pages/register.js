@@ -42,7 +42,7 @@ const val = (id) => $(id).value;
 const goLater = () => $("#glLater").checked;
 function syncGoLive() { $("#glWhen").hidden = !goLater(); registerBtn.textContent = goLater() ? "Register and schedule" : "Register posting"; }
 $("#glNow").addEventListener("change", syncGoLive); $("#glLater").addEventListener("change", syncGoLive);
-const collect = () => ({ title: val("#jtitle"), req: val("#req"), company: val("#company"), locEntries: picker.get().entries, attested: picker.get().attested, remote: $("#remote").checked, appcap: val("#appcap"), win: val("#livedays"), closeout: val("#closeout"), desc: val("#desc"),
+const collect = () => ({ title: val("#jtitle"), req: val("#req"), locEntries: picker.get().entries, attested: picker.get().attested, remote: $("#remote").checked, appcap: val("#appcap"), win: val("#livedays"), closeout: val("#closeout"), desc: val("#desc"),
   aiFilter: state.aiFilter, aiInterview: state.aiInterview, aiFilterNote: val("#aiFilterNote"), aiInterviewNote: val("#aiInterviewNote"), recruiter: state.recruiter, dupAsked: state.dupAsked, dupNote: val("#dupnote"), goLater: goLater(), goLive: val("#gldate") });
 
 function showErrors(byField) {
@@ -142,8 +142,8 @@ function setupLinkRows(notice) {
   $("#linksLocked").hidden = notice.state !== "locked";
   $("#linksForm").hidden = notice.state !== "active";
   const box = $("#linksPlan"); clear(box); box.hidden = true;
-  if (notice.state === "lapsed") { box.hidden = false; box.append(alertBox("notice", "Your verified plan ended" + (notice.endsAt ? " on " + planDay(notice.endsAt) : "") + ". Destination links are paused until it is renewed; the posting can still be registered without them. To renew, write to sales@fightghostjobs.com.")); }
-  else if (notice.state === "active" && notice.endsSoon) { box.hidden = false; box.append(alertBox("notice", "Your verified plan ends on " + planDay(notice.endsAt) + ". After that, destination links are paused (kept, but candidates do not see them) until it is renewed.")); }
+  if (notice.state === "lapsed") { box.hidden = false; box.append(alertBox("notice", "Your destination links tier ended" + (notice.endsAt ? " on " + planDay(notice.endsAt) : "") + ". Destination links are paused until it is renewed; the posting can still be registered without them. To renew, write to sales@fightghostjobs.com.")); }
+  else if (notice.state === "active" && notice.endsSoon) { box.hidden = false; box.append(alertBox("notice", "Your destination links tier ends on " + planDay(notice.endsAt) + ". After that, destination links are paused (kept, but candidates do not see them) until it is renewed.")); }
   if (notice.state === "active") state.links = mountLinkRowsById();
 }
 const planDay = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -233,6 +233,6 @@ draftBtn.addEventListener("click", () => submit("draft"));
   await mountAccount($("#navAccount"), { cta: false });
   if (!ctx.info) { say(pageAlert, "error", describeError(ctx.error) + " Reload the page to try again."); setBusy(true); return; }
   $("#orgName").textContent = ctx.info.organization.name;
-  $("#company").value = ctx.info.organization.name;
+  $("#companyShown").textContent = ctx.info.organization.name;   // read only: the server takes the company name from the organization and ignores any in the request
   setupLinks(ctx.info.plan);
 })();

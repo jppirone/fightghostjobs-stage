@@ -120,10 +120,10 @@ function renderLinks(doc, editable) {
   $("#exclusiveRow").hidden = notice.state !== "active";
   if (notice.state === "lapsed") {
     plan.hidden = false;
-    plan.append(alertBox("notice", "Your verified plan ended" + (notice.endsAt ? " on " + planDay(notice.endsAt) : "") + ". Destination links are paused: candidates do not see them, and no one is sent to them. " + (doc.destination_links.length ? "The " + doc.destination_links.length + " you saved are kept and return as soon as your plan is renewed. " : "") + "To renew, write to sales@fightghostjobs.com."));
+    plan.append(alertBox("notice", "Your destination links tier ended" + (notice.endsAt ? " on " + planDay(notice.endsAt) : "") + ". Destination links are paused: candidates do not see them, and no one is sent to them. " + (doc.destination_links.length ? "The " + doc.destination_links.length + " you saved are kept and return as soon as your plan is renewed. " : "") + "To renew, write to sales@fightghostjobs.com."));
     $("#linksLocked").hidden = true;
   } else if (notice.state === "active" && notice.endsSoon) {
-    plan.hidden = false; plan.append(alertBox("notice", "Your verified plan ends on " + planDay(notice.endsAt) + ". After that, destination links are paused (kept, but candidates do not see them) until it is renewed. To renew, write to sales@fightghostjobs.com."));
+    plan.hidden = false; plan.append(alertBox("notice", "Your destination links tier ends on " + planDay(notice.endsAt) + ". After that, destination links are paused (kept, but candidates do not see them) until it is renewed. To renew, write to sales@fightghostjobs.com."));
   }
   const stored = $("#linksStored"); clear(stored);
   if (notice.state === "active") {
@@ -144,7 +144,7 @@ function renderFirms(doc, editable) {
   $("#firmsLocked").hidden = notice.state === "active" || notice.state === "lapsed";
   const savedOn = doc.posting.third_party_recruiter === true;
   $("#firmsForm").hidden = !(notice.state === "active" && savedOn && state.recruiter);
-  if (notice.state === "lapsed") { note.hidden = false; note.append(alertBox("notice", "Your verified plan ended. " + (stored.length ? "The " + stored.length + " firm" + (stored.length === 1 ? "" : "s") + " you named " + (stored.length === 1 ? "is" : "are") + " kept but hidden from candidates until it is renewed." : "Naming a recruiter firm is paused until it is renewed."))); }
+  if (notice.state === "lapsed") { note.hidden = false; note.append(alertBox("notice", "Your destination links tier ended. " + (stored.length ? "The " + stored.length + " firm" + (stored.length === 1 ? "" : "s") + " you named " + (stored.length === 1 ? "is" : "are") + " kept but hidden from candidates until it is renewed." : "Naming a recruiter firm is paused until it is renewed."))); }
   else if (notice.state === "active" && !state.recruiter && stored.length) { note.hidden = false; note.append(alertBox("notice", "The toggle is off: " + (stored.length === 1 ? "the firm you named is" : "the " + stored.length + " firms you named are") + " kept but hidden from candidates. Turn it on and save to show them again.")); }
   else if (notice.state === "active" && state.recruiter && !savedOn) { note.hidden = false; note.append(alertBox("notice", "Save the posting with the toggle on first; then you can name the firm here.")); }
   if (!$("#firmsForm").hidden) {
