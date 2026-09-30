@@ -59,7 +59,16 @@ control("a database URL", "S9", append("js/format.js", "export const D = 'postgr
 control("service_role mentioned in a page script", "S9", append("js/pages/search.js", "// uses service_role"));
 control("the publishable key copied into another file", "S9", (dir) => { const k = fs.readFileSync(path.join(dir, "js/config.js"), "utf8").match(/sb_publishable_[A-Za-z0-9_-]+/)[0]; fs.appendFileSync(path.join(dir, "js/format.js"), "\nexport const K2 = '" + k + "';\n"); });
 control("the vendored Auth client tampered with", "S10", (dir) => fs.appendFileSync(path.join(dir, "vendor/auth-js.min.mjs"), "\n/* tampered */\n"));
-control("target=_blank without noopener in markup", "S12", edit("index.html", (s) => s.replace('<a class="nav-logo" href="index.html">', '<a class="nav-logo" target="_blank" href="index.html">')));
+control("target=_blank without noopener in markup", "S12", edit("index.html", (s) => s.replace('<a class="nav-logo" href="index.html" aria-label="FightGhostJobs home">', '<a class="nav-logo" target="_blank" href="index.html" aria-label="FightGhostJobs home">')));
+control("the skip link removed from a page", "S31", edit("team.html", (s) => s.replace('<a class="skip-link" href="#main">Skip to content</a>\n', "")));
+control("the logo loses its accessible name", "S31", edit("dashboard.html", (s) => s.replace(' aria-label="FightGhostJobs home"', "")));
+control("the logo is no longer the first link in the header", "S31", edit("register.html", (s) => s.replace('<a class="nav-logo" href="index.html"', '<a class="nav-logo" href="privacy.html"')));
+control("the main region lost from a page", "S31", edit("edit.html", (s) => s.replace('<main id="main">', "<div>").replace("</main>", "</div>")));
+control("the footer turned back into a plain div", "S31", edit("comments.html", (s) => s.replace('<footer class="site-footer">', '<div class="site-footer">').replace("</footer>", "</div>")));
+control("the header links no longer a nav", "S31", edit("analytics.html", (s) => s.replace('<nav class="nav-links" aria-label="Main">', '<div class="nav-links">').replace("  </nav>", "  </div>")));
+control("the old lower-contrast ember returns", "S31", edit("styles.css", (s) => s.replace("--ember:#C43E19;", "--ember:#E8491E;")));
+control("the link underline rule removed", "S31", edit("app.css", (s) => s.replace("main a:not(.btn):not(td a){text-decoration:underline", "main a:not(.btn):not(td a){text-decoration:none")));
+control("the current page loses aria-current", "S31", edit("search.html", (s) => s.replace(' aria-current="page"', "")));
 control("a new tab opened without noopener", "S12", append("js/pages/index.js", "window.open('x.html', '_blank');"));
 control("app.css loaded before styles.css", "S13", edit("register.html", (s) => s.replace('<link rel="stylesheet" href="styles.css">\n<link rel="stylesheet" href="app.css">', '<link rel="stylesheet" href="app.css">\n<link rel="stylesheet" href="styles.css">')));
 

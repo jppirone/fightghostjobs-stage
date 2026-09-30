@@ -12,16 +12,19 @@
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 
-<div class="nav">
-  <a class="nav-logo" href="index.html"><span class="nav-dot"></span><span class="nav-wordmark">FightGhostJobs</span></a>
-  <div class="nav-links">
+<header class="nav">
+  <a class="nav-logo" href="index.html" aria-label="FightGhostJobs home"><svg class="nav-mark" width="44" height="44" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect x="4.5" y="4.5" width="40" height="40" rx="10" fill="var(--ink)" fill-opacity=".16" stroke="var(--ink)" stroke-opacity=".55" stroke-width="2.4" stroke-dasharray="5 4"/><rect x="18" y="18" width="42" height="42" rx="10" fill="var(--ember)"/><path d="M29 40 L37 48 L50 31" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="nav-wordmark"><span class="wm-fight">Fight</span><span class="wm-ghost">Ghost</span><span class="wm-jobs">Jobs</span></span></a>
+  <nav class="nav-links" aria-label="Main">
     <a href="#candidates">For Candidates</a>
     <a href="#employers">For Employers</a>
     <a href="search.html">Search Postings</a>
-  </div>
+  </nav>
   <div id="navAccount" style="display:flex;align-items:center;"><a class="btn btn-primary btn-sm" href="register.html">Register a Posting →</a></div>
-</div>
+</header>
+
+<main id="main">
 
 <div style="padding:96px 64px 80px 64px;display:flex;gap:64px;align-items:center;max-width:1440px;margin:0 auto;">
   <div style="flex:1;display:flex;flex-direction:column;gap:28px;">
@@ -39,7 +42,7 @@
         <div>
           <div style="font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;">Example: Meridian Health Systems (a fictional employer)</div>
           <div style="font-size:20px;font-weight:700;margin-top:4px;">Senior Data Analyst</div>
-          <div style="font-size:14px;color:var(--muted);margin-top:2px;">Remote · postID X7K2•••••</div>
+          <div style="font-size:14px;color:var(--muted);margin-top:2px;">Remote · postID <span class="mono">X7K2•••••</span></div>
         </div>
         <div class="pill badge-verified">✓ Verified</div>
       </div>
@@ -62,7 +65,7 @@
       </div>
       <div style="flex:1;background:var(--ember);color:#fff;border-radius:16px;padding:24px;">
         <div style="font-size:32px;font-weight:700;font-family:'Space Grotesk',sans-serif;">Free</div>
-        <div style="font-size:13px;color:#FDE4DA;margin-top:4px;">to register and disclose, always</div>
+        <div style="font-size:13px;color:#FFFFFF;margin-top:4px;">to register and disclose, always</div>
       </div>
     </div>
   </div>
@@ -108,14 +111,16 @@
   </div>
 </div>
 
-<div style="padding:32px 64px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;max-width:1440px;margin:0 auto;">
+</main>
+
+<footer style="padding:32px 64px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;max-width:1440px;margin:0 auto;">
   <span class="site-footer" style="padding:0;border:0;max-width:none;margin:0;"><span>FightGhostJobs</span><a href="privacy.html">Privacy</a><a href="mailto:privacy@fightghostjobs.com">privacy@fightghostjobs.com</a><a href="mailto:sales@fightghostjobs.com">sales@fightghostjobs.com</a></span>
   <div style="display:flex;gap:28px;">
     <a href="search.html" style="font-size:13px;color:var(--faint);">Search</a>
     <a href="register.html" style="font-size:13px;color:var(--faint);">Register</a>
     <a href="employer-signin.html" style="font-size:13px;color:var(--faint);">Employer sign in</a>
   </div>
-</div>
+</footer>
 
 <script type="module" src="js/pages/index.js"></script>
 </body>

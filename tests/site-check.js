@@ -8,6 +8,7 @@
 //   S6  every import resolves to a real file
 //   S7  every local href / src / stylesheet exists
 //   S8  no network address other than the project's API appears in code, markup or styles (no CDN, no analytics, no font host)
+//   S31 the brand and accessibility structure: skip link, header with the logo as the way home, main, footer, the darker palette, the shared accessibility rules
 //   S9  no secret: no secret key, no token, no database URL; the publishable key appears only in js/config.js
 //   S10 the vendored Auth client is byte-identical to the recorded hash
 //   S11 every font file the stylesheet names exists; nothing is @imported
@@ -344,6 +345,35 @@ export function checkSite(root) {
       if (!t.includes("We do not email them")) add("S24", th, "the add form must say that nobody is emailed");
       const c = read(tj); for (const m of ["api.rosterList(", "api.rosterAdd(", "api.rosterRemove(", "api.rosterSetAdmin("]) if (!c.includes(m)) add("S24", tj, "team.js must use " + m);
     }
+  }
+
+  // S31: the brand and accessibility structure (WCAG 2.2 AA): every page has a skip link, one header holding the logo (the link back to the start page), one main and one footer;
+  // the palette is the darker one (small text passes 4.5:1) and the shared stylesheet carries the accessibility rules
+  {
+    const OLD_COLORS = /#E8491E|#C23814|#8A837A/i;
+    for (const f of html) {
+      const s = read(f), name = path.basename(f), body = s.slice(s.indexOf("<body"));
+      const count = (sub) => body.split(sub).length - 1;
+      if (!body.startsWith('<body>\n<a class="skip-link" href="#main">Skip to content</a>\n')) add("S31", f, "the skip link must be the first thing in the body");
+      if (count("<header ") !== 1 || count("</header>") !== 1) add("S31", f, "the page needs exactly one <header>");
+      if (count('<main id="main">') !== 1 || count("</main>") !== 1) add("S31", f, "the page needs exactly one <main id=\"main\">");
+      if (count("<footer ") !== 1 || count("</footer>") !== 1) add("S31", f, "the page needs exactly one <footer>");
+      const logo = body.match(/<header class="nav">\n  <a class="nav-logo" href="(\/?index\.html)" aria-label="FightGhostJobs home">([\s\S]*?)<\/a>/);
+      if (!logo) add("S31", f, "the first thing in the header must be the logo, a link back to index.html named FightGhostJobs home");
+      else if (!logo[2].includes('<span class="wm-fight">Fight</span><span class="wm-ghost">Ghost</span><span class="wm-jobs">Jobs</span>') || !/<svg class="nav-mark"[^>]*aria-hidden="true"/.test(logo[2])) add("S31", f, "the logo must be the three-word wordmark with no spaces between the words, and its picture hidden from screen readers");
+      if (name !== "404.html" && !body.includes('<nav class="nav-links" aria-label="Main">')) add("S31", f, "the header links must be a <nav> labelled Main");
+      if (/nav-dot/.test(body)) add("S31", f, "the old square logo (nav-dot) must not come back");
+      if (OLD_COLORS.test(s)) add("S31", f, "an old (lower contrast) brand color is still on the page");
+    }
+    const sp = path.join(root, "app.css"), st = path.join(root, "styles.css");
+    if (fs.existsSync(st) && (!/--ember:#C43E19;/.test(read(st)) || !/--ember-dark:#A8320F;/.test(read(st)) || !/--faint:#726C64;/.test(read(st)) || OLD_COLORS.test(read(st)))) add("S31", st, "the palette must be the darker ember (#C43E19), ember-dark (#A8320F) and faint (#726C64)");
+    if (fs.existsSync(sp)) {
+      const c = read(sp);
+      for (const need of [".skip-link:focus", '[aria-current="page"]', "main a:not(.btn):not(td a){text-decoration:underline", "prefers-reduced-motion:reduce", "--font-mono:", ".wm-ghost"]) if (!c.includes(need)) add("S31", sp, "app.css is missing the accessibility rule: " + need);
+    }
+    const sh = path.join(root, "search.html");
+    if (fs.existsSync(sh) && !/<a href="search\.html" class="active" aria-current="page">/.test(read(sh))) add("S31", sh, "the current page in the header must carry aria-current=\"page\"");
+    for (const f of css.concat(js)) if (OLD_COLORS.test(read(f))) add("S31", f, "an old (lower contrast) brand color is still in the code");
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

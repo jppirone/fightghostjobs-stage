@@ -48,7 +48,7 @@ function row(p, now) {
   return h("tr", {},
     h("td", { style: "font-weight:600;" }, p.title, h("div", { style: "font-size:12px;font-weight:400;color:var(--muted);margin-top:3px;" }, locationLine(p.is_remote, p.locations))),
     h("td", { style: "color:var(--muted);" }, reqCell(p)),
-    h("td", { style: "color:var(--muted);font-family:'Space Grotesk',sans-serif;letter-spacing:.03em;white-space:nowrap;" }, groupCode(p.post_id)),
+    h("td", { class: "mono", style: "color:var(--muted);white-space:nowrap;" }, groupCode(p.post_id)),
     h("td", {}, h("span", { class: "status " + chip.cls }, chip.text)),
     h("td", { style: "white-space:nowrap;" }, actionCells(p, now)),          // right after the status: the actions must never be pushed off the edge of a narrow window
     h("td", { style: "color:var(--muted);" }, postedCell(p)),

@@ -89,3 +89,20 @@ a.row-action:hover{text-decoration:underline}
 .site-footer a{color:var(--faint)}
 .privacy-h{font-size:19px;font-weight:700;margin-top:12px}
 .privacy-p{font-size:15px;line-height:1.7;color:#4A453F;margin:0}
+
+:root{--font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace}
+/* Brand: logo and accessibility (WCAG 2.2 AA). The logo is one link back to the start page on every page. */
+.nav-logo{display:flex;align-items:center;gap:12px;color:var(--ink)}
+.nav-mark{flex:none;display:block}
+.nav-wordmark{font-family:'Space Grotesk',system-ui,sans-serif;font-weight:700;font-size:22px;line-height:1;letter-spacing:-.025em}
+.wm-fight{color:var(--ember)}
+.wm-ghost{color:transparent;-webkit-text-stroke:1.2px var(--ink)}
+.wm-jobs{color:var(--ink)}
+@media (forced-colors:active){.wm-ghost{color:CanvasText;-webkit-text-stroke:0}}
+.skip-link{position:absolute;left:-9999px;top:8px;padding:10px 16px;min-height:44px;box-sizing:border-box;display:inline-flex;align-items:center;border-radius:8px;background:var(--ink);color:#fff;font-size:14px;font-weight:600;z-index:100}
+.skip-link:focus{left:8px;color:#fff}
+[aria-current="page"]{color:var(--ember);font-weight:700}
+[style*="background:var(--ink)"] .cite{color:#9C958A}
+main a:not(.btn):not(td a){text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
+.mono{font-family:var(--font-mono);font-size:.92em;letter-spacing:0}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
