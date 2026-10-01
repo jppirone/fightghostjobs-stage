@@ -160,6 +160,19 @@ control("the catalog is loaded eagerly", "S16", edit("js/location-catalog.js", (
 control("the window input is removed", "S15", edit("register.html", (s) => s.replace('id="livedays"', 'id="somethingelse"')));
 control("the window input defaults to 60", "S15", edit("register.html", (s) => s.replace('value="45" autocomplete', 'value="60" autocomplete')));
 control("the extended tier appears in the form", "S15", edit("register.html", (s) => s.replace("How long it stays live:", "Extended tier: staff review. How long it stays live:")));
+// S32 pass 5: the paid tier wording cannot come back; S35 (TEMPORARY, John 2026-09-30): no analytics or reporting tier claim; S36: no contest, dispute or cross-posting comment claim
+control("the home page says the paid tier again", "S32", edit("index.html", (s) => s.replace("The destination links tier adds destination links.", "The paid tier adds destination links.")));
+control("a page says paid plan", "S32", append("register.html", "<p>The paid plan adds links.</p>"));
+control("the home tier sentence is reworded away from the approved one (not pinned any more)", "S32", edit("index.html", (s) => s.replace("The destination links tier adds destination links.", "The extra tier adds destination links.")));
+control("the analytics page heading says analytics is free", "S35", edit("analytics.html", (s) => s.replace('<div class="eyebrow">Analytics</div>', '<div class="eyebrow">Analytics, free on every tier</div>')));
+control("a page says analytics is part of the destination links tier", "S35", append("register.html", "<p>Analytics are part of the destination links tier.</p>"));
+control("a script string says employer reporting is a paid feature", "S35", append("js/pages/analytics.js", 'const tierNote = "Employer reporting is a paid feature";'));
+control("a page says click analytics are included on every tier", "S35", append("dashboard.html", "<p>Impression and click analytics are included on every tier.</p>"));
+control("the employer note goes back to having a comment looked at", "S36", edit("comments.html", (s) => s.replace("This page shows the comments on this one posting.", "To have one looked at, write to us with the postID.")));
+control("a page says an employer can contest a comment", "S36", append("dashboard.html", "<p>You can contest a comment about your company.</p>"));
+control("a page says employers can dispute comments", "S36", append("register.html", "<p>Employers may dispute comments on their postings.</p>"));
+control("a script string says an employer sees comments across all their postings", "S36", append("js/pages/dashboard.js", 'const cNote = "Read the comments across all your postings in one place";'));
+control("the employer note loses the one-posting statement", "S36", edit("comments.html", (s) => s.replace("This page shows the comments on this one posting.", "Comments appear here.")));
 // S32: public wording (2026-09-30)
 control("the search badge goes back to Verified", "S32", edit("js/pages/search.js", (s) => s.replace('"\u2713 Registered"', '"\u2713 Verified"')));
 control("the details dialog says the listing is verified again", "S32", edit("js/pages/search.js", (s) => s.replace("This posting was registered through FightGhostJobs by a registered poster.", "This listing is verified: a real employer registered it directly with FightGhostJobs.")));

@@ -20,6 +20,8 @@
 //   S18 the req number: the candidate's req box on search.html is MASKED as it is typed (type=password) with a show/hide toggle, and the register hint says it is required, searchable by candidates, masked, rate-limited and always visible to the employer
 //   S19 the requirements-text hint ("compared with any later changes ...") is on the register form AND the edit page, word for word, and the edit page's note label is the approved one
 //   S22 privacy.html with the approved sections; every page links to it (footer) and carries the privacy contact; both email boxes link to it
+//   S36 comments: no text says an employer can contest, dispute or answer a comment, or sees comments across postings (neither is built); the employer's note says the page shows the comments on this one posting
+//   S35 (TEMPORARY, John 2026-09-30) no user-facing text says whether employer analytics or reporting is free or paid or in a tier (the code does not gate it yet); John removes this rule when the tier gate is built
 //   S34 the register form has no editable company field: the company name is shown read only from the organization, the form never reads or sends one (the server takes it from the organization and ignores any in the request)
 //   S33 links: every link goes somewhere real: a mailto only to an approved address and only where its text says it opens an email, no tel or # or empty or javascript: link, every internal target and #anchor exists, new-tab links have rel=noopener, external links only to the marketing site, and the pricing card's "See what's included" goes to the marketing plans page
 //   S32 public wording: the app never says or implies it confirms a posting is real (the badge says Registered, the details dialog says what it does not confirm), and makes no price promise (no always, forever, permanently, no cost)
@@ -463,6 +465,7 @@ export function checkSite(root) {
       [/costs? nothing|no cost/i, "no cost promise (say Free for job seekers where it is decided)"],
       [/Company and title always works/i, "no always promise about search"],
       [/specific verified posting/i, "a Post ID belongs to a specific posting, not a verified one"],
+      [/\bpaid\b/i, "the paid tier's user-facing name is Destination links tier: no page, script text or attribute says paid (pass 5)"],
       [/verified[- ](plan|tier)/i, "the paid tier's user-facing name is Destination links tier (the database value and function names keep their names, but no page, script text or attribute says verified plan or verified tier)"],
       [/itself worth knowing/i, "a missing posting must not be presented as meaningful about the job"],
     ];
@@ -475,9 +478,36 @@ export function checkSite(root) {
     need("js/pages/search.js", "This posting was registered through FightGhostJobs by a registered poster. The dates and disclosures are the poster's own. FightGhostJobs has not confirmed that the job exists, that the poster works for the company named, or that the employer will respond.", "the details dialog must carry the approved sentence, including what FightGhostJobs has not confirmed");
     need("index.html", '<div class="pill badge-verified">\u2713 Registered</div>', "the sample card badge must say Registered");
     need("index.html", ">A registry of job postings disclosed by employers</div>", "the home pill must describe the registry as job postings disclosed by employers");
+    need("index.html", "The facts candidates see are free for employers to publish on every tier, and free for job seekers to search. The destination links tier adds destination links.", "the home page tier sentence must be the approved one (it matches the marketing site: the destination links tier adds the destination links)");
     need("register.html", ">Free on every tier</div>", "the register page price label must be Free on every tier");
     need("js/chips.js", "The employer has paused it, so it is not accepting applicants right now.", "the paused message must say the employer paused it");
     need("js/search-input.js", "A missing posting may simply not be registered; it says nothing about whether the job exists.", "the empty-search note must say a missing posting says nothing about whether the job exists");
+  }
+
+  // S35 (TEMPORARY, John 2026-09-30): employer analytics and reporting are a destination links tier feature that the code does not gate yet, so no user-facing text may say they are free, paid, included, or part of a tier or plan.
+  // The Analytics button, page and behavior stay. John will add the tier wording back and remove this rule when the tier gate is built.
+  {
+    const TOPIC = /analytic|\breporting\b|\binsights?\b|\bmetrics?\b|impressions?\b|click[- ]through|link clicks/i, TIER = /\b(free|paid|tier|tiers|plans?|included|includes|upgrade|premium|unlock|unlocks)\b/i;
+    for (const f of html.concat(js).filter((x) => path.basename(x) !== "api.js")) {   // js/api.js is only call wrappers and shape validators (field names such as analyticsByPosting), it holds no user-facing text
+      const t = f.endsWith(".html") ? read(f).replace(/<!--[\s\S]*?-->/g, "") : stripJsComments(read(f));
+      for (const line of t.split("\n")) { const text = line.replace(/<[^>]+>/g, " "); if (TOPIC.test(text) && TIER.test(text) && !/^\s*(import|export)\b/.test(line)) add("S35", f, "text must not say analytics or reporting is free, paid or in a tier (temporary rule, until the gate is built): " + text.trim().slice(0, 80)); }
+    }
+  }
+
+  // S36: comments (2026-09-30). Comments are free on every tier. An employer can read the comments on their own postings (My postings links each posting's comments); nothing lets an employer contest, dispute or answer a comment, and there is no view across postings. No text may claim either.
+  {
+    const CLAIMS = [
+      [/\b(contest|dispute|challenge|rebut|appeal)\w*\b[^.\n<]{0,50}\bcomments?\b|\bcomments?\b[^.\n<]{0,60}\b(contest|dispute|challenge|rebut|appeal)\w*\b/i, "no text may say an employer can contest, dispute or challenge a comment"],
+      [/(have|get) (a|one|the|that) (comment )?looked at|ask us to (remove|review|look at) (a|the) comment/i, "no text may point an employer to a way of having a comment looked at (not built)"],
+      [/\b(respond|reply|answer) to (a|the|any) comments?\b/i, "no text may say an employer can reply to a comment"],
+      [/\bcomments?\b[^.\n<]{0,60}\b(across|all|every one of|each of) (of )?(your|their|the) postings\b|\b(roll-?up|company-wide)\b[^.\n<]{0,40}\bcomments?\b/i, "no text may say an employer sees comments across all their postings (there is no such view)"],
+    ];
+    for (const f of html.concat(js)) {
+      const t = f.endsWith(".html") ? read(f).replace(/<!--[\s\S]*?-->/g, "") : stripJsComments(read(f));
+      for (const [re, why] of CLAIMS) if (re.test(t)) add("S36", f, why);
+    }
+    const chtml = path.join(root, "comments.html");
+    if (fs.existsSync(chtml) && !read(chtml).includes("This page shows the comments on this one posting.")) add("S36", chtml, "the employer's note must say the page shows the comments on this one posting (and nothing about contesting or looking at one)");
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");
