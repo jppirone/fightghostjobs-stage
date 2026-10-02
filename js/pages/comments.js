@@ -1,5 +1,5 @@
 // comments.js - one posting's comment thread on a page of its own (design brief 7.4, 13, 16). Reached only from a posting's details (the page needs the posting's opaque reference and a
-// verified candidate session: the address alone shows nothing, and the site never lists postings). The owner reads the same thread from My postings (?id=, a poster session; read-only).
+// verified candidate session: the address alone shows nothing, and the site never lists postings). The owner reads the same thread from My postings (?id=, a poster session) and can contest a comment (once; it stays visible, with a notice, while it is under review).
 // Posting a comment: the page checks length and plain text, the backend applies the whole rule (no web address, no naming where the posting was found unless this posting already shows
 // that platform, no slurs or profanity) and says why in words. Wrong links go to a private report, not to the thread.
 
@@ -9,12 +9,13 @@ import { $, h, clear, alertBox, chip } from "../dom.js";
 import { locationLine, waitText, groupCode } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
 import { aiNotes } from "../ai-notes.js";
-import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT } from "../comments-model.js";
+import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js";
+import { contestNotice, mountContest } from "../contest-ui.js";
 
 const params = new URLSearchParams(location.search);
 const ref = String(params.get("ref") || "").toLowerCase(), pid = String(params.get("id") || "").toLowerCase();
 const REF_RE = /^[0-9a-hjkmnp-tv-z]{20}$/, UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const state = { mode: REF_RE.test(ref) ? "candidate" : UUID_RE.test(pid) ? "employer" : "none", session: null, links: [], nextOffset: null, busy: false, cooldownTimer: null };
+const state = { mode: REF_RE.test(ref) ? "candidate" : UUID_RE.test(pid) ? "employer" : "none", session: null, links: [], nextOffset: null, busy: false, cooldownTimer: null, contestLimits: { min: DEFAULT_CONTEST_LIMITS.min, max: DEFAULT_CONTEST_LIMITS.max } };
 const pageAlert = $("#pageAlert");
 function say(box, kind, text) { clear(box); box.hidden = !text; if (text) box.append(alertBox(kind, text)); }
 function startCooldown(button, seconds, idleLabel) {
@@ -26,7 +27,11 @@ function startCooldown(button, seconds, idleLabel) {
 // ---- the thread (both modes)
 function commentCard(c) {
   const meta = h("div", { style: "font-size:12px;color:var(--faint);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;" }, h("span", {}, "Verified candidate · " + ago(c.created_at)));
-  const card = h("article", { class: "card", style: "padding:16px 20px;display:flex;flex-direction:column;gap:8px;" }, meta, h("p", { style: "font-size:15px;line-height:1.6;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;" }, c.body));
+  const body = h("p", { style: "font-size:15px;line-height:1.6;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;" }, c.body);
+  const card = h("article", { class: "card", style: "padding:16px 20px;display:flex;flex-direction:column;gap:8px;" }, meta, body);
+  // a contested comment shows the notice, to candidates and to the owner alike; only the owner is offered the contest control (a candidate keeps Report), and never for a comment that already has one
+  if (c.contested) card.append(contestNotice({ employer: state.mode === "employer" }));
+  if (state.mode === "employer" && !c.contested) mountContest({ api, comment: c, card, after: body, meta, limits: state.contestLimits, onAuthFailure: employerSessionEnded });
   if (state.mode === "candidate") {
     const form = h("form", { novalidate: true, hidden: true, style: "display:flex;flex-direction:column;gap:8px;margin-top:6px;" });
     const reason = h("input", { type: "text", maxlength: "300", placeholder: "Why should we look at this comment?", "aria-label": "Why report this comment" });
@@ -162,7 +167,8 @@ $("#reportForm").addEventListener("submit", async (ev) => {
   } finally { send.disabled = false; }
 });
 
-// ---- the employer side (read-only)
+// ---- the employer side: reads the thread; the one action on a comment is the contest control (js/contest-ui.js)
+async function employerSessionEnded() { await signOut(); go("employer-signin.html?reason=expired"); }
 async function employerMode() {
   const ctx = await requirePoster("comments.html?id=" + pid);
   if (!ctx) return;
@@ -176,7 +182,7 @@ async function employerMode() {
   $("#recapCompany").textContent = p.company_name; $("#recapTitle").textContent = p.title;
   $("#recapMeta").textContent = "postID " + groupCode(p.post_id) + " · " + p.status;
   $("#recapNote").textContent = "What verified candidates wrote about this posting. You are told by email when there is something new (at most once every six hours).";
-  $("#threadIntro").textContent = "Written by verified candidates, newest first, anonymous to everyone. A comment is about the posting, never about a person.";
+  $("#threadIntro").textContent = "Written by verified candidates, newest first, anonymous to everyone. A comment is about the posting, never about a person. You can contest a comment on this posting once; it stays visible, with a notice, while it is under review.";
   $("#threadWrap").hidden = false; $("#employerNote").hidden = false;
   await loadThread(0);
 }

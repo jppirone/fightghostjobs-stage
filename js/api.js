@@ -20,6 +20,9 @@ const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 export const AUTH_FAILURE_CODES = ["unauthorized", "reverification_required", "no_candidate_identity", "not_a_candidate_session", "invalid_verification_time", "no_session"];
 export const isAuthFailure = (err) => !!err && AUTH_FAILURE_CODES.includes(err.code);
 
+// the six reason codes the contest-comment function accepts (exact, lower case); the labels live in comments-model.js, and tests/contest.test.js keeps the two lists equal
+export const CONTEST_CATEGORY_CODES = ["inaccurate", "closed_or_outdated", "confidential_or_personal", "not_about_posting", "abusive", "other"];
+
 const POSTING_STATUSES = ["draft", "live", "paused", "expired", "closed", "flagged"];
 const EFFECTIVE_STATUSES = POSTING_STATUSES.concat(["scheduled"]);      // what the employer's views report: a draft that carries a go-live time reads "scheduled" (never a stored status)
 
@@ -40,10 +43,13 @@ export const shapes = {
   detail: (d) => isObj(d) && isObj(d.posting) && shapes.searchRow(Object.assign({ }, d.posting)) && (d.comment_count === undefined || (Number.isInteger(d.comment_count) && d.comment_count >= 0)) && Array.isArray(d.links) && d.links.length <= 13
     && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && l.position >= 1 && l.position <= 10 && isNullable(l.label, isStr) && (l.kind === undefined || l.kind === "apply" || l.kind === "recruiter") && (l.firm === undefined || isNullable(l.firm, isStr)) && (l.kind !== "recruiter" || isStr(l.firm))),
   linkIssue: (d) => isObj(d) && isStr(d.expires_at) && Array.isArray(d.links) && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && isNullable(l.label, isStr) && isStr(l.go_url) && /^https:\/\//.test(l.go_url) && (l.kind === undefined || l.kind === "apply" || l.kind === "recruiter")),
-  // a comment as a candidate or the owner reads it: an id (to report it), the text, the time; never an author. A page is at most 25, newest first.
-  commentItem: (c) => isObj(c) && Number.isInteger(c.id) && c.id > 0 && isStr(c.body) && isStr(c.created_at),
+  // a comment as a candidate or the owner reads it: an id (to report it), the text, the time, whether a contest on it is open; never an author. A page is at most 25, newest first.
+  // contested is always present (item A): a missing or non-boolean value is a broken answer, not "false" (fail closed: a contested comment must never be shown without its notice).
+  commentItem: (c) => isObj(c) && Number.isInteger(c.id) && c.id > 0 && isStr(c.body) && isStr(c.created_at) && isBool(c.contested),
   comments: (d) => isObj(d) && Number.isInteger(d.total) && d.total >= 0 && Array.isArray(d.comments) && d.comments.length <= 25 && d.comments.every(shapes.commentItem) && isNullable(d.next_offset, Number.isInteger),
   employerComments: (d) => isObj(d) && UUID_RE.test(d.posting_id) && shapes.comments(d),
+  // contest-comment (item A): exactly { ok:true, contest:{ id, status:"open", filed_at } }; nothing else is read
+  contestAnswer: (d) => isObj(d) && d.ok === true && isObj(d.contest) && UUID_RE.test(d.contest.id) && d.contest.status === "open" && isStr(d.contest.filed_at),
   reportAnswer: (d) => isObj(d) && Number.isInteger(d.report_id) && d.report_id > 0,
   // list-my-postings (the employer's own list): every field the dashboard reads, checked; anything else is ignored
   myPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && /^[0-9A-Z]{12}$/.test(p.post_id) && EFFECTIVE_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
@@ -161,6 +167,14 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     candidateReportLink: (postingRef, kind, position, detail) => call("candidate-report-link", Object.assign({ posting_ref: postingRef, detail }, kind ? { kind, position } : {}), { validate: shapes.reportAnswer }),
     // the owner reads the comments on their own posting (read-only; the same anonymous items)
     employerListComments: (postingId, offset) => call("list-posting-comments", offset ? { posting_id: postingId, offset } : { posting_id: postingId }, { validate: shapes.employerComments }),
+    // the owner contests ONE comment on their own posting (item A). The body is exactly { comment_id, category, explanation }: who is asking comes only from the session token, never from here.
+    // A request that is not well formed is refused here without a network call. On a refusal, the server's numbers are copied onto the error as integers (min and max for explanation_length, limit for limit_open / limit_month).
+    contestComment: async (commentId, category, explanation) => {
+      if (!Number.isInteger(commentId) || commentId < 1 || !CONTEST_CATEGORY_CODES.includes(category) || !isStr(explanation)) return { ok: false, status: 0, error: { code: "invalid_request" } };
+      const r = await call("contest-comment", { comment_id: commentId, category, explanation }, { validate: shapes.contestAnswer });
+      if (!r.ok && isObj(r.data)) for (const k of ["min", "max", "limit"]) if (Number.isInteger(r.data[k]) && r.data[k] > 0) r.error[k] = r.data[k];
+      return r;
+    },
   };
 }
 
@@ -177,6 +191,7 @@ export function describeError(err, { what = "That" } = {}) {
     case "no_candidate_identity": case "not_a_candidate_session": return "This page needs a verified candidate session.";
     case "not_found": return what + " could not be found.";
     case "body_too_large": return "That is too large to send.";
+    case "invalid_request": return "That could not be sent. Check what you entered and try again.";
     default: return err.message ? String(err.message).slice(0, 200) : what + " was refused.";
   }
 }

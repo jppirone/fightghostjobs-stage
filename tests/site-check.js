@@ -20,7 +20,7 @@
 //   S18 the req number: the candidate's req box on search.html is MASKED as it is typed (type=password) with a show/hide toggle, and the register hint says it is required, searchable by candidates, masked, rate-limited and always visible to the employer
 //   S19 the requirements-text hint ("compared with any later changes ...") is on the register form AND the edit page, word for word, and the edit page's note label is the approved one
 //   S22 privacy.html with the approved sections; every page links to it (footer) and carries the privacy contact; both email boxes link to it
-//   S36 comments: no text says an employer can contest, dispute or answer a comment, or sees comments across postings (neither is built); the employer's note says the page shows the comments on this one posting
+//   S36 comments and contests: the exact contest notice (defined once, shown to candidates and the owner), the six reasons, a contest control only in the owner view and never on a contested comment, no editing, hide or delete wording or control, no promised response time, no view across postings, the privacy sentence
 //   S35 (TEMPORARY, John 2026-09-30) no user-facing text says whether employer analytics or reporting is free or paid or in a tier (the code does not gate it yet); John removes this rule when the tier gate is built
 //   S34 the register form has no editable company field: the company name is shown read only from the organization, the form never reads or sends one (the server takes it from the organization and ignores any in the request)
 //   S33 links: every link goes somewhere real: a mailto only to an approved address and only where its text says it opens an email, no tel or # or empty or javascript: link, every internal target and #anchor exists, new-tab links have rel=noopener, external links only to the marketing site, and the pricing card's "See what's included" goes to the marketing plans page
@@ -494,20 +494,92 @@ export function checkSite(root) {
     }
   }
 
-  // S36: comments (2026-09-30). Comments are free on every tier. An employer can read the comments on their own postings (My postings links each posting's comments); nothing lets an employer contest, dispute or answer a comment, and there is no view across postings. No text may claim either.
+  // S36: comments and contests (2026-09-30, rewritten 2026-10-02 for item A). Comments are free on every tier. The owner of a posting can read its comments and contest one comment, once; that is the ONLY action on a comment.
+  // A contested comment stays visible with ONE notice, shown to candidates and to the owner. There is no editing of a comment anywhere, no hide or delete for an employer, no promised response time,
+  // no contest control for a candidate, and no view across postings. The server decides everything that matters; these rules keep the page from saying or offering anything else.
   {
+    const NOTICE = "This comment has been contested by the employer/poster and is under review. It may be removed after additional investigation, at the sole discretion of FightGhostJobs.com.";
+    const CATEGORIES = [["inaccurate", "Factually inaccurate about this posting"], ["closed_or_outdated", "Posting closed or comment outdated"], ["confidential_or_personal", "Contains confidential or personal information"], ["not_about_posting", "Not about this posting"], ["abusive", "Abusive language"], ["other", "Other"]];
+    const text = (f) => (f.endsWith(".html") ? read(f).replace(/<!--[\s\S]*?-->/g, "") : stripJsComments(read(f)));
+    const literals = (f) => (f.endsWith(".html") ? text(f) : [...text(f).matchAll(/"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g)].map((m) => m[1] || m[2] || m[3] || "").join("\n"));
+    const P = (r) => path.join(root, r);
+    const model = P("js/comments-model.js"), ui = P("js/contest-ui.js"), page = P("js/pages/comments.js"), chtml = P("comments.html"), api = P("js/api.js"), priv = P("privacy.html");
+    const COMMENT_FILES = [chtml, page, model, ui];                 // the comments page and everything it is made of
+    const MAY_SAY_CONTEST = [chtml, page, model, ui, api, priv];   // the only files that may talk about contesting (api.js is call wrappers; privacy.html says what is kept)
     const CLAIMS = [
-      [/\b(contest|dispute|challenge|rebut|appeal)\w*\b[^.\n<]{0,50}\bcomments?\b|\bcomments?\b[^.\n<]{0,60}\b(contest|dispute|challenge|rebut|appeal)\w*\b/i, "no text may say an employer can contest, dispute or challenge a comment"],
-      [/(have|get) (a|one|the|that) (comment )?looked at|ask us to (remove|review|look at) (a|the) comment/i, "no text may point an employer to a way of having a comment looked at (not built)"],
+      [/\b(dispute|challenge|rebut|appeal)\w*\b[^.\n<]{0,50}\bcomments?\b|\bcomments?\b[^.\n<]{0,60}\b(dispute|challenge|rebut|appeal)\w*\b/i, "no text may say an employer can dispute, challenge or appeal a comment (the one action is the contest)"],
       [/\b(respond|reply|answer) to (a|the|any) comments?\b/i, "no text may say an employer can reply to a comment"],
       [/\bcomments?\b[^.\n<]{0,60}\b(across|all|every one of|each of) (of )?(your|their|the) postings\b|\b(roll-?up|company-wide)\b[^.\n<]{0,40}\bcomments?\b/i, "no text may say an employer sees comments across all their postings (there is no such view)"],
+      [/\bedit(ed|ing)? (by|your|this|the|a|my) (author|comment)|\b(modified|edited|amended)\b[^.\n<]{0,40}\bcomments?\b|\bcomments?\b[^.\n<]{0,40}\b(modified|edited|amended)\b/i, "no text may say a comment can be or was edited or modified (comments are never edited)"],
     ];
     for (const f of html.concat(js)) {
-      const t = f.endsWith(".html") ? read(f).replace(/<!--[\s\S]*?-->/g, "") : stripJsComments(read(f));
+      const t = text(f);
       for (const [re, why] of CLAIMS) if (re.test(t)) add("S36", f, why);
+      if (!MAY_SAY_CONTEST.includes(f) && /\bcontest\w*\b[^.\n<]{0,50}\bcomments?\b|\bcomments?\b[^.\n<]{0,60}\bcontest\w*\b/i.test(t)) add("S36", f, "only the comments page, its scripts and the privacy page may talk about contesting a comment");
     }
-    const chtml = path.join(root, "comments.html");
-    if (fs.existsSync(chtml) && !read(chtml).includes("This page shows the comments on this one posting.")) add("S36", chtml, "the employer's note must say the page shows the comments on this one posting (and nothing about contesting or looking at one)");
+    if (fs.existsSync(chtml) && !read(chtml).includes("This page shows the comments on this one posting.")) add("S36", chtml, "the employer's note must say the page shows the comments on this one posting");
+
+    // the notice: this exact text, defined once (js/comments-model.js), used for candidates AND the owner
+    for (const f of html.concat(js)) {
+      const raw = read(f), n = raw.split(NOTICE).length - 1, loose = /sole discretion of FightGhostJobs\.com/.test(raw);
+      if (f === model) { if (n !== 1 || !raw.includes('export const CONTEST_NOTICE = "' + NOTICE + '";')) add("S36", f, "the notice must be defined once, word for word, as export const CONTEST_NOTICE"); }
+      else if (n > 0 || loose) add("S36", f, "a copy or reworded copy of the contest notice: it is defined only in js/comments-model.js");
+    }
+    if (fs.existsSync(ui)) {
+      const u = read(ui);
+      if (!u.includes('tag, h("p", { class: "contest-notice-text" }, CONTEST_NOTICE));') || !/import \{[^}]*\bCONTEST_NOTICE\b[^}]*\} from "\.\/comments-model\.js";/.test(u)) add("S36", ui, "the notice block must show CONTEST_NOTICE to everyone (the owner's extra label is separate)");
+    }
+    if (fs.existsSync(page)) {
+      const c = read(page), notice = 'if (c.contested) card.append(contestNotice({ employer: state.mode === "employer" }));', cand = 'if (state.mode === "candidate") {';
+      if (c.split(notice).length !== 2 || c.indexOf(notice) > c.indexOf(cand)) add("S36", page, "every contested comment must show the notice in both views (candidate and owner), before any view-only branch");
+      // the contest control: owner view only, never for a comment that already has a contest, and only this page mounts it
+      const mount = 'if (state.mode === "employer" && !c.contested) mountContest({ api, comment: c, card, after: body, meta, limits: state.contestLimits, onAuthFailure: employerSessionEnded });';
+      if (c.split(mount).length !== 2 || (c.match(/mountContest\(/g) || []).length !== 1) add("S36", page, "the contest control must be mounted once, in the owner view only, and never on an already contested comment");
+      if (/contestComment\(/.test(stripJsComments(c))) add("S36", page, "the page must not call contestComment itself: the control (js/contest-ui.js) does");
+    }
+    for (const f of js) if (f !== page && f !== ui && /\bmountContest\b/.test(stripJsComments(read(f)))) add("S36", f, "only the comments page may mount the contest control");
+    for (const f of js) if (f !== ui && f !== api && /\.contestComment\(/.test(stripJsComments(read(f)))) add("S36", f, "only the contest control may call api.contestComment");
+
+    // the six reasons, in order, word for word; the dropdown is built from that list and sends the code
+    if (fs.existsSync(model)) {
+      const m = read(model), list = (m.match(/export const CONTEST_CATEGORIES = \[([\s\S]*?)\n\];/) || [])[1] || "", got = [...list.matchAll(/\{ code: "([a-z_]+)", label: "([^"]*)" \}/g)].map((x) => [x[1], x[2]]);
+      if (JSON.stringify(got) !== JSON.stringify(CATEGORIES)) add("S36", model, "the reasons must be exactly the six approved ones, with their approved labels, in order");
+      if (!m.includes("export const DEFAULT_CONTEST_LIMITS = Object.freeze({ min: 30, max: 1000 });")) add("S36", model, "the first-display limits must be 30 to 1,000 (the server's answer replaces them)");
+      if (!m.includes('export const CONTEST_ALREADY = "This comment has already been contested and cannot be contested again.";')) add("S36", model, "the already-contested message must be the approved one");
+    }
+    if (fs.existsSync(ui)) {
+      const u = read(ui);
+      if (!u.includes('CONTEST_CATEGORIES.map((c) => h("option", { value: c.code }, c.label))')) add("S36", ui, "the reason dropdown must be built from CONTEST_CATEGORIES, sending the code and showing the label");
+      if (!u.includes("Object.assign(limits, contestLimits(r.error, limits))")) add("S36", ui, "the form must take its limits from the server's answer");
+      if (!u.includes("api.contestComment(comment.id, pending.category, pending.text)")) add("S36", ui, "the control must file through api.contestComment with the comment, the reason code and the explanation");
+      if (!/h\("label", \{ for: uid \+ "-cat" \}, "Reason"\)[\s\S]*h\("label", \{ for: uid \+ "-why" \}, "Explanation"\)/.test(u)) add("S36", ui, "the reason and the explanation need visible labels");
+    }
+    if (fs.existsSync(api)) {
+      const a = read(api);
+      if (!a.includes('call("contest-comment", { comment_id: commentId, category, explanation }, { validate: shapes.contestAnswer })')) add("S36", api, "contestComment must send exactly comment_id, category and explanation (who is asking comes from the session only)");
+      if (!a.includes("isStr(c.created_at) && isBool(c.contested)")) add("S36", api, "a comment item must carry contested as a boolean (a missing flag is a broken answer, never false)");
+      if (/\b(hide|delete|remove|edit|modify|amend)\w*Comment/i.test(stripJsComments(a))) add("S36", api, "no call may hide, delete, remove, edit or modify a comment from the browser");
+    }
+    for (const f of [page, ui, model]) if (fs.existsSync(f) && /poster_id|organization_id|contest_id/.test(stripJsComments(read(f)))) add("S36", f, "the browser never names a poster, organization or contest id: the server reads who is asking from the session");
+
+    // no editing language, no hide or delete control, no response time, on the comments page and everything it is made of
+    const EDIT = /\bedit(ed|ing|s)?\b|\bmodif(y|ies|ied|ication|ications)\b|\bamend\w*|\brevis(e|ed|ion)\b|\boriginal (text|comment|wording|version)\b/i;
+    const HIDE = /\b(hide|hides|hiding|delete|deletes|deleted|remove|removes|removal|disable|disables)\b/i;
+    const TIME = /\b(review|reviews|reviewed|reviewing|decide|decides|decided|decision|respond|responds|response|answer|answers|outcome|investigation)\b[^.\n<]{0,100}\b(within|in (a|an|one|two|three|four|five|\d+) |\d+ ?(minutes?|hours?|days?|weeks?)|business days?|promptly|quickly|shortly|immediately|right away|soon|same day|next day)\b|\b(within|promptly|quickly|shortly|immediately|right away|soon|same day|next day)\b[^.\n<]{0,100}\b(review|reviews|reviewed|decide|decides|decision|respond|responds|response|answer|outcome)\b/i;
+    const privSentence = fs.existsSync(priv) ? (read(priv).match(/<p class="privacy-p" id="privacyContests">([\s\S]*?)<\/p>/) || [])[1] : null;
+    for (const f of COMMENT_FILES) {
+      if (!fs.existsSync(f)) continue;
+      const lit = literals(f).split(NOTICE).join("");
+      if (EDIT.test(lit)) add("S36", f, "no editing language on the comments page (no edit, edited, modified, amended, original text): comments are never edited");
+      if (HIDE.test(lit)) add("S36", f, "no hide, delete, remove or disable wording on the comments page: an employer has no such control");
+      if (TIME.test(lit)) add("S36", f, "no promised response time for a contest");
+    }
+    if (privSentence && TIME.test(privSentence)) add("S36", priv, "the privacy page must not promise a response time for a contest");
+    if (fs.existsSync(chtml) && /<(button|a|input)\b[^>]*>[^<]*\b(hide|delete|remove|edit)\b/i.test(read(chtml))) add("S36", chtml, "comments.html offers a hide, delete, remove or edit control");
+    // the privacy page says what a contest keeps, plainly
+    if (fs.existsSync(priv)) for (const need of ['id="privacyContests"', "contest a comment on it, once", "stays visible with a notice while it is under review", "FightGhostJobs.com decides", "kept in the review record", "not shown to candidates"]) if (!read(priv).includes(need)) add("S36", priv, "privacy.html must say: " + need);
+    // the notice block is bordered (it must be unmissable, and still visible when colors are forced)
+    const ac = P("app.css"); if (fs.existsSync(ac) && !read(ac).includes(".contest-notice{border:2px solid var(--ember-dark);")) add("S36", ac, "the contest notice must have a solid, visible border");
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

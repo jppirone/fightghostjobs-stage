@@ -42,11 +42,11 @@ test("the wrong-link choices come from the posting's links, with a 'something el
 });
 
 test("api: the comment calls send what the page has, and the answers are checked (ids on items, at most 25, a report id back)", async () => {
-  const page = { total: 27, comments: [{ id: 7, body: "x".repeat(12), created_at: "2026-09-22T10:00:00Z" }], next_offset: 1 };
+  const page = { total: 27, comments: [{ id: 7, body: "x".repeat(12), created_at: "2026-09-22T10:00:00Z", contested: false }], next_offset: 1 };
   const a = mk(() => ({ status: 200, body: page }));
   assert.equal((await a.api.candidateListComments(ref, 25)).ok, true); assert.deepEqual(a.calls[0].body, { posting_ref: ref, offset: 25 });
-  assert.equal((await mk(() => ({ status: 200, body: { total: 1, comments: [{ body: "no id", created_at: "t" }], next_offset: null } })).api.candidateListComments(ref)).ok, false);
-  assert.equal((await mk(() => ({ status: 200, body: { total: 30, comments: Array.from({ length: 26 }, (_, i) => ({ id: i + 1, body: "b", created_at: "t" })), next_offset: 26 } })).api.candidateListComments(ref)).ok, false);
+  assert.equal((await mk(() => ({ status: 200, body: { total: 1, comments: [{ body: "no id", created_at: "t", contested: false }], next_offset: null } })).api.candidateListComments(ref)).ok, false);
+  assert.equal((await mk(() => ({ status: 200, body: { total: 30, comments: Array.from({ length: 26 }, (_, i) => ({ id: i + 1, body: "b", created_at: "t", contested: false })), next_offset: 26 } })).api.candidateListComments(ref)).ok, false);
   const e = mk(() => ({ status: 200, body: Object.assign({ posting_id: uuid }, page) }));
   assert.equal((await e.api.employerListComments(uuid)).ok, true); assert.equal(e.calls[0].url, BASE + "/functions/v1/list-posting-comments"); assert.deepEqual(e.calls[0].body, { posting_id: uuid });
   const rc = mk(() => ({ status: 201, body: { report_id: 3 } }));
