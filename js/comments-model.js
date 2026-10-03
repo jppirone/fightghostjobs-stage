@@ -72,6 +72,12 @@ export function linkChoices(links) {
   out.push({ value: "", text: "Something else about this posting’s links" });
   return out;
 }
+// the "Which link?" label and dropdown are shown only when the posting has links to choose from (none for a paused, closed or expired posting, for an organization without the destination links tier, or when the employer gave none); the report can still be sent with no specific link
+// the links a candidate detail answer carries: none on the not-open answer (409), none when the destination links tier does not apply
+export function detailLinks(d) { return d && d.ok && d.data && Array.isArray(d.data.links) ? d.data.links : []; }
+export function showLinkPicker(links) { return Array.isArray(links) && links.length > 0; }
+// how long a rate-limited button stays disabled, in milliseconds: at least one second, never beyond what one timer can hold
+export function cooldownMs(seconds) { return Math.min(2147483647, Math.max(1, Math.ceil(Number(seconds) || 0)) * 1000); }
 export function parseLinkChoice(value) {
   const m = /^(apply|recruiter):([1-9]|10)$/.exec(String(value || ""));
   return m ? { kind: m[1], position: Number(m[2]) } : { kind: null, position: null };

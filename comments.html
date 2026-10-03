@@ -80,7 +80,7 @@
     <h2 style="font-size:16px;font-weight:700;margin:0 0 6px 0;">Report a wrong link</h2>
     <p class="field-hint" style="margin:0 0 12px 0;">Did a link on this posting not lead to this job's own page or application? Tell us here, privately: this goes to us, not to the thread, so you can say exactly where it took you (an address is fine here).</p>
     <form id="reportForm" novalidate style="display:flex;flex-direction:column;gap:10px;">
-      <label for="reportLink" style="font-size:13px;color:var(--muted);">Which link?</label>
+      <label id="reportLinkLabel" for="reportLink" style="font-size:13px;color:var(--muted);">Which link?</label>
       <select id="reportLink" aria-label="Which link"></select>
       <textarea id="reportDetail" rows="3" maxlength="500" aria-label="What happened" placeholder="e.g. The link labelled Employer's own site opened a job board listing for a different role."></textarea>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">

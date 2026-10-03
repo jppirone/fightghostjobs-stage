@@ -7,9 +7,9 @@ import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFai
 import { requestLink } from "../session.js";
 import { $, h, clear, alertBox, chip } from "../dom.js";
 import { locationLine, waitText, groupCode } from "../format.js";
-import { postingChips, notOpenMessage } from "../chips.js";
+import { postingChips, notOpenRecap } from "../chips.js";
 import { aiNotes } from "../ai-notes.js";
-import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js";
+import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js";
 import { addContestPart } from "../contest-ui.js";
 
 const params = new URLSearchParams(location.search);
@@ -18,10 +18,10 @@ const REF_RE = /^[0-9a-hjkmnp-tv-z]{20}$/, UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[
 const state = { mode: REF_RE.test(ref) ? "candidate" : UUID_RE.test(pid) ? "employer" : "none", session: null, links: [], nextOffset: null, busy: false, cooldownTimer: null, contestLimits: { min: DEFAULT_CONTEST_LIMITS.min, max: DEFAULT_CONTEST_LIMITS.max } };
 const pageAlert = $("#pageAlert");
 function say(box, kind, text) { clear(box); box.hidden = !text; if (text) box.append(alertBox(kind, text)); }
+// a rate-limited send button stays disabled with its normal label until one timer ends; the wait is stated once, in words, in the message ("Try again in ...")
 function startCooldown(button, seconds, idleLabel) {
-  clearInterval(state.cooldownTimer); let left = Math.max(1, Math.ceil(seconds)); button.disabled = true;
-  const tick = () => { if (left <= 0) { clearInterval(state.cooldownTimer); button.disabled = false; button.textContent = idleLabel; return; } button.textContent = "Wait " + left + "s"; left -= 1; };
-  tick(); state.cooldownTimer = setInterval(tick, 1000);
+  clearTimeout(state.cooldownTimer); button.disabled = true; button.textContent = idleLabel;
+  state.cooldownTimer = setTimeout(() => { button.disabled = false; }, cooldownMs(seconds));
 }
 
 // ---- the thread (both modes)
@@ -94,7 +94,7 @@ $("#signinForm").addEventListener("submit", async (ev) => {
 });
 
 function renderRecap(d) {
-  const recap = $("#recap"); recap.hidden = false;
+  const recap = $("#recap"); recap.hidden = false; state.links = detailLinks(d);
   if (d.ok) {
     const p = d.data.posting;
     $("#recapCompany").textContent = p.company_name; $("#recapTitle").textContent = p.title;
@@ -102,11 +102,10 @@ function renderRecap(d) {
     const chips = $("#recapChips"); clear(chips); for (const c of postingChips(p)) chips.append(chip(c));
     const notes = $("#recapNotes"); clear(notes);
     for (const n of aiNotes(p)) notes.append(h("div", { style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text));
-    state.links = d.data.links;
     $("#recapNote").textContent = d.data.links.length ? "The employer's links (" + d.data.links.length + ") are on the posting's details in Search. If one of them led you somewhere wrong, use “Report a wrong link” at the bottom of this page." : "This employer has not provided a link to where you can apply.";
   } else if (d.status === 409 && d.data && d.data.code === "posting_not_open") {
-    $("#recapCompany").textContent = "Posting"; $("#recapTitle").textContent = "This posting is no longer open"; $("#recapMeta").textContent = "";
-    $("#recapNote").textContent = notOpenMessage(d.data.status, d.data.closed_reason || null) + " Comments stay open: what happened after it closed is exactly what other candidates want to know.";
+    const nr = notOpenRecap(d.data.status, d.data.closed_reason || null);
+    $("#recapCompany").textContent = nr.company; $("#recapTitle").textContent = nr.title; $("#recapMeta").textContent = ""; $("#recapNote").textContent = nr.note;
   } else {
     recap.hidden = true;
   }
@@ -130,6 +129,7 @@ async function candidateMode() {
   renderRecap(d);
   $("#threadWrap").hidden = false; $("#composeWrap").hidden = false; $("#composeRules").textContent = COMMENT_RULES;
   const sel = $("#reportLink"); clear(sel); for (const c of linkChoices(state.links)) sel.append(h("option", { value: c.value }, c.text));
+  const picker = showLinkPicker(state.links); sel.hidden = !picker; $("#reportLinkLabel").hidden = !picker;   // no links to choose from: no picker; the select keeps its one empty choice, so a report goes with no specific link
   $("#reportWrap").hidden = false;
   await loadThread(0);
 }

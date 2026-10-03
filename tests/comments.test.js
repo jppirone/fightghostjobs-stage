@@ -1,7 +1,7 @@
 // comments.test.js - the comments page's pure logic (js/comments-model.js) and the API layer's comment calls and shapes.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, parseLinkChoice, COMMENT_RULES, MAX_COMMENT } from "../js/comments-model.js";
+import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT } from "../js/comments-model.js";
 import { createApi, shapes } from "../js/api.js";
 
 const BASE = "https://example.test", KEY = "sb_publishable_TESTKEY", ref = "0123456789abcdefghjk", uuid = "11111111-1111-4111-8111-111111111111";
@@ -39,6 +39,26 @@ test("the wrong-link choices come from the posting's links, with a 'something el
   assert.deepEqual(linkChoices(links).map((c) => c.value), ["apply:1", "apply:2", "recruiter:1", ""]);
   assert.equal(linkChoices(links)[1].text, "Link 2: Application link 2"); assert.equal(linkChoices(links)[2].text, "Recruiter firm: Acme Staffing");
   assert.deepEqual(parseLinkChoice("recruiter:1"), { kind: "recruiter", position: 1 }); assert.deepEqual(parseLinkChoice(""), { kind: null, position: null }); assert.deepEqual(parseLinkChoice("apply:11"), { kind: null, position: null });
+});
+
+test("the wrong-link picker is shown only when there are links to choose from; with none the report still goes with no specific link", () => {
+  // empty list: a paused, closed or expired posting (409, no links), an organization without the destination links tier, or an employer who gave none
+  for (const none of [[], undefined, null, "x", {}]) { assert.equal(showLinkPicker(none), false); assert.deepEqual(linkChoices(none).map((c) => c.value), [""]); assert.deepEqual(parseLinkChoice(linkChoices(none)[0].value), { kind: null, position: null }); }
+  assert.equal(showLinkPicker([{ position: 1, kind: "apply", label: "LinkedIn" }]), true);
+  assert.equal(showLinkPicker([{ position: 1, kind: "apply", label: "LinkedIn" }, { position: 1, kind: "recruiter", firm: "Acme Staffing", label: null }]), true);
+});
+
+test("the not-open page branch leaves the link list empty, so the picker is hidden and the report is a 'something else' report", async () => {
+  const { notOpenRecap } = await import("../js/chips.js");
+  const answer = { ok: false, status: 409, data: { code: "posting_not_open", status: "paused", closed_reason: null } };   // no links field at all
+  const links = detailLinks(answer);                                                                                      // what renderRecap leaves in state.links on this branch
+  assert.deepEqual(links, []); assert.deepEqual(detailLinks({ ok: true, data: { posting: {}, links: [{ position: 1, kind: "apply", label: "A" }] } }).length, 1); assert.deepEqual(detailLinks({ ok: true, data: { links: [] } }), []); assert.deepEqual(detailLinks(undefined), []);
+  assert.equal(showLinkPicker(links), false); assert.equal(notOpenRecap(answer.data.status, answer.data.closed_reason).title, "This posting is paused");
+  assert.deepEqual(parseLinkChoice(linkChoices(links)[0].value), { kind: null, position: null });
+});
+
+test("a rate-limited send button waits one timer: at least a second, never more than a timer can hold", () => {
+  assert.equal(cooldownMs(21510), 21510000); assert.equal(cooldownMs(0.2), 1000); assert.equal(cooldownMs(undefined), 1000); assert.equal(cooldownMs(1e12), 2147483647);
 });
 
 test("api: the comment calls send what the page has, and the answers are checked (ids on items, at most 25, a report id back)", async () => {

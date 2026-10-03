@@ -75,8 +75,9 @@ export function initials(name) {
 
 export function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
 
-// Seconds -> "45 seconds" / "3 minutes"
+// Seconds -> "45 seconds" / "3 minutes" / "6 hours" (hours from 120 minutes up, rounded up so a wait is never understated)
 export function waitText(seconds) {
   const s = Math.max(1, Math.round(Number(seconds) || 1));
-  return s < 90 ? plural(s, "second", "seconds") : plural(Math.ceil(s / 60), "minute", "minutes");
+  if (s < 90) return plural(s, "second", "seconds");
+  return s < 7200 ? plural(Math.ceil(s / 60), "minute", "minutes") : plural(Math.ceil(s / 3600), "hour", "hours");
 }

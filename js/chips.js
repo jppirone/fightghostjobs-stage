@@ -46,3 +46,15 @@ export function notOpenMessage(status, closedReason) {
   if (status === "closed") return closedReason === "filled" ? "This posting is closed: the employer reports the role was filled." : closedReason === "withdrawn" ? "This posting is closed: the employer withdrew it." : "This posting is closed.";
   return "This posting is not open.";
 }
+
+// The comments page for a posting that is not open (candidate-posting-detail answers 409 posting_not_open): the small line, the heading and the note under it.
+// A PAUSED posting is expected to return, so it gets its own heading and the short sentence; closed, expired and every other status keep the long sentence.
+export function notOpenHeading(status) {
+  return status === "paused" ? "This posting is paused" : "This posting is no longer open";
+}
+export function notOpenComments(status) {
+  return status === "paused" ? "Comments stay open." : "Comments stay open: what happened after it closed is exactly what other candidates want to know.";
+}
+export function notOpenRecap(status, closedReason) {
+  return { company: "Posting", title: notOpenHeading(status), note: notOpenMessage(status, closedReason || null) + " " + notOpenComments(status) };
+}

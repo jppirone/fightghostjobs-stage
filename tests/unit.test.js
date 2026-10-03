@@ -2,7 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { fmtDate, fmtStamp, fmtDateTz, fmtClose, tzLabel, groupCode, locationLine, initials, plural, waitText } from "../js/format.js";
-import { postingChips, aiFilteringChip, aiInterviewChip, statusChips, notOpenMessage, TOOLTIP_FILTERING, TOOLTIP_INTERVIEW } from "../js/chips.js";
+import { postingChips, aiFilteringChip, aiInterviewChip, statusChips, notOpenMessage, notOpenHeading, notOpenComments, notOpenRecap, TOOLTIP_FILTERING, TOOLTIP_INTERVIEW } from "../js/chips.js";
 import { classifyQuery, checkCompany, normalizeCode, noMatchMessage, NO_MATCH_NOTE } from "../js/search-input.js";
 import { checkReq, resolveSearch, noMatchMessage as noMatchMsg, NO_MATCH_NOTE_REQ } from "../js/search-input.js";
 import { isDuplicateReq } from "../js/register-form.js";
@@ -44,7 +44,7 @@ test("location line: remote, places, neither", () => {
 test("small helpers", () => {
   assert.equal(initials("John Pirone"), "JP"); assert.equal(initials("cher"), "C"); assert.equal(initials(""), "?");
   assert.equal(plural(1, "posting", "postings"), "1 posting"); assert.equal(plural(2, "posting", "postings"), "2 postings");
-  assert.equal(waitText(45), "45 seconds"); assert.equal(waitText(1), "1 second"); assert.equal(waitText(600), "10 minutes"); assert.equal(waitText(undefined), "1 second");
+  assert.equal(waitText(45), "45 seconds"); assert.equal(waitText(1), "1 second"); assert.equal(waitText(600), "10 minutes"); assert.equal(waitText(7140), "119 minutes"); assert.equal(waitText(7200), "2 hours"); assert.equal(waitText(21510), "6 hours"); assert.equal(waitText(3600 * 24), "24 hours"); assert.equal(waitText(3601 + 3600), "3 hours"); assert.equal(waitText(undefined), "1 second");
 });
 
 test("the two AI disclosures are independent, worded exactly as designed, and null is said plainly", () => {
@@ -84,6 +84,18 @@ test("status wording for every state a candidate can be shown", () => {
   assert.equal(statusChips(Object.assign({}, base, { status: "closed", closed_reason: "withdrawn" }), "UTC")[0].text, "Closed · Withdrawn");
   assert.match(notOpenMessage("closed", "filled"), /filled/); assert.match(notOpenMessage("closed", "withdrawn"), /withdrew/);
   assert.match(notOpenMessage("expired", "expired_no_action"), /no action/); assert.match(notOpenMessage("paused", null), /paused/);
+});
+
+test("the not-open comments page: a paused posting gets its own heading and the short sentence; closed, expired and every other status keep the long wording", () => {
+  const LONG = "Comments stay open: what happened after it closed is exactly what other candidates want to know.";
+  assert.equal(notOpenHeading("paused"), "This posting is paused"); assert.equal(notOpenComments("paused"), "Comments stay open.");
+  for (const s of ["closed", "expired", "live", "draft", undefined, null, ""]) { assert.equal(notOpenHeading(s), "This posting is no longer open"); assert.equal(notOpenComments(s), LONG); }
+  const paused = notOpenRecap("paused", null);
+  assert.deepEqual(paused, { company: "Posting", title: "This posting is paused", note: "This posting is paused. The employer has paused it, so it is not accepting applicants right now. Comments stay open." });
+  assert.equal(notOpenRecap("closed", "filled").note, "This posting is closed: the employer reports the role was filled. " + LONG);
+  assert.equal(notOpenRecap("expired", "expired_no_action").note, "This posting has expired with no action taken by the employer. " + LONG);
+  assert.equal(notOpenRecap("closed", "withdrawn").title, "This posting is no longer open"); assert.equal(notOpenRecap("weird").note, "This posting is not open. " + LONG);
+  assert.doesNotMatch(JSON.stringify([paused, notOpenRecap("closed", null)]), /so its links are not listed/);   // the option B sentence is not used
 });
 
 test("search company rule mirrors the backend (2+ letters/digits, 200 max)", () => {

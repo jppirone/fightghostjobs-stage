@@ -21,6 +21,7 @@
 //   S19 the requirements-text hint ("compared with any later changes ...") is on the register form AND the edit page, word for word, and the edit page's note label is the approved one
 //   S22 privacy.html with the approved sections; every page links to it (footer) and carries the privacy contact; both email boxes link to it
 //   S36 comments and contests: the exact contest notice (defined once, shown to candidates and the owner while a contest is open), the six reasons, a contest control only in the owner view and only when no contest exists, the plain already-contested sentence for the owner after a decision, no editing, hide or delete wording or control, no promised response time, no view across postings, the privacy sentence
+//   S37 the comments page for a posting that is not open: paused has its own heading and short sentence (once each), closed and expired keep the long wording (once), the unapproved "links not listed" sentence is nowhere, the Which link? picker hides when there are no links, the comment button does not tick
 //   S35 (TEMPORARY, John 2026-09-30) no user-facing text says whether employer analytics or reporting is free or paid or in a tier (the code does not gate it yet); John removes this rule when the tier gate is built
 //   S34 the register form has no editable company field: the company name is shown read only from the organization, the form never reads or sends one (the server takes it from the organization and ignores any in the request)
 //   S33 links: every link goes somewhere real: a mailto only to an approved address and only where its text says it opens an email, no tel or # or empty or javascript: link, every internal target and #anchor exists, new-tab links have rel=noopener, external links only to the marketing site, and the pricing card's "See what's included" goes to the marketing plans page
@@ -598,6 +599,33 @@ export function checkSite(root) {
     if (fs.existsSync(priv)) for (const need of ['id="privacyContests"', "contest a comment on it, once", "stays visible with a notice while it is under review", "FightGhostJobs.com decides", "kept in the review record", "not shown to candidates"]) if (!read(priv).includes(need)) add("S36", priv, "privacy.html must say: " + need);
     // the notice block is bordered (it must be unmissable, and still visible when colors are forced)
     const ac = P("app.css"); if (fs.existsSync(ac) && !read(ac).includes(".contest-notice{border:2px solid var(--ember-dark);")) add("S36", ac, "the contest notice must have a solid, visible border");
+  }
+
+  // S37 (item 1 bundle, 2026-10-03): the comments page for a posting that is not open. A PAUSED posting has its own heading and the short sentence, each defined once (js/chips.js); closed, expired and every other status keep the
+  // long wording, once; the "links are not listed" sentence (option B) was NOT approved and exists nowhere; the "Which link?" label and dropdown are hidden when the posting has no links (the #reportLink element itself stays, S29);
+  // a rate-limited comment button shows no ticking "Wait Ns" text (the wait is said once, in words, in the message).
+  {
+    const chipsF = path.join(root, "js", "chips.js"), pageF = path.join(root, "js", "pages", "comments.js"), htmlF = path.join(root, "comments.html");
+    const appFiles = html.concat(js);
+    const count = (str) => appFiles.reduce((n, f) => n + read(f).split(str).length - 1, 0);
+    const once = (str, why) => { const k = count(str); if (k !== 1) add("S37", chipsF, why + " (found " + k + " times, expected once): " + str.slice(0, 70)); };
+    once('"This posting is paused"', "the paused posting's heading must exist exactly once");
+    once('"Comments stay open."', "the paused posting's comments sentence must exist exactly once");
+    once('"This posting is no longer open"', "the closed and expired heading must be unchanged and exist exactly once");
+    once('"Comments stay open: what happened after it closed is exactly what other candidates want to know."', "the closed and expired comments sentence must be unchanged and exist exactly once");
+    for (const b of ["so its links are not listed", "You can still tell us about a link you followed", "The employer's links are not listed here for this posting"]) if (count(b) > 0) add("S37", chipsF, "this sentence was not approved and must not be used: " + b);
+    if (fs.existsSync(chipsF)) {
+      const c = read(chipsF);
+      if (!c.includes('return status === "paused" ? "This posting is paused" : "This posting is no longer open";') || !c.includes('return status === "paused" ? "Comments stay open." : "Comments stay open: what happened after it closed')) add("S37", chipsF, "the heading and the comments sentence must be chosen by status === \"paused\" only, so closed, expired and every other status keep the long wording");
+    }
+    if (fs.existsSync(pageF)) {
+      const p = stripJsComments(read(pageF));
+      if (!p.includes("notOpenRecap(d.data.status")) add("S37", pageF, "the not-open branch must take its heading and note from notOpenRecap (js/chips.js), not from literals");
+      if (/"Posting"|no longer open|Comments stay open/.test(p)) add("S37", pageF, "the not-open wording is defined in js/chips.js only");
+      if (!p.includes("showLinkPicker(state.links)") || !p.includes('$("#reportLinkLabel").hidden = !picker') || !p.includes("sel.hidden = !picker")) add("S37", pageF, "the Which link? label and dropdown must be hidden when the posting has no links (showLinkPicker)");
+      if (/"Wait "|setInterval/.test(p)) add("S37", pageF, "the comment button must not tick down (no \"Wait Ns\" text, no one-second timer): the wait is said once, in words, in the message");
+    }
+    if (fs.existsSync(htmlF) && !read(htmlF).includes('<label id="reportLinkLabel" for="reportLink"')) add("S37", htmlF, "the Which link? label must carry id=reportLinkLabel (the page hides it when there are no links)");
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

@@ -306,6 +306,24 @@ control("the form code sends a company name again", "S34", edit("js/register-for
 control("the form code asks for a company name again", "S34", edit("js/register-form.js", (s) => s.replace('  need("closeout", v.closeout, "what ends this posting");', '  need("company", v.company, "the company name");\n  need("closeout", v.closeout, "what ends this posting");')));
 control("the page reads a company value from the form again", "S34", edit("js/pages/register.js", (s) => s.replace('req: val("#req"), locEntries:', 'req: val("#req"), company: val("#company"), locEntries:')));
 control("the page stops showing the organization's name", "S34", edit("js/pages/register.js", (s) => s.replace('$("#companyShown").textContent = ctx.info.organization.name;', "")));
+// S37 (2026-10-03): the not-open comments page, the hidden link picker, the single countdown
+control("the paused heading says no longer open again", "S37", edit("js/chips.js", (s) => s.replace('? "This posting is paused" :', '? "This posting is no longer open" :')));
+control("the paused heading is defined a second time", "S37", append("js/pages/search.js", 'const _ph = "This posting is paused";'));
+control("the paused sentence becomes the long sentence", "S37", edit("js/chips.js", (s) => s.replace('? "Comments stay open." :', '? "Comments stay open: what happened after it closed is exactly what other candidates want to know." :')));
+control("the paused sentence is dropped", "S37", edit("js/chips.js", (s) => s.replace('? "Comments stay open." :', '? "" :')));
+control("the closed heading changes", "S37", edit("js/chips.js", (s) => s.replace(': "This posting is no longer open";', ': "This posting is closed";')));
+control("the closed and expired sentence loses a word", "S37", edit("js/chips.js", (s) => s.replace("is exactly what other candidates want to know.", "is what other candidates want to know.")));
+control("expired gets the paused wording", "S37", edit("js/chips.js", (s) => s.replace('status === "paused" ? "This posting is paused" :', 'status === "paused" || status === "expired" ? "This posting is paused" :')));
+control("the option B sentence is added to the page", "S37", append("js/pages/comments.js", 'const _b = "This posting is paused, so its links are not listed. You can still tell us about a link you followed from it.";'));
+control("the option B sentence is added to the markup", "S37", edit("comments.html", (s) => s.replace('<label id="reportLinkLabel"', '<p>You can still tell us about a link you followed from it.</p><label id="reportLinkLabel"')));
+control("the page writes the not-open heading itself again", "S37", edit("js/pages/comments.js", (s) => s.replace("nr.title;", '"This posting is no longer open";')));
+control("the page stops using the not-open helper", "S37", edit("js/pages/comments.js", (s) => s.replace("notOpenRecap(d.data.status", "notOpenRecap(d.status")));
+control("the link label stops being hidden", "S37", edit("js/pages/comments.js", (s) => s.replace('$("#reportLinkLabel").hidden = !picker;', "")));
+control("the link dropdown stops being hidden", "S37", edit("js/pages/comments.js", (s) => s.replace("sel.hidden = !picker;", "")));
+control("the link label loses its id", "S37", edit("comments.html", (s) => s.replace('<label id="reportLinkLabel" for="reportLink"', '<label for="reportLink"')));
+control("the comment button ticks again", "S37", edit("js/pages/comments.js", (s) => s.replace("button.textContent = idleLabel;\n  state.cooldownTimer", 'button.textContent = "Wait " + seconds + "s";\n  state.cooldownTimer')));
+control("the comment button gets a one-second timer again", "S37", append("js/pages/comments.js", "const _t = setInterval(() => {}, 1000);"));
+control("the reportLink element is removed from the markup", "S29", edit("comments.html", (s) => s.replace('<select id="reportLink" aria-label="Which link"></select>', "")));
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");
 process.exit(missed ? 1 : 0);
