@@ -10,7 +10,7 @@ import { locationLine, waitText, groupCode } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
 import { aiNotes } from "../ai-notes.js";
 import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js";
-import { contestNotice, mountContest } from "../contest-ui.js";
+import { addContestPart } from "../contest-ui.js";
 
 const params = new URLSearchParams(location.search);
 const ref = String(params.get("ref") || "").toLowerCase(), pid = String(params.get("id") || "").toLowerCase();
@@ -29,9 +29,8 @@ function commentCard(c) {
   const meta = h("div", { style: "font-size:12px;color:var(--faint);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;" }, h("span", {}, "Verified candidate · " + ago(c.created_at)));
   const body = h("p", { style: "font-size:15px;line-height:1.6;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;" }, c.body);
   const card = h("article", { class: "card", style: "padding:16px 20px;display:flex;flex-direction:column;gap:8px;" }, meta, body);
-  // a contested comment shows the notice, to candidates and to the owner alike; only the owner is offered the contest control (a candidate keeps Report), and never for a comment that already has one
-  if (c.contested) card.append(contestNotice({ employer: state.mode === "employer" }));
-  if (state.mode === "employer" && !c.contested) mountContest({ api, comment: c, card, after: body, meta, limits: state.contestLimits, onAuthFailure: employerSessionEnded });
+  // everything about a contest on this comment (js/contest-ui.js decides from c.contest_state, by view): the notice for an open contest, the owner's control when none exists, the plain sentence after a decision
+  addContestPart({ mode: state.mode, comment: c, api, card, after: body, meta, limits: state.contestLimits, onAuthFailure: employerSessionEnded });
   if (state.mode === "candidate") {
     const form = h("form", { novalidate: true, hidden: true, style: "display:flex;flex-direction:column;gap:8px;margin-top:6px;" });
     const reason = h("input", { type: "text", maxlength: "300", placeholder: "Why should we look at this comment?", "aria-label": "Why report this comment" });

@@ -20,7 +20,7 @@
 //   S18 the req number: the candidate's req box on search.html is MASKED as it is typed (type=password) with a show/hide toggle, and the register hint says it is required, searchable by candidates, masked, rate-limited and always visible to the employer
 //   S19 the requirements-text hint ("compared with any later changes ...") is on the register form AND the edit page, word for word, and the edit page's note label is the approved one
 //   S22 privacy.html with the approved sections; every page links to it (footer) and carries the privacy contact; both email boxes link to it
-//   S36 comments and contests: the exact contest notice (defined once, shown to candidates and the owner), the six reasons, a contest control only in the owner view and never on a contested comment, no editing, hide or delete wording or control, no promised response time, no view across postings, the privacy sentence
+//   S36 comments and contests: the exact contest notice (defined once, shown to candidates and the owner while a contest is open), the six reasons, a contest control only in the owner view and only when no contest exists, the plain already-contested sentence for the owner after a decision, no editing, hide or delete wording or control, no promised response time, no view across postings, the privacy sentence
 //   S35 (TEMPORARY, John 2026-09-30) no user-facing text says whether employer analytics or reporting is free or paid or in a tier (the code does not gate it yet); John removes this rule when the tier gate is built
 //   S34 the register form has no editable company field: the company name is shown read only from the organization, the form never reads or sends one (the server takes it from the organization and ignores any in the request)
 //   S33 links: every link goes somewhere real: a mailto only to an approved address and only where its text says it opens an email, no tel or # or empty or javascript: link, every internal target and #anchor exists, new-tab links have rel=noopener, external links only to the marketing site, and the pricing card's "See what's included" goes to the marketing plans page
@@ -530,14 +530,28 @@ export function checkSite(root) {
       if (!u.includes('tag, h("p", { class: "contest-notice-text" }, CONTEST_NOTICE));') || !/import \{[^}]*\bCONTEST_NOTICE\b[^}]*\} from "\.\/comments-model\.js";/.test(u)) add("S36", ui, "the notice block must show CONTEST_NOTICE to everyone (the owner's extra label is separate)");
     }
     if (fs.existsSync(page)) {
-      const c = read(page), notice = 'if (c.contested) card.append(contestNotice({ employer: state.mode === "employer" }));', cand = 'if (state.mode === "candidate") {';
-      if (c.split(notice).length !== 2 || c.indexOf(notice) > c.indexOf(cand)) add("S36", page, "every contested comment must show the notice in both views (candidate and owner), before any view-only branch");
-      // the contest control: owner view only, never for a comment that already has a contest, and only this page mounts it
-      const mount = 'if (state.mode === "employer" && !c.contested) mountContest({ api, comment: c, card, after: body, meta, limits: state.contestLimits, onAuthFailure: employerSessionEnded });';
-      if (c.split(mount).length !== 2 || (c.match(/mountContest\(/g) || []).length !== 1) add("S36", page, "the contest control must be mounted once, in the owner view only, and never on an already contested comment");
+      // the page hands every comment, with the view it is in, to ONE function (js/contest-ui.js) that decides from contest_state; it does not decide anything about contests itself
+      const c = read(page), part = 'addContestPart({ mode: state.mode, comment: c, api, card, after: body, meta, limits: state.contestLimits, onAuthFailure: employerSessionEnded });', cand = 'if (state.mode === "candidate") {';
+      if (c.split(part).length !== 2 || c.indexOf(part) > c.indexOf(cand)) add("S36", page, "every comment must go through addContestPart once, with its view, before any view-only branch (the notice for an open contest in both views, the control and the decided sentence for the owner only)");
+      if (/\b(mountContest|contestNotice|contestDecided)\b/.test(stripJsComments(c))) add("S36", page, "the page must not show or mount contest parts itself: js/contest-ui.js (addContestPart) does");
       if (/contestComment\(/.test(stripJsComments(c))) add("S36", page, "the page must not call contestComment itself: the control (js/contest-ui.js) does");
     }
-    for (const f of js) if (f !== page && f !== ui && /\bmountContest\b/.test(stripJsComments(read(f)))) add("S36", f, "only the comments page may mount the contest control");
+    if (fs.existsSync(ui)) {
+      // by view and by contest_state: candidate view = the notice for 'open' only; owner view = control for 'none', notice (with the filing date) for 'open', the plain already-contested sentence for 'left' and 'removed' (no control, no notice)
+      const u = read(ui), pinned = [
+        'const employer = mode === "employer";',
+        'if (comment.contested) card.append(contestNotice({ employer, since: employer ? comment.contest_filed_at : null }));',
+        'if (employer && comment.contest_state === "none") mountContest({ api, comment, card, after, meta, limits, onAuthFailure });',
+        'if (employer && (comment.contest_state === "left" || comment.contest_state === "removed")) card.append(contestDecided());',
+        'export function contestDecided() { return alertBox("notice", CONTEST_ALREADY); }',
+      ];
+      for (const line of pinned) if (u.split(line).length !== 2) add("S36", ui, "the contest parts by view and state must be exactly: " + line);
+      if ((stripJsComments(u).match(/\bmountContest\(/g) || []).length !== 2) add("S36", ui, "the contest control must be mounted from addContestPart only (one definition, one call)");
+      const us = stripJsComments(u);
+      if ((us.match(/\bcontestDecided\(/g) || []).length !== 2 || (us.match(/\bCONTEST_ALREADY\b/g) || []).length !== 2) add("S36", ui, "the already-contested sentence may be shown only for a decided contest (left or removed) in the owner view; the server's already_contested answer is worded in comments-model.js");
+    }
+    for (const f of js) if (f !== ui && f !== page && /\b(mountContest|contestDecided|contestNotice|addContestPart)\b/.test(stripJsComments(read(f)))) add("S36", f, "only js/contest-ui.js may show or mount the contest parts (the comments page calls addContestPart)");
+    for (const f of html.concat(js)) if (f !== model && /has already been contested/.test(read(f))) add("S36", f, "the already-contested sentence is defined only in js/comments-model.js (CONTEST_ALREADY)");
     for (const f of js) if (f !== ui && f !== api && /\.contestComment\(/.test(stripJsComments(read(f)))) add("S36", f, "only the contest control may call api.contestComment");
 
     // the six reasons, in order, word for word; the dropdown is built from that list and sends the code
@@ -557,7 +571,8 @@ export function checkSite(root) {
     if (fs.existsSync(api)) {
       const a = read(api);
       if (!a.includes('call("contest-comment", { comment_id: commentId, category, explanation }, { validate: shapes.contestAnswer })')) add("S36", api, "contestComment must send exactly comment_id, category and explanation (who is asking comes from the session only)");
-      if (!a.includes("isStr(c.created_at) && isBool(c.contested)")) add("S36", api, "a comment item must carry contested as a boolean (a missing flag is a broken answer, never false)");
+      if (!a.includes("isStr(c.created_at) && shapes.contestFields(c)")) add("S36", api, "a comment item must carry the contest fields (a missing flag is a broken answer, never false)");
+      for (const pin of ['export const CONTEST_STATES = ["none", "open", "left", "removed"];', "isBool(c.contested) && CONTEST_STATES.includes(c.contest_state)", "isNullable(c.contest_filed_at, (v) => isStr(v) && Number.isFinite(Date.parse(v)))", '(c.contest_state === "none") === (c.contest_filed_at === null)', 'c.contested === (c.contest_state === "open")']) if (!a.includes(pin)) add("S36", api, "a comment item's contest fields must be checked (fail closed): " + pin);
       if (/\b(hide|delete|remove|edit|modify|amend)\w*Comment/i.test(stripJsComments(a))) add("S36", api, "no call may hide, delete, remove, edit or modify a comment from the browser");
     }
     for (const f of [page, ui, model]) if (fs.existsSync(f) && /poster_id|organization_id|contest_id/.test(stripJsComments(read(f)))) add("S36", f, "the browser never names a poster, organization or contest id: the server reads who is asking from the session");

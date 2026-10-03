@@ -107,16 +107,46 @@ test("api: refusals keep their code, and the server's numbers ride along only wh
   r = await run(500, { error: "boom" }); assert.equal(r.error.code, "server_error");
 });
 
-test("api: both readers must carry contested as a boolean; a missing or non-boolean flag is a broken answer, never false", async () => {
-  const item = (extra) => Object.assign({ id: 7, body: "x".repeat(12), created_at: "2026-10-01T10:00:00Z" }, extra);
-  const page = (items) => ({ total: items.length, comments: items, next_offset: null });
-  const ref = "0123456789abcdefghjk";
-  for (const [read, wrap] of [[(a) => a.candidateListComments(ref), (b) => b], [(a) => a.employerListComments(uuid), (b) => Object.assign({ posting_id: uuid }, b)]]) {
-    const a = mk(() => ({ status: 200, body: wrap(page([item({ contested: true }), item({ id: 8, contested: false })])) }));
-    const r = await read(a.api); assert.equal(r.ok, true); assert.deepEqual(r.data.comments.map((c) => c.contested), [true, false]);
-    for (const bad of [undefined, null, "true", 1, 0]) { const r2 = await read(mk(() => ({ status: 200, body: wrap(page([item(bad === undefined ? {} : { contested: bad })])) })).api); assert.equal(r2.ok, false, String(bad)); assert.equal(r2.error.code, "bad_response"); }
+// the three contest keys of a reader item, for each of the four states
+const STATE = {
+  none: { contested: false, contest_state: "none", contest_filed_at: null },
+  open: { contested: true, contest_state: "open", contest_filed_at: FILED },
+  left: { contested: false, contest_state: "left", contest_filed_at: FILED },
+  removed: { contested: false, contest_state: "removed", contest_filed_at: FILED },
+};
+const item = (extra, id = 7) => Object.assign({ id, body: "x".repeat(12), created_at: "2026-10-01T10:00:00Z" }, extra);
+const page = (items) => ({ total: items.length, comments: items, next_offset: null });
+const REF = "0123456789abcdefghjk";
+const READERS = [["candidate", (a) => a.candidateListComments(REF), (b) => b], ["employer", (a) => a.employerListComments(uuid), (b) => Object.assign({ posting_id: uuid }, b)]];
+
+test("api: both readers pass all four contest states through, with the date, on the item the page receives", async () => {
+  for (const [name, read, wrap] of READERS) {
+    const items = Object.keys(STATE).map((k, i) => item(STATE[k], i + 1));
+    const r = await read(mk(() => ({ status: 200, body: wrap(page(items)) })).api); assert.equal(r.ok, true, name);
+    assert.deepEqual(r.data.comments.map((c) => [c.contested, c.contest_state, c.contest_filed_at]), [[false, "none", null], [true, "open", FILED], [false, "left", FILED], [false, "removed", FILED]], name);
   }
-  assert.equal(shapes.commentItem(item({ contested: false })), true); assert.equal(shapes.commentItem(item({})), false);
+});
+
+test("api: the contest keys are required on both readers; a missing, mistyped, unknown or inconsistent one is a broken answer, never 'no contest'", async () => {
+  const drop = (o, k) => { const c = Object.assign({}, o); delete c[k]; return c; };
+  const bads = [];
+  for (const st of Object.keys(STATE)) for (const k of ["contested", "contest_state", "contest_filed_at"]) bads.push([st + " without " + k, drop(STATE[st], k)]);
+  bads.push(["old reader: contested only", { contested: true }], ["old reader: contested false only", { contested: false }], ["nothing", {}]);
+  for (const v of [undefined, null, "true", 1, 0]) bads.push(["contested " + String(v), Object.assign({}, STATE.none, { contested: v })]);
+  for (const v of [undefined, null, "", "OPEN", "Open", "decided", "modified", "closed", "under_review", 1, true, ["open"]]) bads.push(["state " + String(v), Object.assign({}, STATE.open, { contest_state: v })]);
+  for (const v of [undefined, 0, 1, true, {}, [], 1759419807412, "", "not a date", "2026-13-45"]) bads.push(["filed_at " + JSON.stringify(v), Object.assign({}, STATE.open, { contest_filed_at: v })]);
+  // inconsistent: 'none' iff filed_at is null; contested iff state is 'open'
+  bads.push(["none with a date", Object.assign({}, STATE.none, { contest_filed_at: FILED })], ["open without a date", Object.assign({}, STATE.open, { contest_filed_at: null })],
+    ["left without a date", Object.assign({}, STATE.left, { contest_filed_at: null })], ["removed without a date", Object.assign({}, STATE.removed, { contest_filed_at: null })],
+    ["open but contested false", Object.assign({}, STATE.open, { contested: false })], ["left but contested true", Object.assign({}, STATE.left, { contested: true })],
+    ["removed but contested true", Object.assign({}, STATE.removed, { contested: true })], ["none but contested true", Object.assign({}, STATE.none, { contested: true })]);
+  for (const [name, read, wrap] of READERS) for (const [label, extra] of bads) {
+    const r = await read(mk(() => ({ status: 200, body: wrap(page([item(STATE.none, 1), item(extra, 2)])) })).api);
+    assert.equal(r.ok, false, name + ": " + label); assert.equal(r.error.code, "bad_response", name + ": " + label);
+  }
+  for (const st of Object.keys(STATE)) assert.equal(shapes.commentItem(item(STATE[st])), true, st);
+  assert.equal(shapes.commentItem(item({})), false);
+  assert.equal(shapes.commentItem(item(Object.assign({}, STATE.open, { contest_filed_at: "2026-10-02T15:43:27+00:00" }))), true);       // any parseable ISO timestamp
 });
 
 // ---- the screen parts, on a tiny fake DOM (just what js/dom.js and js/contest-ui.js use)
@@ -138,7 +168,8 @@ class FEl extends FNode {
 globalThis.Node = FNode;
 globalThis.document = { createElement: (t) => new FEl(t), createTextNode: (t) => new FText(t), activeElement: null };
 const { h } = await import("../js/dom.js");
-const { contestNotice, mountContest } = await import("../js/contest-ui.js");
+const { fmtDate } = await import("../js/format.js");
+const { contestNotice, contestDecided, addContestPart, mountContest } = await import("../js/contest-ui.js");
 const all = (el, pred, out = []) => { if (el instanceof FEl) { if (pred(el)) out.push(el); for (const c of el.children) all(c, pred, out); } return out; };
 const byClass = (el, cls) => all(el, (e) => e.className.split(" ").includes(cls));
 const one = (el, cls) => { const r = byClass(el, cls); assert.equal(r.length, 1, cls + " x" + r.length); return r[0]; };
@@ -249,4 +280,71 @@ test("screen: an ended session is handed to the page, and nothing else changes o
   const w = wire({ contestComment: async () => ({ ok: false, status: 401, error: { code: "unauthorized" } }) });
   await w.trigger.fire("click"); await fillAndContinue(w, "other", good); await w.buttons["File contest"].fire("click");
   assert.equal(w.session.ended, 1); assert.equal(w.form.parent, w.card);
+});
+
+// ---- the four states in both views: what a comment card shows (addContestPart is what js/pages/comments.js calls for every comment)
+const cardFor = (mode, comment) => {
+  const meta = h("div", {}, h("span", {}, "Verified candidate")), body = h("p", {}, "The comment text"), card = h("article", {}, meta, body);
+  addContestPart({ mode, comment: Object.assign({ id: 61 }, comment), api: { contestComment: async () => { throw new Error("no call expected"); } }, card, after: body, meta, limits: { min: 30, max: 1000 }, onAuthFailure: async () => {} });
+  return { card, meta, body, notices: byClass(card, "contest-notice"), decided: byClass(card, "alert"), triggers: byTag(meta, "button").filter((b) => b.textContent === "Contest this comment"), forms: byTag(card, "form") };
+};
+
+test("screen, owner view, state none: the Contest button and a closed form; no notice and no sentence", () => {
+  const v = cardFor("employer", STATE.none);
+  assert.equal(v.triggers.length, 1); assert.equal(v.forms.length, 1); assert.equal(v.forms[0].hidden, true); assert.equal(v.notices.length, 0); assert.equal(v.decided.length, 0);
+});
+
+test("screen, owner view, state open: the notice with the exact text and 'Under review since <date>' from contest_filed_at; no button, no form, no sentence", () => {
+  const v = cardFor("employer", STATE.open);
+  assert.equal(v.notices.length, 1); assert.equal(one(v.notices[0], "contest-notice-text").textContent, CONTEST_NOTICE);
+  assert.equal(one(v.notices[0], "contest-notice-tag").textContent, "Under review since " + fmtDate(FILED));
+  assert.match(one(v.notices[0], "contest-notice-tag").textContent, /^Under review since [A-Z][a-z]{2} \d{1,2}$/);
+  assert.equal(v.triggers.length, 0); assert.equal(v.forms.length, 0); assert.equal(byTag(v.card, "button").length, 0); assert.equal(v.decided.length, 0);
+  assert.equal(v.card.children[v.card.children.indexOf(v.body) + 1], v.notices[0]);
+});
+
+test("screen, owner view: the date comes from the reader, so it is the same after a reload and changes with the filing time", () => {
+  const a = cardFor("employer", Object.assign({}, STATE.open, { contest_filed_at: "2026-03-05T12:00:00+00:00" })), b = cardFor("employer", Object.assign({}, STATE.open, { contest_filed_at: "2026-11-20T12:00:00+00:00" }));
+  assert.equal(one(a.notices[0], "contest-notice-tag").textContent, "Under review since " + fmtDate("2026-03-05T12:00:00+00:00"));
+  assert.equal(one(b.notices[0], "contest-notice-tag").textContent, "Under review since " + fmtDate("2026-11-20T12:00:00+00:00"));
+  assert.notEqual(one(a.notices[0], "contest-notice-tag").textContent, one(b.notices[0], "contest-notice-tag").textContent);
+});
+
+test("screen, owner view, states left and removed: no button, no form, no notice; only the exact already-contested sentence", () => {
+  for (const st of ["left", "removed"]) {
+    const v = cardFor("employer", STATE[st]);
+    assert.equal(v.triggers.length, 0, st); assert.equal(v.forms.length, 0, st); assert.equal(byTag(v.card, "button").length, 0, st); assert.equal(v.notices.length, 0, st);
+    assert.equal(v.decided.length, 1, st); assert.equal(v.decided[0].textContent, "This comment has already been contested and cannot be contested again.", st); assert.equal(v.decided[0].textContent, CONTEST_ALREADY);
+    assert.doesNotMatch(v.card.textContent, /Under review|contested by the employer|removed|left in place/, st);
+  }
+  assert.equal(contestDecided().textContent, CONTEST_ALREADY);
+});
+
+test("screen, candidate view: the notice (text only, no date, no label) only for an open contest; never a contest control; nothing about left or removed", () => {
+  const open = cardFor("candidate", STATE.open);
+  assert.equal(open.notices.length, 1); assert.equal(one(open.notices[0], "contest-notice-text").textContent, CONTEST_NOTICE); assert.equal(byClass(open.card, "contest-notice-tag").length, 0);
+  assert.doesNotMatch(open.card.textContent, /Under review|since/); assert.equal(open.triggers.length, 0); assert.equal(open.forms.length, 0); assert.equal(byTag(open.card, "button").length, 0); assert.equal(open.decided.length, 0);
+  for (const st of ["none", "left", "removed"]) {
+    const v = cardFor("candidate", STATE[st]);
+    assert.equal(v.notices.length, 0, st); assert.equal(v.triggers.length, 0, st); assert.equal(v.forms.length, 0, st); assert.equal(v.decided.length, 0, st); assert.equal(byTag(v.card, "button").length, 0, st);
+    assert.equal(v.card.textContent, "Verified candidateThe comment text", st);                       // the card holds exactly what it had before: nothing was added
+  }
+});
+
+test("screen: any view other than the owner's or a candidate's gets no control and no decided sentence", () => {
+  for (const st of Object.keys(STATE)) { const v = cardFor("none", STATE[st]); assert.equal(v.triggers.length, 0, st); assert.equal(v.decided.length, 0, st); assert.equal(v.forms.length, 0, st); }
+});
+
+test("screen: a successful filing replaces the control with the notice and the date from the server's answer; a reload then shows the same date from the reader", async () => {
+  const meta = h("div", {}, h("span", {}, "Verified candidate")), body = h("p", {}, "The comment text"), card = h("article", {}, meta, body);
+  const calls = [];
+  addContestPart({ mode: "employer", comment: Object.assign({ id: 61 }, STATE.none), api: { contestComment: async (...a) => { calls.push(a); return { ok: true, status: 201, data: OK }; } }, card, after: body, meta, limits: { min: 30, max: 1000 }, onAuthFailure: async () => {} });
+  const form = byTag(card, "form")[0], trigger = byTag(meta, "button")[0];
+  await trigger.fire("click"); byTag(form, "select")[0].value = "other"; byTag(form, "textarea")[0].value = good; await form.fire("submit");
+  await byTag(form, "button").find((b) => b.textContent === "File contest").fire("click");
+  assert.deepEqual(calls, [[61, "other", good]]);
+  const notices = byClass(card, "contest-notice"); assert.equal(notices.length, 1); assert.equal(byTag(card, "button").length, 0); assert.equal(byTag(card, "form").length, 0);
+  assert.equal(one(notices[0], "contest-notice-tag").textContent, "Under review since " + fmtDate(FILED));
+  const again = cardFor("employer", STATE.open);                                                      // the reload: same words, same date, from contest_filed_at
+  assert.equal(one(again.notices[0], "contest-notice-tag").textContent, one(notices[0], "contest-notice-tag").textContent);
 });

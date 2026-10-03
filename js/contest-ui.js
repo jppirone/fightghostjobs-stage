@@ -6,13 +6,26 @@
 
 import { h, alertBox } from "./dom.js";
 import { isAuthFailure } from "./api.js";
-import { CONTEST_NOTICE, CONTEST_CONFIRM, CONTEST_CATEGORIES, checkContestCategory, checkContestExplanation, contestCounter, contestLimits, contestRefusal } from "./comments-model.js";
+import { CONTEST_NOTICE, CONTEST_CONFIRM, CONTEST_ALREADY, CONTEST_CATEGORIES, checkContestCategory, checkContestExplanation, contestCounter, contestLimits, contestRefusal } from "./comments-model.js";
 import { fmtDate } from "./format.js";
 
-// the bordered notice. employer: the owner's view also says "Under review" (with the date, when the contest was filed in this visit); candidates see the notice text alone.
+// the bordered notice. employer: the owner's view also says "Under review" (with the date the contest was filed: from the reader after a reload, from the filing answer right after filing); candidates see the notice text alone.
 export function contestNotice({ employer = false, since = null } = {}) {
   const tag = employer ? h("div", { class: "contest-notice-tag" }, since ? "Under review since " + fmtDate(since) : "Under review") : null;
   return h("div", { class: "contest-notice", role: "note", tabindex: "-1" }, tag, h("p", { class: "contest-notice-text" }, CONTEST_NOTICE));
+}
+
+// the owner's view of a comment whose contest has been decided (left or removed): no control, no notice, only the plain already-contested sentence
+export function contestDecided() { return alertBox("notice", CONTEST_ALREADY); }
+
+// Everything about a contest on one comment card, by view. contest_state is 'none' | 'open' | 'left' | 'removed' (contested is true exactly when it is 'open'; the readers' answers are checked in js/api.js).
+//   candidate view: the notice for an open contest, nothing else, ever (no control, no word about a decision)
+//   owner view: none -> the contest control; open -> the notice with "Under review since <date>"; left or removed -> no control, no notice, only the plain already-contested sentence
+export function addContestPart({ mode, comment, api, card, after, meta, limits, onAuthFailure }) {
+  const employer = mode === "employer";
+  if (comment.contested) card.append(contestNotice({ employer, since: employer ? comment.contest_filed_at : null }));
+  if (employer && comment.contest_state === "none") mountContest({ api, comment, card, after, meta, limits, onAuthFailure });
+  if (employer && (comment.contest_state === "left" || comment.contest_state === "removed")) card.append(contestDecided());
 }
 
 // Adds the control to one comment's card: the button goes in `meta`, the form at the end of `card`, and a filed contest puts the notice right after `after` (the comment's text).
