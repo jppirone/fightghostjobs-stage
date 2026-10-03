@@ -29,6 +29,12 @@ export const CONTEST_STATES = ["none", "open", "left", "removed"];
 const POSTING_STATUSES =["draft", "live", "paused", "expired", "closed", "flagged"];
 const EFFECTIVE_STATUSES = POSTING_STATUSES.concat(["scheduled"]);      // what the employer's views report: a draft that carries a go-live time reads "scheduled" (never a stored status)
 
+// item 4: the only keys an answer about stored links may carry (an address is none of them)
+const LINK_ROW_KEYS = ["position", "kind", "firm", "label", "shown_as", "check_status", "check_http"];
+const LINK_OP_KEYS = ["posting_id", "kind", "op", "position", "changed", "active_links", "links"];
+// a one-time ticket link: an https address with no user name or password in it
+function isHttpsTicket(v) { try { const u = new URL(v); return u.protocol === "https:" && u.hostname !== "" && u.username === "" && u.password === ""; } catch { return false; } }
+
 // ---- response shapes (exactly what the pages read)
 export const shapes = {
   // the organization's plan (item 3): verified now?, where it came from, when it ends, and whether it HAS ended (lapsed: links and named recruiter firms are stored but hidden)
@@ -75,6 +81,14 @@ export const shapes = {
     && (x.kind === undefined || x.kind === "apply" || x.kind === "recruiter") && (x.firm === undefined || isNullable(x.firm, isStr)) && (x.kind !== "recruiter" || isStr(x.firm)),
   storedLinks: (l) => Array.isArray(l) && l.length <= 13 && l.every((x) => isObj(x) && Number.isInteger(x.position) && x.position >= 1 && x.position <= 10 && isNullable(x.label, isStr) && shapes.linkExtras(x)),
   linksAnswer: (d) => isObj(d) && Number.isInteger(d.active_links) && shapes.storedLinks(d.links),
+  // item 4 (Destination links panel). Check link: EXACTLY { go_url, expires_at }: go_url is an opaque one-time https ticket link (no credentials in it), never an address; any other key makes it a broken answer.
+  checkIssue: (d) => isObj(d) && Object.keys(d).length === 2 && isStr(d.go_url) && isHttpsTicket(d.go_url) && isStr(d.expires_at) && Number.isFinite(Date.parse(d.expires_at)),
+  // item 4: the answer of an edit or a remove of ONE link: the stored links after the change, by their STORED positions (ascending, gaps allowed), each with only the five fields the panel reads; an unknown key anywhere
+  // (an address would be one) makes it a broken answer. firm is null for an application link.
+  linkRow: (l) => isObj(l) && Object.keys(l).every((k) => LINK_ROW_KEYS.includes(k)) && Number.isInteger(l.position) && l.position >= 1 && l.position <= 10 && (l.kind === undefined || l.kind === "apply") && (l.firm === undefined || l.firm === null)
+    && isNullable(l.label, isStr) && shapes.linkExtras(l),
+  linkOpAnswer: (d) => isObj(d) && Object.keys(d).every((k) => LINK_OP_KEYS.includes(k)) && UUID_RE.test(d.posting_id) && d.kind === "apply" && (d.op === "edit" || d.op === "remove") && Number.isInteger(d.position) && d.position >= 1 && d.position <= 10 && isBool(d.changed)
+    && Number.isInteger(d.active_links) && Array.isArray(d.links) && d.links.length <= 10 && d.links.length === d.active_links && d.links.every(shapes.linkRow) && d.links.every((l, i) => i === 0 || d.links[i - 1].position < l.position),
   openAnswer: (d) => isObj(d) && shapes.openPosting(d.posting) && shapes.storedLinks(d.destination_links) && shapes.plan(d.plan) && Array.isArray(d.recent_changes) && d.recent_changes.length <= 5
     && d.recent_changes.every((c) => isObj(c) && isStr(c.at) && isStr(c.note) && isNullable(c.kind, isStr) && Array.isArray(c.fields) && c.fields.every(isStr)),
   // schedule-posting: whether anything changed, the go-live time now stored (null = removed) and the resulting status
@@ -153,6 +167,25 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     setDestinationLinks: (postingId, links) => call("set-destination-links", { posting_id: postingId, links }, { validate: shapes.linksAnswer }),
     // replaces the posting's whole set of named recruiter firms (verified plan, and only while the posting says a recruiter is involved): [{ name, url? }], 0 to 3; [] removes them all
     setRecruiterFirms: (postingId, firms) => call("set-destination-links", { posting_id: postingId, kind: "recruiter", links: firms }, { validate: shapes.linksAnswer }),
+    // item 4, the rows panel. All three work on ONE application link, named by its stored position (1 to 10); the poster comes from the session only, never from here; no address is ever sent back.
+    // check: asks for a one-time ticket link (60 seconds, single use) the page opens in a new tab: { go_url, expires_at }
+    checkDestinationLink: async (postingId, position) => {
+      if (!UUID_RE.test(postingId) || !Number.isInteger(position) || position < 1 || position > 10) return { ok: false, status: 0, error: { code: "invalid_request" } };
+      return call("check-destination-link", { posting_id: postingId, position }, { validate: shapes.checkIssue });
+    },
+    // edit: change = { url?, label? }: a blank or missing url keeps the stored address; label absent keeps the label, null clears it, a string sets it. At least one of the two is required.
+    editDestinationLink: async (postingId, position, change) => {
+      const c = isObj(change) ? change : {}, hasUrl = isStr(c.url) && c.url.trim() !== "", hasLabel = "label" in c && (c.label === null || isStr(c.label));
+      if (!UUID_RE.test(postingId) || !Number.isInteger(position) || position < 1 || position > 10 || !(hasUrl || hasLabel) || (c.url !== undefined && !isStr(c.url))) return { ok: false, status: 0, error: { code: "invalid_request" } };
+      const body = { posting_id: postingId, kind: "apply", op: "edit", position };
+      if (hasUrl) body.url = c.url.trim();
+      if (hasLabel) body.label = c.label;
+      return call("set-destination-links", body, { validate: (d) => shapes.linkOpAnswer(d) && d.op === "edit" && d.position === position && d.posting_id.toLowerCase() === postingId.toLowerCase() });
+    },
+    removeDestinationLink: async (postingId, position) => {
+      if (!UUID_RE.test(postingId) || !Number.isInteger(position) || position < 1 || position > 10) return { ok: false, status: 0, error: { code: "invalid_request" } };
+      return call("set-destination-links", { posting_id: postingId, kind: "apply", op: "remove", position }, { validate: (d) => shapes.linkOpAnswer(d) && d.op === "remove" && d.position === position && d.posting_id.toLowerCase() === postingId.toLowerCase() });
+    },
     listMyPostings: (offset) => call("list-my-postings", offset ? { offset } : {}, { validate: shapes.myPostings }),
     // the caller's own six analytics metrics over [from, to) (pass 24); from/to are ISO-8601 instants. The organization is taken server-side from the signed-in session, never sent here.
     employerAnalytics: (from, to) => call("employer-analytics", { from, to }, { validate: shapes.analytics }),

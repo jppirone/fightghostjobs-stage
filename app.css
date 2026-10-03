@@ -101,6 +101,21 @@ a.row-action:hover{text-decoration:underline}
 .contest-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 @media (max-width:480px){.contest-notice{padding:10px 12px;border-left-width:6px}.contest-form{padding:12px}.contest-actions .btn{flex:1 1 auto}}
 
+/* the destination links panel on the edit page (item 4): one bordered row per stored link, with its three buttons and, when opened, the edit form or the remove question (the form look is the contest form's) */
+.link-list{display:flex;flex-direction:column;gap:10px}
+.link-row{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff}
+.link-row-top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.link-row-main{min-width:0;flex:1 1 220px}
+.link-row-title{font-size:14px;font-weight:700;overflow-wrap:anywhere}
+.link-row-meta{font-size:13px;color:var(--muted);line-height:1.5;margin-top:2px;overflow-wrap:anywhere}
+.link-row-actions{display:flex;gap:8px;flex-wrap:wrap}
+.link-edit-title{font-size:14px;font-weight:700}
+.link-confirm{display:flex;flex-direction:column;gap:10px;font-size:14px;line-height:1.6;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.link-confirm-text{margin:0;font-weight:600}
+.link-confirm-text:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+.link-open{font-weight:600}
+@media (max-width:480px){.link-row{padding:10px 12px}.link-row-actions .btn{flex:1 1 auto}}
+
 /* the footer every page carries: the privacy page and the privacy contact (tests/site-check.js S22) */
 .site-footer{max-width:1440px;margin:0 auto;padding:28px 32px;border-top:1px solid var(--line);display:flex;gap:24px;align-items:center;font-size:13px;color:var(--faint)}
 .site-footer a{color:var(--faint)}

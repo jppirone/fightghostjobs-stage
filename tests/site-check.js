@@ -33,6 +33,7 @@
 //   S27 the recruiter-firm editor is on register AND edit (no "coming soon"), saved through api.setRecruiterFirms; the search page renders "Recruiter firm: <name>"
 //   S28 the employer's AI notes: a 300-char box under each AI toggle on both pages (shown to candidates, no web addresses), checked by the shared rule, shown on the search card as the employer's words
 //   S29 candidate comments: comments.html (thread, compose, private wrong-link report, employer read-only) reached only with ?ref= / ?id=, through api.js; anonymous; the privacy page says what is kept
+//   S38 the destination links rows panel (item 4): the panel and its two approved sentences are on edit.html once each; an address is never on the page (the edit form's address box is created empty, never given a value, autocomplete off; no row reads an address field; the ticket link is only ever a navigation target); the blank tab is opened before the request and its opener cut; no new network host, no storage, no logging; the plan's words exist once; no em dash in the new text
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
@@ -496,6 +497,85 @@ export function checkSite(root) {
       const t = f.endsWith(".html") ? read(f).replace(/<!--[\s\S]*?-->/g, "") : stripJsComments(read(f));
       for (const line of t.split("\n")) { const text = line.replace(/<[^>]+>/g, " "); if (TOPIC.test(text) && TIER.test(text) && !/^\s*(import|export)\b/.test(line)) add("S35", f, "text must not say analytics or reporting is free, paid or in a tier (temporary rule, until the gate is built): " + text.trim().slice(0, 80)); }
     }
+  }
+
+  // S38 (item 4, 2026-10-03): the "Destination links" rows panel on the edit page (Check link, Edit, Remove on one stored link). The WRITE-ONLY rule holds on the page: no address is ever received, shown or stored here.
+  //   * edit.html carries #linksPanel, #linksPanelHint, #linksList, #linksCheckNote, each once; the plan's panel sentence and the address-bar note exist exactly once in the site; the old "not shown back to you" sentence is gone;
+  //   * js/link-panel.js: the address box is made by one h("input", ...) call with no value and autocomplete off, and only ever assigned the empty string; the ticket link (go_url) is used only as a tab's location and a link's href, never as text;
+  //     the blank tab is opened BEFORE the request and its opener is cut BEFORE it is pointed anywhere; window.open takes about:blank only; no storage, no logging, no network address, no "Add" control (a new link is added through the whole-set form);
+  //   * js/link-panel-model.js: a row is built from position, label, shown_as and the check result only (no field that could hold an address is read); recruiter firms are not rows; the plan's wording is defined once each;
+  //   * js/api.js: the check answer is exactly two keys; the edit and remove answers accept only the link fields; the three calls go to the right functions; js/pages/edit.js mounts the panel.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const htmlF = P("edit.html"), panelF = P("js", "link-panel.js"), modelF = P("js", "link-panel-model.js"), apiF = P("js", "api.js"), editF = P("js", "pages", "edit.js"), cssF = P("app.css");
+    const appFiles = html.concat(js);
+    const count38 = (str) => appFiles.reduce((n, f) => n + read(f).split(str).length - 1, 0);
+    const once38 = (str, why, where) => { const k = count38(str); if (k !== 1) add("S38", where, why + " (found " + k + " times, expected once): " + str.slice(0, 70)); };
+    const EMDASH = "\u2014";
+    const HINT = "These addresses are not shown on this page. Use Check link to open one in a new tab, Edit to replace one address, or Remove to take one out. The other links are not touched.";
+    const NOTE = "The page you are taken to may show its address in the new tab. That is normal.";
+    if (fs.existsSync(htmlF)) {
+      const t = read(htmlF);
+      for (const id of ["linksPanel", "linksPanelHint", "linksList", "linksCheckNote"]) if (t.split('id="' + id + '"').length !== 2) add("S38", htmlF, "edit.html must carry #" + id + " exactly once");
+      if (!t.includes('<div id="linksPanelHint" class="field-hint" style="margin-top:0;" hidden>' + HINT + "</div>")) add("S38", htmlF, "#linksPanelHint must carry the approved panel sentence, word for word");
+      if (!t.includes('<div id="linksCheckNote" class="field-hint" style="margin-top:0;" hidden>' + NOTE + "</div>")) add("S38", htmlF, "#linksCheckNote must carry the address-bar note, word for word");
+      if (/id="linksStored"/.test(t) || /not shown back to you/.test(t)) add("S38", htmlF, "the old stored-links sentence block and the sentence 'not shown back to you' are replaced by the panel");
+      const panelHtml = (t.match(/<div id="linksPanel"[\s\S]*?<form id="linksForm"/) || [""])[0];
+      if (panelHtml.includes(EMDASH)) add("S38", htmlF, "no em dash in the panel's text");
+    }
+    once38(HINT, "the panel sentence must exist exactly once in the site", htmlF); once38(NOTE, "the address-bar note must exist exactly once in the site", htmlF);
+    if (fs.existsSync(modelF)) {
+      const m = stripJsComments(read(modelF));
+      for (const need of ['CHECK: "Check link", EDIT: "Edit", REMOVE: "Remove",', 'checkAria = (n) => "Check Link " + n, editAria = (n) => "Edit Link " + n, removeAria = (n) => "Remove Link " + n;', "applyLinks("]) if (!m.includes(need)) add("S38", modelF, "the model must keep: " + need);
+      for (const str of ['OPENED: "Opened in a new tab. This one-time check link is used up; press Check link again to open it again."', 'BLOCKED: "Your browser blocked the new tab. Open the link here (it works for one minute): "', 'EXPIRED: "That check expired before it opened. Press Check link again."',
+        '"You are checking links too fast. Try again in "', 'editTitle: (n) => "Replace the address for Link " + n,', 'EDIT_HELP: "The current address is not shown. Enter the full new address, or leave the box empty to keep it. You can change the label too."',
+        '"? Candidates will no longer see it. Your other links are not changed."', '" was replaced."', '" was removed."', 'SAME_ADDRESS: "That is the address already stored, so nothing was changed."']) once38(str, "the plan's wording must be defined exactly once", modelF);
+      if (/\bx\.(url|href|host|address|link|url_enc|link_id|id)\b/.test(m) || /\burl_enc\b|\blink_id\b/.test(m)) add("S38", modelF, "a row must be built from position, label, shown_as and the check result only: no field that could hold an address is read");
+      if (!/for \(const x of applyLinks\(/.test(m)) add("S38", modelF, "rows come from the application links only (recruiter firms are not rows)");
+      if (/https?:\/\/[^\s"'`)<>]+/.test(m)) add("S38", modelF, "no web address in the panel model");
+      if (/["'][^"']*\b(Add a|Add another|Add link|Add new)\b/.test(m)) add("S38", modelF, "the panel has no Add control (a new link goes through the whole-set form)");
+      if (read(modelF).includes(EMDASH)) add("S38", modelF, "no em dash in the panel's text");
+    }
+    if (fs.existsSync(panelF)) {
+      const raw = read(panelF), c = stripJsComments(raw);
+      const addrCall = (c.match(/const addr = h\("input", \{[^\n]*\}\);/) || [""])[0];
+      if (!addrCall) add("S38", panelF, "the address box must be made by one h(\"input\", ...) call named addr");
+      else {
+        if (/\bvalue\s*:/.test(addrCall)) add("S38", panelF, "the address box must never be given a value");
+        if (!/autocomplete: "off"/.test(addrCall)) add("S38", panelF, "the address box must have autocomplete off");
+      }
+      for (const m of c.matchAll(/\baddr\.value\s*=(?!=)\s*([^;]*);/g)) if (m[1].trim() !== '""') add("S38", panelF, "the address box may only be assigned the empty string, found: addr.value = " + m[1].trim().slice(0, 40));
+      if (/\baddr\.defaultValue/.test(c) || /\baddr\.setAttribute\(\s*["']value/.test(c)) add("S38", panelF, "the address box must never be given a value");
+      for (const line of c.split("\n")) if (/\bgo_url\b/.test(line) && !/w\.location = r\.data\.go_url;|link = r\.data\.go_url;/.test(line)) add("S38", panelF, "the ticket link (go_url) may only be used as a tab's location or a link's href: " + line.trim().slice(0, 80));
+      if (!/href: note\.link, target: "_blank", rel: "noopener noreferrer"/.test(c)) add("S38", panelF, "the fallback link must open a new tab with rel noopener noreferrer");
+      if (/\b(textContent|innerText)\s*=\s*[^;]*\b(link|go_url)\b/.test(c) || /alertBox\([^)]*\b(link|go_url)\b/.test(c) || (c.match(/note\.link/g) || []).length !== (c.match(/href: note\.link/g) || []).length + (c.match(/if \(note\.link\)/g) || []).length) add("S38", panelF, "the ticket link must never be shown as text (it is only a link's href)");
+      const iOpen = c.indexOf("= openBlank();"), iCall = c.indexOf("api.checkDestinationLink("), iOpener = c.indexOf("w.opener = null"), iLoc = c.indexOf("w.location = r.data.go_url");
+      if (iOpen < 0 || iCall < 0 || iOpen > iCall) add("S38", panelF, "the blank tab must be opened (openBlank) BEFORE the check request is sent, inside the click");
+      if (iOpener < 0 || iLoc < 0 || iOpener > iLoc) add("S38", panelF, "the new tab's opener must be cut BEFORE it is pointed at the ticket link");
+      for (const m of c.matchAll(/window\.open\(([^)]*)\)/g)) if (m[1].trim() !== '"about:blank", "_blank"') add("S38", panelF, "window.open may open about:blank only (the address goes in afterwards): " + m[0].slice(0, 60));
+      if (/\b(localStorage|sessionStorage|indexedDB|navigator\.clipboard|document\.cookie|console\.)/.test(c)) add("S38", panelF, "the panel keeps nothing in storage, copies nothing and logs nothing");
+      if (/https?:\/\/[^\s"'`)<>]+/.test(c)) add("S38", panelF, "no web address in the panel code");
+      if (/["'][^"']*\b(Add a|Add another|Add link|Add new)\b/.test(c)) add("S38", panelF, "the panel has no Add control (a new link goes through the whole-set form)");
+      if (raw.includes(EMDASH)) add("S38", panelF, "no em dash in the panel's text");
+      if (!/api\.checkDestinationLink\(ctx\.getPostingId\(\), row\.position\)/.test(c) || !/api\.editDestinationLink\(ctx\.getPostingId\(\), row\.position, plan\.change\)/.test(c) || !/api\.removeDestinationLink\(ctx\.getPostingId\(\), row\.position\)/.test(c)) add("S38", panelF, "the three row actions must call the three api functions with the posting id and the row's stored position");
+    }
+    if (fs.existsSync(apiF)) {
+      const a = stripJsComments(read(apiF));
+      if (!/checkIssue: \(d\) => isObj\(d\) && Object\.keys\(d\)\.length === 2 && isStr\(d\.go_url\) && isHttpsTicket\(d\.go_url\)/.test(a)) add("S38", apiF, "the check answer must be exactly two keys, with an https ticket link");
+      if (!/const LINK_ROW_KEYS = \["position", "kind", "firm", "label", "shown_as", "check_status", "check_http"\];/.test(a)) add("S38", apiF, "an answer about stored links may carry only position, kind, firm, label, shown_as, check_status, check_http");
+      if (!/const LINK_OP_KEYS = \["posting_id", "kind", "op", "position", "changed", "active_links", "links"\];/.test(a)) add("S38", apiF, "an edit or remove answer may carry only posting_id, kind, op, position, changed, active_links, links");
+      if (!/linkRow: \(l\) => isObj\(l\) && Object\.keys\(l\)\.every\(\(k\) => LINK_ROW_KEYS\.includes\(k\)\)/.test(a) || !/linkOpAnswer: \(d\) => isObj\(d\) && Object\.keys\(d\)\.every\(\(k\) => LINK_OP_KEYS\.includes\(k\)\)/.test(a)) add("S38", apiF, "the edit and remove answers must be checked against the key lists");
+      for (const need of ['call("check-destination-link", { posting_id: postingId, position }', 'call("set-destination-links", body,', 'call("set-destination-links", { posting_id: postingId, kind: "apply", op: "remove", position }']) if (!a.includes(need)) add("S38", apiF, "api.js must make the call: " + need);
+      const i0 = a.indexOf("checkDestinationLink:"), i1 = a.indexOf("listMyPostings:");
+      if (i0 < 0 || i1 < i0 || /poster_id|organization_id/.test(a.slice(i0, i1))) add("S38", apiF, "the panel's calls never send who is asking");
+    }
+    if (fs.existsSync(editF)) {
+      const e = stripJsComments(read(editF));
+      if (!e.includes("mountLinkPanel({") || !e.includes("linkPanel.render(doc.destination_links)")) add("S38", editF, "edit.js must mount the rows panel and draw it from the stored links");
+      if (/linksStored/.test(e)) add("S38", editF, "edit.js must not draw the old stored-links sentence");
+      if (/\.(url|url_enc|link_id)\b/.test(e.slice(e.indexOf("const linkPanel = mountLinkPanel"), e.indexOf("function renderLinks")))) add("S38", editF, "the panel wiring never reads an address field");
+    }
+    if (fs.existsSync(cssF) && !read(cssF).includes(".link-row{display:flex;")) add("S38", cssF, "the panel's row style is missing from app.css");
   }
 
   // S36: comments and contests (2026-09-30, rewritten 2026-10-02 for item A). Comments are free on every tier. The owner of a posting can read its comments and contest one comment, once; that is the ONLY action on a comment.

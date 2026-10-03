@@ -11,6 +11,7 @@ import { mountLocationPicker } from "../location-picker.js";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js";
 import { loadCatalog } from "../location-catalog.js";
 import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js";
+import { mountLinkPanel } from "../link-panel.js";
 import { wireInfoIcons } from "../info-icon.js";
 
 wireInfoIcons();
@@ -112,11 +113,25 @@ $("#unscheduleBtn").addEventListener("click", () => submitSchedule(true));
 const planDay = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 const links = mountLinkRowsById();   // the shared Address | Label rows (link-rows.js); the register form uses the same component
 const resetLinkRows = links.reset, showLinkErrors = links.showErrors;
+// the rows panel (item 4): Check link, Edit and Remove on ONE stored application link. It draws from position, label and what candidates see; it never receives or shows an address.
+const linkPanel = mountLinkPanel({
+  host: $("#linksList"), hintEl: $("#linksPanelHint"), noteEl: $("#linksCheckNote"), api, getPostingId: () => postingId,
+  isBlocked: () => state.linksBusy,
+  onSessionEnded: () => sessionEnded(),
+  onStale: async () => { const reload = await api.getMyPosting(postingId); if (reload.ok) await populate(reload.data); },     // the plan ended, the posting is no longer editable, or the link is gone: start again from the server
+  onChanged: async (list) => {                                                                                                // an edit or a remove worked: keep what this page holds in step, then refresh the change list
+    if (state.doc) state.doc.destination_links = list.concat(recruiterFirms(state.doc.destination_links));
+    $("#clearLinksBtn").hidden = list.length === 0;
+    const reload = await api.getMyPosting(postingId);
+    if (reload.ok) { state.doc.recent_changes = reload.data.recent_changes; renderChanges(reload.data.recent_changes); }
+  },
+});
 function renderLinks(doc, editable) {
   const card = $("#linksCard"); card.hidden = !editable; if (!editable) return;
   const notice = planNotice(doc.plan, Date.now()), plan = $("#linksPlan"); clear(plan); plan.hidden = true;
   $("#linksLocked").hidden = notice.state === "active" || notice.state === "lapsed";
   $("#linksForm").hidden = notice.state !== "active";
+  $("#linksPanel").hidden = notice.state !== "active";
   $("#exclusiveRow").hidden = notice.state !== "active";
   if (notice.state === "lapsed") {
     plan.hidden = false;
@@ -125,10 +140,9 @@ function renderLinks(doc, editable) {
   } else if (notice.state === "active" && notice.endsSoon) {
     plan.hidden = false; plan.append(alertBox("notice", "Your destination links tier ends on " + planDay(notice.endsAt) + ". After that, destination links are paused (kept, but candidates do not see them) until it is renewed. To renew, write to sales@fightghostjobs.com."));
   }
-  const stored = $("#linksStored"); clear(stored);
   if (notice.state === "active") {
-    const mine = applyLinks(doc.destination_links), n = mine.length;
-    stored.append(n === 0 ? "No destination links are stored for this posting yet." : h("span", {}, h("strong", {}, n === 1 ? "1 link is stored" : n + " links are stored"), ": ", mine.map(storedLinkText).join("; "), "."));
+    const n = applyLinks(doc.destination_links).length;
+    linkPanel.render(doc.destination_links);
     $("#clearLinksBtn").hidden = n === 0;
     if (!state.linksBusy) resetLinkRows();
   }
