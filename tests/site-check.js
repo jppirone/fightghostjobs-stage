@@ -503,7 +503,8 @@ export function checkSite(root) {
   //   * edit.html carries #linksPanel, #linksPanelHint, #linksList, #linksCheckNote, each once; the plan's panel sentence and the address-bar note exist exactly once in the site; the old "not shown back to you" sentence is gone;
   //   * js/link-panel.js: the address box is made by one h("input", ...) call with no value and autocomplete off, and only ever assigned the empty string; the ticket link (go_url) is used only as a tab's location and a link's href, never as text;
   //     the blank tab is opened BEFORE the request and its opener is cut BEFORE it is pointed anywhere; window.open takes about:blank only; no storage, no logging, no network address, no "Add" control (a new link is added through the whole-set form);
-  //   * js/link-panel-model.js: a row is built from position, label, shown_as and the check result only (no field that could hold an address is read); recruiter firms are not rows; the plan's wording is defined once each;
+  //   * a labelled row is titled "Link N: LABEL" (an unlabelled one "Link N"), the same form in the row title and in the edit and remove dialog texts (pinned in the model and in the panel's calls);
+//   * js/link-panel-model.js: a row is built from position, label, shown_as and the check result only (no field that could hold an address is read); recruiter firms are not rows; the plan's wording is defined once each;
   //   * js/api.js: the check answer is exactly two keys; the edit and remove answers accept only the link fields; the three calls go to the right functions; js/pages/edit.js mounts the panel.
   {
     const P = (...a) => path.join(root, ...a);
@@ -527,8 +528,11 @@ export function checkSite(root) {
     if (fs.existsSync(modelF)) {
       const m = stripJsComments(read(modelF));
       for (const need of ['CHECK: "Check link", EDIT: "Edit", REMOVE: "Remove",', 'checkAria = (n) => "Check Link " + n, editAria = (n) => "Edit Link " + n, removeAria = (n) => "Remove Link " + n;', "applyLinks("]) if (!m.includes(need)) add("S38", modelF, "the model must keep: " + need);
+      // one title form (owner decision October 3, 2026 for the number; the form itself is for review): "Link N: LABEL" for a labelled row, "Link N" for an unlabelled one, used by the row title and the edit and remove dialog texts
+      for (const need of ['export const linkTitle = (position, label) => linkName(position) + (typeof label === "string" && label.trim() !== "" ? ": " + label.trim() : "");', "title: linkTitle(x.position, label),",
+        'removeConfirm: (n, label) => "Remove " + linkTitle(n, label) + "? Candidates', 'confirmReplace: (n, alsoLabel, label) => "Replace the address for " + linkTitle(n, label) + "? Candidates', 'confirmLabel: (n, label) => "Change the label for " + linkTitle(n, label) + "? The']) if (!m.includes(need)) add("S38", modelF, "a labelled row keeps its number: the title form must stay: " + need.slice(0, 80));
       for (const str of ['OPENED: "Opened in a new tab. This one-time check link is used up; press Check link again to open it again."', 'BLOCKED: "Your browser blocked the new tab. Open the link here (it works for one minute): "', 'EXPIRED: "That check expired before it opened. Press Check link again."',
-        '"You are checking links too fast. Try again in "', 'editTitle: (n) => "Replace the address for Link " + n,', 'EDIT_HELP: "The current address is not shown. Enter the full new address, or leave the box empty to keep it. You can change the label too."',
+        '"You are checking links too fast. Try again in "', 'editTitle: (n, label) => "Replace the address for " + linkTitle(n, label),', 'EDIT_HELP: "The current address is not shown. Enter the full new address, or leave the box empty to keep it. You can change the label too."',
         '"? Candidates will no longer see it. Your other links are not changed."', '" was replaced."', '" was removed."', 'SAME_ADDRESS: "That is the address already stored, so nothing was changed."']) once38(str, "the plan's wording must be defined exactly once", modelF);
       if (/\bx\.(url|href|host|address|link|url_enc|link_id|id)\b/.test(m) || /\burl_enc\b|\blink_id\b/.test(m)) add("S38", modelF, "a row must be built from position, label, shown_as and the check result only: no field that could hold an address is read");
       if (!/for \(const x of applyLinks\(/.test(m)) add("S38", modelF, "rows come from the application links only (recruiter firms are not rows)");
@@ -557,6 +561,7 @@ export function checkSite(root) {
       if (/https?:\/\/[^\s"'`)<>]+/.test(c)) add("S38", panelF, "no web address in the panel code");
       if (/["'][^"']*\b(Add a|Add another|Add link|Add new)\b/.test(c)) add("S38", panelF, "the panel has no Add control (a new link goes through the whole-set form)");
       if (raw.includes(EMDASH)) add("S38", panelF, "no em dash in the panel's text");
+      for (const need of ["LP.removeConfirm(row.position, row.label)", "LP.editTitle(row.position, row.label)", "confirmText(row.position, plan, row.label)"]) if (!c.includes(need)) add("S38", panelF, "the dialog texts must be given the row's label so a labelled row keeps its number in one title form: " + need);
       if (!/api\.checkDestinationLink\(ctx\.getPostingId\(\), row\.position\)/.test(c) || !/api\.editDestinationLink\(ctx\.getPostingId\(\), row\.position, plan\.change\)/.test(c) || !/api\.removeDestinationLink\(ctx\.getPostingId\(\), row\.position\)/.test(c)) add("S38", panelF, "the three row actions must call the three api functions with the posting id and the row's stored position");
     }
     if (fs.existsSync(apiF)) {

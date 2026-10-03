@@ -180,6 +180,11 @@ control("the check call says who is asking", "S38", edit("js/api.js", (s) => s.r
 control("the remove call changes", "S38", edit("js/api.js", (s) => s.replace('{ posting_id: postingId, kind: "apply", op: "remove", position }', '{ posting_id: postingId, op: "remove", position }')));
 control("the check button loses the link number", "S38", edit(MODEL, (s) => s.replace('checkAria = (n) => "Check Link " + n', 'checkAria = (n) => "Check link"')));
 control("the Remove button is renamed", "S38", edit(MODEL, (s) => s.replace('REMOVE: "Remove"', 'REMOVE: "Delete"')));
+control("a labelled row loses its number in the row title", "S38", edit(MODEL, (s) => s.replace("title: linkTitle(x.position, label),", "title: label || linkName(x.position),")));
+control("the title form drops the number for a labelled row", "S38", edit(MODEL, (s) => s.replace("linkName(position) + (typeof label", '(typeof label === "string" && label.trim() !== "" ? "" : linkName(position)) + (typeof label')));
+control("the edit dialog title drops the label form", "S38", edit(MODEL, (s) => s.replace('editTitle: (n, label) => "Replace the address for " + linkTitle(n, label),', 'editTitle: (n) => "Replace the address for Link " + n,')));
+control("the remove question drops the label form", "S38", edit(MODEL, (s) => s.replace('removeConfirm: (n, label) => "Remove " + linkTitle(n, label) + "?', 'removeConfirm: (n) => "Remove Link " + n + "?')));
+control("the panel stops passing the label to the confirm sentence", "S38", edit(PANEL, (s) => s.replace("confirmText(row.position, plan, row.label)", "confirmText(row.position, plan)")));
 control("the remove question changes", "S38", edit(MODEL, (s) => s.replace("Candidates will no longer see it.", "Candidates will not see it.")));
 control("the blocked sentence changes", "S38", edit(MODEL, (s) => s.replace("Your browser blocked the new tab.", "Your browser blocked the tab.")));
 control("rows include the recruiter firms", "S38", edit(MODEL, (s) => s.replace("for (const x of applyLinks(", "for (const x of (")));

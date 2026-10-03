@@ -76,7 +76,7 @@ export function mountLinkPanel(ctx) {
 
   // ---- Remove
   function removeBox(row, refs) {
-    const text = h("p", { class: "link-confirm-text", tabindex: "-1" }, LP.removeConfirm(row.position));
+    const text = h("p", { class: "link-confirm-text", tabindex: "-1" }, LP.removeConfirm(row.position, row.label));
     const yes = h("button", { type: "button", class: "btn btn-dark btn-sm", "aria-label": removeAria(row.position) }, LP.REMOVE);
     const no = h("button", { type: "button", class: "btn btn-ghost btn-sm" }, LP.CANCEL);
     const box = h("div", { class: "link-confirm link-remove", hidden: true }, text, h("div", { class: "contest-actions" }, yes, no));
@@ -105,12 +105,12 @@ export function mountLinkPanel(ctx) {
     labelBox.value = row.label || "";       // the label is a private note, not a secret: it is prefilled so a label-only change needs no retyping
     const addrErr = h("div", { class: "field-error", hidden: true }), labelErr = h("div", { class: "field-error", hidden: true }), formErr = h("div", { class: "field-error", role: "alert", hidden: true });
     const next = h("button", { type: "submit", class: "btn btn-dark btn-sm" }, LP.CONTINUE), cancel = h("button", { type: "button", class: "btn btn-ghost btn-sm" }, LP.CANCEL);
-    const fields = h("div", { class: "contest-fields" }, h("div", { class: "link-edit-title" }, LP.editTitle(row.position)), h("p", { class: "field-hint", style: "margin:0;" }, LP.EDIT_HELP),
+    const fields = h("div", { class: "contest-fields" }, h("div", { class: "link-edit-title" }, LP.editTitle(row.position, row.label)), h("p", { class: "field-hint", style: "margin:0;" }, LP.EDIT_HELP),
       h("div", {}, addr, addrErr), h("div", {}, labelBox, labelErr), h("div", { class: "contest-actions" }, next, cancel));
     const confirmTextEl = h("p", { class: "link-confirm-text", tabindex: "-1" }, "");
     const save = h("button", { type: "button", class: "btn btn-dark btn-sm" }, LP.SAVE), back = h("button", { type: "button", class: "btn btn-ghost btn-sm" }, LP.GO_BACK);
     const confirm = h("div", { class: "link-confirm", hidden: true }, confirmTextEl, h("div", { class: "contest-actions" }, save, back));
-    const form = h("form", { class: "link-edit contest-form", novalidate: true, hidden: true, "aria-label": LP.editTitle(row.position) }, fields, confirm, formErr);
+    const form = h("form", { class: "link-edit contest-form", novalidate: true, hidden: true, "aria-label": LP.editTitle(row.position, row.label) }, fields, confirm, formErr);
     refs.addr = addr;
     buttons.push(next, cancel, save, back);
 
@@ -127,7 +127,7 @@ export function mountLinkPanel(ctx) {
       showErrors(plan.errors);
       if (!plan.ok) { (plan.errors.url ? addr : labelBox).focus(); return; }
       if (!plan.change) { close(); setNote(row.position, { kind: "notice", text: LP.NOTHING_CHANGED }); return; }
-      confirmTextEl.textContent = confirmText(row.position, plan); step(2); confirmTextEl.focus();
+      confirmTextEl.textContent = confirmText(row.position, plan, row.label); step(2); confirmTextEl.focus();
     });
     save.addEventListener("click", async () => {
       if (!canAct()) return;

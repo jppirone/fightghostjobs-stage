@@ -19,9 +19,9 @@ export const LP = {
   BLOCKED: "Your browser blocked the new tab. Open the link here (it works for one minute): ",
   EXPIRED: "That check expired before it opened. Press Check link again.",
   rateLimitedCheck: (seconds) => "You are checking links too fast. Try again in " + waitText(seconds || 30) + ".",
-  editTitle: (n) => "Replace the address for Link " + n,
+  editTitle: (n, label) => "Replace the address for " + linkTitle(n, label),
   EDIT_HELP: "The current address is not shown. Enter the full new address, or leave the box empty to keep it. You can change the label too.",
-  removeConfirm: (n) => "Remove Link " + n + "? Candidates will no longer see it. Your other links are not changed.",
+  removeConfirm: (n, label) => "Remove " + linkTitle(n, label) + "? Candidates will no longer see it. Your other links are not changed.",
   replaced: (n) => "Link " + n + " was replaced.",
   removed: (n) => "Link " + n + " was removed.",
   SAME_ADDRESS: "That is the address already stored, so nothing was changed.",
@@ -38,14 +38,16 @@ export const LP = {
   rateLimited: (seconds) => "Too many requests just now. Try again in " + waitText(seconds || 30) + ".",               // js/pages/edit.js failureText
   // NEW (not in the plan): listed for the owner in NOTES-frontend.md
   SAVE: "Save",
-  confirmReplace: (n, alsoLabel) => "Replace the address for Link " + n + "? Candidates will be sent to the address you entered. Your other links are not changed." + (alsoLabel ? " The label is changed too." : ""),
-  confirmLabel: (n) => "Change the label for Link " + n + "? The address is kept. Your other links are not changed.",
+  confirmReplace: (n, alsoLabel, label) => "Replace the address for " + linkTitle(n, label) + "? Candidates will be sent to the address you entered. Your other links are not changed." + (alsoLabel ? " The label is changed too." : ""),
+  confirmLabel: (n, label) => "Change the label for " + linkTitle(n, label) + "? The address is kept. Your other links are not changed.",
   labelChanged: (n) => "The label for Link " + n + " was changed.",
   LINK_GONE: "That link is no longer stored, so nothing was changed.",
 };
 
 // ---- the rows
 export const linkName = (position) => "Link " + position;                               // by the STORED position: after a Remove the others keep their numbers (a gap stays a gap)
+// ONE form for a row's title and for the edit and remove dialog texts: "Link 3: Careers site" for a labelled row, "Link 3" for an unlabelled one (a display format only; the label is the stored note, shown as text)
+export const linkTitle = (position, label) => linkName(position) + (typeof label === "string" && label.trim() !== "" ? ": " + label.trim() : "");
 export const checkAria = (n) => "Check Link " + n, editAria = (n) => "Edit Link " + n, removeAria = (n) => "Remove Link " + n;
 
 // get-my-posting's destination_links -> one row per stored APPLICATION link, in position order. Only position, label, what candidates see and the save-time check are ever read.
@@ -56,7 +58,7 @@ export function panelRows(list) {
     if (!x || !Number.isInteger(x.position) || x.position < 1 || x.position > 10 || seen.has(x.position)) continue;
     seen.add(x.position);
     const label = typeof x.label === "string" && x.label.trim() !== "" ? x.label.trim() : null;
-    rows.push({ position: x.position, label, title: label || linkName(x.position), shownAs: typeof x.shown_as === "string" && x.shown_as !== "" ? x.shown_as : null,
+    rows.push({ position: x.position, label, title: linkTitle(x.position, label), shownAs: typeof x.shown_as === "string" && x.shown_as !== "" ? x.shown_as : null,
       checkFailed: x.check_status === "failed", checkHttp: Number.isInteger(x.check_http) ? x.check_http : null });
   }
   return rows.sort((a, b) => a.position - b.position);
@@ -90,7 +92,7 @@ export function planEdit(addressText, labelText, currentLabel) {
   out.change = Object.keys(change).length ? change : null;
   return out;
 }
-export const confirmText = (position, plan) => plan.replacesAddress ? LP.confirmReplace(position, plan.changesLabel) : LP.confirmLabel(position);
+export const confirmText = (position, plan, label) => plan.replacesAddress ? LP.confirmReplace(position, plan.changesLabel, label) : LP.confirmLabel(position, label);
 
 // ---- what each answer of the server means on this panel
 // op: "check" | "edit" | "remove"; err: what js/api.js returned. -> { text, where: "url" | "label" | "row" | "panel", sessionEnded, planLost, stale }

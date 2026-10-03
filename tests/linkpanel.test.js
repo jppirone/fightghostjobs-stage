@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createApi, shapes } from "../js/api.js";
-import { LP, panelRows, rowMeta, planEdit, confirmText, refusalFor, successText, checkAria, editAria, removeAria, linkName } from "../js/link-panel-model.js";
+import { LP, panelRows, rowMeta, planEdit, confirmText, refusalFor, successText, checkAria, editAria, removeAria, linkName, linkTitle } from "../js/link-panel-model.js";
 
 const BASE = "https://example.test", KEY = "sb_publishable_TESTKEY", PID = "11111111-1111-4111-8111-111111111111";
 const TICKET = "https://example.test/functions/v1/check-link-go/c1.AAAAAAAAAAAAAAAAAAAAAA.AAAAAA.AAAAAAAAAAAAAAAAAAAAAA";
@@ -13,15 +13,32 @@ const L = (position, extra) => Object.assign({ position, kind: "apply", firm: nu
 const ANSWER = (op, position, links, extra) => Object.assign({ posting_id: PID, kind: "apply", op, position, changed: true, active_links: links.length, links }, extra || {});
 
 // ---- the model
-test("rows: one per stored APPLICATION link, in position order, titled by the label or by the stored position; a gap stays a gap", () => {
+test("rows: one per stored APPLICATION link, in position order, titled Link N: LABEL (or Link N when unlabelled) by the stored position; a gap stays a gap", () => {
   const rows = panelRows([L(3, { label: "Careers site" }), L(1), { position: 2, kind: "recruiter", firm: "Acme Staffing", label: null, shown_as: null }, L(5, { label: "   " })]);
-  assert.deepEqual(rows.map((r) => [r.position, r.title]), [[1, "Link 1"], [3, "Careers site"], [5, "Link 5"]]);
+  assert.deepEqual(rows.map((r) => [r.position, r.title]), [[1, "Link 1"], [3, "Link 3: Careers site"], [5, "Link 5"]]);
   assert.deepEqual(panelRows([L(1), L(3)]).map((r) => r.title), ["Link 1", "Link 3"]);                         // link 2 was removed: the others keep their numbers
   assert.deepEqual(panelRows([{ position: 2, label: null }]).map((r) => r.title), ["Link 2"]);                  // an answer from before pass C has no kind: it is an application link
   for (const bad of [{ position: 0 }, { position: 11 }, { position: 1.5 }, { position: "2" }, null, undefined]) assert.deepEqual(panelRows([bad]), []);
   assert.deepEqual(panelRows([L(2), L(2, { label: "second" })]).map((r) => r.title), ["Link 2"]);               // a repeated position keeps its first entry
   assert.deepEqual(panelRows(undefined), []); assert.deepEqual(panelRows([]), []);
   assert.equal(linkName(7), "Link 7");
+});
+
+test("row title: ONE form, \"Link N: LABEL\" for a labelled row and \"Link N\" for an unlabelled one; N is the stored position (gaps stay gaps); a long label is kept whole", () => {
+  assert.equal(linkTitle(3, "Careers site"), "Link 3: Careers site"); assert.equal(linkTitle(3, null), "Link 3"); assert.equal(linkTitle(3, ""), "Link 3"); assert.equal(linkTitle(3, "   "), "Link 3"); assert.equal(linkTitle(3, undefined), "Link 3");
+  assert.equal(linkTitle(10, "  padded  "), "Link 10: padded");
+  const rows = panelRows([L(1, { label: "First" }), L(4, { label: "Fourth" }), L(7), L(9, { label: "x".repeat(100) })]);
+  assert.deepEqual(rows.map((r) => r.title), ["Link 1: First", "Link 4: Fourth", "Link 7", "Link 9: " + "x".repeat(100)]);       // positions 1, 4, 7, 9: the gaps stay gaps
+  assert.equal(rows[3].label, "x".repeat(100));                               // the label field itself stays the bare label (the edit box is prefilled with it)
+  assert.deepEqual(panelRows([L(2, { label: "Careers: main" })]).map((r) => r.title), ["Link 2: Careers: main"]);
+});
+
+test("dialog texts use the same form: the edit title, the confirm sentences and the remove question carry the number AND the label", () => {
+  assert.equal(LP.editTitle(3, "Careers site"), "Replace the address for Link 3: Careers site"); assert.equal(LP.editTitle(3, null), "Replace the address for Link 3"); assert.equal(LP.editTitle(3), "Replace the address for Link 3");
+  assert.equal(LP.removeConfirm(2, "Careers site"), "Remove Link 2: Careers site? Candidates will no longer see it. Your other links are not changed."); assert.equal(LP.removeConfirm(2, null), "Remove Link 2? Candidates will no longer see it. Your other links are not changed.");
+  assert.equal(confirmText(3, planEdit("https://jobs.example.invalid/a", "Careers site", "Careers site"), "Careers site"), "Replace the address for Link 3: Careers site? Candidates will be sent to the address you entered. Your other links are not changed.");
+  assert.equal(confirmText(3, planEdit("", "New", "Careers site"), "Careers site"), "Change the label for Link 3: Careers site? The address is kept. Your other links are not changed.");   // the stored label, not the new one
+  assert.equal(confirmText(3, planEdit("", "New", null), null), "Change the label for Link 3? The address is kept. Your other links are not changed.");
 });
 
 test("rows carry only position, label, what candidates see and the save-time check: nothing else from the server is ever read", () => {
@@ -237,7 +254,7 @@ function setup(over = {}) {
 
 test("panel: one row per stored link by its stored position, three buttons each with the link number in their names; the hint and the address-bar note appear once there are rows", () => {
   const s = setup({ links: [L(1), L(3, { label: "Careers site" })] });
-  assert.deepEqual(byClass(s.host, "link-row-title").map((e) => e.textContent), ["Link 1", "Careers site"]);
+  assert.deepEqual(byClass(s.host, "link-row-title").map((e) => e.textContent), ["Link 1", "Link 3: Careers site"]);
   assert.deepEqual(byClass(s.host, "link-row-meta").map((e) => e.textContent), ["Candidates see: LinkedIn", "Candidates see: LinkedIn"]);
   const r3 = rowEl(s.host, 3); assert.deepEqual(byClass(r3, "link-row-actions")[0].children.map((b) => [b.textContent, b.attrs["aria-label"]]), [["Check link", "Check Link 3"], ["Edit", "Edit Link 3"], ["Remove", "Remove Link 3"]]);
   assert.equal(s.hint.hidden, false); assert.equal(s.note.hidden, false);
@@ -315,7 +332,7 @@ test("panel, Edit: opens a form that says the address is not shown; a blank addr
   const s = setup(); const row = rowEl(s.host, 2), form = byTag(row, "form")[0];
   assert.equal(form.hidden, true);
   await btn(row, "Edit Link 2").fire("click"); assert.equal(form.hidden, false); assert.equal(btn(row, "Edit Link 2").attrs["aria-expanded"], "true");
-  assert.match(text(form), /Replace the address for Link 2/); assert.match(text(form), /The current address is not shown\. Enter the full new address, or leave the box empty to keep it\. You can change the label too\./);
+  assert.match(text(form), /Replace the address for Link 2: Careers/); assert.match(text(form), /The current address is not shown\. Enter the full new address, or leave the box empty to keep it\. You can change the label too\./);
   assert.equal(globalThis.document.activeElement, byTag(form, "input")[0]);
   await form.fire("submit");
   assert.equal(s.log.length, 0); assert.equal(form.hidden, true); assert.match(text(row), /Nothing was changed\./);
@@ -324,7 +341,7 @@ test("panel, Edit: opens a form that says the address is not shown; a blank addr
 test("panel, Edit: a label-only change asks first, then sends only the label; the address box was never involved", async () => {
   const s = setup(); const row = rowEl(s.host, 2), form = byTag(row, "form")[0], [addr, label] = byTag(form, "input");
   await btn(row, "Edit Link 2").fire("click"); label.value = "Careers page"; await form.fire("submit");
-  assert.equal(s.log.length, 0); assert.match(text(form), /Change the label for Link 2\? The address is kept\. Your other links are not changed\./);
+  assert.equal(s.log.length, 0); assert.match(text(form), /Change the label for Link 2: Careers\? The address is kept\. Your other links are not changed\./);
   assert.equal(globalThis.document.activeElement.className, "link-confirm-text");
   await btn(form, "Go back").fire("click"); assert.equal(s.log.length, 0); assert.equal(globalThis.document.activeElement, addr);
   await form.fire("submit"); await btn(form, "Save").fire("click");
@@ -379,6 +396,25 @@ test("panel, Edit: a failed save-time check of the new address is said in the pa
   assert.match(text(s.host), /Link 1 was replaced\. When we checked, link 1 answered HTTP 404\. It is saved anyway/);
 });
 
+test("panel, labelled and unlabelled rows: the title, the edit title and the confirm and remove sentences all use Link N: LABEL (Link N when there is no label); a label with markup is text only", async () => {
+  const hostile = "<b>x</b> & \"q\"";
+  const s = setup({ links: [L(1), L(4, { label: "Careers site" }), L(6, { label: hostile }), L(8, { label: "y".repeat(100) })] });
+  assert.deepEqual(byClass(s.host, "link-row-title").map((e) => e.textContent), ["Link 1", "Link 4: Careers site", "Link 6: " + hostile, "Link 8: " + "y".repeat(100)]);      // gaps stay gaps, the number is always there
+  assert.equal(byTag(s.host, "b").length, 0);                                                                            // markup in a label is placed as text, never parsed
+  const r4 = rowEl(s.host, 4), f4 = byTag(r4, "form")[0], c4 = byClass(r4, "link-remove")[0];
+  assert.equal(byClass(f4, "link-edit-title")[0].textContent, "Replace the address for Link 4: Careers site"); assert.equal(f4.attrs["aria-label"], "Replace the address for Link 4: Careers site");
+  await btn(r4, "Remove Link 4").fire("click"); assert.equal(byClass(c4, "link-confirm-text")[0].textContent, "Remove Link 4: Careers site? Candidates will no longer see it. Your other links are not changed.");
+  const r1 = rowEl(s.host, 1), f1 = byTag(r1, "form")[0], c1 = byClass(r1, "link-remove")[0];
+  assert.equal(byClass(f1, "link-edit-title")[0].textContent, "Replace the address for Link 1");
+  await btn(r1, "Remove Link 1").fire("click"); assert.equal(byClass(c1, "link-confirm-text")[0].textContent, "Remove Link 1? Candidates will no longer see it. Your other links are not changed.");
+  const r6 = rowEl(s.host, 6), f6 = byTag(r6, "form")[0], [addr6, label6] = byTag(f6, "input");
+  await btn(r6, "Edit Link 6").fire("click"); addr6.value = "https://jobs.example.invalid/a"; await f6.fire("submit");
+  assert.equal(byClass(f6, "link-confirm-text")[0].textContent, "Replace the address for Link 6: " + hostile + "? Candidates will be sent to the address you entered. Your other links are not changed.");
+  assert.equal(byTag(s.host, "b").length, 0);
+  assert.equal(label6.value, hostile);                                                                                        // the edit box holds the bare label, no number
+  assert.equal(btn(r4, "Check Link 4").textContent, "Check link");                                                            // the button names are unchanged
+});
+
 test("panel, Remove: asks first in the row; Cancel sends nothing; confirming removes that one row and the others keep their numbers", async () => {
   let links = [L(1), L(2), L(3)];
   const s = setup({ links, api: { removeDestinationLink: async (id, pos) => { s.log.push(["remove", id, pos]); links = links.filter((l) => l.position !== pos); return { ok: true, status: 200, data: ANSWER("remove", pos, links) }; } } });
@@ -423,7 +459,7 @@ test("panel: a redraw with the same rows keeps a half-typed edit; a redraw with 
 test("panel: a hostile label or note from the server is text only", () => {
   const s = setup({ links: [L(1, { label: "<img src=x onerror=alert(1)>", shown_as: "<b>LinkedIn</b>" })] });
   assert.equal(byTag(s.host, "img").length, 0); assert.equal(byTag(s.host, "b").length, 0);
-  assert.equal(byClass(s.host, "link-row-title")[0].textContent, "<img src=x onerror=alert(1)>"); assert.equal(byClass(s.host, "link-row-meta")[0].textContent, "Candidates see: <b>LinkedIn</b>");
+  assert.equal(byClass(s.host, "link-row-title")[0].textContent, "Link 1: <img src=x onerror=alert(1)>"); assert.equal(byClass(s.host, "link-row-meta")[0].textContent, "Candidates see: <b>LinkedIn</b>");
 });
 
 // ---- the candidate side already names a link by its STORED position (so a gap after a Remove reads "Application link 1" and "Application link 3"); nothing in search.js is changed for item 4
