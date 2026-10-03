@@ -100,6 +100,10 @@ control("the edit page no longer schedules through the API", "S21", edit("js/pag
 control("privacy.html loses the cookie sentence", "S22", edit("privacy.html", (s) => s.replace("We set no cookies of our own", "We set cookies")));
 control("privacy.html loses the email paragraph", "S22", edit("privacy.html", (s) => s.replace('id="privacyEmails"', 'id="privacyEmailsX"')));
 control("privacy.html stops saying what an email never carries", "S22", edit("privacy.html", (s) => s.replace("never its description, a comment's text or an apply link", "never much")));
+control("privacy.html loses the sentence about the contest outcome email", "S22", edit("privacy.html", (s) => s.replace("When a contest on a comment is decided, we email the outcome to the account that filed it.", "")));
+control("privacy.html loses the sentence about the staff email when a contest is filed", "S22", edit("privacy.html", (s) => s.replace("When a contest is filed, we may email our own staff the organization, posting and reason category.", "")));
+control("privacy.html loses the sentence that the contest email carries no comment or explanation", "S22", edit("privacy.html", (s) => s.replace("That email does not include the comment or your explanation.", "")));
+control("the contest outcome sentence moves out of the emails paragraph", "S22", edit("privacy.html", (s) => s.replace(" When a contest on a comment is decided, we email the outcome to the account that filed it.", "").replace('id="privacyContests">', 'id="privacyContests">When a contest on a comment is decided, we email the outcome to the account that filed it. ')));
 control("a page loses its privacy footer link", "S22", edit("dashboard.html", (s) => s.replace('<a href="privacy.html">Privacy</a>', '<a href="index.html">Privacy</a>')));
 control("the candidate email box loses the privacy one-liner", "S22", edit("search.html", (s) => s.replace('never shown to anyone. <a href="privacy.html">Privacy</a>.', "never shown to anyone.")));
 control("the landing page promises a cross-posting count again", "S23", append("index.html", "<div>Posted in 2 places</div>"));
