@@ -3,6 +3,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { changedFields, checkEdit, mapEditErrors, reqKey, MAX_NOTE, MAX_DESC, KIND_TEXT, checkLinks, mapLinksErrors, planNotice, MAX_LINKS, checkWarnings, storedLinkText, checkFirms, applyLinks, recruiterFirms } from "../js/edit-form.js";
 import { shapes } from "../js/api.js";
+import { groupCode } from "../js/format.js";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const ID = "3f1d5b1e-0000-4000-8000-000000000001";
 const AUSTIN = { id: "gn:4671654", kind: "place", display: "Austin, TX" }, DALLAS = { id: "gn:4684888", kind: "place", display: "Dallas, TX" };
@@ -205,4 +209,30 @@ test("pass C: recruiter-firm rows: the name is required, the link optional; blan
   assert.equal(storedLinkText({ position: 2, kind: "recruiter", firm: "Beta Search", label: null, shown_as: "LinkedIn", check_status: "ok" }), "2. Beta Search — with a link, shown as “LinkedIn”");
   const both = [{ position: 1, kind: "apply", label: "x" }, { position: 1, kind: "recruiter", firm: "Acme" }, { position: 2, label: null }];
   assert.equal(applyLinks(both).length, 2); assert.equal(recruiterFirms(both).length, 1);
+});
+
+// the postID on the edit page: the same 12-character code, shown with dashes through the same formatter as the dashboard row, the comments page and the create-success screen
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const src = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
+
+test("the edit page has the postID from the posting it already loads: the get-my-posting shape carries it, and the formatter groups it as XXXX-XXXX-XXXX", () => {
+  const p = orig();
+  assert.equal(p.post_id, "ABCDEFGHJKMN"); assert.equal(groupCode(p.post_id), "ABCD-EFGH-JKMN");
+  assert.equal(shapes.openPosting(Object.assign({}, p, { ai_filtering: false, ai_interview_other: null, third_party_recruiter: false, req_searchable: true, destination_links_exclusive: false })), true);
+  assert.equal(shapes.openPosting(Object.assign({}, p, { post_id: "short", ai_filtering: false, ai_interview_other: null, third_party_recruiter: false, req_searchable: true, destination_links_exclusive: false })), false);
+});
+
+test("edit.html and edit.js show the postID at the top, with the same label text, formatter and class as the dashboard and the comments page", () => {
+  const html = src("edit.html"), js = src("js/pages/edit.js");
+  assert.match(html, /<div id="postIdLine"[^>]*\bhidden>postID <span class="mono" id="postId"><\/span><\/div>/);
+  assert.ok(html.indexOf('id="postIdLine"') > html.indexOf("Edit a posting</h1>") && html.indexOf('id="postIdLine"') < html.indexOf('id="statusLine"'), "the postID sits under the heading, above the status line");
+  assert.match(js, /import \{[^}]*\bgroupCode\b[^}]*\} from "\.\.\/format\.js";/);
+  assert.ok(js.includes('$("#postId").textContent = groupCode(p.post_id); $("#postIdLine").hidden = false;'));
+  assert.ok(js.indexOf('$("#postIdLine").hidden = false;') < js.indexOf("noteLabel(p.stored_status"), "it is set in populate(), so every reload after a save keeps it");
+});
+
+test("the pages that already showed the postID still do, through the same formatter", () => {
+  assert.ok(src("js/pages/dashboard.js").includes("groupCode(p.post_id)") && src("dashboard.html").includes("<th>postID</th>"));
+  assert.ok(src("js/pages/comments.js").includes('"postID " + groupCode(p.post_id)'));
+  assert.ok(src("js/pages/register.js").includes("groupCode(p.public_code)") && src("js/pages/register.js").includes('"Your postID"'));
 });

@@ -4,7 +4,7 @@
 import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js";
 import { rememberNext } from "../session.js";
 import { $, $$, h, clear, alertBox } from "../dom.js";
-import { fmtClose, fmtStamp, waitText } from "../format.js";
+import { fmtClose, fmtStamp, waitText, groupCode } from "../format.js";
 import { statusChip } from "../dashboard-model.js";
 import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, checkFirms, mapLinksErrors, planNotice, checkWarnings, storedLinkText, applyLinks, recruiterFirms } from "../edit-form.js";
 import { mountLocationPicker } from "../location-picker.js";
@@ -191,6 +191,7 @@ async function populate(doc) {
   $("#aiFilterNote").value = p.ai_filtering_note || ""; $("#aiInterviewNote").value = p.ai_interview_note || ""; syncNoteRows();
   $("#aiFilterHint").textContent = p.ai_filtering === null ? "Not stated yet. Once you state it, it can be changed but not cleared." : "Shown to candidates as a plain fact, never scored.";
   $("#aiInterviewHint").textContent = p.ai_interview_other === null ? "Not stated yet. Once you state it, it can be changed but not cleared." : "Independent of filtering — an employer can have neither, either, or both on.";
+  $("#postId").textContent = groupCode(p.post_id); $("#postIdLine").hidden = false;   // the same postID, formatted the same way, as the dashboard row and the comments page
   const chip = statusChip(p, Date.now());
   const line = $("#statusLine"); line.hidden = false; clear(line);
   line.append(h("span", { class: "status " + chip.cls }, chip.text), " ", p.stored_status === "draft" ? (p.go_live_at ? "Scheduled: not visible to candidates until it goes live." : "Not visible to candidates yet.") : (p.status === "live" || p.status === "paused") && p.expiration_date ? "Closes " + fmtClose(p.expiration_date) + "." : "");
