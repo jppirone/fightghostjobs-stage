@@ -540,6 +540,73 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the browser test no longer covers 320", "S47", edit(TST, (s) => s.replace("const WIDTHS = [320, 360, 375, 390, 414];", "const WIDTHS = [360, 375, 390, 414];")));
   control("the browser test loses its negative controls", "S47", edit(TST, (s) => s.replace("negative controls: the header rule catches each deliberate defect", "negative controls: skipped")));
 }
+
+// S48 (2026-10-04): the pages at phone widths (the browser test tests/phone-layout.test.js measures them; this rule keeps what that test depends on, and keeps the desktop layout from changing).
+{
+  control("page side padding goes back to 64 pixels", "S48", edit("app.css", (s) => s.replace(".pg{padding-left:16px!important;padding-right:16px!important}", ".pg{padding-left:64px!important;padding-right:64px!important}")));
+  control("the shorter top and bottom space is removed", "S48", edit("app.css", (s) => s.replace(".pg-top{padding-top:28px!important;padding-bottom:36px!important}", "")));
+  control("two columns no longer stack", "S48", edit("app.css", (s) => s.replace(".cols{flex-direction:column!important;gap:24px!important;align-items:stretch!important}", ".cols{flex-direction:row!important}")));
+  control("stacked columns no longer fill the row", "S48", edit("app.css", (s) => s.replace(".cols>*{flex:none!important;width:100%!important;max-width:none!important;min-width:0}", "")));
+  control("fields go two per row again", "S48", edit("app.css", (s) => s.replace(".grid2,.grid3{grid-template-columns:minmax(0,1fr)!important}", ".grid2,.grid3{grid-template-columns:1fr 1fr!important}")));
+  control("cards go back to 28 pixel padding", "S48", edit("app.css", (s) => s.replace(".card{padding:16px!important}", ".card{padding:28px!important}")));
+  control("table cards lose their no-padding rule", "S48", edit("app.css", (s) => s.replace(".card.flush{padding:0!important}", "")));
+  control("buttons lose their 44 pixel height", "S48", edit("app.css", (s) => s.replace("main .btn,main button.btn,main a.btn{min-height:44px;justify-content:center}", "")));
+  control("form text goes back below 16 pixels", "S48", edit("app.css", (s) => s.replace("input[type=\"text\"],input[type=\"email\"],input[type=\"number\"],input[type=\"password\"],select,textarea{font-size:16px!important}", "")));
+  control("switches may shrink again", "S48", edit("app.css", (s) => s.replace(".toggle{flex:none}", "")));
+  control("help text can open off the screen again", "S48", edit("app.css", (s) => s.replace(".info-tooltip,.info-tooltip-wide{position:fixed!important;left:16px!important;right:16px!important;width:auto!important;top:auto!important;bottom:16px!important}", "")));
+  control("the verify card's email box and button sit side by side again", "S48", edit("app.css", (s) => s.replace(".signin-row{flex-direction:column;align-items:stretch}", "")));
+  control("the verify card's button no longer fills the row", "S48", edit("app.css", (s) => s.replace(".signin-row .btn{width:100%}", "")));
+  control("the footer cannot wrap again", "S48", edit("app.css", (s) => s.replace(".site-footer{flex-wrap:wrap;gap:0 20px;padding:12px 16px}", "")));
+  control("the details window is a fixed width again", "S48", edit("app.css", (s) => s.replace(".modal{width:calc(100vw - 24px);max-width:none;max-height:88vh;padding:20px 16px}", "")));
+  control("a link's text and Continue sit side by side again", "S48", edit("app.css", (s) => s.replace(".source-row{flex-direction:column;align-items:flex-start;gap:6px;min-height:44px}", "")));
+  control("tables stay tables on a phone", "S48", edit("app.css", (s) => s.replace(".rtable,.rtable thead,.rtable tbody,.rtable tr,.rtable th,.rtable td{display:block}", "")));
+  control("table cells lose their visible labels", "S48", edit("app.css", (s) => s.replace(".rtable td::before{content:attr(data-label);", ".rtable td::before{content:none;")));
+  control("a result card's heading row cannot wrap", "S48", edit("app.css", (s) => s.replace(".res-head{flex-wrap:wrap;gap:10px}", "")));
+  control("a rule outside the phone media blocks (it would change the desktop layout)", "S48", edit("app.css", (s) => s + "\n.pg{padding-left:16px}\n"));
+  control("a rule added after the phone block but outside it", "S48", edit("app.css", (s) => s.replace("@media (max-width:360px){.rtable td{grid-template-columns:92px minmax(0,1fr)}}", "@media (max-width:360px){.rtable td{grid-template-columns:92px minmax(0,1fr)}}\n.card{padding:10px}")));
+  control("the phone block marker is gone", "S48", edit("app.css", (s) => s.replace("/* phone layout for the pages themselves (October 4, 2026).", "/* phone layout for the pages.")));
+  control("the home page loses its column class", "S48", edit("index.html", (s) => s.replace('class="pg pg-top cols"', 'class="pg pg-top"')));
+  control("the home page's three steps lose grid3", "S48", edit("index.html", (s) => s.replace('class="grid3"', "")));
+  control("the register page loses grid2", "S48", edit("register.html", (s) => s.replace('class="grid2"', "")));
+  control("the sign-in page loses pg", "S48", edit("employer-signin.html", (s) => s.replace('class="pg pg-top cols"', 'class="cols"')));
+  control("the search page's verify card loses pg", "S48", edit("search.html", (s) => s.replace('id="signinWrap" class="pg"', 'id="signinWrap"')));
+  control("the My postings table loses its table roles", "S48", edit("dashboard.html", (s) => s.replace('class="dash-table rtable" role="table"', 'class="dash-table rtable"')));
+  control("the My postings table loses its labelled scroll area", "S48", edit("dashboard.html", (s) => s.replace(' data-scroll-area="My postings table"', "")));
+  control("the Team table loses rtable", "S48", edit("team.html", (s) => s.replace('class="dash-table rtable" role="table"', 'class="dash-table" role="table"')));
+  control("the Analytics table loses its column header roles", "S48", edit("analytics.html", (s) => s.replace('<th role="columnheader">Searches</th>', "<th>Searches</th>").replace('role="columnheader">Posting<', ">Posting<")));
+  control("a My postings row cell loses its data-label", "S48", edit("js/pages/dashboard.js", (s) => s.replace('"data-label": "Closes", ', "")));
+  control("a Team row cell loses its role", "S48", edit("js/pages/team.js", (s) => s.replace('role: "cell", "data-label": "Role"', '"data-label": "Role"')));
+  control("an Analytics row loses its row role", "S48", edit("js/pages/analytics.js", (s) => s.replace('return h("tr", { role: "row" },', 'return h("tr", {},')));
+  control("the result card heading loses res-head", "S48", edit("js/pages/search.js", (s) => s.replace('class: "res-head", ', "")));
+  control("the phone layout test is missing", "S48", (dir) => { fs.rmSync(path.join(dir, "tests/phone-layout.test.js")); });
+  control("the phone layout test no longer covers 320", "S48", edit("tests/phone-layout.test.js", (s) => s.replace("const WIDTHS = [320, 360, 375, 390, 414];", "const WIDTHS = [360, 375, 390, 414];")));
+  control("the phone layout test loses its negative controls", "S48", edit("tests/phone-layout.test.js", (s) => s.replace("negative controls: each phone fix undone makes the layout rule fail", "negative controls: skipped")));
+}
+
+// S49 (2026-10-04): the sign-in link opens in a NEW tab (the browser test tests/signin-tabs.test.js proves it with two tabs; this rule keeps what it depends on).
+{
+  control("the saved search expires after a day", "S49", edit("js/signin-handoff.js", (s) => s.replace("export const HANDOFF_TTL_MS = 60 * 60 * 1000;", "export const HANDOFF_TTL_MS = 24 * 60 * 60 * 1000;")));
+  control("the hand-off sends something", "S49", edit("js/signin-handoff.js", (s) => s.replace("function drop(store, key)", "function drop(store, key) { fetch('/x?' + key); }\nfunction drop2(store, key)")));
+  control("the hand-off uses tab-local storage", "S49", edit("js/signin-handoff.js", (s) => s.replace("function drop(store, key)", "function drop(store, key) { sessionStorage.setItem(key, '1'); }\nfunction drop2(store, key)")));
+  control("a saved value is not removed when read", "S49", edit("js/signin-handoff.js", (s) => s.replace("    store.removeItem(key);\n", "")));
+  control("a saved value is kept past its expiry", "S49", edit("js/signin-handoff.js", (s) => s.replace("!(o.exp > now)", "false")));
+  control("the watch listens to nothing", "S49", edit("js/signin-handoff.js", (s) => s.replace('win.addEventListener("storage", onStorage);', "")));
+  control("the watch ignores the session key", "S49", edit("js/signin-handoff.js", (s) => s.replace("ev.key === null || ev.key === storageKey", "false")));
+  control("the landing page is kept in tab-local storage", "S49", edit("js/session.js", (s) => s.replace('saveLanding(localStorage, next || "")', 'saveLanding(sessionStorage, next || "")')));
+  control("sign-out keeps the saved search", "S49", edit("js/session.js", (s) => s.replace("clearHandoff(localStorage); ", "")));
+  control("the pending search goes back to tab-local storage", "S49", edit("js/pages/search.js", (s) => s.replace("savePending(localStorage,", "savePending(sessionStorage,")));
+  control("the search page does not watch for a sign-in elsewhere", "S49", edit("js/pages/search.js", (s) => s.replace("watchOtherTabSignIn(async", "(async")));
+  control("the verify card's promise is reworded without approval", "S49", edit("js/pages/search.js", (s) => s.replace("Verify your email first; your search is saved and runs as soon as you are back.", "Verify your email first; your search is saved.")));
+  control("the Check your email promise is reworded without approval", "S49", edit("js/pages/search.js", (s) => s.replace("The link takes you straight back here; your search will be waiting.", "Your search will be waiting.")));
+  control("the employer sign-in page does not watch", "S49", edit("js/pages/employer-signin.js", (s) => s.replace("watchOtherTabSignIn(() =>", "(() =>")));
+  control("the employer sign-in page always lands in the employer area", "S49", edit("js/pages/employer-signin.js", (s) => s.replace('rememberedNext() || "register.html"', '"register.html"')));
+  control("the comments page does not watch", "S49", edit("js/pages/comments.js", (s) => s.replace("watchOtherTabSignIn(async", "(async")));
+  control("the sign-in link page leaves no landing flag", "S49", edit("js/pages/auth-callback.js", (s) => s.replace('markLanded(sessionStorage, "candidate");', "")));
+  control("the landing note loses its not-approved marker", "S49", edit("js/landing-notice.js", (s) => s.replace("WORDING NOT APPROVED", "WORDING")));
+  control("an em dash in the landing note", "S49", edit("js/landing-notice.js", (s) => s.replace("You are signed in. You can close this tab and go back to the one you started from, or keep searching here.", "You are signed in \u2014 you can close this tab.")));
+  control("the two-tab test is missing", "S49", (dir) => { fs.rmSync(path.join(dir, "tests/signin-tabs.test.js")); });
+  control("the two-tab test loses its negative controls", "S49", edit("tests/signin-tabs.test.js", (s) => s.replace("negative controls: each deliberate defect makes a sign-in tab scenario fail", "negative controls: skipped")));
+}
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");

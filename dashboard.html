@@ -26,8 +26,8 @@
 
 <main id="main">
 
-<div style="max-width:1440px;margin:0 auto;padding:44px 32px;display:flex;flex-direction:column;gap:24px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;">
+<div class="pg" style="max-width:1440px;margin:0 auto;padding:44px 32px;display:flex;flex-direction:column;gap:24px;">
+  <div class="wrapflex" style="display:flex;justify-content:space-between;align-items:center;">
     <div>
       <div id="orgName" style="font-size:13px;font-weight:700;color:var(--faint);">&nbsp;</div>
       <h1 style="font-size:28px;font-weight:700;margin-top:4px;">My postings</h1>
@@ -42,19 +42,19 @@
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
     <div id="filters" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
     <div style="flex:1;"></div>
-    <input id="textFilter" type="text" placeholder="Filter by title, req # or postID" aria-label="Filter by title, req number or postID" style="width:280px;" autocomplete="off">
+    <input id="textFilter" type="text" placeholder="Filter by title, req # or postID" aria-label="Filter by title, req number or postID" class="fill" style="width:280px;" autocomplete="off">
   </div>
 
-  <div class="card" style="padding:0;overflow-x:auto;">
-    <table class="dash-table">
-      <thead>
-        <tr>
-          <th>Title</th><th>Req #</th><th>postID</th><th>Status</th><th>Actions</th>
+  <div class="card flush" data-scroll-area="My postings table" style="padding:0;overflow-x:auto;">
+    <table class="dash-table rtable" role="table">
+      <thead role="rowgroup">
+        <tr role="row">
+          <th role="columnheader">Title</th><th role="columnheader">Req #</th><th role="columnheader">postID</th><th role="columnheader">Status</th><th role="columnheader">Actions</th>
           <th id="sortHead" class="sortable" tabindex="0" role="button" aria-label="Sort by posted date">Posted <span id="sortArrow">↓</span></th>
-          <th>Closes</th><th>Applicant cap</th><th>Comments</th>
+          <th role="columnheader">Closes</th><th role="columnheader">Applicant cap</th><th role="columnheader">Comments</th>
         </tr>
       </thead>
-      <tbody id="rows"></tbody>
+      <tbody id="rows" role="rowgroup"></tbody>
     </table>
     <div id="tableNote" class="empty-note" style="margin:0;border-radius:0;" hidden></div>
   </div>

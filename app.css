@@ -199,3 +199,73 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   .account-pop{top:50px;right:12px;max-width:calc(100vw - 24px)}
 }
 @media (max-width:360px){.nav{padding:6px 8px}.nav-links a{font-size:13px}}
+
+/* phone layout for the pages themselves (October 4, 2026). The pages were desktop designs: 64 pixel side padding on every section, 28 pixel padding inside every card (a card's content got about 190 of 375 pixels)
+   and every two-column layout stayed two columns. At 640 pixels and below: pages use 16 pixel sides, cards 16 pixel inside, two columns stack, side-by-side fields go one per row, tables become one card per row,
+   buttons and links are 44 pixel targets, and form text is 16 pixels (a phone browser zooms the page when a smaller field is focused). Above 640 pixels nothing here applies.
+   Classes the pages carry for this (they have no style of their own above 640): pg (page side padding), pg-top (less top and bottom space), cols (two columns that stack), grid2 and grid3 (fields and tiles, one per row),
+   wrapflex (a row that wraps), btn-row (buttons that fill the row), h-hero, h-big and h-2 (headlines), flush (a card with no padding: the tables), rtable (a table shown as cards), fill (a field that fills the row), res-head (a result card's heading row). */
+@media (max-width:640px){
+  .pg{padding-left:16px!important;padding-right:16px!important}
+  .pg-top{padding-top:28px!important;padding-bottom:36px!important}
+  .cols{flex-direction:column!important;gap:24px!important;align-items:stretch!important}
+  .cols>*{flex:none!important;width:100%!important;max-width:none!important;min-width:0}
+  .grid2,.grid3{grid-template-columns:minmax(0,1fr)!important}
+  .wrapflex{flex-wrap:wrap!important;gap:12px 20px!important}
+  .btn-row{flex-wrap:wrap}
+  .btn-row .btn{flex:1 1 100%;justify-content:center}
+  .h-hero{font-size:40px!important;line-height:1.08!important}
+  .h-big{font-size:32px!important}
+  .h-2{font-size:28px!important}
+  .card{padding:16px!important}
+  .card.flush{padding:0!important}
+  .fill{width:100%!important}
+  .res-head{flex-wrap:wrap;gap:10px}
+
+  /* controls: 44 pixel targets, 16 pixel form text */
+  main .btn,main button.btn,main a.btn{min-height:44px;justify-content:center}
+  .filter-pill{min-height:44px}
+  .row-action,a.row-action{min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center}
+  .rtable .row-action,.rtable a.row-action{justify-content:flex-start}
+  input[type="text"],input[type="email"],input[type="number"],input[type="password"],select,textarea{font-size:16px!important}
+  input[type="text"],input[type="email"],input[type="number"],input[type="password"],select{min-height:44px}
+  .check-row{min-height:44px}
+  .toggle{flex:none}
+  .toggle::before{content:"";position:absolute;inset:-7px 0}
+  .info-icon::before{content:"";position:absolute;inset:-15px}
+  .info-tooltip,.info-tooltip-wide{position:fixed!important;left:16px!important;right:16px!important;width:auto!important;top:auto!important;bottom:16px!important}
+  .info-tooltip::after{display:none}
+  .loc-remove{width:44px;height:44px}
+  .signin-row{flex-direction:column;align-items:stretch}
+  .signin-row>div{flex:none;width:100%}
+  .signin-row .btn{width:100%}
+  .site-footer{flex-wrap:wrap;gap:0 20px;padding:12px 16px}
+  .site-footer a{display:inline-flex;align-items:center;min-height:44px}
+  footer.wrapflex a{display:inline-flex;align-items:center;min-height:44px}
+
+  /* the details window */
+  .modal{width:calc(100vw - 24px);max-width:none;max-height:88vh;padding:20px 16px}
+  .source-row{flex-direction:column;align-items:flex-start;gap:6px;min-height:44px}
+  #modalClose{min-width:44px;min-height:44px}
+  #modalMore a{display:inline-flex;align-items:center;min-height:44px;margin-right:16px}
+
+  /* tables: one card per row; the table roles are in the markup, the visible label of each cell comes from its data-label (the column heading's own words) */
+  .rtable,.rtable thead,.rtable tbody,.rtable tr,.rtable th,.rtable td{display:block}
+  .rtable{width:100%}
+  .rtable thead th{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .rtable thead th.sortable{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;display:flex;align-items:center;min-height:44px;padding:0 16px;border-bottom:1px solid var(--line);background:#F8F5EF;color:var(--ink);cursor:pointer}
+  .rtable tbody tr{padding:14px 16px;border-bottom:1px solid var(--line)}
+  .rtable tbody tr:last-child{border-bottom:0}
+  .rtable td{padding:6px 0!important;border:0!important;white-space:normal!important;width:auto!important;display:grid;grid-template-columns:104px minmax(0,1fr);gap:4px 12px;align-items:center;justify-items:start;overflow-wrap:anywhere}
+  .rtable td>div,.rtable td>.row-note{grid-column:2}
+  .rtable td[data-label="Actions"]{display:flex;flex-wrap:wrap;gap:0 14px}
+  .rtable td::before{content:attr(data-label);font-size:12px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
+  .rtable td[data-label="Actions"]::before{flex:0 0 100%}
+  .rtable td:first-child{display:block;font-size:16px;padding-top:0!important}
+  .rtable td:first-child::before{display:none}
+  .rtable td .row-action{margin:0 14px 0 0}
+  #postingTable td>div{width:100%}
+  #postingTable .bar-track{width:auto!important;flex:1 1 60px;min-width:60px}
+  #postingTable td span{white-space:nowrap}
+}
+@media (max-width:360px){.rtable td{grid-template-columns:92px minmax(0,1fr)}}

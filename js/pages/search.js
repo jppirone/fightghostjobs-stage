@@ -2,14 +2,15 @@
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
 import { api, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js";
-import { requestLink } from "../session.js";
+import { requestLink, currentSession, watchOtherTabSignIn } from "../session.js";
+import { savePending, takePending } from "../signin-handoff.js";
+import { takeLanded, landingText } from "../landing-notice.js";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js";
 import { locationLine, waitText } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
 import { aiNotes } from "../ai-notes.js";
 import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js";
 
-const PENDING_KEY = "fgj-pending-search";
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
 const backdrop = $("#modalBackdrop");
@@ -27,6 +28,7 @@ function startCooldown(button, seconds, idleLabel) {
 // ---- who is here
 function showSignIn(message) {
   $("#signinWrap").hidden = false;
+  ensureWatch();
   if (message) { const b = $("#candEmailError"); b.hidden = false; b.textContent = message; }
 }
 function applySession() {
@@ -60,7 +62,7 @@ $("#signinForm").addEventListener("submit", async (ev) => {
 function renderCard(row) {
   const chips = postingChips(row).map(chip);
   return h("div", { class: "card", "data-ref": row.posting_ref },
-    h("div", { style: "display:flex;justify-content:space-between;align-items:flex-start;" },
+    h("div", { class: "res-head", style: "display:flex;justify-content:space-between;align-items:flex-start;" },
       h("div", {},
         h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
         h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
@@ -93,7 +95,8 @@ async function runSearch() {
   if (!c.ok) { setFormError(c.message); companyIn.focus(); return; }
   if (!q.ok) { setFormError(q.message); (q.focus === "req" ? reqIn : queryIn).focus(); return; }
   if (!session || !session.isCandidate) {
-    try { sessionStorage.setItem(PENDING_KEY, JSON.stringify({ company: companyIn.value, q: queryIn.value, r: reqIn.value })); } catch { /* ignore */ }
+    // kept in localStorage (all tabs of this browser, one hour, removed when used, never sent anywhere): the emailed link opens in a NEW tab (signin-handoff.js)
+    savePending(localStorage, { company: companyIn.value, q: queryIn.value, r: reqIn.value });
     if (session && session.isPoster) { applySession(); return; }
     showSignIn("Verify your email first; your search is saved and runs as soon as you are back.");
     $("#candEmail").focus();
@@ -208,15 +211,40 @@ function linkRow(row, link) {
   return el;
 }
 
+// a search saved before the sign-in link was requested: fill it in and run it (used once: takePending removes it)
+function resumePending() {
+  const p = takePending(localStorage);
+  if (!p) return false;
+  companyIn.value = p.company; queryIn.value = p.q; reqIn.value = p.r;
+  runSearch();
+  return true;
+}
+
+// ---- a sign-in completed in ANOTHER tab (the emailed link opens in a new tab): this tab moves to the signed-in state by itself, no reload
+// The tab the person is looking at runs the saved search; a background tab only switches state and leaves the saved search for the tab that is in front (normally the one the link opened). When the person
+// comes back to this tab the saved search, if nobody used it, runs then.
+const inFront = () => document.visibilityState !== "hidden" && document.hasFocus();
+function runWhenInFront() {
+  if (inFront()) { resumePending(); return; }
+  const back = () => { if (!inFront()) return; window.removeEventListener("focus", back); document.removeEventListener("visibilitychange", back); resumePending(); };
+  window.addEventListener("focus", back); document.addEventListener("visibilitychange", back);
+}
+let watching = false;
+function ensureWatch() { if (watching) return; watching = true; watchOtherTabSignIn(async (s) => { watching = false; await becameSignedIn(s); }); }
+async function becameSignedIn(s) {
+  session = s;
+  await mountAccount($("#navAccount"));
+  applySession();
+  const err = $("#candEmailError"); err.hidden = true; err.textContent = "";
+  if (session && session.isCandidate) runWhenInFront();
+}
+
 // ---- start
 (async () => {
   session = await mountAccount($("#navAccount"));
   applySession();
-  // a search saved before the sign-in link was requested: fill it in and run it
-  if (session && session.isCandidate) {
-    try {
-      const p = JSON.parse(sessionStorage.getItem(PENDING_KEY) || "null");
-      if (p && typeof p.company === "string" && typeof p.q === "string") { sessionStorage.removeItem(PENDING_KEY); companyIn.value = p.company; queryIn.value = p.q; reqIn.value = typeof p.r === "string" ? p.r : ""; runSearch(); }
-    } catch { /* nothing pending */ }
-  }
+  const landed = takeLanded(sessionStorage), text = landed === "candidate" ? landingText("candidate") : null;
+  if (text) { const n = $("#landedNotice"); n.hidden = false; clear(n); n.append(alertBox("ok", text)); }
+  if (session && session.isCandidate) resumePending();
+  else ensureWatch();
 })();

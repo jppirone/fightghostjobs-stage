@@ -30,12 +30,12 @@ function render() {
   clear(rowsEl);
   for (const p of state.roster) {
     const you = p.poster_id === state.me;
-    rowsEl.append(h("tr", {},
-      h("td", { style: "font-weight:600;" }, p.full_name, you ? h("span", { class: "row-note", style: "margin-left:8px;" }, "(you)") : null),
-      h("td", { style: "color:var(--muted);" }, p.email),
-      h("td", {}, roleText(p)),
-      h("td", {}, h("span", { class: "status " + (p.status === "active" ? "status-active" : "status-draft") }, statusText(p))),
-      h("td", { style: "white-space:nowrap;" }, actionsFor(p, state.me, state.roster).map((k) => h("button", { type: "button", class: "row-action", onclick: () => act(k, p) }, k === "remove" ? "Remove" : k === "promote" ? "Make admin" : "Remove admin")))));
+    rowsEl.append(h("tr", { role: "row" },
+      h("td", { role: "cell", "data-label": "Name", style: "font-weight:600;" }, p.full_name, you ? h("span", { class: "row-note", style: "margin-left:8px;" }, "(you)") : null),
+      h("td", { role: "cell", "data-label": "Work email", style: "color:var(--muted);" }, p.email),
+      h("td", { role: "cell", "data-label": "Role" }, roleText(p)),
+      h("td", { role: "cell", "data-label": "Status" }, h("span", { class: "status " + (p.status === "active" ? "status-active" : "status-draft") }, statusText(p))),
+      h("td", { role: "cell", "data-label": "Actions", style: "white-space:nowrap;" }, actionsFor(p, state.me, state.roster).map((k) => h("button", { type: "button", class: "row-action", onclick: () => act(k, p) }, k === "remove" ? "Remove" : k === "promote" ? "Make admin" : "Remove admin")))));
   }
   const t = $("#tableNote"); t.hidden = state.roster.length > 0; if (state.roster.length === 0) { clear(t); t.append("Nobody is on the roster."); }
 }

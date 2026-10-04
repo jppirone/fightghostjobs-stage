@@ -4,7 +4,7 @@
 // that platform, no slurs or profanity) and says why in words. Wrong links go to a private report, not to the thread.
 
 import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js";
-import { requestLink } from "../session.js";
+import { requestLink, watchOtherTabSignIn } from "../session.js";
 import { $, h, clear, alertBox, chip } from "../dom.js";
 import { locationLine, waitText, groupCode } from "../format.js";
 import { postingChips, notOpenRecap } from "../chips.js";
@@ -77,7 +77,8 @@ $("#loadMore").addEventListener("click", () => { if (state.nextOffset !== null) 
 
 // ---- the candidate side
 async function sessionEnded() { state.session = null; $("#threadWrap").hidden = true; $("#composeWrap").hidden = true; $("#reportWrap").hidden = true; showSignIn("Please verify your email again."); }
-function showSignIn(message) { $("#signinWrap").hidden = false; if (message) { const b = $("#candEmailError"); b.hidden = false; b.textContent = message; } }
+let watching = false;
+function showSignIn(message) { $("#signinWrap").hidden = false; ensureWatch(); if (message) { const b = $("#candEmailError"); b.hidden = false; b.textContent = message; } }
 $("#signinForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const email = $("#candEmail").value.trim(), err = $("#candEmailError"), send = $("#candSend");
@@ -110,6 +111,8 @@ function renderRecap(d) {
     recap.hidden = true;
   }
 }
+// the emailed link opens in a NEW tab: when the sign-in is completed there, this tab shows the thread by itself (no reload)
+function ensureWatch() { if (watching) return; watching = true; watchOtherTabSignIn(async () => { watching = false; $("#signinWrap").hidden = true; $("#candSent").hidden = true; await candidateMode(); }, (x) => x.isCandidate); }
 async function candidateMode() {
   state.session = await currentSession();
   await mountAccount($("#navAccount"));

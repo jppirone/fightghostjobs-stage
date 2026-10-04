@@ -26,7 +26,7 @@
 
 <main id="main">
 
-<div style="max-width:1100px;margin:0 auto;padding:44px 32px;display:flex;flex-direction:column;gap:24px;">
+<div class="pg" style="max-width:1100px;margin:0 auto;padding:44px 32px;display:flex;flex-direction:column;gap:24px;">
   <div>
     <div id="orgName" style="font-size:13px;font-weight:700;color:var(--faint);">&nbsp;</div>
     <h1 style="font-size:28px;font-weight:700;margin-top:4px;">Team</h1>
@@ -41,10 +41,10 @@
   </div>
 
   <div id="adminArea" hidden style="display:flex;flex-direction:column;gap:24px;">
-    <div class="card" style="padding:0;overflow-x:auto;">
-      <table class="dash-table">
-        <thead><tr><th>Name</th><th>Work email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
-        <tbody id="rows"></tbody>
+    <div class="card flush" data-scroll-area="Team table" style="padding:0;overflow-x:auto;">
+      <table class="dash-table rtable" role="table">
+        <thead role="rowgroup"><tr role="row"><th role="columnheader">Name</th><th role="columnheader">Work email</th><th role="columnheader">Role</th><th role="columnheader">Status</th><th role="columnheader">Actions</th></tr></thead>
+        <tbody id="rows" role="rowgroup"></tbody>
       </table>
       <div id="tableNote" class="empty-note" style="margin:0;border-radius:0;" hidden></div>
     </div>
@@ -52,7 +52,7 @@
     <form id="addForm" class="card" novalidate style="display:flex;flex-direction:column;gap:16px;">
       <div style="font-size:14px;font-weight:700;">Add a person</div>
       <div style="font-size:13px;color:var(--muted);line-height:1.6;">We do not email them. Tell them to go to the employer sign-in page and request a link with this address; their first sign-in activates them. One address can belong to one organization only.</div>
-      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;">
+      <div class="grid2" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;">
         <div><label for="addName">Name</label><input id="addName" type="text" maxlength="120" autocomplete="off"><div class="field-error" data-error-for="addName" hidden></div></div>
         <div><label for="addEmail">Work email</label><input id="addEmail" type="email" autocomplete="off"><div class="field-error" data-error-for="addEmail" hidden></div></div>
       </div>

@@ -26,7 +26,7 @@
 
 <main id="main">
 
-<div style="max-width:1280px;margin:0 auto;padding:44px 32px 64px 32px;display:flex;flex-direction:column;gap:8px;">
+<div class="pg" style="max-width:1280px;margin:0 auto;padding:44px 32px 64px 32px;display:flex;flex-direction:column;gap:8px;">
   <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;">
     <div>
       <div class="eyebrow">Analytics</div>
@@ -55,17 +55,17 @@
   <div style="margin-top:40px;">
     <h2 style="font-size:19px;font-weight:700;">Traffic by posting</h2>
     <p style="font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6;">Searches that matched a posting, how many opened its detail view, and how many clicked a destination link.</p>
-    <div class="card" style="margin-top:14px;padding:0;overflow-x:auto;">
-      <table id="postingTable">
-        <thead><tr><th>Posting</th><th>Searches</th><th>Detail views</th><th>Link clicks</th><th>Click-through</th></tr></thead>
-        <tbody id="postingRows"></tbody>
+    <div class="card flush" data-scroll-area="Traffic by posting table" style="margin-top:14px;padding:0;overflow-x:auto;">
+      <table id="postingTable" class="rtable" role="table">
+        <thead role="rowgroup"><tr role="row"><th role="columnheader">Posting</th><th role="columnheader">Searches</th><th role="columnheader">Detail views</th><th role="columnheader">Link clicks</th><th role="columnheader">Click-through</th></tr></thead>
+        <tbody id="postingRows" role="rowgroup"></tbody>
       </table>
       <div id="postingEmpty" class="empty-note" style="margin:0;border-radius:0;" hidden></div>
     </div>
   </div>
 
   <!-- TWO COLUMN: SEARCH MODE + LINK PERFORMANCE -->
-  <div style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+  <div class="grid2" style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:24px;">
     <div>
       <h2 style="font-size:19px;font-weight:700;">How candidates found you</h2>
       <p style="font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6;">What candidates searched that matched one of your postings.</p>

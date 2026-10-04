@@ -8,6 +8,7 @@
 
 import { GoTrueClient } from "../vendor/auth-js.min.mjs";
 import { SUPABASE_URL, PUBLISHABLE_KEY, STORAGE_KEY, NEXT_KEY, KIND_KEY } from "./config.js";
+import { saveLanding, takeLanding, clearHandoff, watchSignIn, SAFE_PAGE } from "./signin-handoff.js";
 
 let client = null;
 export function authClient() {
@@ -51,21 +52,33 @@ export async function accessToken() { const s = await currentSession(); return s
 // Ask for an emailed sign-in link. kind: "poster" | "candidate". `next` is where to go afterwards (a same-site page).
 export async function requestLink(email, kind, next) {
   try { sessionStorage.setItem(KIND_KEY, kind); sessionStorage.setItem(NEXT_KEY, next || ""); } catch { /* private mode: the callback falls back to a default page */ }
+  // the emailed link opens in a NEW tab (empty sessionStorage): the page to land on is also kept where every tab of this browser can read it, for one hour (signin-handoff.js)
+  try { saveLanding(localStorage, next || ""); } catch { /* ignore */ }
   const { error } = await authClient().signInWithOtp({ email, options: { emailRedirectTo: location.origin + "/auth-callback.html", shouldCreateUser: true } });
   return error ? { ok: false, status: error.status || 0, message: error.message || "", code: error.code || "" } : { ok: true };
 }
 
 export async function signOut() {
   try { await authClient().signOut(); } catch { /* the local session is dropped below either way */ }
-  try { localStorage.removeItem(STORAGE_KEY); sessionStorage.clear(); } catch { /* ignore */ }
+  try { localStorage.removeItem(STORAGE_KEY); clearHandoff(localStorage); sessionStorage.clear(); } catch { /* ignore */ }
 }
 
 export function takeNext(defaultPage) {
   let next = "", kind = "";
   try { next = sessionStorage.getItem(NEXT_KEY) || ""; kind = sessionStorage.getItem(KIND_KEY) || ""; sessionStorage.removeItem(NEXT_KEY); sessionStorage.removeItem(KIND_KEY); } catch { /* ignore */ }
+  // a link opened in another tab has none of the sessionStorage of the tab that asked for it: the page kept in localStorage (always consumed, so it cannot be used twice)
+  let fromOtherTab = null; try { fromOtherTab = takeLanding(localStorage); } catch { /* ignore */ }
+  if (!next) next = fromOtherTab || "";
   // only a plain same-site page name is ever followed
-  return { next: /^[a-z0-9-]+\.html(\?[a-z0-9=&._%-]*)?$/i.test(next) ? next : defaultPage, kind };
+  return { next: SAFE_PAGE.test(next) ? next : defaultPage, kind };
 }
+// the page remembered by rememberNext (a page that sent the person to sign in), or "" when there is none; nothing is consumed
+export function rememberedNext() { try { const n = sessionStorage.getItem(NEXT_KEY) || ""; return SAFE_PAGE.test(n) ? n : ""; } catch { return ""; } }
 export function rememberNext(next, kind) { try { sessionStorage.setItem(NEXT_KEY, next); sessionStorage.setItem(KIND_KEY, kind); } catch { /* ignore */ } }
 
 export function onSessionChange(cb) { return authClient().onAuthStateChange((event) => cb(event)); }
+
+// Call on a page that asks for a sign-in link: onSignedIn(session) runs once when a sign-in is completed in another tab of this browser (or the person comes back to this tab and it is done). See signin-handoff.js.
+export function watchOtherTabSignIn(onSignedIn, accept) {
+  return watchSignIn({ win: window, doc: document, storageKey: STORAGE_KEY, check: currentSession, onSignedIn, accept });
+}

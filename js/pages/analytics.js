@@ -44,12 +44,12 @@ function postingRow(p) {
   const chip = statusChip(Object.assign({}, p, { bump_used: false }), Date.now());
   const ct = clickThroughLabel(p.detail_views, p.link_clicks);
   const w = clickThroughPct(p.detail_views, p.link_clicks) || 0;
-  return h("tr", {},
-    h("td", { style: "font-weight:600;" }, p.title, h("div", { style: "font-size:12px;font-weight:400;color:var(--muted);margin-top:3px;" }, h("span", { class: "status " + chip.cls, style: "padding:2px 8px;font-size:11px;" }, chip.text))),
-    h("td", {}, String(p.searches)),
-    h("td", {}, String(p.detail_views)),
-    h("td", {}, String(p.link_clicks)),
-    h("td", { style: "width:160px;" }, ct === "—" ? h("span", { style: "color:var(--faint);" }, "—") :
+  return h("tr", { role: "row" },
+    h("td", { role: "cell", "data-label": "Posting", style: "font-weight:600;" }, p.title, h("div", { style: "font-size:12px;font-weight:400;color:var(--muted);margin-top:3px;" }, h("span", { class: "status " + chip.cls, style: "padding:2px 8px;font-size:11px;" }, chip.text))),
+    h("td", { role: "cell", "data-label": "Searches" }, String(p.searches)),
+    h("td", { role: "cell", "data-label": "Detail views" }, String(p.detail_views)),
+    h("td", { role: "cell", "data-label": "Link clicks" }, String(p.link_clicks)),
+    h("td", { role: "cell", "data-label": "Click-through", style: "width:160px;" }, ct === "—" ? h("span", { style: "color:var(--faint);" }, "—") :
       h("div", { style: "display:flex;align-items:center;gap:8px;" },
         h("div", { class: "bar-track", style: "width:80px;" }, h("div", { class: "bar-fill", style: "width:" + w + "%;" })),
         h("span", { style: "font-size:13px;font-weight:600;" }, ct))));

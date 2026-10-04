@@ -5,6 +5,7 @@
 import { api, go, signOut, describeError, posterInfo, forgetLocalState } from "../app.js";
 import { currentSession, takeNext } from "../session.js";
 import { $, h, clear } from "../dom.js";
+import { markLanded } from "../landing-notice.js";
 
 const hashError = (() => {
   // read BEFORE the Auth client tidies the fragment away
@@ -55,6 +56,7 @@ const button = (text, fn, cls = "btn btn-ghost") => h("button", { type: "button"
       return;
     }
     say("Signed in", "Welcome, " + r.data.poster.full_name + ".", []);
+    markLanded(sessionStorage, "poster");
     go(next || "register.html");
     return;
   }
@@ -66,5 +68,6 @@ const button = (text, fn, cls = "btn btn-ghost") => h("button", { type: "button"
     return;
   }
   say("Email verified", "You can search now.", []);
+  markLanded(sessionStorage, "candidate");
   go(next || "search.html");
 })();

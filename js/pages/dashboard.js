@@ -45,16 +45,16 @@ function actionCells(p, now) {
 
 function row(p, now) {
   const chip = statusChip(p, now);
-  return h("tr", {},
-    h("td", { style: "font-weight:600;" }, p.title, h("div", { style: "font-size:12px;font-weight:400;color:var(--muted);margin-top:3px;" }, locationLine(p.is_remote, p.locations))),
-    h("td", { style: "color:var(--muted);" }, reqCell(p)),
-    h("td", { class: "mono", style: "color:var(--muted);white-space:nowrap;" }, groupCode(p.post_id)),
-    h("td", {}, h("span", { class: "status " + chip.cls }, chip.text)),
-    h("td", { style: "white-space:nowrap;" }, actionCells(p, now)),          // right after the status: the actions must never be pushed off the edge of a narrow window
-    h("td", { style: "color:var(--muted);" }, postedCell(p)),
-    h("td", { style: "color:var(--muted);" }, closesCell(p), p.bump_used ? h("div", { class: "row-note" }, "extended " + p.bump_days + (p.bump_days === 1 ? " day" : " days")) : null),
-    h("td", { style: "color:var(--muted);" }, capCell(p)),
-    h("td", { style: "white-space:nowrap;" }, h("a", { class: "row-action", href: "comments.html?id=" + encodeURIComponent(p.id), title: "Read the comments" }, "💬 " + p.comment_count)));
+  return h("tr", { role: "row" },
+    h("td", { role: "cell", "data-label": "Title", style: "font-weight:600;" }, p.title, h("div", { style: "font-size:12px;font-weight:400;color:var(--muted);margin-top:3px;" }, locationLine(p.is_remote, p.locations))),
+    h("td", { role: "cell", "data-label": "Req #", style: "color:var(--muted);" }, reqCell(p)),
+    h("td", { role: "cell", "data-label": "postID", class: "mono", style: "color:var(--muted);white-space:nowrap;" }, groupCode(p.post_id)),
+    h("td", { role: "cell", "data-label": "Status" }, h("span", { class: "status " + chip.cls }, chip.text)),
+    h("td", { role: "cell", "data-label": "Actions", style: "white-space:nowrap;" }, actionCells(p, now)),          // right after the status: the actions must never be pushed off the edge of a narrow window
+    h("td", { role: "cell", "data-label": "Posted", style: "color:var(--muted);" }, postedCell(p)),
+    h("td", { role: "cell", "data-label": "Closes", style: "color:var(--muted);" }, closesCell(p), p.bump_used ? h("div", { class: "row-note" }, "extended " + p.bump_days + (p.bump_days === 1 ? " day" : " days")) : null),
+    h("td", { role: "cell", "data-label": "Applicant cap", style: "color:var(--muted);" }, capCell(p)),
+    h("td", { role: "cell", "data-label": "Comments", style: "white-space:nowrap;" }, h("a", { class: "row-action", href: "comments.html?id=" + encodeURIComponent(p.id), title: "Read the comments" }, "💬 " + p.comment_count)));
 }
 
 function render() {

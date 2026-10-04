@@ -27,7 +27,7 @@
 <main id="main">
 
 <div style="max-width:1440px;margin:0 auto;">
-  <div style="padding:56px 64px 32px 64px;">
+  <div class="pg" style="padding:56px 64px 32px 64px;">
     <h1 style="font-size:34px;font-weight:700;letter-spacing:-.01em;">Look up a posting</h1>
     <div id="searchGuide" class="srch-guide">
       <p class="srch-lead">Search for one specific job you already know about.</p>
@@ -74,7 +74,9 @@
     <div id="titleNote" class="field-hint" style="max-width:1080px;">A title search will not list all of a company's jobs, and it will not show postings that are not live. Closed or expired postings are found only by postID or req number.</div>
   </div>
 
-  <div id="signinWrap" hidden style="padding:0 64px 32px 64px;">
+  <div id="landedNotice" class="pg" hidden style="padding:0 64px 16px 64px;max-width:944px;"></div>
+
+  <div id="signinWrap" class="pg" hidden style="padding:0 64px 32px 64px;">
     <div class="card signin-card">
       <h2>Verify your email to search</h2>
       <p>One quick step: we email you a link, and that keeps you verified for 90 days. No password, no account form. Free for job seekers. Your email is only used to confirm you are a person and is never shown to anyone. <a href="privacy.html">Privacy</a>.</p>
@@ -89,9 +91,9 @@
     </div>
   </div>
 
-  <div id="roleNotice" hidden style="padding:0 64px 32px 64px;max-width:944px;"></div>
+  <div id="roleNotice" class="pg" hidden style="padding:0 64px 32px 64px;max-width:944px;"></div>
 
-  <div style="padding:0 64px 64px 64px;display:flex;flex-direction:column;gap:20px;max-width:880px;">
+  <div class="pg" style="padding:0 64px 64px 64px;display:flex;flex-direction:column;gap:20px;max-width:880px;">
     <div id="resultCount" class="result-count" hidden></div>
     <div id="results" style="display:flex;flex-direction:column;gap:20px;"></div>
   </div>

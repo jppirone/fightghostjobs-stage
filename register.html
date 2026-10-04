@@ -26,7 +26,7 @@
 
 <main id="main">
 
-<div style="max-width:1440px;margin:0 auto;display:flex;gap:48px;padding:56px 64px;">
+<div class="pg pg-top cols" style="max-width:1440px;margin:0 auto;display:flex;gap:48px;padding:56px 64px;">
 
   <div style="flex:2;display:flex;flex-direction:column;gap:28px;max-width:720px;">
     <div>
@@ -37,7 +37,7 @@
     <div id="pageAlert" hidden></div>
 
     <form id="form" class="card" style="display:flex;flex-direction:column;gap:22px;" novalidate>
-      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;">
+      <div class="grid2" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;">
         <div><label for="jtitle">Job title</label><input id="jtitle" type="text" maxlength="200" autocomplete="off"><div class="field-error" data-error-for="jtitle" hidden></div></div>
         <div><label for="req">Req number</label><input id="req" type="text" maxlength="100" autocomplete="off"><div class="field-error" data-error-for="req" hidden></div><div class="field-hint">Required. Your own reference, such as your ATS number. Once the posting is live, candidates can find it by company name plus this number. They see it masked (for example FGJ****45), and these lookups are rate-limited. You always see the full number in My postings.</div></div>
         <div><div style="font-size:13px;font-weight:600;margin-bottom:6px;">Company</div><div id="companyShown" style="padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:15px;min-height:20px;"></div><div class="field-hint">This is your organization's name. It is the company name candidates see on the posting, and it cannot be changed here.</div></div>

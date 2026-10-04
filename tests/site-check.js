@@ -38,6 +38,8 @@
 //   S45 the edit page keeps unsaved work safe: the bar (sticky, last in main, a polite status region, Save changes and Discard), the leave dialog (alertdialog, Save and leave / Discard and leave / Stay on this page), the guard code (beforeunload, Escape is Stay, focus into the dialog and back), the exact words, no em dash in them; the recruiter toggle is free, above Save changes, with its approved sentence, and the recruiter firms panel sits in the Destination links card below Save changes
 //   S46 the signed-in header: the initials circle is the control (a real button, the full "Signed in as <name>, <organization>" as its accessible name, a label on mouse-over for real pointers, on keyboard focus and on tap / Enter / Space, closed by Escape with focus returned, or a click elsewhere); app.js no longer prints the text beside it; the area wraps and the bar stacks at narrow widths
 //   S47 the top bar at phone widths: the viewport meta on every page, text-size-adjust 100%, the phone layout block (three short rows, 44 pixel targets, small logo, label anchored inside the window), no fixed widths in the bar, and the browser test tests/header-layout.test.js
+//   S48 the pages at phone widths: the phone block in app.css (all of it inside the 640 and 360 pixel media blocks), the classes, the table roles and data-labels, the labelled scroll areas, and the browser test tests/phone-layout.test.js
+//   S49 the sign-in link opens in a new tab: pending search and landing page in localStorage (one hour, removed when used, never sent), a watch for a sign-in in another tab, the two notices pinned until John approves new wording, and tests/signin-tabs.test.js
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
@@ -914,6 +916,89 @@ export function checkSite(root) {
       if (!t.includes("const WIDTHS = [320, 360, 375, 390, 414];")) add("S47", testF, "the header test must cover the widths 320, 360, 375, 390 and 414");
       if (!t.includes("negative controls: the header rule catches each deliberate defect")) add("S47", testF, "the header test must keep its negative controls");
     }
+  }
+
+  // S48 (2026-10-04): the pages at phone widths. tests/phone-layout.test.js measures every page in a real browser; this rule keeps what it depends on: the phone block in app.css (and that EVERYTHING after its marker sits inside
+  // @media (max-width:640px) or (max-width:360px), so no desktop layout can change), the classes the pages carry for it, the table roles and data-labels on the rows, and the labelled scroll areas of the three tables.
+  {
+    const cssF = path.join(root, "app.css"), testF = path.join(root, "tests", "phone-layout.test.js");
+    if (fs.existsSync(cssF)) {
+      const c = read(cssF), mark = "/* phone layout for the pages themselves (October 4, 2026).", i = c.indexOf(mark);
+      if (i < 0) add("S48", cssF, "the phone layout block for the pages (marker comment) is missing");
+      else {
+        const ph = c.slice(i);
+        // everything after the marker must be inside the two phone media blocks: strip them (they contain only simple rules, no nested braces other than their own) and nothing but comments and space may remain
+        const rest = ph.replace(/\/\*[\s\S]*?\*\//g, "").replace(/@media \(max-width:(640|360)px\)\{(?:[^{}]*\{[^{}]*\})*\s*\}/g, "").trim();
+        if (rest !== "") add("S48", cssF, "everything in the phone block must sit inside @media (max-width:640px) or (max-width:360px): desktop layouts must not change. Found outside: " + rest.slice(0, 80));
+        const pins = [
+          [".pg{padding-left:16px!important;padding-right:16px!important}", "pages use 16 pixel sides"],
+          [".pg-top{padding-top:28px!important;padding-bottom:36px!important}", "shorter top and bottom space"],
+          [".cols{flex-direction:column!important;gap:24px!important;align-items:stretch!important}", "two columns stack"],
+          [".cols>*{flex:none!important;width:100%!important;max-width:none!important;min-width:0}", "stacked columns fill the row"],
+          [".grid2,.grid3{grid-template-columns:minmax(0,1fr)!important}", "side-by-side fields and tiles go one per row"],
+          [".card{padding:16px!important}", "cards have 16 pixel padding"],
+          [".card.flush{padding:0!important}", "table cards keep no padding"],
+          ["main .btn,main button.btn,main a.btn{min-height:44px;justify-content:center}", "buttons are 44 pixel targets"],
+          ["input[type=\"text\"],input[type=\"email\"],input[type=\"number\"],input[type=\"password\"],select,textarea{font-size:16px!important}", "form text is 16 pixels (no zoom when a field is focused)"],
+          [".toggle{flex:none}", "switches do not shrink"],
+          [".info-tooltip,.info-tooltip-wide{position:fixed!important;left:16px!important;right:16px!important;width:auto!important;top:auto!important;bottom:16px!important}", "help text opens inside the window"],
+          [".signin-row{flex-direction:column;align-items:stretch}", "the verify card's email box and button stack"],
+          [".signin-row .btn{width:100%}", "the verify card's button fills the row"],
+          [".site-footer{flex-wrap:wrap;gap:0 20px;padding:12px 16px}", "the footer wraps"],
+          [".modal{width:calc(100vw - 24px);max-width:none;max-height:88vh;padding:20px 16px}", "the details window fits the screen"],
+          [".source-row{flex-direction:column;align-items:flex-start;gap:6px;min-height:44px}", "a link's text and its Continue stack"],
+          [".rtable,.rtable thead,.rtable tbody,.rtable tr,.rtable th,.rtable td{display:block}", "a table row becomes a card"],
+          [".rtable td::before{content:attr(data-label);", "each cell shows its label"],
+          [".res-head{flex-wrap:wrap;gap:10px}", "a result card's heading row wraps"],
+        ];
+        for (const [s, why] of pins) if (!ph.includes(s)) add("S48", cssF, "the phone layout must keep: " + why);
+      }
+    }
+    const classes = {
+      "index.html": ['class="pg pg-top cols" style="padding:96px', 'class="h-hero"', 'class="btn-row"', 'id="candidates" class="pg pg-top"', 'class="grid3"', 'id="employers" class="pg pg-top cols"', 'footer class="pg wrapflex"'],
+      "employer-signin.html": ['class="pg pg-top cols"', 'class="h-big"'],
+      "register.html": ['class="pg pg-top cols"', 'class="grid2"'], "edit.html": ['class="pg pg-top cols"', 'class="grid2"'],
+      "search.html": ['<div class="pg" style="padding:56px 64px 32px 64px;">', 'id="signinWrap" class="pg"', 'id="roleNotice" class="pg"', 'id="landedNotice" class="pg"'],
+      "dashboard.html": ['class="pg"', 'class="fill"', 'class="card flush" data-scroll-area="My postings table"', 'class="dash-table rtable" role="table"', 'role="columnheader">Title<'],
+      "team.html": ['class="pg"', 'class="grid2"', 'class="card flush" data-scroll-area="Team table"', 'class="dash-table rtable" role="table"', '<th role="columnheader">Name</th><th role="columnheader">Work email</th><th role="columnheader">Role</th><th role="columnheader">Status</th><th role="columnheader">Actions</th>'],
+      "analytics.html": ['class="pg"', 'class="grid2"', 'class="card flush" data-scroll-area="Traffic by posting table"', 'id="postingTable" class="rtable" role="table"', '<th role="columnheader">Posting</th><th role="columnheader">Searches</th><th role="columnheader">Detail views</th><th role="columnheader">Link clicks</th><th role="columnheader">Click-through</th>'],
+      "comments.html": ['class="pg"'], "privacy.html": ['class="pg"'], "404.html": ['class="pg pg-top"'], "auth-callback.html": ['class="pg pg-top"'],
+    };
+    for (const [f, needles] of Object.entries(classes)) { const p = path.join(root, f); if (!fs.existsSync(p)) continue; const t = read(p); for (const n of needles) if (!t.includes(n)) add("S48", p, "the phone layout needs " + n + " on this page"); }
+    const labels = { "dashboard.js": 9, "analytics.js": 5, "team.js": 5 };
+    for (const [f, n] of Object.entries(labels)) { const p = path.join(root, "js", "pages", f); if (!fs.existsSync(p)) continue; const t = read(p); if ((t.match(/"data-label":/g) || []).length !== n || !t.includes('h("tr", { role: "row" }') || (t.match(/role: "cell"/g) || []).length !== n) add("S48", p, "each table row must carry role row, and each of its " + n + " cells role cell and a data-label (the visible label of the cell on a phone)"); }
+    const sp = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sp) && !read(sp).includes('class: "res-head"')) add("S48", sp, "a result card's heading row carries res-head");
+    if (!fs.existsSync(testF)) add("S48", testF, "tests/phone-layout.test.js (the browser test of every page at phone widths) is missing");
+    else { const t = read(testF); if (!t.includes("const WIDTHS = [320, 360, 375, 390, 414];")) add("S48", testF, "the phone layout test must cover 320, 360, 375, 390 and 414"); if (!t.includes("negative controls: each phone fix undone makes the layout rule fail")) add("S48", testF, "the phone layout test must keep its negative controls"); }
+  }
+
+  // S49 (2026-10-04): the sign-in link opens in a NEW tab. The pending search and the landing page are kept in localStorage (all tabs of this browser, one hour, removed when used or on sign-out, never sent anywhere), and the
+  // pages that ask for a sign-in link watch for a sign-in completed in another tab. The two promises on the verify card and after "Check your email" are PINNED as they are until John approves new wording.
+  {
+    const hF = path.join(root, "js", "signin-handoff.js"), sF = path.join(root, "js", "session.js"), pF = path.join(root, "js", "pages", "search.js"), eF = path.join(root, "js", "pages", "employer-signin.js"), cF = path.join(root, "js", "pages", "comments.js"), aF = path.join(root, "js", "pages", "auth-callback.js"), lF = path.join(root, "js", "landing-notice.js"), tF = path.join(root, "tests", "signin-tabs.test.js");
+    if (fs.existsSync(hF)) {
+      const h = stripJsComments(read(hF));
+      if (!h.includes("export const HANDOFF_TTL_MS = 60 * 60 * 1000;")) add("S49", hF, "the saved search and landing page expire after one hour");
+      if (/\b(fetch|XMLHttpRequest|sendBeacon|WebSocket|navigator|document\.cookie|sessionStorage|console\.)\b/.test(h) || /https?:\/\//.test(h)) add("S49", hF, "the hand-off keeps things in the injected storage only: nothing is sent, logged or kept elsewhere");
+      if (!/store\.getItem\(key\);\s*if \(raw === null[^\n]*\n\s*store\.removeItem\(key\);\s*const o = JSON\.parse\(raw\);/.test(h) || !h.includes("!(o.exp > now)")) add("S49", hF, "a saved value is removed when it is read and refused after its expiry");
+      if (!h.includes('win.addEventListener("storage", onStorage)') || !h.includes("ev.key === null || ev.key === storageKey")) add("S49", hF, "a sign-in in another tab is noticed through the storage event for the session key");
+    } else add("S49", hF, "js/signin-handoff.js is missing");
+    if (fs.existsSync(sF)) {
+      const s = stripJsComments(read(sF));
+      if (!s.includes("saveLanding(localStorage, next || \"\")") || !s.includes("takeLanding(localStorage)") || !s.includes("clearHandoff(localStorage)") || !s.includes("export function watchOtherTabSignIn")) add("S49", sF, "session.js keeps the landing page in localStorage, consumes it, clears the hand-off on sign-out and offers watchOtherTabSignIn");
+    }
+    if (fs.existsSync(pF)) {
+      const s = stripJsComments(read(pF));
+      if (!s.includes("savePending(localStorage,") || !s.includes("takePending(localStorage)") || /sessionStorage\.(get|set)Item\(PENDING|fgj-pending-search/.test(s)) add("S49", pF, "the pending search lives in localStorage (signin-handoff.js), never in tab-local storage");
+      if (!s.includes("watchOtherTabSignIn(") || !s.includes("function runWhenInFront()")) add("S49", pF, "the search page watches for a sign-in in another tab and lets the tab in front run the saved search");
+      if (!s.includes('"Verify your email first; your search is saved and runs as soon as you are back."') || !s.includes('"Check your email. The link takes you straight back here; your search will be waiting."')) add("S49", pF, "the two notices stay as they are until John approves new wording (they promise a saved search: true in the same browser only)");
+    }
+    if (fs.existsSync(eF) && (!stripJsComments(read(eF)).includes("watchOtherTabSignIn(") || (stripJsComments(read(eF)).split('rememberedNext() || "register.html"').length - 1) !== 2)) add("S49", eF, "the employer sign-in page watches for a sign-in in another tab and returns to the page that sent the person to sign in");
+    if (fs.existsSync(cF) && !stripJsComments(read(cF)).includes("watchOtherTabSignIn(")) add("S49", cF, "the comments page watches for a sign-in in another tab");
+    if (fs.existsSync(aF) && (!stripJsComments(read(aF)).includes('markLanded(sessionStorage, "candidate")') || !stripJsComments(read(aF)).includes('markLanded(sessionStorage, "poster")'))) add("S49", aF, "the sign-in link page leaves the one-time landing flag");
+    if (fs.existsSync(lF)) { const l = read(lF); if (!/export const LANDING_NOTICE_ENABLED = (true|false);/.test(l) || !l.includes("WORDING NOT APPROVED")) add("S49", lF, "the landing note keeps its switch and its not-approved marker until John approves the wording"); if (l.includes("—")) add("S49", lF, "no em dash in the landing note"); }
+    if (!fs.existsSync(tF)) add("S49", tF, "tests/signin-tabs.test.js (two real tabs) is missing");
+    else { const t = read(tF); if (!t.includes("negative controls: each deliberate defect makes a sign-in tab scenario fail")) add("S49", tF, "the two-tab test must keep its negative controls"); }
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

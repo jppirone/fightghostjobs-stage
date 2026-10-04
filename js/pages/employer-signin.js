@@ -3,7 +3,7 @@
 // on any roster, so this page can never be used to find out who is a customer); (2) the Auth service emails the link. The page never says whether the address is on a roster either.
 
 import { api, mountAccount, go, describeError } from "../app.js";
-import { requestLink, currentSession } from "../session.js";
+import { requestLink, currentSession, watchOtherTabSignIn, rememberedNext } from "../session.js";
 import { $, h, clear, alertBox } from "../dom.js";
 import { waitText } from "../format.js";
 
@@ -21,6 +21,10 @@ const form = $("#form"), input = $("#email"), send = $("#send"), errorEl = $("#e
 
 (async () => {
   const s = await currentSession();
+  if (!(s && s.isPoster)) {
+    // the emailed link opens in a NEW tab: when the sign-in is completed there, this tab moves on by itself (no reload) to where a signed-in employer goes
+    watchOtherTabSignIn(() => go(rememberedNext() || "register.html"), (x) => x.isPoster);
+  }
   if (s && s.isPoster) {
     form.hidden = true;
     const box = $("#already"); box.hidden = false;
@@ -44,7 +48,8 @@ form.addEventListener("submit", async (ev) => {
       fieldError(intent.error.code === "rate_limited" ? "Too many sign-in attempts. Try again in " + waitText(intent.error.retryAfter || 60) + "." : describeError(intent.error));
       return;
     }
-    const r = await requestLink(email, "poster", "register.html");
+    // a page that sent the person here to sign in (rememberNext) is where they come back to; otherwise the employer area
+    const r = await requestLink(email, "poster", rememberedNext() || "register.html");
     if (!r.ok) {
       fieldError(r.status === 429 || /rate|seconds|after/i.test(r.message) ? "A sign-in email was just sent to this address or too many were requested. Wait a minute and try again." : "We could not send the email. Please try again in a moment.");
       return;

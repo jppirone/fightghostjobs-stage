@@ -232,7 +232,7 @@ test("edit.html and edit.js show the postID at the top, with the same label text
 });
 
 test("the pages that already showed the postID still do, through the same formatter", () => {
-  assert.ok(src("js/pages/dashboard.js").includes("groupCode(p.post_id)") && src("dashboard.html").includes("<th>postID</th>"));
+  assert.ok(src("js/pages/dashboard.js").includes("groupCode(p.post_id)") && src("dashboard.html").includes("<th role=\"columnheader\">postID</th>"));
   assert.ok(src("js/pages/comments.js").includes('"postID " + groupCode(p.post_id)'));
   assert.ok(src("js/pages/register.js").includes("groupCode(p.public_code)") && src("js/pages/register.js").includes('"Your postID"'));
 });
