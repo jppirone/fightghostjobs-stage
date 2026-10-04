@@ -37,6 +37,7 @@
 //   S40 the candidate search screen: one specific job, company AND one lookup value; req number first, then postID / title (title is the labelled fallback); the guidance sentences are on the page and referenced by aria-describedby; no browse input; a short title is not refused locally; the too-short answer and the empty-result note use the approved wording
 //   S45 the edit page keeps unsaved work safe: the bar (sticky, last in main, a polite status region, Save changes and Discard), the leave dialog (alertdialog, Save and leave / Discard and leave / Stay on this page), the guard code (beforeunload, Escape is Stay, focus into the dialog and back), the exact words, no em dash in them; the recruiter toggle is free, above Save changes, with its approved sentence, and the recruiter firms panel sits in the Destination links card below Save changes
 //   S46 the signed-in header: the initials circle is the control (a real button, the full "Signed in as <name>, <organization>" as its accessible name, a label on mouse-over for real pointers, on keyboard focus and on tap / Enter / Space, closed by Escape with focus returned, or a click elsewhere); app.js no longer prints the text beside it; the area wraps and the bar stacks at narrow widths
+//   S47 the top bar at phone widths: the viewport meta on every page, text-size-adjust 100%, the phone layout block (three short rows, 44 pixel targets, small logo, label anchored inside the window), no fixed widths in the bar, and the browser test tests/header-layout.test.js
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
@@ -857,6 +858,61 @@ export function checkSite(root) {
       if (!/@media \(max-width:1300px\)\{\.nav\{padding:0 24px\}/.test(c) || !/@media \(max-width:1080px\)\{\.nav\{height:auto;min-height:72px;flex-wrap:wrap;/.test(c)) add("S46", cF, "the top bar must relax at medium widths and stack (links on their own row) below 1080 pixels, so nothing wraps into a tall narrow stack");
       if (!/a:focus-visible,button:focus-visible/.test(c)) add("S46", cF, "every button, the circle included, keeps a visible focus outline");
       if (/\.nav-account\+\.btn\{margin-left/.test(c)) add("S46", cF, "the old margin rule that depended on the printed text must stay gone");
+    }
+  }
+
+  // S47 (2026-10-04): the top bar at phone widths. A static rule cannot see a header that runs off a phone's right edge, so the browser test tests/header-layout.test.js measures it (320 to 414, every page type);
+  // this rule keeps the things that test depends on from being edited away: the viewport meta on every page (people must be able to zoom), text-size-adjust 100% (no text inflation), the phone layout block in app.css
+  // (three short rows, 44 pixel targets, a smaller logo, the initials label anchored inside the window), no fixed width on the logo, links or account buttons, and the test itself with its five widths and its negative controls.
+  {
+    const cssF = path.join(root, "app.css"), baseF = path.join(root, "styles.css"), testF = path.join(root, "tests", "header-layout.test.js");
+    for (const f of fs.readdirSync(root).filter((n) => n.endsWith(".html"))) {
+      const t = read(path.join(root, f)), v = t.match(/<meta name="viewport" content="([^"]*)">/);
+      if (!v || v[1] !== "width=device-width, initial-scale=1") add("S47", path.join(root, f), 'the viewport meta must be exactly "width=device-width, initial-scale=1" (no maximum-scale, no user-scalable=no: people must be able to zoom)');
+    }
+    if (fs.existsSync(cssF)) {
+      const c = read(cssF);
+      if (!c.includes("html{-webkit-text-size-adjust:100%;text-size-adjust:100%}")) add("S47", cssF, "html must carry text-size-adjust 100%: a phone browser must not inflate the header text");
+      const i = c.indexOf("@media (max-width:640px){"), ph = i < 0 ? "" : c.slice(i);
+      if (i < 0) add("S47", cssF, "the phone layout block (@media (max-width:640px)) is missing");
+      const pins = [
+        [".nav{padding:6px 12px;gap:0 10px;justify-content:flex-start;align-items:center;min-height:0}", "the phone bar: small padding, left aligned rows"],
+        [".nav-logo{order:1;min-height:44px;gap:6px;margin-right:auto;min-width:0}", "the logo is the first item, 44 pixels tall, and pushes the account controls to the right"],
+        [".nav-mark{width:32px;height:32px}", "the logo mark is 32 pixels on a phone"],
+        [".nav-wordmark{font-size:16px;white-space:nowrap}", "the wordmark is 16 pixels and never wraps, so the logo stays whole at 320"],
+        [".nav-links{order:5;width:100%;gap:0 6px;flex-wrap:wrap;justify-content:space-between}", "the three links are the last row, full width"],
+        [".nav-links a{display:inline-flex;align-items:center;min-height:44px;font-size:14px}", "each link is a 44 pixel target"],
+        ["#navAccount .btn-sm{position:relative;min-height:36px;margin:4px 0;padding:8px 12px;justify-content:center}", "the account buttons: 36 pixels drawn, 4 pixel margins"],
+        ['#navAccount .btn-sm::before{content:"";position:absolute;inset:-6px 0}', "the account buttons have an invisible margin so the touch target is 44 pixels"],
+        ["#navAccount.nav-acct-area{display:contents!important}", "the signed-in account items join the bar's rows"],
+        ["#navAccount.nav-acct-area>*{order:4}", "the account buttons are the second row"],
+        ["#navAccount.nav-acct-area>span{order:2}", "the initials circle (or Email verified) sits beside the logo"],
+        ["#navAccount.nav-acct-area>.btn-ghost{order:3}", "Sign out sits beside the circle"],
+        ['#navAccount.nav-acct-area::after{content:"";order:3;flex:0 0 100%;height:0}', "a row break after Sign out"],
+        [".nav{position:relative}", "the bar anchors the initials label"],
+        [".nav-account{position:static}", "the label is not anchored to the circle on a phone"],
+        [".account-pop{top:50px;right:12px;max-width:calc(100vw - 24px)}", "the initials label opens under the first row and stays inside the window"],
+        ["@media (max-width:360px){.nav{padding:6px 8px}.nav-links a{font-size:13px}}", "at 360 pixels and below the padding and link size shrink so the three links fit on one row at 320"],
+      ];
+      for (const [s, why] of pins) if (!ph.includes(s)) add("S47", cssF, "the phone layout must keep: " + why);
+    }
+    // nothing in the top bar's own rules may have a fixed minimum width or a wide fixed width (that is what pushes a bar off a phone screen)
+    for (const f of [cssF, baseF]) {
+      if (!fs.existsSync(f)) continue;
+      const c = read(f).replace(/\/\*[\s\S]*?\*\//g, "");
+      for (const m of c.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        const sel = m[1].trim(), body = m[2];
+        if (!/(^|[\s,>])(\.nav(-logo|-mark|-wordmark|-links|-account|-acct-area)?|#navAccount|header\.nav)([\s.,:>#\[]|$)/.test(sel)) continue;
+        const mw = body.match(/min-width:\s*(\d+(\.\d+)?)px/), w = body.match(/(^|[;\s])width:\s*(\d+(\.\d+)?)px/);
+        if (mw && Number(mw[1]) > 0) add("S47", f, "a top bar rule must not set a fixed minimum width: " + sel.replace(/\s+/g, " ").slice(0, 60));
+        if (w && Number(w[2]) > 100) add("S47", f, "a top bar rule must not set a fixed width over 100 pixels: " + sel.replace(/\s+/g, " ").slice(0, 60));
+      }
+    }
+    if (!fs.existsSync(testF)) add("S47", testF, "tests/header-layout.test.js (the browser test of the header at phone widths) is missing");
+    else {
+      const t = read(testF);
+      if (!t.includes("const WIDTHS = [320, 360, 375, 390, 414];")) add("S47", testF, "the header test must cover the widths 320, 360, 375, 390 and 414");
+      if (!t.includes("negative controls: the header rule catches each deliberate defect")) add("S47", testF, "the header test must keep its negative controls");
     }
   }
 

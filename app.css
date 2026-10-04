@@ -173,3 +173,29 @@ html.unsaved-on{scroll-padding-bottom:140px}
 .account-pop.dismissed{display:none!important}
 @media (max-width:1300px){.nav{padding:0 24px}.nav-links{gap:22px}.nav-acct-area{gap:8px 10px}.nav-acct-area .btn-sm{padding:9px 12px}}
 @media (max-width:1080px){.nav{height:auto;min-height:72px;flex-wrap:wrap;padding:12px 16px;gap:10px 16px}.nav-links{order:3;width:100%;gap:20px;flex-wrap:wrap}.nav-acct-area{margin-left:auto}}
+
+/* phone widths (October 4, 2026): at 640 pixels and below the top bar is three short rows instead of a stack that ran off the edge.
+   Row 1: the logo, then (signed in) the initials circle and Sign out, or (signed out) the Register button. Row 2 (signed in): My postings, Analytics, Team. Last row: the three links.
+   Every control has a 44 pixel touch target (the buttons keep a 36 pixel look; their invisible margin is measured from the padding box, inside the 1 or 1.5 pixel border, so it is 6 pixels above and below), the logo is smaller so it stays whole at 320, and nothing is allowed to push the bar wider than the window.
+   html text-size-adjust 100% stops a phone browser from inflating the header text (text autosizing), which would also make the rows wider than the window. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (max-width:640px){
+  .nav{padding:6px 12px;gap:0 10px;justify-content:flex-start;align-items:center;min-height:0}
+  .nav-logo{order:1;min-height:44px;gap:6px;margin-right:auto;min-width:0}
+  .nav-mark{width:32px;height:32px}
+  .nav-wordmark{font-size:16px;white-space:nowrap}
+  .nav-links{order:5;width:100%;gap:0 6px;flex-wrap:wrap;justify-content:space-between}
+  .nav-links a{display:inline-flex;align-items:center;min-height:44px;font-size:14px}
+  #navAccount{order:2}
+  #navAccount .btn-sm{position:relative;min-height:36px;margin:4px 0;padding:8px 12px;justify-content:center}
+  #navAccount .btn-sm::before{content:"";position:absolute;inset:-6px 0}
+  #navAccount.nav-acct-area{display:contents!important}
+  #navAccount.nav-acct-area>*{order:4}
+  #navAccount.nav-acct-area>span{order:2}
+  #navAccount.nav-acct-area>.btn-ghost{order:3}
+  #navAccount.nav-acct-area::after{content:"";order:3;flex:0 0 100%;height:0}
+  .nav{position:relative}
+  .nav-account{position:static}
+  .account-pop{top:50px;right:12px;max-width:calc(100vw - 24px)}
+}
+@media (max-width:360px){.nav{padding:6px 8px}.nav-links a{font-size:13px}}

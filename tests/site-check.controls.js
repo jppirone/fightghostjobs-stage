@@ -504,6 +504,42 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the file js/account-menu.js is missing", "S46", (dir) => { fs.rmSync(path.join(dir, AM)); });
   control("innerHTML in the account control", "S5", append(AM, "document.body.innerHTML = location.hash;"));
 }
+
+// S47 (2026-10-04): the top bar at phone widths (the browser test tests/header-layout.test.js measures it; this rule keeps what that test depends on).
+{
+  const CSS3 = "app.css", TST = "tests/header-layout.test.js";
+  const VP = '<meta name="viewport" content="width=device-width, initial-scale=1">';
+  control("a page's viewport meta allows no zoom (maximum-scale)", "S47", edit("index.html", (s) => s.replace(VP, '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">')));
+  control("a page's viewport meta forbids zoom (user-scalable=no)", "S47", edit("search.html", (s) => s.replace(VP, '<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">')));
+  control("a page's viewport meta is gone", "S47", edit("privacy.html", (s) => s.replace(VP + "\n", "")));
+  control("a page's viewport meta is a fixed width", "S47", edit("team.html", (s) => s.replace(VP, '<meta name="viewport" content="width=1024">')));
+  control("text-size-adjust 100% is removed", "S47", edit(CSS3, (s) => s.replace("html{-webkit-text-size-adjust:100%;text-size-adjust:100%}", "")));
+  control("text-size-adjust is auto", "S47", edit(CSS3, (s) => s.replace("html{-webkit-text-size-adjust:100%;text-size-adjust:100%}", "html{-webkit-text-size-adjust:auto;text-size-adjust:auto}")));
+  control("the phone block starts at the wrong width", "S47", edit(CSS3, (s) => s.replace("@media (max-width:640px){", "@media (max-width:64px){")));
+  control("the phone bar loses its padding rule", "S47", edit(CSS3, (s) => s.replace(".nav{padding:6px 12px;gap:0 10px;justify-content:flex-start;align-items:center;min-height:0}", ".nav{padding:6px 12px}")));
+  control("the logo is no longer 44 pixels tall", "S47", edit(CSS3, (s) => s.replace(".nav-logo{order:1;min-height:44px;", ".nav-logo{order:1;min-height:30px;")));
+  control("the logo mark keeps its big size", "S47", edit(CSS3, (s) => s.replace(".nav-mark{width:32px;height:32px}", "")));
+  control("the wordmark keeps its big size", "S47", edit(CSS3, (s) => s.replace(".nav-wordmark{font-size:16px;white-space:nowrap}", ".nav-wordmark{font-size:22px}")));
+  control("the three links are not the last row", "S47", edit(CSS3, (s) => s.replace(".nav-links{order:5;width:100%;", ".nav-links{order:1;width:100%;")));
+  control("the links are no longer 44 pixel targets", "S47", edit(CSS3, (s) => s.replace("align-items:center;min-height:44px;font-size:14px}", "align-items:center;font-size:14px}")));
+  control("the account buttons lose their 36 pixel look", "S47", edit(CSS3, (s) => s.replace("#navAccount .btn-sm{position:relative;min-height:36px;", "#navAccount .btn-sm{position:relative;")));
+  control("the account buttons lose their invisible touch margin", "S47", edit(CSS3, (s) => s.replace('#navAccount .btn-sm::before{content:"";position:absolute;inset:-6px 0}', "")));
+  control("the signed-in items no longer join the bar's rows", "S47", edit(CSS3, (s) => s.replace("#navAccount.nav-acct-area{display:contents!important}", "")));
+  control("the account buttons are no longer the second row", "S47", edit(CSS3, (s) => s.replace("#navAccount.nav-acct-area>*{order:4}", "")));
+  control("the circle no longer sits beside the logo", "S47", edit(CSS3, (s) => s.replace("#navAccount.nav-acct-area>span{order:2}", "")));
+  control("Sign out no longer sits beside the circle", "S47", edit(CSS3, (s) => s.replace("#navAccount.nav-acct-area>.btn-ghost{order:3}", "")));
+  control("the row break after Sign out is gone", "S47", edit(CSS3, (s) => s.replace('#navAccount.nav-acct-area::after{content:"";order:3;flex:0 0 100%;height:0}', "")));
+  control("the initials label is no longer anchored inside the window", "S47", edit(CSS3, (s) => s.replace(".account-pop{top:50px;right:12px;max-width:calc(100vw - 24px)}", "")));
+  control("the label is anchored to the circle on a phone again", "S47", edit(CSS3, (s) => s.replace("  .nav-account{position:static}\n", "")));
+  control("the narrow phone block is removed", "S47", edit(CSS3, (s) => s.replace("@media (max-width:360px){.nav{padding:6px 8px}.nav-links a{font-size:13px}}", "")));
+  control("the logo gets a fixed minimum width", "S47", edit(CSS3, (s) => s + "\n.nav-logo{min-width:480px}\n"));
+  control("the wordmark gets a wide fixed width", "S47", edit(CSS3, (s) => s + "\n@media (max-width:640px){.nav-wordmark{width:300px}}\n"));
+  control("the account buttons get a fixed minimum width", "S47", edit(CSS3, (s) => s + "\n#navAccount .btn-sm{min-width:200px}\n"));
+  control("the base stylesheet gives the bar a fixed minimum width", "S47", edit("styles.css", (s) => s + "\n.nav{min-width:1024px}\n"));
+  control("the browser test is missing", "S47", (dir) => { fs.rmSync(path.join(dir, TST)); });
+  control("the browser test no longer covers 320", "S47", edit(TST, (s) => s.replace("const WIDTHS = [320, 360, 375, 390, 414];", "const WIDTHS = [360, 375, 390, 414];")));
+  control("the browser test loses its negative controls", "S47", edit(TST, (s) => s.replace("negative controls: the header rule catches each deliberate defect", "negative controls: skipped")));
+}
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");
