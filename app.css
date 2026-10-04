@@ -53,7 +53,6 @@ input[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--embe
 .empty-note{font-size:14px;color:var(--muted);line-height:1.6;background:var(--panel);border-radius:10px;padding:14px 16px;margin-top:16px}
 .result-count{font-size:13px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
 .code-box{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;letter-spacing:.06em;background:var(--panel);border-radius:10px;padding:14px 18px;display:inline-block}
-.nav-account+.btn{margin-left:14px}
 
 /* location picker (register form) */
 .loc-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
@@ -159,3 +158,18 @@ html.unsaved-on{scroll-padding-bottom:140px}
 .unsaved-dialog-title{font-size:18px;font-weight:700;margin:0 0 8px 0}
 .unsaved-dialog-text{font-size:14px;line-height:1.6;color:var(--ink);margin:0 0 18px 0}
 @media (max-width:720px){.unsaved-inner{padding:10px 16px}.unsaved-actions{width:100%}.unsaved-actions .btn{flex:1 1 auto;justify-content:center}.unsaved-dialog{padding:18px 16px}}
+
+/* the signed-in header (October 4, 2026): the initials circle is the control (js/account-menu.js); the name and organization are its accessible name and a small label, not text beside it.
+   The right-hand area wraps instead of squeezing the navigation, and the whole bar relaxes at narrow widths. */
+.nav-acct-area{gap:10px 14px;flex-wrap:wrap;justify-content:flex-end}
+.nav-account{position:relative}
+.avatar-btn{border:0;padding:0;cursor:pointer;font-family:inherit;position:relative}
+.avatar-btn::before{content:"";position:absolute;inset:-6px}
+.account-pop{display:none;position:absolute;top:calc(100% + 10px);right:0;z-index:30;width:max-content;max-width:min(280px,calc(100vw - 32px));box-sizing:border-box;background:var(--ink);color:#F4F1EA;font-size:13px;font-weight:500;line-height:1.5;padding:10px 12px;border-radius:8px;text-align:left;box-shadow:0 10px 24px -8px rgba(23,20,18,.35);overflow-wrap:anywhere}
+.account-pop-name{display:block;font-weight:700}
+.account-pop-org{display:block}
+.account-pop.open,.avatar-btn:focus-visible+.account-pop{display:block}
+@media (hover:hover){.nav-account:hover .account-pop{display:block}}
+.account-pop.dismissed{display:none!important}
+@media (max-width:1300px){.nav{padding:0 24px}.nav-links{gap:22px}.nav-acct-area{gap:8px 10px}.nav-acct-area .btn-sm{padding:9px 12px}}
+@media (max-width:1080px){.nav{height:auto;min-height:72px;flex-wrap:wrap;padding:12px 16px;gap:10px 16px}.nav-links{order:3;width:100%;gap:20px;flex-wrap:wrap}.nav-acct-area{margin-left:auto}}

@@ -315,7 +315,7 @@ test("sequence: load, change, bar; revert, no bar; change, refused save, bar sta
 test("edit.js: the guard is wired in, every save path says whether it saved, and a save of one part never wipes what was typed in another", () => {
   const js = src("js/pages/edit.js");
   assert.match(js, /import \{ mountUnsavedGuard \} from "\.\.\/unsaved-guard\.js";/); assert.match(js, /guard = mountUnsavedGuard\(\{/);
-  assert.match(js, /document\.addEventListener\("click", \(ev\) => \{[\s\S]*?guard\.interceptClick\(ev, \{ kind: "link"[\s\S]*?"#navAccount button"[\s\S]*?\}, true\);/, "a capture-phase click handler holds back links and Sign out");
+  assert.match(js, /document\.addEventListener\("click", \(ev\) => \{[\s\S]*?guard\.interceptClick\(ev, \{ kind: "link"[\s\S]*?"#navAccount button:not\(\.avatar-btn\)"[\s\S]*?\}, true\);/, "a capture-phase click handler holds back links and Sign out (but not the initials circle, which only opens a label)");
   assert.ok(js.includes('for (const t of ["input", "change", "click", "keyup"]) document.addEventListener(t, () => refreshUnsaved());'));
   assert.ok(js.includes("onChange: () => refreshUnsaved()"), "the location picker reports its changes");
   assert.ok(js.includes("state.baseline = snapshotOf(collect());"), "the snapshot is taken when a posting is loaded or saved");

@@ -454,7 +454,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the guard keeps something in storage", "S45", append(GD, "const _k = () => localStorage.setItem('x', 'y');"));
   control("an em dash in the guard", "S45", append(GD, "// a — b"));
   control("the page stops mounting the guard", "S45", edit(EJ, (s) => s.replace("guard = mountUnsavedGuard({", "const unusedGuard = ({")));
-  control("the page stops holding back Sign out", "S45", edit(EJ, (s) => s.replace('t.closest("#navAccount button")', 't.closest("#navAccountX")')));
+  control("the page stops holding back Sign out", "S45", edit(EJ, (s) => s.replace('t.closest("#navAccount button:not(.avatar-btn)")', 't.closest("#navAccountX")')));
   control("the page stops taking a snapshot when a posting is loaded", "S45", edit(EJ, (s) => s.replace("state.baseline = snapshotOf(collect());", "state.baseline = null;")));
   control("submit() no longer says whether it saved", "S45", edit(EJ, (s) => s.replace("async function submit() {\n  if (state.busy || !state.orig) return false;", "async function submit() {\n  if (state.busy || !state.orig) return;")));
   control("saving the links wipes what was typed elsewhere", "S45", edit(EJ, (s) => s.replace("populate(reload.data, { keepForm: true, saved: PANEL.LINKS });\n    const warn", "populate(reload.data);\n    const warn")));
@@ -465,6 +465,45 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the bar no longer stacks on a narrow screen", "S45", edit(CSS, (s) => s.replace("@media (max-width:720px){.unsaved-inner{padding:10px 16px}.unsaved-actions{width:100%}", "@media (max-width:20px){.unsaved-inner{padding:10px 16px}.unsaved-actions{width:100%}")));
   control("the bar's content no longer wraps", "S45", edit(CSS, (s) => s.replace("gap:12px 24px;flex-wrap:wrap}", "gap:12px 24px}")));
   control("the status region is hidden with display:none", "S45", edit(CSS, (s) => s.replace(".unsaved-sr{position:absolute;width:1px;height:1px;", ".unsaved-sr{display:none;position:absolute;width:1px;height:1px;")));
+
+// S46 (2026-10-04): the signed-in header: the initials circle is the control; the text is no longer printed beside it.
+{
+  const AM = "js/account-menu.js", AP = "js/app.js", CSS2 = "app.css";
+  control("the circle loses its accessible name (aria-label)", "S46", edit(AM, (s) => s.replace('"aria-label": t.label, ', "")));
+  control("the circle is no longer a button (a span)", "S46", edit(AM, (s) => s.replace('h("button", { type: "button", class: "avatar avatar-btn"', 'h("span", { type: "button", class: "avatar avatar-btn"')));
+  control("the circle forgets aria-expanded", "S46", edit(AM, (s) => s.replace('"aria-expanded": "false", ', "")));
+  control("the circle forgets aria-controls", "S46", edit(AM, (s) => s.replace(', "aria-controls": ACCOUNT.POP_ID', "")));
+  control("the accessible name no longer says who is signed in", "S46", edit(AM, (s) => s.replace('PREFIX: "Signed in as "', 'PREFIX: ""')));
+  control("the accessible name drops the organization", "S46", edit(AM, (s) => s.replace('label: ACCOUNT.PREFIX + n + (o ? ", " + o : "")', "label: ACCOUNT.PREFIX + n")));
+  control("the label is no longer hidden from screen readers (it would be read twice)", "S46", edit(AM, (s) => s.replace('class: "account-pop", "aria-hidden": "true"', 'class: "account-pop"')));
+  control("Escape no longer closes the label", "S46", edit(AM, (s) => s.replace('if (ev.key !== "Escape") return;', 'if (ev.key !== "Esc") return;')));
+  control("Escape no longer returns focus to the circle", "S46", edit(AM, (s) => s.replace("if (!on && giveFocus) button.focus();", "")));
+  control("a click elsewhere no longer closes the label", "S46", edit(AM, (s) => s.replace("if (isOpen && !contains(root, ev.target)) set(false, false);", "")));
+  control("focus leaving the control no longer closes the label", "S46", edit(AM, (s) => s.replace('root.addEventListener("focusout", onFocusOut);', "")));
+  control("aria-expanded no longer follows the label", "S46", edit(AM, (s) => s.replace('button.setAttribute("aria-expanded", on ? "true" : "false");', "")));
+  control("wiring twice stacks listeners", "S46", edit(AM, (s) => s.replace("if (previous) { previous(); previous = null; }", "")));
+  control("the account control stores something", "S46", edit(AM, (s) => s.replace("let previous = null;", 'let previous = null; sessionStorage.setItem("x", "y");')));
+  control("an em dash in the account control", "S46", edit(AM, (s) => s.replace("let previous = null;", "let previous = null; // a — b")));
+  control("app.js prints the name and organization beside the circle again", "S46", edit(AP, (s) => s.replace("      account.root,\n", '      account.root, name + (org ? " · " + org : ""),\n')));
+  control("app.js no longer wires the control", "S46", edit(AP, (s) => s.replace("    wireAccountMenu(account, document);\n", "")));
+  control("app.js builds the old span with the text", "S46", edit(AP, (s) => s.replace("const account = buildAccount(h, initials, name, org);", 'const account = buildAccount(h, initials, name, org); h("span", { class: "nav-account" }, name);')));
+  control("the candidate's signed-in area no longer wraps", "S46", edit(AP, (s) => s.replace('container.classList.add("nav-acct-area");\n    container.append(\n      h("span", { style: "font-size:13px;color:var(--muted);" }, "Email verified"),', 'container.append(\n      h("span", { style: "font-size:13px;color:var(--muted);" }, "Email verified"),')));
+  control("Sign out is removed from the header (both signed-in areas)", "S46", edit(AP, (s) => s.split('"Sign out"').join('"Sign off"')));
+  control("an inline margin comes back in the signed-in area", "S46", edit(AP, (s) => s.replace('href: "dashboard.html" }, "My postings")', 'href: "dashboard.html", style: "margin-right:14px;" }, "My postings")')));
+  control("the label is no longer a small box under the circle", "S46", edit(CSS2, (s) => s.replace(".account-pop{display:none;position:absolute;top:calc(100% + 10px);right:0;", ".account-pop{display:none;position:static;")));
+  control("the keyboard focus no longer shows the label", "S46", edit(CSS2, (s) => s.replace(".account-pop.open,.avatar-btn:focus-visible+.account-pop{display:block}", ".account-pop.open{display:block}")));
+  control("mouse-over no longer shows the label", "S46", edit(CSS2, (s) => s.replace("@media (hover:hover){.nav-account:hover .account-pop{display:block}}", "")));
+  control("mouse-over applies on touch screens too (sticky hover)", "S46", edit(CSS2, (s) => s.replace("@media (hover:hover){.nav-account:hover", "@media (hover:none){.nav-account:hover")));
+  control("Escape can no longer dismiss the hover label", "S46", edit(CSS2, (s) => s.replace(".account-pop.dismissed{display:none!important}", "")));
+  control("the circle's touch target is only the drawn circle", "S46", edit(CSS2, (s) => s.replace('.avatar-btn::before{content:"";position:absolute;inset:-6px}', "")));
+  control("the signed-in area cannot wrap", "S46", edit(CSS2, (s) => s.replace(".nav-acct-area{gap:10px 14px;flex-wrap:wrap;justify-content:flex-end}", ".nav-acct-area{gap:10px 14px;justify-content:flex-end}")));
+  control("the bar does not relax at medium widths", "S46", edit(CSS2, (s) => s.replace("@media (max-width:1300px){.nav{padding:0 24px}", "@media (max-width:130px){.nav{padding:0 24px}")));
+  control("the bar does not stack at narrow widths", "S46", edit(CSS2, (s) => s.replace("@media (max-width:1080px){.nav{height:auto;min-height:72px;flex-wrap:wrap;", "@media (max-width:108px){.nav{height:auto;min-height:72px;flex-wrap:wrap;")));
+  control("buttons lose their visible focus outline", "S46", edit(CSS2, (s) => s.replace("a:focus-visible,button:focus-visible,", "a:focus-visible,")));
+  control("the old margin rule that depended on the printed text returns", "S46", edit(CSS2, (s) => s + "\n.nav-account+.btn{margin-left:14px}\n"));
+  control("the file js/account-menu.js is missing", "S46", (dir) => { fs.rmSync(path.join(dir, AM)); });
+  control("innerHTML in the account control", "S5", append(AM, "document.body.innerHTML = location.hash;"));
+}
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");

@@ -5,6 +5,7 @@ import { SUPABASE_URL, PUBLISHABLE_KEY } from "./config.js";
 import { accessToken, currentSession, signOut, rememberNext } from "./session.js";
 import { h, clear } from "./dom.js";
 import { initials } from "./format.js";
+import { buildAccount, wireAccountMenu } from "./account-menu.js";
 
 export const api = createApi({ baseUrl: SUPABASE_URL, key: PUBLISHABLE_KEY, getToken: accessToken });
 export { describeError, isAuthFailure, currentSession, signOut };
@@ -40,7 +41,8 @@ export async function requirePoster(thisPage) {
   return { session, info: r.data };
 }
 
-// The right-hand side of the top bar. Signed-in employer: avatar + name + organization + Sign out. Anyone else: the "Register a Posting" call to action.
+// The right-hand side of the top bar. Signed-in employer: the links, the initials circle (the control: name and organization are its accessible name and its label, see account-menu.js) and Sign out.
+// Anyone else: the "Register a Posting" call to action.
 export async function mountAccount(container, { cta = true } = {}) {
   clear(container);
   const session = await currentSession();
@@ -48,18 +50,22 @@ export async function mountAccount(container, { cta = true } = {}) {
     const r = await posterInfo(session);
     const name = r.ok ? r.data.poster.full_name : "Employer";
     const org = r.ok ? r.data.organization.name : "";
+    const account = buildAccount(h, initials, name, org);
+    container.classList.add("nav-acct-area");
     container.append(
-      h("a", { class: "btn btn-outline btn-sm", href: "dashboard.html", style: "margin-right:14px;" }, "My postings"),
-      h("a", { class: "btn btn-outline btn-sm", href: "analytics.html", style: "margin-right:14px;" }, "Analytics"),
-      r.ok && r.data.poster.is_org_admin ? h("a", { class: "btn btn-outline btn-sm", href: "team.html", style: "margin-right:14px;" }, "Team") : null,
-      h("span", { class: "nav-account" }, h("span", { class: "avatar" }, initials(name)), name + (org ? " · " + org : "")),
-      h("button", { type: "button", class: "btn btn-ghost btn-sm", style: "margin-left:14px;", onclick: async () => { await signOut(); forgetLocalState(); go("index.html"); } }, "Sign out"),
+      h("a", { class: "btn btn-outline btn-sm", href: "dashboard.html" }, "My postings"),
+      h("a", { class: "btn btn-outline btn-sm", href: "analytics.html" }, "Analytics"),
+      r.ok && r.data.poster.is_org_admin ? h("a", { class: "btn btn-outline btn-sm", href: "team.html" }, "Team") : null,
+      account.root,
+      h("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: async () => { await signOut(); forgetLocalState(); go("index.html"); } }, "Sign out"),
     );
+    wireAccountMenu(account, document);
     return session;
   }
   if (session && session.isCandidate) {
+    container.classList.add("nav-acct-area");
     container.append(
-      h("span", { style: "font-size:13px;color:var(--muted);margin-right:14px;" }, "Email verified"),
+      h("span", { style: "font-size:13px;color:var(--muted);" }, "Email verified"),
       h("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: async () => { await signOut(); go("index.html"); } }, "Sign out"),
     );
     return session;

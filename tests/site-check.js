@@ -36,6 +36,7 @@
 //   S38 the destination links rows panel (item 4): the panel and its two approved sentences are on edit.html once each; an address is never on the page (the edit form's address box is created empty, never given a value, autocomplete off; no row reads an address field; the ticket link is only ever a navigation target); the blank tab is opened before the request and its opener cut; no new network host, no storage, no logging; the plan's words exist once; no em dash in the new text
 //   S40 the candidate search screen: one specific job, company AND one lookup value; req number first, then postID / title (title is the labelled fallback); the guidance sentences are on the page and referenced by aria-describedby; no browse input; a short title is not refused locally; the too-short answer and the empty-result note use the approved wording
 //   S45 the edit page keeps unsaved work safe: the bar (sticky, last in main, a polite status region, Save changes and Discard), the leave dialog (alertdialog, Save and leave / Discard and leave / Stay on this page), the guard code (beforeunload, Escape is Stay, focus into the dialog and back), the exact words, no em dash in them; the recruiter toggle is free, above Save changes, with its approved sentence, and the recruiter firms panel sits in the Destination links card below Save changes
+//   S46 the signed-in header: the initials circle is the control (a real button, the full "Signed in as <name>, <organization>" as its accessible name, a label on mouse-over for real pointers, on keyboard focus and on tap / Enter / Space, closed by Escape with focus returned, or a click elsewhere); app.js no longer prints the text beside it; the area wraps and the bar stacks at narrow widths
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
@@ -803,7 +804,7 @@ export function checkSite(root) {
     } else add("S45", gF, "js/unsaved-guard.js is missing");
     if (fs.existsSync(eF)) {
       const e = stripJsComments(read(eF));
-      if (!e.includes("guard = mountUnsavedGuard({") || !e.includes('guard.interceptClick(ev, { kind: "link"') || !e.includes('"#navAccount button"')) add("S45", eF, "edit.js must mount the unsaved-changes guard and hold back links and Sign out that leave the page");
+      if (!e.includes("guard = mountUnsavedGuard({") || !e.includes('guard.interceptClick(ev, { kind: "link"') || !e.includes('"#navAccount button:not(.avatar-btn)"')) add("S45", eF, "edit.js must mount the unsaved-changes guard and hold back links and Sign out that leave the page");
       if (!e.includes("state.baseline = snapshotOf(collect());") || !e.includes("snapshotOf(collect()) !== state.baseline")) add("S45", eF, "edit.js must compare the form with the snapshot taken when it was loaded or saved");
       if (!e.includes("async function submit() {\n  if (state.busy || !state.orig) return false;")) add("S45", eF, "submit() must say whether it saved (the leave dialog and the bar need to know)");
       if ((e.split("populate(reload.data, { keepForm: true, saved: PANEL.LINKS })").length - 1) !== 3 || !e.includes("populate(reload.data, { keepForm: true, saved: PANEL.FIRMS })") || !e.includes("populate(reload.data, { keepForm: true, saved: PANEL.GOLIVE })")) add("S45", eF, "saving a section (links, firms, go-live) must not throw away what was typed in the rest of the page (populate keepForm)");
@@ -814,6 +815,48 @@ export function checkSite(root) {
       if (!/html\.unsaved-on\{scroll-padding-bottom:\d+px\}/.test(c)) add("S45", cF, "a field that takes focus must be kept clear of the bar (html.unsaved-on scroll-padding-bottom)");
       if (!/\.unsaved-inner\{[^}]*flex-wrap:wrap\}/.test(c) || !/@media \(max-width:720px\)\{\.unsaved-inner\{padding:10px 16px\}\.unsaved-actions\{width:100%\}/.test(c)) add("S45", cF, "the bar must wrap and stack on a narrow screen");
       if (!/\.unsaved-sr\{position:absolute;width:1px;height:1px;/.test(c)) add("S45", cF, "the status region must be hidden visually, not with display:none (a screen reader would not announce it)");
+    }
+  }
+
+  // S46 (2026-10-04): the signed-in header. The initials circle is the control (js/account-menu.js): a real button whose accessible name is "Signed in as <name>, <organization>", with aria-expanded and aria-controls, a label
+  // (hidden from screen readers: it mirrors the accessible name) shown on mouse-over (real pointers only), on keyboard focus and on tap / Enter / Space, closed by Escape (focus returns to the circle) or a click elsewhere.
+  // js/app.js builds the signed-in area from it and no longer prints the name beside the circle; app.css has the label, the hover and focus rules, the wrap and the narrow layouts.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const mF = P("js", "account-menu.js"), aF = P("js", "app.js"), cF = P("app.css");
+    const EMDASH = "—";
+    if (fs.existsSync(mF)) {
+      const raw = read(mF), c = stripJsComments(raw);
+      if (!c.includes('const button = h("button", { type: "button", class: "avatar avatar-btn", "aria-label": t.label, "aria-expanded": "false", "aria-controls": ACCOUNT.POP_ID }, initials(t.name));')) add("S46", mF, "the circle must be a real button (type button) with the initials, an aria-label that is the full accessible name, aria-expanded and aria-controls");
+      if (!c.includes('PREFIX: "Signed in as "') || !c.includes('label: ACCOUNT.PREFIX + n + (o ? ", " + o : "")')) add("S46", mF, "the accessible name must be \"Signed in as <name>, <organization>\": no information may be lost when the text leaves the bar");
+      if (!c.includes('class: "account-pop", "aria-hidden": "true"')) add("S46", mF, "the label is a visual mirror of the accessible name: aria-hidden, so a screen reader does not read it twice");
+      if (!c.includes('if (ev.key !== "Escape") return;') || !c.includes("if (!on && giveFocus) button.focus();") || !c.includes("set(false, true)")) add("S46", mF, "Escape must close the label and put focus back on the circle");
+      if (!c.includes("if (isOpen && !contains(root, ev.target)) set(false, false);")) add("S46", mF, "a click elsewhere must close the label");
+      if (!c.includes('root.addEventListener("focusout", onFocusOut);') || !c.includes("!contains(root, ev.relatedTarget)")) add("S46", mF, "focus leaving the control must close the label");
+      if (!c.includes('button.setAttribute("aria-expanded", on ? "true" : "false");')) add("S46", mF, "aria-expanded must follow the label");
+      if (!c.includes("if (previous) { previous(); previous = null; }")) add("S46", mF, "wiring the control twice must remove the first wiring (no stacked listeners)");
+      if (/\b(localStorage|sessionStorage|indexedDB|document\.cookie|fetch\s*\(|console\.)/.test(c) || /https?:\/\/[^\s"'`)<>]+/.test(c)) add("S46", mF, "the account control keeps nothing, sends nothing and logs nothing");
+      if (raw.includes(EMDASH)) add("S46", mF, "no em dash in the account control");
+    } else add("S46", mF, "js/account-menu.js is missing");
+    if (fs.existsSync(aF)) {
+      const a = stripJsComments(read(aF));
+      if (!a.includes('import { buildAccount, wireAccountMenu } from "./account-menu.js";') || !a.includes("const account = buildAccount(h, initials, name, org);") || !a.includes("wireAccountMenu(account, document);")) add("S46", aF, "app.js must build the signed-in area from the account control and wire it");
+      if (a.includes('" · "') || /class: "nav-account"/.test(a)) add("S46", aF, "the name and organization must not be printed beside the circle any more (they wrapped into a tall narrow stack): they are the circle's accessible name and its label");
+      if ((a.match(/container\.classList\.add\("nav-acct-area"\)/g) || []).length !== 2) add("S46", aF, "both signed-in areas (employer and candidate) must carry nav-acct-area so they wrap instead of squeezing the navigation");
+      if (/margin-right:14px|margin-left:14px/.test(a)) add("S46", aF, "spacing in the signed-in area comes from the stylesheet gap, not inline margins");
+      if (!a.includes('"Sign out"') || !a.includes('"Email verified"')) add("S46", aF, "Sign out and Email verified must stay in the header");
+    }
+    if (fs.existsSync(cF)) {
+      const c = read(cF);
+      if (!/\.account-pop\{display:none;position:absolute;top:calc\(100% \+ 10px\);right:0;z-index:30;/.test(c)) add("S46", cF, "the account label must be a small absolutely placed box under the circle, hidden until shown");
+      if (!/\.account-pop\.open,\.avatar-btn:focus-visible\+\.account-pop\{display:block\}/.test(c)) add("S46", cF, "the label must show when opened and when the circle has keyboard focus");
+      if (!/@media \(hover:hover\)\{\.nav-account:hover \.account-pop\{display:block\}\}/.test(c)) add("S46", cF, "mouse-over must show the label, for real pointers only (a touch screen would keep it stuck open)");
+      if (!/\.account-pop\.dismissed\{display:none!important\}/.test(c)) add("S46", cF, "Escape must be able to dismiss the label that mouse-over or focus shows");
+      if (!/\.avatar-btn::before\{content:"";position:absolute;inset:-6px\}/.test(c)) add("S46", cF, "the circle's touch target must be bigger than the drawn circle");
+      if (!/\.nav-acct-area\{[^}]*flex-wrap:wrap[^}]*\}/.test(c)) add("S46", cF, "the signed-in area must be allowed to wrap");
+      if (!/@media \(max-width:1300px\)\{\.nav\{padding:0 24px\}/.test(c) || !/@media \(max-width:1080px\)\{\.nav\{height:auto;min-height:72px;flex-wrap:wrap;/.test(c)) add("S46", cF, "the top bar must relax at medium widths and stack (links on their own row) below 1080 pixels, so nothing wraps into a tall narrow stack");
+      if (!/a:focus-visible,button:focus-visible/.test(c)) add("S46", cF, "every button, the circle included, keeps a visible focus outline");
+      if (/\.nav-account\+\.btn\{margin-left/.test(c)) add("S46", cF, "the old margin rule that depended on the printed text must stay gone");
     }
   }
 

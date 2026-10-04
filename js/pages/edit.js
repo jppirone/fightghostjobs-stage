@@ -382,7 +382,7 @@ document.addEventListener("click", (ev) => {
   if (!t) return;
   const a = t.closest("a[href]");
   if (a) { guard.interceptClick(ev, { kind: "link", href: a.getAttribute("href"), target: a.getAttribute("target"), download: a.hasAttribute("download"), el: a }); return; }
-  const out = t.closest("#navAccount button");
+  const out = t.closest("#navAccount button:not(.avatar-btn)");   // Sign out, not the initials circle (that only opens a label)
   if (out) guard.interceptClick(ev, { kind: "button", el: out });
 }, true);
 
