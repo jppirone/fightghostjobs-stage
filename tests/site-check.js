@@ -34,6 +34,8 @@
 //   S28 the employer's AI notes: a 300-char box under each AI toggle on both pages (shown to candidates, no web addresses), checked by the shared rule, shown on the search card as the employer's words
 //   S29 candidate comments: comments.html (thread, compose, private wrong-link report, employer read-only) reached only with ?ref= / ?id=, through api.js; anonymous; the privacy page says what is kept
 //   S38 the destination links rows panel (item 4): the panel and its two approved sentences are on edit.html once each; an address is never on the page (the edit form's address box is created empty, never given a value, autocomplete off; no row reads an address field; the ticket link is only ever a navigation target); the blank tab is opened before the request and its opener cut; no new network host, no storage, no logging; the plan's words exist once; no em dash in the new text
+//   S40 the candidate search screen: one specific job, company AND one lookup value; req number first, then postID / title (title is the labelled fallback); the guidance sentences are on the page and referenced by aria-describedby; no browse input; a short title is not refused locally; the too-short answer and the empty-result note use the approved wording
+//   S45 the edit page keeps unsaved work safe: the bar (sticky, last in main, a polite status region, Save changes and Discard), the leave dialog (alertdialog, Save and leave / Discard and leave / Stay on this page), the guard code (beforeunload, Escape is Stay, focus into the dialog and back), the exact words, no em dash in them; the recruiter toggle is free, above Save changes, with its approved sentence, and the recruiter firms panel sits in the Destination links card below Save changes
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
@@ -135,7 +137,8 @@ export function checkSite(root) {
   const si = path.join(root, "js", "search-input.js"), sp = path.join(root, "js", "pages", "search.js");
   if (fs.existsSync(si) && fs.existsSync(sp)) {
     const note = (read(si).match(/export const NO_MATCH_NOTE = "([^"]*)";/) || [])[1] || "";
-    if (!note.endsWith("Closed or expired postings appear only when you search by postID.")) add("S14", si, "NO_MATCH_NOTE must end with the closed-or-expired-by-code sentence");
+    if (!note.endsWith("A title search finds only postings that are live: closed or expired postings are found only by postID or req number.")) add("S14", si, "NO_MATCH_NOTE must end with the closed-or-expired-by-postID-or-req sentence");
+    if (!note.includes("Check the company name, and check the ID exactly as it is printed in the posting. If you searched by title, try a different part of the title.")) add("S14", si, "NO_MATCH_NOTE must tell the person to check the ID and to try a different part of the title");
     const src = read(si);
     const fn = (src.match(/export function noMatchMessage\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1] || "";
     if (!/\+\s*NO_MATCH_NOTE;\s*$/.test(fn.trim())) add("S14", si, "noMatchMessage must end with NO_MATCH_NOTE");
@@ -711,6 +714,107 @@ export function checkSite(root) {
       if (/"Wait "|setInterval/.test(p)) add("S37", pageF, "the comment button must not tick down (no \"Wait Ns\" text, no one-second timer): the wait is said once, in words, in the message");
     }
     if (fs.existsSync(htmlF) && !read(htmlF).includes('<label id="reportLinkLabel" for="reportLink"')) add("S37", htmlF, "the Which link? label must carry id=reportLinkLabel (the page hides it when there are no links)");
+  }
+
+  // S40: the candidate search screen (2026-10-03). This is NOT a browse or free search: the person looks for ONE job they already know about, with the company AND one lookup value.
+  // The exact IDs come first (req number, then postID); the title is the labelled fallback; the guidance is real text referenced from the inputs; a short title is not refused locally (the backend decides, from its list of short forms).
+  {
+    const sh = path.join(root, "search.html"), si = path.join(root, "js", "search-input.js"), sp = path.join(root, "js", "pages", "search.js");
+    if (fs.existsSync(sh) && fs.existsSync(si) && fs.existsSync(sp)) {
+      const t = read(sh).replace(/<!--[\s\S]*?-->/g, ""), src = read(si), page = read(sp);
+      for (const s of [
+        "Search for one specific job you already know about.",
+        "Easiest and most exact: the company name plus the requisition (req) number or the postID from the employer's posting.",
+        "No ID? Use the company name plus part of the job title, copied from the posting if you can.",
+        "Must match the employer's name. We ignore endings like Inc., Co. and LLC.",
+        "A title search will not list all of a company's jobs, and it will not show postings that are not live. Closed or expired postings are found only by postID or req number.",
+        "Fill in only one of the two lookup boxes: the req number, or the postID / title box.",
+      ]) if (!t.includes(s)) add("S40", sh, "the search guidance must say: " + s);
+      const form = (t.match(/<form id="searchForm"[\s\S]*?<\/form>/) || [""])[0];
+      const inputs = [...form.matchAll(/<input\b[^>]*\bid="([^"]*)"/g)].map((m) => m[1]);
+      if (inputs.join(",") !== "company,reqq,titleq") add("S40", sh, "the search form must have exactly three inputs, in this order: company, req number, postID / title (the exact IDs come first, and there is no way to browse); found: " + inputs.join(","));
+      if (!/<label for="titleq"[^>]*>PostID, or part of the title/.test(form)) add("S40", sh, "the title box label must say \"PostID, or part of the title\" (the title is the fallback, named as such)");
+      for (const id of ["company", "reqq", "titleq"]) if (!new RegExp('<label for="' + id + '"').test(form)) add("S40", sh, "the " + id + " input has no label");
+      const ids = new Set([...t.matchAll(/\bid="([^"]*)"/g)].map((m) => m[1]));
+      const describedBy = (id) => ((form.match(new RegExp('<input id="' + id + '"[^>]*aria-describedby="([^"]*)"')) || [])[1] || "").split(/\s+/).filter(Boolean);
+      for (const id of ["company", "reqq", "titleq"]) { const d = describedBy(id); if (!d.length) add("S40", sh, "the " + id + " input must point at its guidance with aria-describedby"); for (const x of d) if (!ids.has(x)) add("S40", sh, "the " + id + " input is described by #" + x + ", which is not on the page"); }
+      if (!describedBy("titleq").includes("titleNote")) add("S40", sh, "the title box must be described by #titleNote (a title search does not list every job and finds only live postings)");
+      if (!describedBy("company").includes("companyHint")) add("S40", sh, "the company box must be described by #companyHint");
+      if (!/<div id="formError"[^>]*role="alert"/.test(t)) add("S40", sh, "the form error (#formError) must be an alert so it is announced");
+      const cq = (src.match(/export function classifyQuery\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1] || "";
+      if (/alnumCount\([^)]*\)\s*<\s*[2-9]/.test(cq.replace(/\/\/[^\n]*/g, ""))) add("S40", si, "classifyQuery must not refuse a title of 1 or 2 letters or digits locally: the backend allows the short forms in its own list (VP, SR, JR)");
+      if (!/alnumCount\(t\)\s*<\s*1/.test(cq) || !/t\.length\s*>\s*80\b/.test(cq)) add("S40", si, "classifyQuery must still refuse a title with no letter or digit, and one over 80 characters");
+      if (!src.includes('export const PHRASE_TOO_SHORT_MESSAGE = "That part of the title is too short to search on its own. Use at least 3 letters or digits, or a short form like VP, SR or JR if the employer used one.";')) add("S40", si, "the too-short-title message must be the approved wording");
+      if (!/searchErrorMessage\(r\.error\)/.test(page)) add("S40", sp, "the page must show the backend's refusal through searchErrorMessage (the calm too-short wording)");
+      const dh = path.join(root, "dashboard.html");
+      if (fs.existsSync(dh) && !read(dh).includes('<div id="postIdNote" class="field-hint">You may place a posting\'s postID on your own site: it lets candidates find the posting exactly.</div>')) add("S40", dh, "the dashboard must tell employers they may place the postID on their own site (it lets candidates find the posting exactly)");
+    } else add("S40", root, "search.html, js/search-input.js or js/pages/search.js is missing");
+  }
+
+  // S45 (2026-10-03): the edit page's unsaved-changes protection and the recruiter wording/layout.
+  //   * edit.html: a polite status region (#unsavedLive), the sticky bar (#unsavedBar: the last thing in <main>, so it ends above the footer), its two buttons, the leave dialog (an alertdialog with three choices), the heading that can take focus,
+  //     the two rules shown early (#noteNeeded, #titleRule); the recruiter toggle is above Save changes with its approved sentence, and the recruiter firms panel is inside the Destination links card, below Save changes.
+  //   * js/dirty-state.js holds the words (pinned word for word) and no em dash; js/unsaved-guard.js asks the browser before the page is left (beforeunload), makes Escape mean Stay, moves focus into the dialog and back, and holds back links and buttons that leave;
+  //     js/pages/edit.js mounts it and compares the form with the snapshot taken when it was loaded or saved; app.css gives the bar position:sticky at the bottom, a narrow-screen layout, and keeps a focused field clear of it.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const htmlF = P("edit.html"), dsF = P("js", "dirty-state.js"), gF = P("js", "unsaved-guard.js"), eF = P("js", "pages", "edit.js"), cF = P("app.css");
+    const EMDASH = "—";
+    if (fs.existsSync(htmlF)) {
+      const t = read(htmlF);
+      if (!/<div id="unsavedLive" class="unsaved-sr" role="status" aria-live="polite" aria-atomic="true"><\/div>/.test(t)) add("S45", htmlF, "#unsavedLive must be a polite status region (role=status, aria-live=polite) that is always in the page");
+      if (!/<div id="unsavedBar" class="unsaved-bar" role="region" aria-label="Unsaved changes" hidden>/.test(t)) add("S45", htmlF, "#unsavedBar must exist, hidden until something is unsaved, labelled Unsaved changes");
+      if (!/<button type="button" id="unsavedSave" class="btn btn-dark btn-sm">Save changes<\/button>\s*<button type="button" id="unsavedDiscard" class="btn btn-outline btn-sm">Discard<\/button>/.test(t)) add("S45", htmlF, "the bar must carry a Save changes button and a Discard button");
+      const iBar = t.indexOf('id="unsavedBar"'), iMainEnd = t.indexOf("</main>"), iCard = t.indexOf('id="linksCard"');
+      if (iBar < 0 || iMainEnd < 0 || iBar < iCard || iBar > iMainEnd || t.slice(iBar, iMainEnd).includes("<footer")) add("S45", htmlF, "the bar must be the last thing inside <main> (after the page content, before the footer), so it never covers the footer or the last field");
+      if (!/<div id="leaveOverlay" class="unsaved-overlay" hidden>\s*<div id="leaveDialog" class="unsaved-dialog" role="alertdialog" aria-modal="true" aria-labelledby="leaveTitle" aria-describedby="leaveText">/.test(t)) add("S45", htmlF, "the leave dialog must be an alertdialog (aria-modal, labelled and described), hidden until needed");
+      if (!/id="leaveSave"[^>]*>Save and leave<\/button>\s*<button type="button" id="leaveDiscard"[^>]*>Discard and leave<\/button>\s*<button type="button" id="leaveStay"[^>]*>Stay on this page<\/button>/.test(t)) add("S45", htmlF, "the leave dialog must offer Save and leave, Discard and leave, Stay on this page");
+      if (!/<h1 id="editHeading" tabindex="-1"/.test(t)) add("S45", htmlF, "the page heading must be able to take focus (#editHeading, tabindex -1): focus goes there when the bar closes under it");
+      if (!t.includes('<div id="noteNeeded" class="field-hint" hidden></div>') || !t.includes('<div id="titleRule" class="field-hint" hidden></div>') || !t.includes('aria-describedby="noteNeeded"') || !t.includes('aria-describedby="titleRule"')) add("S45", htmlF, "the change-note rule and the title rule must have their places (#noteNeeded, #titleRule), read with their inputs");
+      const SENT = "Free for every employer: just say yes or no. Naming the recruiter firm and adding its links is optional. It belongs to the Destination links section below, which is part of the destination links tier.";
+      if (!t.includes('<div id="recruiterHint" style="font-size:13px;color:var(--muted);margin-top:2px;">' + SENT + "</div>")) add("S45", htmlF, "the recruiter toggle's sentence must be the approved one, word for word (free yes/no; naming a firm and its links is optional and belongs to the Destination links section below)");
+      if (!t.includes('aria-label="Third-party recruiter involved" aria-describedby="recruiterHint"')) add("S45", htmlF, "the recruiter toggle must be read together with its sentence (aria-describedby=recruiterHint)");
+      if (t.includes("The yes/no flag is free. Naming the firm is a destination links tier feature.")) add("S45", htmlF, "the old recruiter sentence (which implied the firm is named up here) must be gone from the edit page");
+      const iTog = t.indexOf('id="recruiterToggle"'), iSave = t.indexOf('id="saveBtn"'), iFirms = t.indexOf('id="firmsPanel"'), iEnd = t.indexOf('id="readonlyNote"');
+      if (iTog < 0 || iSave < 0 || iTog > iSave) add("S45", htmlF, "the recruiter toggle (free, for every employer) must be ABOVE Save changes");
+      if (iFirms < 0 || iCard < 0 || iFirms < iSave || iFirms < iCard || iFirms > iEnd) add("S45", htmlF, "the recruiter firms panel (destination links tier) must sit inside the Destination links card, BELOW Save changes: nothing paid goes above the Save button except what the main save itself covers");
+      const region = t.slice(t.indexOf('id="unsavedLive"'), t.indexOf("<footer")) + t.slice(t.indexOf('id="recruiterHint"'), t.indexOf('id="recruiterHint"') + 400);
+      if (region.includes(EMDASH)) add("S45", htmlF, "no em dash in the bar, the dialog or the recruiter sentence");
+    } else add("S45", htmlF, "edit.html is missing");
+    if (fs.existsSync(dsF)) {
+      const raw = read(dsF), c = stripJsComments(raw);
+      for (const need of ['HEAD: "You have unsaved changes",', 'FORM_DETAIL: "They take effect only when you press Save changes.",', 'SAVE: "Save changes", DISCARD: "Discard",',
+        'titleRule: (status) => "On a " + status + " posting, a new title must keep at least 60% of the wording of the current one. A bigger change needs a new posting.",',
+        'noteRequired: (status) => "This posting is " + status + ", so a change to it needs a note. Say what changed and why.",',
+        'LEAVE_SAVE_AND_LEAVE: "Save and leave", LEAVE_SAVE: "Save changes", LEAVE_DISCARD: "Discard and leave", LEAVE_STAY: "Stay on this page",',
+        'export const PANEL = { LINKS: "destination links", FIRMS: "recruiter firms", GOLIVE: "go-live time" };', 'out.headline = cap(named) + " not saved yet";',
+        '" not saved yet. Save changes does not save " + itThem + ": use the button in " + section + "."']) if (!c.includes(need)) add("S45", dsF, "dirty-state.js must keep: " + need.slice(0, 90));
+      if (raw.includes(EMDASH)) add("S45", dsF, "no em dash in the unsaved-changes words");
+    } else add("S45", dsF, "js/dirty-state.js is missing");
+    if (fs.existsSync(gF)) {
+      const raw = read(gF), c = stripJsComments(raw);
+      if (!c.includes('win.addEventListener("beforeunload", onBeforeUnload)') || !c.includes('win.removeEventListener("beforeunload", onBeforeUnload)') || !/ev\.preventDefault\(\); ev\.returnValue = "";/.test(c)) add("S45", gF, "the guard must ask the browser before the page is left (beforeunload) while something is unsaved, and stop asking when nothing is");
+      if (!/ev\.key === "Escape"\) \{ ev\.preventDefault\(\); if \(!busy\) closeDialog\(true\); return; \}/.test(c)) add("S45", gF, "Escape in the leave dialog must mean Stay");
+      if (!c.includes("dlg.stay.focus();") || !c.includes("d.returnTo.focus()")) add("S45", gF, "focus must move into the leave dialog (on Stay) and return to what opened it");
+      if (!/ev\.key === "Tab"/.test(c)) add("S45", gF, "Tab must stay inside the leave dialog");
+      if (!c.includes('root.classList.toggle("unsaved-on", s.any)')) add("S45", gF, "the guard must mark the page while the bar shows (a focused field is kept clear of it)");
+      if (/\b(localStorage|sessionStorage|indexedDB|document\.cookie|fetch\s*\(|console\.)/.test(c) || /https?:\/\/[^\s"'`)<>]+/.test(c)) add("S45", gF, "the guard keeps nothing, sends nothing and logs nothing");
+      if (raw.includes(EMDASH)) add("S45", gF, "no em dash in the guard");
+    } else add("S45", gF, "js/unsaved-guard.js is missing");
+    if (fs.existsSync(eF)) {
+      const e = stripJsComments(read(eF));
+      if (!e.includes("guard = mountUnsavedGuard({") || !e.includes('guard.interceptClick(ev, { kind: "link"') || !e.includes('"#navAccount button"')) add("S45", eF, "edit.js must mount the unsaved-changes guard and hold back links and Sign out that leave the page");
+      if (!e.includes("state.baseline = snapshotOf(collect());") || !e.includes("snapshotOf(collect()) !== state.baseline")) add("S45", eF, "edit.js must compare the form with the snapshot taken when it was loaded or saved");
+      if (!e.includes("async function submit() {\n  if (state.busy || !state.orig) return false;")) add("S45", eF, "submit() must say whether it saved (the leave dialog and the bar need to know)");
+      if ((e.split("populate(reload.data, { keepForm: true, saved: PANEL.LINKS })").length - 1) !== 3 || !e.includes("populate(reload.data, { keepForm: true, saved: PANEL.FIRMS })") || !e.includes("populate(reload.data, { keepForm: true, saved: PANEL.GOLIVE })")) add("S45", eF, "saving a section (links, firms, go-live) must not throw away what was typed in the rest of the page (populate keepForm)");
+    }
+    if (fs.existsSync(cF)) {
+      const c = read(cF);
+      if (!/\.unsaved-bar\{position:sticky;bottom:0;z-index:30;/.test(c)) add("S45", cF, ".unsaved-bar must be position:sticky at the bottom, above the page");
+      if (!/html\.unsaved-on\{scroll-padding-bottom:\d+px\}/.test(c)) add("S45", cF, "a field that takes focus must be kept clear of the bar (html.unsaved-on scroll-padding-bottom)");
+      if (!/\.unsaved-inner\{[^}]*flex-wrap:wrap\}/.test(c) || !/@media \(max-width:720px\)\{\.unsaved-inner\{padding:10px 16px\}\.unsaved-actions\{width:100%\}/.test(c)) add("S45", cF, "the bar must wrap and stack on a narrow screen");
+      if (!/\.unsaved-sr\{position:absolute;width:1px;height:1px;/.test(c)) add("S45", cF, "the status region must be hidden visually, not with display:none (a screen reader would not announce it)");
+    }
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

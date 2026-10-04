@@ -236,3 +236,20 @@ test("the pages that already showed the postID still do, through the same format
   assert.ok(src("js/pages/comments.js").includes('"postID " + groupCode(p.post_id)'));
   assert.ok(src("js/pages/register.js").includes("groupCode(p.public_code)") && src("js/pages/register.js").includes('"Your postID"'));
 });
+
+// ---- the recruiter toggle and the destination links section (edit page layout and wording)
+test("the recruiter toggle is free and above Save changes; naming a firm sits in the Destination links section BELOW it, and the toggle's sentence says so without implying links are required", () => {
+  const html = src("edit.html");
+  const toggle = html.indexOf('id="recruiterToggle"'), save = html.indexOf('id="saveBtn"'), card = html.indexOf('id="linksCard"'), firms = html.indexOf('id="firmsPanel"'), cardEnd = html.indexOf('id="readonlyNote"');
+  assert.ok(toggle > 0 && toggle < save, "the toggle is above Save changes");
+  assert.ok(card > save && firms > card && firms < cardEnd, "the firms panel is inside the Destination links card, below Save changes");
+  assert.ok(html.indexOf('id="exclusiveRow"') < save, "(the exclusive toggle is part of the main save, so it stays in the form)");
+  assert.ok(html.includes('<div id="recruiterHint" style="font-size:13px;color:var(--muted);margin-top:2px;">Free for every employer: just say yes or no. Naming the recruiter firm and adding its links is optional. It belongs to the Destination links section below, which is part of the destination links tier.</div>'));
+  assert.ok(html.includes('aria-label="Third-party recruiter involved" aria-describedby="recruiterHint"'), "the sentence is read with the toggle");
+  assert.equal(html.includes("The yes/no flag is free. Naming the firm is a destination links tier feature."), false, "the old sentence is gone from this page");
+  const js = src("js/pages/edit.js");
+  assert.ok(js.includes('"Naming a firm is optional. To name one here, first save this posting with the recruiter toggle on (Save changes, above); then come back to this section."'));
+  assert.equal(js.includes("Save the posting with the toggle on first; then you can name the firm here."), false);
+  // the "save first" step is a server rule, not a page habit: the page still opens the firm rows only for a SAVED recruiter flag
+  assert.ok(js.includes('$("#firmsForm").hidden = !(notice.state === "active" && savedOn && state.recruiter);'));
+});

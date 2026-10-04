@@ -469,3 +469,36 @@ test("candidate fallback name uses the stored position, not the place in the lis
   assert.ok(fs.readFileSync(path.join(root, "js", "pages", "search.js"), "utf8").includes('(link.label || "Application link " + link.position)'));
   assert.match(fs.readFileSync(path.join(root, "js", "comments-model.js"), "utf8"), /"Application link " \+ /);
 });
+
+// ---- unsaved work in the rows panel (edit page unsaved-changes guard): an open edit form with something typed is pending; nothing else is
+test("panel, unsaved work: an edit form that is open but untouched is not pending; a typed address or a changed label is; Cancel and discard() clear it", async () => {
+  const s = setup({ links: [L(1), L(2, { label: "Careers" })] });
+  assert.equal(s.panel.hasPending(), false);
+  const r2 = rowEl(s.host, 2); await btn(r2, "Edit Link 2").fire("click");
+  const form = byTag(r2, "form")[0], [addr, label] = byTag(form, "input");
+  assert.equal(form.hidden, false); assert.equal(s.panel.hasPending(), false, "opened, nothing typed: the label is prefilled with the stored one, so it matches");
+  addr.value = "   "; assert.equal(s.panel.hasPending(), false, "blanks are not work");
+  addr.value = "https://jobs.example.invalid/x"; assert.equal(s.panel.hasPending(), true);
+  addr.value = ""; label.value = "Careers site"; assert.equal(s.panel.hasPending(), true, "a changed label is unsaved work too");
+  label.value = "Careers"; assert.equal(s.panel.hasPending(), false, "back to the stored label: not pending");
+  addr.value = "https://jobs.example.invalid/x"; assert.equal(s.panel.hasPending(), true);
+  await btn(form, "Cancel").fire("click"); assert.equal(form.hidden, true); assert.equal(s.panel.hasPending(), false, "Cancel closes the form and empties the address");
+  await btn(r2, "Edit Link 2").fire("click"); const f2 = byTag(rowEl(s.host, 2), "form")[0]; byTag(f2, "input")[0].value = "https://jobs.example.invalid/y"; assert.equal(s.panel.hasPending(), true);
+  s.panel.discard();                                                                    // draws every row again from the stored links: the form and what was typed in it are gone
+  assert.equal(s.panel.hasPending(), false); assert.equal(byTag(s.host, "form").every((f) => f.hidden), true);
+  assert.doesNotMatch(serialize(s.host), /jobs\.example\.invalid/, "what was typed is nowhere in the redrawn tree");
+});
+
+test("panel, unsaved work: after a successful edit the form closes and nothing is pending; a refused edit leaves the typed work pending", async () => {
+  const s = setup();
+  const r1 = rowEl(s.host, 1); await btn(r1, "Edit Link 1").fire("click");
+  let form = byTag(r1, "form")[0]; byTag(form, "input")[0].value = "https://jobs.example.invalid/new";
+  await form.fire("submit"); await btn(form, "Save").fire("click");                       // saved
+  assert.equal(s.log.length, 1); assert.equal(s.panel.hasPending(), false);
+  const bad = setup({ api: { editDestinationLink: async () => ({ ok: false, status: 400, error: { code: "invalid_request", field: "url", message: "url host is not a valid domain name", errors: [{ field: "url", message: "url host is not a valid domain name" }] } }) } });
+  const b1 = rowEl(bad.host, 1); await btn(b1, "Edit Link 1").fire("click");
+  form = byTag(b1, "form")[0]; byTag(form, "input")[0].value = "https://nope.example.invalid/x"; byTag(form, "input")[1].value = "A new label";
+  await form.fire("submit"); await btn(form, "Save").fire("click");
+  assert.equal(byTag(form, "input")[0].value, "", "the address box is emptied the moment any answer arrives (the write-only rule), so the refused address is not kept");
+  assert.equal(bad.panel.hasPending(), true, "the answer was a refusal: the changed label is still unsaved work, and the form is still open");
+});

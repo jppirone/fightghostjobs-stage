@@ -1,4 +1,4 @@
-// search.js - a verified candidate looks up a posting: company + (title, postID or req number). No browsing, ever: the backend refuses anything else.
+// search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
 import { api, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js";
@@ -7,7 +7,7 @@ import { $, h, clear, alertBox, chip, safeHref } from "../dom.js";
 import { locationLine, waitText } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
 import { aiNotes } from "../ai-notes.js";
-import { checkCompany, resolveSearch, noMatchMessage } from "../search-input.js";
+import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js";
 
 const PENDING_KEY = "fgj-pending-search";
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
@@ -82,7 +82,7 @@ function showResults(data, searched) {
     resultsEl.append(h("div", { class: "empty-note", style: "margin-top:0;" }, noMatchMessage(searched.company, searched.query, searched.kind)));
     return;
   }
-  countEl.textContent = n + (n === 1 ? " matching posting" : " matching postings") + (data.truncated ? " — showing the first 25; add more of the title to narrow it" : "");
+  countEl.textContent = n + (n === 1 ? " matching posting" : " matching postings") + (data.truncated ? ": showing the first 25; add more of the title to narrow it" : "");
   for (const row of data.results) resultsEl.append(renderCard(row));
 }
 
@@ -109,7 +109,8 @@ async function runSearch() {
     clear(resultsEl); countEl.hidden = true;
     if (isAuthFailure(r.error)) { session = null; applySession(); showSignIn(r.error.code === "reverification_required" ? "Your email verification has expired. Please verify your email again." : "Please verify your email to search."); return; }
     if (r.error.code === "rate_limited") { cooldown = r.error.retryAfter || 30; setFormError("You are searching too fast. Try again in " + waitText(cooldown) + "."); return; }
-    if (r.status === 400 && r.error.field) { setFormError(r.error.message || "That search was not accepted."); return; }
+    // the backend refused the search itself (for example a 1 or 2 letter title that is not one of its short forms): say so calmly and put the cursor in the box that needs fixing
+    if (r.status === 400 && r.error.field) { setFormError(searchErrorMessage(r.error)); const f = searchErrorFocus(r.error); (f === "company" ? companyIn : f === "req" ? reqIn : queryIn).focus(); return; }
     setFormError(describeError(r.error));
   } finally {
     busy = false;

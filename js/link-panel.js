@@ -2,6 +2,7 @@
 // Rules this file keeps (tests/site-check.js S38 pins them):
 //   * an address is NEVER on the page: a row is built from position, label, what candidates see and the save-time check result; the address box of the edit form is created empty, is never given a value,
 //     has autocomplete off, is read once when a request is sent, and is emptied as soon as the request has been answered. Nothing the person typed is kept in a variable.
+//     (The page also asks hasPending(): a yes/no answer, worked out from whether the boxes hold anything, so it can warn before an unsaved edit is lost. Nothing is copied out of the boxes.)
 //   * Check link asks the server for a one-time ticket link (api.checkDestinationLink) and uses the answer ONLY as the place a new tab goes to. A tab is opened blank inside the click itself (before any wait, so a
 //     browser does not take it for a pop-up), then pointed at the ticket link when the answer arrives; its opener is cut first. If the browser refused the tab, the ticket link is offered as a link to click (one minute).
 //     The ticket link is never fetched, never shown as text and never stored.
@@ -20,7 +21,7 @@ export function mountLinkPanel(ctx) {
   const { host, hintEl, noteEl, api } = ctx;
   const schedule = ctx.schedule || ((ms, fn) => setTimeout(fn, ms)), now = ctx.now || (() => Date.now());
   const openBlank = ctx.openBlank || (() => { try { return window.open("about:blank", "_blank"); } catch { return null; } });
-  let rows = [], signature = null, busy = false, panelNote = null, panelBox = null, buttons = [];
+  let rows = [], signature = null, busy = false, panelNote = null, panelBox = null, buttons = [], lastList = [], pendingChecks = [];
   const notes = new Map();      // position -> { kind, text } or { position, link }: the last thing said about a row (kept across a redraw)
   const noteBoxes = new Map();  // position -> the element that shows it
 
@@ -113,6 +114,8 @@ export function mountLinkPanel(ctx) {
     const form = h("form", { class: "link-edit contest-form", novalidate: true, hidden: true, "aria-label": LP.editTitle(row.position, row.label) }, fields, confirm, formErr);
     refs.addr = addr;
     buttons.push(next, cancel, save, back);
+    // an open edit form holding something not saved: a typed address, or a label that differs from the stored one (a yes/no answer; nothing is copied out of the boxes)
+    pendingChecks.push(() => !form.hidden && (addr.value.trim() !== "" || labelBox.value.trim() !== (row.label || "")));
 
     const showErrors = (errors) => { for (const [box, input, key] of [[addrErr, addr, "url"], [labelErr, labelBox, "label"]]) { box.hidden = !errors[key]; box.textContent = errors[key] || ""; input.setAttribute("aria-invalid", errors[key] ? "true" : "false"); } };
     const step = (n) => { fields.hidden = n !== 1; confirm.hidden = n !== 2; };
@@ -176,6 +179,7 @@ export function mountLinkPanel(ctx) {
 
   // list: get-my-posting's destination_links (or an answer's links); force: redraw even when what is shown is the same
   function setLinks(list, force) {
+    lastList = Array.isArray(list) ? list : [];
     const next = panelRows(list), sig = rowsSignature(next), has = next.length > 0;
     if (hintEl) hintEl.hidden = !has;
     if (noteEl) noteEl.hidden = !has;
@@ -183,12 +187,13 @@ export function mountLinkPanel(ctx) {
     if (!force) { notes.clear(); panelNote = null; }        // the page redrew the rows from the server (not after this panel's own change): what was said before is out of date
     signature = sig; rows = next;
     for (const p of Array.from(notes.keys())) if (!rows.some((r) => r.position === p)) notes.delete(p);
-    clear(host); buttons = []; noteBoxes.clear();
+    clear(host); buttons = []; noteBoxes.clear(); pendingChecks = [];
     panelBox = h("div", { tabindex: "-1" }, noteNode(panelNote)); host.append(panelBox);
     if (!has) { host.append(h("div", { style: "font-size:14px;line-height:1.6;color:#4A453F;" }, LP.EMPTY)); return; }
     for (const r of rows) host.append(rowNode(r));
     if (busy) for (const b of buttons) b.disabled = true;
   }
 
-  return { render: (list) => setLinks(list, false), isBusy: () => busy, rows: () => rows.slice() };
+  // hasPending: an edit form is open with something typed that is not saved; discard: draw the rows again from the stored links (every open edit form and its text are gone)
+  return { render: (list) => setLinks(list, false), isBusy: () => busy, rows: () => rows.slice(), hasPending: () => pendingChecks.some((f) => f()), discard: () => setLinks(lastList, true) };
 }

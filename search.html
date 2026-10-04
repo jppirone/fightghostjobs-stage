@@ -29,41 +29,49 @@
 <div style="max-width:1440px;margin:0 auto;">
   <div style="padding:56px 64px 32px 64px;">
     <h1 style="font-size:34px;font-weight:700;letter-spacing:-.01em;">Look up a posting</h1>
-    <p style="font-size:15px;color:var(--muted);margin:8px 0 28px 0;">Search by company plus a title, a postID or a req number. We never let you browse the full registry.</p>
-    <form id="searchForm" novalidate style="display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;max-width:1080px;">
+    <div id="searchGuide" class="srch-guide">
+      <p class="srch-lead">Search for one specific job you already know about.</p>
+      <p>Easiest and most exact: the company name plus the requisition (req) number or the postID from the employer's posting.</p>
+      <p>No ID? Use the company name plus part of the job title, copied from the posting if you can.</p>
+    </div>
+    <form id="searchForm" class="srch-form" novalidate style="display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;max-width:1080px;">
       <div style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
         <label for="company" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;">Company</label>
-        <input id="company" type="text" maxlength="200" autocomplete="off" placeholder="e.g. Meridian Health Systems" style="border:none;padding:4px 0;">
+        <input id="company" type="text" maxlength="200" autocomplete="off" placeholder="e.g. Meridian Health Systems" aria-describedby="companyHint" style="border:none;padding:4px 0;">
+        <div id="companyHint" class="field-hint">Must match the employer's name. We ignore endings like Inc., Co. and LLC.</div>
       </div>
-      <div style="width:1px;background:var(--line);"></div>
-      <div style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
-        <label for="titleq" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;display:inline-flex;align-items:center;gap:5px;">Title or postID
-          <span class="info-icon" tabindex="0" aria-label="What's a Post ID? The ID FightGhostJobs assigns to this specific posting, not the employer's internal req number. If the employer put it on the original job ad, an email, or their careers page, searching with it here finds that exact posting. No Post ID handy? Search by job title instead, either one works in this field.">i<span class="info-tooltip info-tooltip-wide info-tooltip-down" role="tooltip"><span class="tip-title">What's a Post ID?</span><ul>
-            <li>The ID FightGhostJobs assigns to this specific posting, not the employer's internal req number</li>
-            <li>If the employer put it on the original job ad, an email, or their careers page, searching with it here finds that exact posting</li>
-            <li>No Post ID handy? Search by job title instead, either one works in this field</li>
-          </ul></span></span>
-        </label>
-        <input id="titleq" type="text" maxlength="80" autocomplete="off" placeholder="e.g. Data Analyst, or XXXX-XXXX-XXXX" style="border:none;padding:4px 0;">
-      </div>
-      <div style="width:1px;background:var(--line);"></div>
+      <div class="srch-sep" style="width:1px;background:var(--line);"></div>
       <div style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
         <label for="reqq" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;display:inline-flex;align-items:center;gap:5px;">Req number
-          <span class="info-icon" tabindex="0" aria-label="What's the req number for? The employer's own internal requisition ID, required when they create a posting. Some employers choose not to expose their req number to search, if yours doesn't return a result, try company plus title instead. Company and title are the main way to search; the req number is just a shortcut when you have it.">i<span class="info-tooltip info-tooltip-wide info-tooltip-down" role="tooltip" style="left:auto;right:0;"><span class="tip-title">What's the req number for?</span><ul>
-            <li>The employer's own internal requisition ID, required when they create a posting</li>
-            <li>Some employers choose not to expose their req number to search, if yours doesn't return a result, try company plus title instead</li>
-            <li>Company and title are the main way to search; the req number is just a shortcut when you have it</li>
+          <span class="info-icon" tabindex="0" aria-label="What's the req number? The employer's own requisition ID for the job, usually printed on the job ad. It is the most exact way to search: the company plus the req number finds that one posting. Some employers choose not to expose their req number to search. If yours does not return a result, try the postID, or part of the title.">i<span class="info-tooltip info-tooltip-wide info-tooltip-down" role="tooltip"><span class="tip-title">What's the req number?</span><ul>
+            <li>The employer's own requisition ID for the job, usually printed on the job ad</li>
+            <li>The most exact way to search: the company plus the req number finds that one posting</li>
+            <li>Some employers choose not to expose their req number to search. If yours does not return a result, try the postID, or part of the title</li>
           </ul></span></span>
         </label>
         <div style="display:flex;align-items:center;gap:8px;">
-          <input id="reqq" type="password" maxlength="100" autocomplete="off" spellcheck="false" placeholder="From the job ad" aria-describedby="reqHint" data-lpignore="true" data-1p-ignore="true" style="border:none;padding:4px 0;">
+          <input id="reqq" type="password" maxlength="100" autocomplete="off" spellcheck="false" placeholder="From the job ad" aria-describedby="reqCellHint reqHint" data-lpignore="true" data-1p-ignore="true" style="border:none;padding:4px 0;">
           <button type="button" id="reqToggle" class="row-action" aria-pressed="false" aria-label="Show the req number" style="margin:0;">Show</button>
         </div>
+        <div id="reqCellHint" class="field-hint">Most exact. Copy it from the posting.</div>
+      </div>
+      <div class="srch-sep" style="width:1px;background:var(--line);"></div>
+      <div style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
+        <label for="titleq" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;display:inline-flex;align-items:center;gap:5px;">PostID, or part of the title
+          <span class="info-icon" tabindex="0" aria-label="What's a Post ID? The ID FightGhostJobs assigns to this specific posting, not the employer's internal req number. If the employer put it on the original job ad, an email, or their careers page, searching with it here finds that exact posting. No Post ID handy? Type part of the job title instead; this box takes either.">i<span class="info-tooltip info-tooltip-wide info-tooltip-down" role="tooltip" style="left:auto;right:0;"><span class="tip-title">What's a Post ID?</span><ul>
+            <li>The ID FightGhostJobs assigns to this specific posting, not the employer's internal req number</li>
+            <li>If the employer put it on the original job ad, an email, or their careers page, searching with it here finds that exact posting</li>
+            <li>No Post ID handy? Type part of the job title instead; this box takes either</li>
+          </ul></span></span>
+        </label>
+        <input id="titleq" type="text" maxlength="80" autocomplete="off" placeholder="XXXX-XXXX-XXXX, or e.g. Data Analyst" aria-describedby="titleHint reqHint titleNote" style="border:none;padding:4px 0;">
+        <div id="titleHint" class="field-hint">A postID is exact. No ID? Use part of the title.</div>
       </div>
       <button type="submit" id="searchBtn" class="btn btn-dark">Search</button>
     </form>
-    <div id="formError" class="field-error" hidden style="max-width:1080px;margin-top:10px;font-size:13px;"></div>
-    <div id="reqHint" class="field-hint" style="max-width:1080px;">Use the title / postID box or the req number box, not both. The req number is hidden as you type; press Show to check it.</div>
+    <div id="formError" class="field-error" role="alert" hidden style="max-width:1080px;margin-top:10px;font-size:13px;"></div>
+    <div id="reqHint" class="field-hint" style="max-width:1080px;">Fill in only one of the two lookup boxes: the req number, or the postID / title box. The req number is hidden as you type; press Show to check it.</div>
+    <div id="titleNote" class="field-hint" style="max-width:1080px;">A title search will not list all of a company's jobs, and it will not show postings that are not live. Closed or expired postings are found only by postID or req number.</div>
   </div>
 
   <div id="signinWrap" hidden style="padding:0 64px 32px 64px;">

@@ -8,8 +8,8 @@ import { canAdd, problems } from "./location-rules.js";
 
 const TAG = { state: "State", nationwide: "Nationwide" };
 
-// isRemote(): whether "Remote role" is ticked right now.   -> { get, reset, refresh, setLocked, focusFor }
-export function mountLocationPicker({ isRemote }) {
+// isRemote(): whether "Remote role" is ticked right now; onChange() (optional): called after every redraw of the chosen places (a place added or removed, the list set by the page).   -> { get, reset, refresh, setLocked, focusFor }
+export function mountLocationPicker({ isRemote, onChange }) {
   const input = $("#locq"), list = $("#locList"), chipBox = $("#locChips"), status = $("#locStatus");
   const attestRow = $("#attestRow"), attest = $("#attest"), err = $('[data-error-for="locpicker"]'), attestErr = $('[data-error-for="attest"]');
   let catalog = null, loading = null, chosen = [], shown = [], active = -1, locked = false;
@@ -69,6 +69,7 @@ export function mountLocationPicker({ isRemote }) {
     attestErr.hidden = true; attestErr.textContent = "";
     warn(problems(chosen, isRemote(), true).locpicker || "");        // attested passed as true: the missing statement is only reported when the form is submitted
     if (catalog && input.value) renderList();
+    if (typeof onChange === "function") onChange();
   }
 
   input.addEventListener("focus", () => { ensure(); });
