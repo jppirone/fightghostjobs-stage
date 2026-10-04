@@ -4,7 +4,7 @@
 import { api, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js";
 import { requestLink, currentSession, watchOtherTabSignIn } from "../session.js";
 import { savePending, takePending } from "../signin-handoff.js";
-import { takeLanded, landingText } from "../landing-notice.js";
+import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js";
 import { locationLine, waitText } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
@@ -34,6 +34,8 @@ function showSignIn(message) {
 function applySession() {
   $("#signinWrap").hidden = !!(session && session.isCandidate);
   const notice = $("#roleNotice"); clear(notice); notice.hidden = true;
+  // an address that is both a candidate and an employer: the top bar shows the employer buttons; say so, and that searching works as a candidate (no sign-in rule and no header behavior changes)
+  if (roleNoteKind(session) === "both") { notice.hidden = false; notice.append(alertBox("notice", BOTH_ROLES_TEXT)); }
   if (session && session.isPoster && !session.isCandidate) {
     notice.hidden = false;
     notice.append(alertBox("notice", "You are signed in as an employer. Candidate search needs a verified candidate session: sign out, then verify a candidate email address."),
@@ -54,7 +56,7 @@ $("#signinForm").addEventListener("submit", async (ev) => {
     if (!r.ok) { err.hidden = false; err.textContent = r.status === 429 || /rate|seconds|after/i.test(r.message) ? "A link was just sent to this address, or too many were requested. Wait a minute and try again." : "We could not send the email. Please try again in a moment."; return; }
     $("#signinForm").hidden = true;
     const sent = $("#candSent"); sent.hidden = false; clear(sent);
-    sent.append(alertBox("ok", "Check your email. The link takes you straight back here; your search will be waiting."));
+    sent.append(alertBox("ok", "Check your email. Open the link in this same browser and your search will be waiting. If it opens in another browser or app, enter your search again there."));
   } finally { send.disabled = false; send.textContent = label; }
 });
 
@@ -98,7 +100,7 @@ async function runSearch() {
     // kept in localStorage (all tabs of this browser, one hour, removed when used, never sent anywhere): the emailed link opens in a NEW tab (signin-handoff.js)
     savePending(localStorage, { company: companyIn.value, q: queryIn.value, r: reqIn.value });
     if (session && session.isPoster) { applySession(); return; }
-    showSignIn("Verify your email first; your search is saved and runs as soon as you are back.");
+    showSignIn("Verify your email first. We keep your search in this browser for one hour and run it when you open the link in this browser. If the link opens somewhere else, enter your search again.");
     $("#candEmail").focus();
     return;
   }
@@ -243,8 +245,6 @@ async function becameSignedIn(s) {
 (async () => {
   session = await mountAccount($("#navAccount"));
   applySession();
-  const landed = takeLanded(sessionStorage), text = landed === "candidate" ? landingText("candidate") : null;
-  if (text) { const n = $("#landedNotice"); n.hidden = false; clear(n); n.append(alertBox("ok", text)); }
   if (session && session.isCandidate) resumePending();
   else ensureWatch();
 })();

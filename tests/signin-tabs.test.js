@@ -20,6 +20,11 @@ import { startFakeSite, fakeJwt } from "./fake-site.js";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REF = "d21m48ybzqbfxxxxxxxx";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const CAND_LANDING = "You are signed in. You can close this tab and go back to the one you started from, or keep searching here.";
+const EMP_LANDING = "You are signed in. You can close this tab and go back to the one you started from, or keep working here.";
+const BOTH_NOTE = "This address is also registered as an employer, so the employer buttons show above. Searching here works as a candidate.";
+const VERIFY_NOTE = "Verify your email first. We keep your search in this browser for one hour and run it when you open the link in this browser. If the link opens somewhere else, enter your search again.";
+const SENT_NOTE = "Check your email. Open the link in this same browser and your search will be waiting. If it opens in another browser or app, enter your search again there.";
 let browser;
 before(async () => { browser = await launchBrowser(); });
 after(async () => { if (browser) await browser.close(); });
@@ -41,12 +46,14 @@ const SCENARIOS = {
       await A.eval("window.__tabA = 'same page'");
       await typeSearch(A);
       if (!(await A.waitFor("!document.querySelector('#candEmailError').hidden"))) bad.push("tab A does not say the search is saved");
+      else if ((await A.eval("document.querySelector('#candEmailError').textContent")) !== VERIFY_NOTE) bad.push("the verify card does not carry the approved wording (it says: " + (await A.eval("document.querySelector('#candEmailError').textContent")) + ")");
       const kept = JSON.parse((await A.eval("localStorage.getItem('fgj-pending-search')")) || "null");
       if (!kept) bad.push("the typed search is not in localStorage");
       else { const mins = (kept.exp - Date.now()) / 60000; if (mins < 55 || mins > 61) bad.push("the saved search does not expire in about an hour (" + Math.round(mins) + " minutes)"); }
       if ((await A.eval("sessionStorage.getItem('fgj-pending-search')")) !== null) bad.push("the typed search is also in tab-local storage");
       await askForLink(A, "reader@example.test");
       if (!(await A.waitFor("!document.querySelector('#candSent').hidden"))) bad.push("tab A does not say 'Check your email'");
+      else if ((await A.eval("document.querySelector('#candSent').textContent.trim()")) !== SENT_NOTE) bad.push("the Check your email notice does not carry the approved wording (it says: " + (await A.eval("document.querySelector('#candSent').textContent")) + ")");
       const otp = site.calls.filter((c) => c.name === "auth-otp");
       if (otp.length !== 1) bad.push("the sign-in request was made " + otp.length + " times");
       else if (/Meridian|Analyst|fgj-pending|company|titleq/i.test(otp[0].address + JSON.stringify(otp[0].body))) bad.push("the typed search was put into the sign-in request or its address");
@@ -57,6 +64,9 @@ const SCENARIOS = {
         if ((await B.eval("document.querySelector('#company').value + '|' + document.querySelector('#titleq').value")) !== "Meridian Health|Analyst") bad.push("the new tab did not refill the typed search");
       }
       if (await B.eval("localStorage.getItem('fgj-pending-search')") !== null) bad.push("the saved search was not removed after it was used");
+      if ((await B.eval("(() => { const n = document.querySelector('#landedNotice'); return n && !n.hidden ? n.textContent.trim() : null; })()")) !== CAND_LANDING) bad.push("the new tab does not show the approved landing note for a candidate (it shows: " + (await B.eval("(document.querySelector('#landedNotice') || {}).textContent")) + ")");
+      await B.goto(site.url + "/search.html"); await B.waitFor("document.readyState === 'complete'"); await sleep(500);
+      if (await B.eval("(() => { const n = document.querySelector('#landedNotice'); return !!(n && !n.hidden); })()")) bad.push("the landing note shows again on a second visit (it must show once)");
       if (!(await A.waitFor("document.querySelector('#signinWrap').hidden === true && window.__tabA === 'same page'", 8000))) bad.push("tab A did not move to the signed-in state by itself (without a reload)");
       if (!(await A.eval("/Email verified/.test(document.querySelector('#navAccount').textContent)"))) bad.push("tab A's header does not show the signed-in state");
       if ((await A.eval("document.querySelector('#company').value + '|' + document.querySelector('#titleq').value")) !== "Meridian Health|Analyst") bad.push("tab A lost what was typed");
@@ -128,6 +138,7 @@ const SCENARIOS = {
       if (!(await A.waitFor("!document.querySelector('#sent').hidden"))) bad.push("the employer page does not say 'Check your email'");
       await B.goto(site.url + "/_dev/link?kind=poster");
       if (!(await B.waitFor("location.pathname === '/register.html'", 12000))) bad.push("the new tab did not land in the employer area (it is at " + (await B.eval("location.pathname")) + ")");
+      if (!(await B.waitFor("(() => { const n = document.querySelector('#landedNotice'); return !!(n && !n.hidden && n.textContent.trim() === " + JSON.stringify(EMP_LANDING) + "); })()", 6000))) bad.push("the new tab does not show the approved landing note for an employer");
       if (!(await A.waitFor("location.pathname === '/register.html'", 8000))) bad.push("tab A did not move on by itself to where a signed-in employer goes (it is at " + (await A.eval("location.pathname")) + ")");
     } finally { await A.close(); await B.close(); }
     return bad;
@@ -163,6 +174,28 @@ const SCENARIOS = {
     return bad;
   },
 };
+// the both-roles note on the search page: only for a session that carries BOTH claims (candidate-only and employer-only get none of it)
+SCENARIOS.rolesNote = async (site) => {
+  const bad = []; site.calls.length = 0;
+  const A = await browser.newTab();
+  try {
+    for (const [kind, want] of [["candidate", "none"], ["both", "both"], ["poster", "employer"]]) {
+      await clean(A, site);
+      await A.eval("localStorage.setItem('fgj-landing-page', JSON.stringify({ v: 'search.html', exp: Date.now() + 600000 }))");   // a link asked for from the search page
+      await A.goto(site.url + "/_dev/link?kind=" + kind);
+      if (!(await A.waitFor("location.pathname === '/search.html'", 12000))) { bad.push(kind + ": did not land on the search page"); continue; }
+      await sleep(900);
+      const shown = await A.eval("(() => { const n = document.querySelector('#roleNotice'); return n && !n.hidden ? n.textContent.trim() : ''; })()");
+      const header = await A.eval("!!document.querySelector('#navAccount a[href=\"dashboard.html\"]')");
+      if (want === "both") { if (shown !== BOTH_NOTE) bad.push("both claims: the search page does not show the approved note (it shows: " + shown + ")"); if (!header) bad.push("both claims: the employer buttons are gone from the top bar (the header behavior must not change)"); }
+      else if (want === "employer") { if (!/^You are signed in as an employer\./.test(shown) || shown.includes(BOTH_NOTE)) bad.push("employer only: the search page shows the wrong note (" + shown + ")"); }
+      else { if (shown !== "") bad.push("candidate only: the search page shows a role note (" + shown + ")"); if (header) bad.push("candidate only: the employer buttons show"); }
+      const hasBoth = await A.eval("document.body.textContent.includes(" + JSON.stringify(BOTH_NOTE) + ")");
+      if (want !== "both" && hasBoth) bad.push(kind + ": the both-roles note appears anywhere on the page");
+    }
+  } finally { await A.close(); }
+  return bad;
+};
 async function clean0(tab, site) { await tab.goto(site.url + "/404.html"); }
 
 async function withSite(root, fn) { const site = await startFakeSite(root); try { return await fn(site); } finally { await site.close(); } }
@@ -176,6 +209,14 @@ test("the sign-in link in a new tab: search, no search, expiry, tab in front, em
 
 // ---- negative controls ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 const DEFECTS = [
+  ["the landing note is switched off", ["candidateWithSearch"], "js/landing-notice.js", (s) => s.replace("LANDING_NOTICE_ENABLED = true;", "LANDING_NOTICE_ENABLED = false;")],
+  ["the landing note shows on every visit (the flag is not consumed)", ["candidateWithSearch"], "js/landing-notice.js", (s) => s.replace('store.removeItem(LANDED_KEY); ', "")],
+  ["the landing note carries the wrong wording for an employer", ["employerDefault"], "js/landing-notice.js", (s) => s.replace("or keep working here.", "or keep searching here.")],
+  ["the both-roles note shows for a candidate-only session", ["rolesNote"], "js/landing-notice.js", (s) => s.replace('if (session.isPoster && session.isCandidate) return "both";', 'if (session.isCandidate) return "both";')],
+  ["the both-roles note does not show for a session with both claims", ["rolesNote"], "js/landing-notice.js", (s) => s.replace('if (session.isPoster && session.isCandidate) return "both";', "")],
+  ["the both-roles note shows for an employer-only session", ["rolesNote"], "js/landing-notice.js", (s) => s.replace('if (session.isPoster) return "employer";', 'if (session.isPoster) return "both";')],
+  ["the verify card still has the old wording", ["candidateWithSearch"], "js/pages/search.js", (s) => s.replace("We keep your search in this browser for one hour and run it when you open the link in this browser. If the link opens somewhere else, enter your search again.", "your search is saved and runs as soon as you are back.")],
+  ["the Check your email notice still has the old wording", ["candidateWithSearch"], "js/pages/search.js", (s) => s.replace("Open the link in this same browser and your search will be waiting. If it opens in another browser or app, enter your search again there.", "The link takes you straight back here; your search will be waiting.")],
   ["the saved search is kept in tab-local storage", ["candidateWithSearch"], "js/pages/search.js", (s) => s.replace("savePending(localStorage,", "savePending(sessionStorage,").replace("takePending(localStorage)", "takePending(sessionStorage)")],
   ["tab A has no listener for a sign-in in another tab", ["candidateNoSearch", "employerDefault"], "js/session.js", (s) => s.replace("return watchSignIn({ win: window,", "return () => {}; watchSignIn({ win: window,")],
   ["the new tab ignores the page the person started from", ["employerFromDashboard", "commentsPage"], "js/session.js", (s) => s.replace('if (!next) next = fromOtherTab || "";', "")],

@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { HANDOFF_TTL_MS, PENDING_SEARCH_KEY, LANDING_PAGE_KEY, savePending, takePending, hasPending, saveLanding, takeLanding, clearHandoff, watchSignIn } from "../js/signin-handoff.js";
-import { LANDING_NOTICE_ENABLED, LANDING_TEXT, markLanded, takeLanded, landingText } from "../js/landing-notice.js";
+import { LANDING_NOTICE_ENABLED, LANDING_TEXT, BOTH_ROLES_TEXT, markLanded, takeLanded, landingText, roleNoteKind } from "../js/landing-notice.js";
 
 const memory = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), _m: m }; };
 const NOW = 1_800_000_000_000;
@@ -85,13 +85,26 @@ test("watchSignIn: a failing check does not break the watch; stop() removes the 
   stop(); assert.equal(win.count("storage"), 0);
 });
 
-test("the landing note is OFF until John approves the wording, and only shows for the kind of sign-in the page serves", () => {
-  assert.equal(LANDING_NOTICE_ENABLED, false, "wording not approved: switch stays off");
-  assert.equal(landingText("candidate"), null);
+test("the landing note is ON with the wording John approved (October 4, 2026), and only shows for the kind of sign-in the page serves", () => {
+  assert.equal(LANDING_NOTICE_ENABLED, true);
+  assert.equal(LANDING_TEXT.candidate, "You are signed in. You can close this tab and go back to the one you started from, or keep searching here.");
+  assert.equal(LANDING_TEXT.poster, "You are signed in. You can close this tab and go back to the one you started from, or keep working here.");
+  assert.equal(landingText("candidate"), LANDING_TEXT.candidate);
+  assert.equal(landingText("candidate", false), null, "the switch still works");
   assert.equal(landingText("candidate", true), LANDING_TEXT.candidate);
   assert.equal(landingText("poster", true), LANDING_TEXT.poster);
   assert.equal(landingText("other", true), null);
   assert.ok(!/[—]/.test(LANDING_TEXT.candidate + LANDING_TEXT.poster), "no em dash");
   const s = memory(); markLanded(s, "candidate"); assert.equal(takeLanded(s), "candidate"); assert.equal(takeLanded(s), null, "shown once");
   s.setItem("fgj-landed", "<b>x</b>"); assert.equal(takeLanded(s), null, "unknown values are ignored");
+});
+
+test("the both-roles note: exact wording, and it is chosen for a session with BOTH claims only", () => {
+  assert.equal(BOTH_ROLES_TEXT, "This address is also registered as an employer, so the employer buttons show above. Searching here works as a candidate.");
+  assert.ok(!/[\u2014]/.test(BOTH_ROLES_TEXT), "no em dash");
+  assert.equal(roleNoteKind({ isPoster: true, isCandidate: true }), "both");
+  assert.equal(roleNoteKind({ isPoster: true, isCandidate: false }), "employer", "an employer-only session keeps its own notice");
+  assert.equal(roleNoteKind({ isPoster: false, isCandidate: true }), null, "a candidate-only session gets no note");
+  assert.equal(roleNoteKind(null), null);
+  assert.equal(roleNoteKind({}), null);
 });

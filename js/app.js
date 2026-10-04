@@ -3,7 +3,8 @@
 import { createApi, describeError, isAuthFailure } from "./api.js";
 import { SUPABASE_URL, PUBLISHABLE_KEY } from "./config.js";
 import { accessToken, currentSession, signOut, rememberNext } from "./session.js";
-import { h, clear } from "./dom.js";
+import { h, clear, alertBox } from "./dom.js";
+import { takeLanded, landingText } from "./landing-notice.js";
 import { initials } from "./format.js";
 import { buildAccount, wireAccountMenu } from "./account-menu.js";
 
@@ -41,11 +42,27 @@ export async function requirePoster(thisPage) {
   return { session, info: r.data };
 }
 
+// The one-time note on the page a sign-in link lands on (landing-notice.js). The first page that builds the top bar after the link shows it, once, in #landedNotice or at the top of the main area.
+function showLandingNote(session) {
+  if (!session) return;
+  const kind = takeLanded(sessionStorage);
+  const text = kind === "candidate" && session.isCandidate ? landingText("candidate") : kind === "poster" && session.isPoster ? landingText("poster") : null;
+  if (!text) return;
+  let box = document.getElementById("landedNotice");
+  if (!box) {
+    const main = document.getElementById("main"); if (!main) return;
+    box = h("div", { id: "landedNotice", class: "pg", style: "padding:24px 32px 0 32px;max-width:1440px;margin:0 auto;" });
+    main.insertBefore(box, main.firstChild);
+  }
+  box.hidden = false; clear(box); box.append(alertBox("ok", text));
+}
+
 // The right-hand side of the top bar. Signed-in employer: the links, the initials circle (the control: name and organization are its accessible name and its label, see account-menu.js) and Sign out.
 // Anyone else: the "Register a Posting" call to action.
 export async function mountAccount(container, { cta = true } = {}) {
   clear(container);
   const session = await currentSession();
+  showLandingNote(session);
   if (session && session.isPoster) {
     const r = await posterInfo(session);
     const name = r.ok ? r.data.poster.full_name : "Employer";
