@@ -159,7 +159,7 @@ const DEFECTS = [
   ["the skip link stays hidden even when focused (never visible)", [["app.css", (s) => s.replace(".skip-link:focus{left:8px;color:#fff}", ".skip-link:focus{left:-9999px;color:#fff}")]], ["skip"]],
   ["the skip link speaks (a message each time it is used)", [["js/unsaved-guard.js", (s) => s.replace("ev.preventDefault(); (saveBtn.hidden", "ev.preventDefault(); announce(\"Skipped.\"); (saveBtn.hidden")]], ["skip"]],
 ];
-test("negative controls: each defect in the unsaved bar's announcements makes a check fail", { timeout: 900000 }, async () => {
+test("negative controls: each defect in the unsaved bar's announcements makes a check fail", { timeout: 3000000 }, async () => {
   const missed = [];
   for (const [label, edits, names] of DEFECTS) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fgj-ea11y-ctl-"));

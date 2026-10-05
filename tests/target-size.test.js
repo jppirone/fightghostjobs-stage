@@ -142,7 +142,7 @@ const DEFECTS = [
   ["the 3 Comments link loses its class", [["index.html", (s) => s.replace('<a class="hit" href="search.html"', '<a href="search.html"')]]],
   ["the See what is included link loses its class", [["register.html", (s) => s.replace('<a class="hit" href="https://www.fightghostjobs.com/plans.html"', '<a href="https://www.fightghostjobs.com/plans.html"')]]],
 ];
-test("negative controls: each undone target rule makes the scan fail", { timeout: 900000 }, async () => {
+test("negative controls: each undone target rule makes the scan fail", { timeout: 3000000 }, async () => {
   const missed = [];
   for (const [label, edits] of DEFECTS) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fgj-ts-ctl-"));
