@@ -133,7 +133,9 @@ async function candidateMode() {
   $("#threadWrap").hidden = false; $("#composeWrap").hidden = false; $("#composeRules").textContent = COMMENT_RULES;
   const sel = $("#reportLink"); clear(sel); for (const c of linkChoices(state.links)) sel.append(h("option", { value: c.value }, c.text));
   const picker = showLinkPicker(state.links); sel.hidden = !picker; $("#reportLinkLabel").hidden = !picker;   // no links to choose from: no picker; the select keeps its one empty choice, so a report goes with no specific link
-  $("#reportWrap").hidden = false;
+  // "Report a wrong link" is for a posting that HAS links: with none (or none known, as for a closed posting) the whole section stays hidden. This is decided here, once, from the posting alone; nothing the visitor does afterwards
+  // (posting a comment, sending a report, reloading) changes it, and a direct address ending in #report on such a posting simply shows the page.
+  $("#reportWrap").hidden = !picker;
   await loadThread(0);
 }
 $("#commentText").addEventListener("input", () => { $("#commentCount").textContent = Array.from($("#commentText").value).length.toLocaleString("en-US") + " / " + MAX_COMMENT.toLocaleString("en-US"); });

@@ -82,7 +82,7 @@ control("the message stops carrying the note", "S14", edit("js/search-input.js",
 control("the form range drifts (floor 7)", "S15", edit("js/register-form.js", (s) => s.replace("MIN_WINDOW_DAYS = 14", "MIN_WINDOW_DAYS = 7")));
 control("the form allows more than 45", "S15", edit("js/register-form.js", (s) => s.replace("MAX_WINDOW_DAYS = 45", "MAX_WINDOW_DAYS = 60")));
 control("the dashboard table is wrapped in an element that clips it", "S17", edit("dashboard.html", (s) => s.replace('style="padding:0;overflow-x:auto;"', 'style="padding:0;overflow:hidden;"')));
-control("the candidate req box is a plain visible text box", "S18", edit("search.html", (s) => s.replace('id="reqq" type="password"', 'id="reqq" type="text"')));
+control("the candidate req box is a plain visible text box", "S18", edit("search.html", (s) => s.replace('id="reqq" class="srch-input" type="password"', 'id="reqq" class="srch-input" type="text"')));
 control("the show/hide toggle for the req box is gone", "S18", edit("search.html", (s) => s.replace('id="reqToggle"', 'id="reqTogglX"')));
 control("the register form loses the requirements-text hint wording", "S19", edit("register.html", (s) => s.replace("Small corrections (a typo, a tightened sentence, a dropped line) save straight away", "Corrections save")));
 control("the edit page loses the requirements-text hint wording", "S19", edit("edit.html", (s) => s.replace("we'll ask you to register it as a new posting with its own req number", "we'll ask you")));
@@ -615,6 +615,38 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("an em dash in the landing note", "S49", edit("js/landing-notice.js", (s) => s.replace("You are signed in. You can close this tab and go back to the one you started from, or keep searching here.", "You are signed in \u2014 you can close this tab.")));
   control("the two-tab test is missing", "S49", (dir) => { fs.rmSync(path.join(dir, "tests/signin-tabs.test.js")); });
   control("the two-tab test loses its negative controls", "S49", edit("tests/signin-tabs.test.js", (s) => s.replace("negative controls: each deliberate defect makes a sign-in tab scenario fail", "negative controls: skipped")));
+}
+
+// S50 (2026-10-04, after the stage recheck): landing wording by page, the home page wording, Report a wrong link only for a posting with links, the search fields' line, the details window's scroll lock.
+{
+  control("the Team page is dropped from the employer pages", "S50", edit("js/landing-notice.js", (s) => s.replace("\"analytics.html\", \"team.html\", ", "\"analytics.html\", ")));
+  control("the search page is dropped from the candidate pages", "S50", edit("js/landing-notice.js", (s) => s.replace("export const CANDIDATE_PAGES = [\"search.html\"];", "export const CANDIDATE_PAGES = [];")));
+  control("the landing note ignores the page", "S50", edit("js/app.js", (s) => s.replace("landingKindForPage(location.pathname, location.search) || flag", "flag")));
+  control("the landing note ignores the role check", "S50", edit("js/app.js", (s) => s.replace("kind === \"poster\" && session.isPoster ? landingText(\"poster\")", "kind === \"poster\" ? landingText(\"poster\")")));
+  control("the home button says Search a company again", "S50", edit("index.html", (s) => s.replace("<a class=\"btn btn-dark\" href=\"search.html\">Look up a posting</a>", "<a class=\"btn btn-dark\" href=\"search.html\">Search a company</a>")));
+  control("the home sentence goes back to the old wording", "S50", edit("index.html", (s) => s.replace("Look up a posting by company and req number, or by company and title, before applying. No account required.", "Search by company and title before applying. No account required to look up a posting.")));
+  control("the home sentence is reworded", "S50", edit("index.html", (s) => s.replace("or by company and title, before applying.", "or by title, before applying.")));
+  control("the old wording appears on another page", "S50", edit("privacy.html", (s) => s.replace("<h1", "<p>Search a company</p><h1")));
+  control("the report section is shown whatever the posting has", "S50", edit("js/pages/comments.js", (s) => s.replace("$(\"#reportWrap\").hidden = !picker;", "$(\"#reportWrap\").hidden = false;")));
+  control("the report section is shown again somewhere", "S50", edit("js/pages/comments.js", (s) => s.replace("async function sessionEnded() {", "async function sessionEnded() { if (false) $(\"#reportWrap\").hidden = false;")));
+  control("the search fields lose their bottom line", "S50", edit("app.css", (s) => s.replace(".srch-input{border-bottom:2px solid #8A8379!important;border-radius:0!important;padding-bottom:6px!important}", ".srch-input{border-bottom:0!important}")));
+  control("the search fields lose their focus line", "S50", edit("app.css", (s) => s.replace(".srch-input:focus{border-bottom-color:var(--ember-dark)!important;box-shadow:0 1px 0 0 var(--ember-dark)}", "")));
+  control("the backdrop rule is gone", "S50", edit("app.css", (s) => s.replace(".modal-backdrop{touch-action:none;overscroll-behavior:contain}", "")));
+  control("the window rule is gone", "S50", edit("app.css", (s) => s.replace(".modal{touch-action:pan-y;overscroll-behavior:contain}", "")));
+  control("the company field loses its line class", "S50", edit("search.html", (s) => s.replace("<input id=\"company\" class=\"srch-input\" type=\"text\"", "<input id=\"company\" type=\"text\"")));
+  control("the req field loses its line class", "S50", edit("search.html", (s) => s.replace("<input id=\"reqq\" class=\"srch-input\" type=\"password\"", "<input id=\"reqq\" type=\"password\"")));
+  control("the title field loses its line class", "S50", edit("search.html", (s) => s.replace("<input id=\"titleq\" class=\"srch-input\" type=\"text\"", "<input id=\"titleq\" type=\"text\"")));
+  control("the details window no longer locks the page", "S50", edit("js/pages/search.js", (s) => s.replace("if (!unlockScroll) unlockScroll = lockScroll(document, window);", "")));
+  control("the details window never unlocks the page", "S50", edit("js/pages/search.js", (s) => s.replace("if (unlockScroll) { unlockScroll(); unlockScroll = null; }", "")));
+  control("the unlock restores the wrong values", "S50", edit("js/scroll-lock.js", (s) => s.replace("html.style.overflow = prev.html; body.style.overflow = prev.body; body.style.paddingRight = prev.pad;", "html.style.overflow = \"auto\"; body.style.overflow = \"auto\";")));
+  control("the lock forgets the scrollbar", "S50", edit("js/scroll-lock.js", (s) => s.replace("const bar = Math.max(0, win.innerWidth - html.clientWidth);", "const bar = 0;")));
+  control("the lock keeps something in storage", "S50", edit("js/scroll-lock.js", (s) => s.replace("let done = false;", "let done = false; localStorage.setItem('x', 'y');")));
+  control("the lock fixes the body", "S50", edit("js/scroll-lock.js", (s) => s.replace("let done = false;", "let done = false; body.style.position = 'fixed';")));
+  control("the scroll lock file is missing", "S50", (dir) => { fs.rmSync(path.join(dir, "js/scroll-lock.js")); });
+  control("the report section test is missing", "S50", (dir) => { fs.rmSync(path.join(dir, "tests/comments-report.test.js")); });
+  control("the search UI test is missing", "S50", (dir) => { fs.rmSync(path.join(dir, "tests/search-ui.test.js")); });
+  control("the search UI test loses its negative controls", "S50", edit("tests/search-ui.test.js", (s) => s.replace("negative controls: each defect", "controls skipped: each defect")));
+  control("the report section test loses its negative controls", "S50", edit("tests/comments-report.test.js", (s) => s.replace("negative controls: each defect", "controls skipped: each defect")));
 }
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });

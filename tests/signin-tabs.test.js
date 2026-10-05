@@ -196,6 +196,38 @@ SCENARIOS.rolesNote = async (site) => {
   } finally { await A.close(); }
   return bad;
 };
+// WHICH landing note: by the PAGE the sign-in lands on, whatever the session's claims (stage recheck, October 4, 2026: an address that is both an employer and a candidate got the candidate sentence on My postings).
+// Employer pages (My postings, Analytics, Team, Edit, Register a posting, an employer's own comments page) show the employer sentence after an employer-only or a both-roles sign-in; Search and a candidate's comments page show the
+// candidate sentence after a candidate-only or a both-roles sign-in; an employer-only session on Search shows NO landing note and exactly ONE notice (the existing one that says an employer session cannot search).
+SCENARIOS.landingNotes = async (site) => {
+  const bad = []; site.calls.length = 0;
+  const A = await browser.newTab();
+  const GID = "3f1d5b1e-0000-4000-8000-000000000001";
+  const EMP_PAGES = ["dashboard.html", "analytics.html", "team.html", "edit.html?id=" + GID, "register.html", "comments.html?id=" + GID];
+  const cases = [];
+  for (const kind of ["poster", "both"]) for (const p of EMP_PAGES) cases.push([kind, p, EMP_LANDING]);
+  cases.push(["candidate", "search.html", CAND_LANDING], ["both", "search.html", CAND_LANDING], ["candidate", "comments.html?ref=" + REF, CAND_LANDING], ["both", "comments.html?ref=" + REF, CAND_LANDING], ["poster", "search.html", null]);
+  try {
+    for (const [kind, page, want] of cases) {
+      const label = kind + " session on " + page.split("?")[0] + (page.includes("id=") ? " (employer comments)" : page.includes("ref=") ? " (candidate comments)" : "");
+      await clean(A, site);
+      await A.eval("localStorage.setItem('fgj-landing-page', JSON.stringify({ v: " + JSON.stringify(page) + ", exp: Date.now() + 600000 }))");   // the page the link was asked from
+      await A.goto(site.url + "/_dev/link?kind=" + kind);
+      if (!(await A.waitFor("location.pathname === '/" + page.split("?")[0] + "'", 12000))) { bad.push(label + ": did not land on the page (it is at " + (await A.eval("location.pathname")) + ")"); continue; }
+      await sleep(1100);
+      const note = await A.eval("(() => { const n = document.querySelector('#landedNotice'); return n && !n.hidden ? n.textContent.trim() : ''; })()");
+      if (want) { if (note !== want) bad.push(label + ": the landing note is '" + note + "' (wanted '" + want + "')"); }
+      else {
+        if (note !== "") bad.push(label + ": a landing note shows (" + note + ") although the page already says an employer session cannot search");
+        const role = await A.eval("(() => { const n = document.querySelector('#roleNotice'); return n && !n.hidden ? n.textContent.trim() : ''; })()");
+        if (!/^You are signed in as an employer\./.test(role)) bad.push(label + ": the search page does not show its employer notice");
+        const alerts = await A.eval("Array.from(document.querySelectorAll('.alert')).filter((e) => !!(e.offsetWidth || e.offsetHeight)).length");
+        if (alerts !== 1) bad.push(label + ": " + alerts + " notices show (one coherent notice is wanted)");
+      }
+    }
+  } finally { await A.close(); }
+  return bad;
+};
 async function clean0(tab, site) { await tab.goto(site.url + "/404.html"); }
 
 async function withSite(root, fn) { const site = await startFakeSite(root); try { return await fn(site); } finally { await site.close(); } }
@@ -209,6 +241,10 @@ test("the sign-in link in a new tab: search, no search, expiry, tab in front, em
 
 // ---- negative controls ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 const DEFECTS = [
+  ["the landing note is chosen by the flag the callback left (the page is ignored)", ["landingNotes"], "js/app.js", (s) => s.replace("const kind = landingKindForPage(location.pathname, location.search) || flag;", "const kind = flag;")],
+  ["the landing note is chosen by the session's role (employer wording whenever there is an employer claim)", ["landingNotes"], "js/app.js", (s) => s.replace("const kind = landingKindForPage(location.pathname, location.search) || flag;", 'const kind = session.isPoster ? "poster" : "candidate";')],
+  ["the Team page is missing from the employer pages", ["landingNotes"], "js/landing-notice.js", (s) => s.replace('"analytics.html", "team.html", ', '"analytics.html", ')],
+  ["the search page is counted as an employer page", ["landingNotes"], "js/landing-notice.js", (s) => s.replace('export const CANDIDATE_PAGES = ["search.html"];', 'export const CANDIDATE_PAGES = [];')],
   ["the landing note is switched off", ["candidateWithSearch"], "js/landing-notice.js", (s) => s.replace("LANDING_NOTICE_ENABLED = true;", "LANDING_NOTICE_ENABLED = false;")],
   ["the landing note shows on every visit (the flag is not consumed)", ["candidateWithSearch"], "js/landing-notice.js", (s) => s.replace('store.removeItem(LANDED_KEY); ', "")],
   ["the landing note carries the wrong wording for an employer", ["employerDefault"], "js/landing-notice.js", (s) => s.replace("or keep working here.", "or keep searching here.")],

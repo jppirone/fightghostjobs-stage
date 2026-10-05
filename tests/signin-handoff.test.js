@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { HANDOFF_TTL_MS, PENDING_SEARCH_KEY, LANDING_PAGE_KEY, savePending, takePending, hasPending, saveLanding, takeLanding, clearHandoff, watchSignIn } from "../js/signin-handoff.js";
-import { LANDING_NOTICE_ENABLED, LANDING_TEXT, BOTH_ROLES_TEXT, markLanded, takeLanded, landingText, roleNoteKind } from "../js/landing-notice.js";
+import { LANDING_NOTICE_ENABLED, LANDING_TEXT, BOTH_ROLES_TEXT, markLanded, takeLanded, landingText, roleNoteKind, landingKindForPage } from "../js/landing-notice.js";
 
 const memory = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), _m: m }; };
 const NOW = 1_800_000_000_000;
@@ -107,4 +107,15 @@ test("the both-roles note: exact wording, and it is chosen for a session with BO
   assert.equal(roleNoteKind({ isPoster: false, isCandidate: true }), null, "a candidate-only session gets no note");
   assert.equal(roleNoteKind(null), null);
   assert.equal(roleNoteKind({}), null);
+});
+
+test("which landing wording a page gets: by the page, not the role (employer pages, search, the two kinds of comments page)", () => {
+  for (const p of ["dashboard.html", "analytics.html", "team.html", "edit.html", "register.html"]) assert.equal(landingKindForPage("/" + p, ""), "poster", p);
+  assert.equal(landingKindForPage("/search.html", ""), "candidate");
+  assert.equal(landingKindForPage("/comments.html", "?ref=d21m48ybzqbfxxxxxxxx"), "candidate");
+  assert.equal(landingKindForPage("/comments.html", "?id=3f1d5b1e-0000-4000-8000-000000000001"), "poster");
+  assert.equal(landingKindForPage("/comments.html", ""), null);
+  assert.equal(landingKindForPage("/index.html", ""), null);
+  assert.equal(landingKindForPage("/employer-signin.html", ""), null);
+  assert.equal(landingKindForPage("", ""), null);
 });

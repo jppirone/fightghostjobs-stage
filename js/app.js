@@ -4,7 +4,7 @@ import { createApi, describeError, isAuthFailure } from "./api.js";
 import { SUPABASE_URL, PUBLISHABLE_KEY } from "./config.js";
 import { accessToken, currentSession, signOut, rememberNext } from "./session.js";
 import { h, clear, alertBox } from "./dom.js";
-import { takeLanded, landingText } from "./landing-notice.js";
+import { takeLanded, landingText, landingKindForPage } from "./landing-notice.js";
 import { initials } from "./format.js";
 import { buildAccount, wireAccountMenu } from "./account-menu.js";
 
@@ -45,7 +45,11 @@ export async function requirePoster(thisPage) {
 // The one-time note on the page a sign-in link lands on (landing-notice.js). The first page that builds the top bar after the link shows it, once, in #landedNotice or at the top of the main area.
 function showLandingNote(session) {
   if (!session) return;
-  const kind = takeLanded(sessionStorage);
+  const flag = takeLanded(sessionStorage);
+  if (!flag) return;   // no sign-in link just landed here
+  // the wording follows the PAGE (employer pages: the employer sentence; search: the candidate sentence), and only when the session really has that role: an employer-only session on the search page gets no landing note, because the
+  // search page already says plainly that an employer session cannot search (one notice, not two). A page that is neither kind falls back on the flag the callback left.
+  const kind = landingKindForPage(location.pathname, location.search) || flag;
   const text = kind === "candidate" && session.isCandidate ? landingText("candidate") : kind === "poster" && session.isPoster ? landingText("poster") : null;
   if (!text) return;
   let box = document.getElementById("landedNotice");

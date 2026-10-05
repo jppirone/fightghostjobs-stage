@@ -11,6 +11,7 @@ const REAL = "https://tpmvkjuhbbwftqoodzcn.supabase.co";
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8", ".json": "application/json" };
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
 export const fakeJwt = (claims) => b64({ alg: "HS256", typ: "JWT" }) + "." + b64({ sub: "00000000-0000-4000-8000-000000000001", role: "authenticated", aud: "authenticated", iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600, ...claims }) + ".sig";
+export const NOLINKS_REF = "m".repeat(20), CLOSED_REF = "c".repeat(20);   // a posting reference with no employer links, and one that is closed (detail answers 409 posting_not_open)
 export const LONG_NAME = "Bartholomew Featherstonehaugh-Wolverhampton", LONG_ORG = "Meridian Health Systems of the Greater Providence and Boston Region";
 const day = 864e5, inDays = (d) => new Date(Date.now() + d * day).toISOString();
 const code = (c) => "****-****-" + c.slice(-4);
@@ -64,6 +65,10 @@ export function startFakeSite(root) {
         const rows = RESULTS.filter((p) => p.company_name.toLowerCase().includes(co));
         return send(200, { mode: body.req ? "req" : body.code ? "code" : "phrase", truncated: false, results: rows });
       }
+      if (name === "candidate-posting-detail" && body.posting_ref === NOLINKS_REF) return send(200, { posting: { ...RESULTS[0], posting_ref: NOLINKS_REF }, links: [], comment_count: 1 });
+      if (name === "candidate-posting-detail" && body.posting_ref === CLOSED_REF) return send(409, { error: "posting_not_open", code: "posting_not_open", status: "closed", closed_reason: "filled" });
+      if (name === "candidate-post-comment") return send(200, { comment: { id: "c9", body: String(body.body || ""), created_at: new Date().toISOString(), is_mine: true } });
+      if (name === "candidate-report-link") return send(200, { report_id: 1 });
       if (name === "candidate-posting-detail") { const p = RESULTS.find((x) => x.posting_ref === body.posting_ref); return p ? send(200, { posting: p, links: [{ position: 1, label: "Careers site" }, { position: 2, label: "Apply on LinkedIn, the employer's own page" }] }) : send(404, { error: "not_found", code: "not_found" }); }
       if (name === "candidate-link-issue") return send(200, { expires_at: inDays(0.0014), links: [{ position: 1, label: "Careers site", go_url: SELF + "/404.html" }] });
       if (name === "candidate-list-comments") return send(200, { comments: [{ id: "c1", body: "This role was filled last month, according to a friend who works there.", created_at: inDays(-3), is_mine: false }], total: 1, next_offset: null });

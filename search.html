@@ -37,7 +37,7 @@
     <form id="searchForm" class="srch-form" novalidate style="display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;max-width:1080px;">
       <div style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
         <label for="company" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;">Company</label>
-        <input id="company" type="text" maxlength="200" autocomplete="off" placeholder="e.g. Meridian Health Systems" aria-describedby="companyHint" style="border:none;padding:4px 0;">
+        <input id="company" class="srch-input" type="text" maxlength="200" autocomplete="off" placeholder="e.g. Meridian Health Systems" aria-describedby="companyHint" style="border:none;padding:4px 0;">
         <div id="companyHint" class="field-hint">Must match the employer's name. We ignore endings like Inc., Co. and LLC.</div>
       </div>
       <div class="srch-sep" style="width:1px;background:var(--line);"></div>
@@ -50,7 +50,7 @@
           </ul></span></span>
         </label>
         <div style="display:flex;align-items:center;gap:8px;">
-          <input id="reqq" type="password" maxlength="100" autocomplete="off" spellcheck="false" placeholder="From the job ad" aria-describedby="reqCellHint reqHint" data-lpignore="true" data-1p-ignore="true" style="border:none;padding:4px 0;">
+          <input id="reqq" class="srch-input" type="password" maxlength="100" autocomplete="off" spellcheck="false" placeholder="From the job ad" aria-describedby="reqCellHint reqHint" data-lpignore="true" data-1p-ignore="true" style="border:none;padding:4px 0;">
           <button type="button" id="reqToggle" class="row-action" aria-pressed="false" aria-label="Show the req number" style="margin:0;">Show</button>
         </div>
         <div id="reqCellHint" class="field-hint">Most exact. Copy it from the posting.</div>
@@ -64,7 +64,7 @@
             <li>No Post ID handy? Type part of the job title instead; this box takes either</li>
           </ul></span></span>
         </label>
-        <input id="titleq" type="text" maxlength="80" autocomplete="off" placeholder="XXXX-XXXX-XXXX, or e.g. Data Analyst" aria-describedby="titleHint reqHint titleNote" style="border:none;padding:4px 0;">
+        <input id="titleq" class="srch-input" type="text" maxlength="80" autocomplete="off" placeholder="XXXX-XXXX-XXXX, or e.g. Data Analyst" aria-describedby="titleHint reqHint titleNote" style="border:none;padding:4px 0;">
         <div id="titleHint" class="field-hint">A postID is exact. No ID? Use part of the title.</div>
       </div>
       <button type="submit" id="searchBtn" class="btn btn-dark">Search</button>

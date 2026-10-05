@@ -40,6 +40,7 @@
 //   S47 the top bar at phone widths: the viewport meta on every page, text-size-adjust 100%, the phone layout block (three short rows, 44 pixel targets, small logo, label anchored inside the window), no fixed widths in the bar, and the browser test tests/header-layout.test.js
 //   S48 the pages at phone widths: the phone block in app.css (all of it inside the 640 and 360 pixel media blocks), the classes, the table roles and data-labels, the labelled scroll areas, and the browser test tests/phone-layout.test.js
 //   S49 the sign-in link opens in a new tab: pending search and landing page in localStorage (one hour, removed when used, never sent), a watch for a sign-in in another tab, the two notices pinned until John approves new wording, and tests/signin-tabs.test.js
+//   S50 the stage recheck round: landing wording by page, the home page wording (Look up a posting), Report a wrong link only for a posting with links, the search fields' visible line, the details window's scroll lock, and the tests that prove them
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
@@ -194,7 +195,7 @@ export function checkSite(root) {
   const sh = path.join(root, "search.html");
   if (fs.existsSync(sh) && fs.existsSync(rh)) {
     const shtml = read(sh), rhtml2 = read(rh);
-    if (!/<input id="reqq" type="password"/.test(shtml)) add("S18", sh, "the candidate's req number box (id=reqq) must be a masked input (type=password)");
+    if (!/<input id="reqq" (class="srch-input" )?type="password"/.test(shtml)) add("S18", sh, "the candidate's req number box (id=reqq) must be a masked input (type=password)");
     if (!/<button type="button" id="reqToggle"/.test(shtml)) add("S18", sh, "the req box needs its show/hide toggle (id=reqToggle)");
     const hint = "Required. Your own reference, such as your ATS number. Once the posting is live, candidates can find it by company name plus this number. They see it masked (for example FGJ****45), and these lookups are rate-limited. You always see the full number in My postings.";
     if (!rhtml2.includes(hint)) add("S18", rh, "the register form's req number hint must carry the approved wording, word for word");
@@ -1007,6 +1008,50 @@ export function checkSite(root) {
     if (fs.existsSync(path.join(root, "js", "app.js")) && (!stripJsComments(read(path.join(root, "js", "app.js"))).includes("showLandingNote(session);") || !read(path.join(root, "js", "app.js")).includes("takeLanded(sessionStorage)"))) add("S49", path.join(root, "js", "app.js"), "the top bar builder shows the one-time landing note");
     if (!fs.existsSync(tF)) add("S49", tF, "tests/signin-tabs.test.js (two real tabs) is missing");
     else { const t = read(tF); if (!t.includes("negative controls: each deliberate defect makes a sign-in tab scenario fail")) add("S49", tF, "the two-tab test must keep its negative controls"); }
+  }
+
+  // S50 (2026-10-04, after the stage recheck): (1) the landing note wording follows the PAGE (landingKindForPage), never a guess from the session; (2) the home page asks people to "Look up a posting" (the two approved sentences) and nothing in the
+  // app says a company is what is searched; (3) the comments page shows "Report a wrong link" only for a posting that has links, decided once from the posting; (4) the three search fields keep their visible line and focus line; (5) the details
+  // window locks the page behind it (js/scroll-lock.js) and unlocks exactly; (6) the browser tests of all of this exist.
+  {
+    const lnF = path.join(root, "js", "landing-notice.js"), apF = path.join(root, "js", "app.js"), cmF = path.join(root, "js", "pages", "comments.js"), cssF = path.join(root, "app.css"), shF = path.join(root, "search.html"), seF = path.join(root, "js", "pages", "search.js"), slF = path.join(root, "js", "scroll-lock.js"), ixF = path.join(root, "index.html");
+    if (fs.existsSync(lnF)) {
+      const l = read(lnF);
+      if (!l.includes('export const EMPLOYER_PAGES = ["dashboard.html", "analytics.html", "team.html", "edit.html", "register.html"];') || !l.includes('export const CANDIDATE_PAGES = ["search.html"];') || !l.includes("export function landingKindForPage(pathname, search)")) add("S50", lnF, "the landing wording is chosen by page: the employer pages (My postings, Analytics, Team, Edit, Register) and the candidate page (Search) must be listed, with landingKindForPage");
+    }
+    if (fs.existsSync(apF)) {
+      const a = stripJsComments(read(apF));
+      if (!a.includes("landingKindForPage(location.pathname, location.search) || flag") || !a.includes('kind === "candidate" && session.isCandidate ? landingText("candidate") : kind === "poster" && session.isPoster ? landingText("poster") : null')) add("S50", apF, "the landing note takes its kind from the page (landingKindForPage) and shows only when the session really has that role");
+    }
+    if (fs.existsSync(ixF)) {
+      const t = read(ixF);
+      if (!t.includes('<a class="btn btn-dark" href="search.html">Look up a posting</a>') || !t.includes("Look up a posting by company and req number, or by company and title, before applying. No account required.")) add("S50", ixF, "the home page must carry the approved wording: the button Look up a posting and the sentence Look up a posting by company and req number, or by company and title, before applying. No account required.");
+    }
+    for (const f of html.concat(js)) { const t = read(f); if (/Search a company|Search by company and title before applying/.test(t)) add("S50", f, "the old wording that says a company is what is searched (Search a company; Search by company and title before applying) must not come back"); }
+    if (fs.existsSync(cmF)) {
+      const p = stripJsComments(read(cmF));
+      if (!p.includes('$("#reportWrap").hidden = !picker;') || /\$\("#reportWrap"\)\.hidden = false/.test(p)) add("S50", cmF, "Report a wrong link is shown only when the posting has links: #reportWrap.hidden = !picker, set once, and never set to false anywhere");
+    }
+    if (fs.existsSync(cssF)) {
+      const c = read(cssF);
+      for (const [needle, why] of [
+        [".srch-input{border-bottom:2px solid #8A8379!important;border-radius:0!important;padding-bottom:6px!important}", "the three search fields keep a bottom line at rest (#8A8379 on white, 3.7 to 1)"],
+        [".srch-input:focus{border-bottom-color:var(--ember-dark)!important;box-shadow:0 1px 0 0 var(--ember-dark)}", "the search fields get a heavier line when focused (the ring comes from the global focus rule)"],
+        [".modal-backdrop{touch-action:none;overscroll-behavior:contain}", "a swipe on the dark backdrop does not scroll the page behind the details window"],
+        [".modal{touch-action:pan-y;overscroll-behavior:contain}", "the details window scrolls itself and does not chain to the page"],
+      ]) if (!c.includes(needle)) add("S50", cssF, "app.css must keep: " + why);
+    }
+    if (fs.existsSync(shF)) { const t = read(shF); for (const id of ["company", "reqq", "titleq"]) if (!new RegExp('<input id="' + id + '" class="srch-input" type="(text|password)"').test(t)) add("S50", shF, "the search field #" + id + " must carry class srch-input (its visible line)"); }
+    if (fs.existsSync(seF)) {
+      const s = stripJsComments(read(seF));
+      if (!s.includes('import { lockScroll } from "../scroll-lock.js";') || !s.includes("if (!unlockScroll) unlockScroll = lockScroll(document, window);") || !s.includes("if (unlockScroll) { unlockScroll(); unlockScroll = null; }")) add("S50", seF, "opening the details window locks the page behind it (lockScroll) and closing it unlocks it (unlockScroll)");
+    }
+    if (fs.existsSync(slF)) {
+      const s = stripJsComments(read(slF));
+      if (!s.includes('html.style.overflow = "hidden"; body.style.overflow = "hidden";') || !s.includes("html.style.overflow = prev.html; body.style.overflow = prev.body; body.style.paddingRight = prev.pad;") || !s.includes("const bar = Math.max(0, win.innerWidth - html.clientWidth);")) add("S50", slF, "the lock hides html and body overflow, compensates a classic scrollbar, and unlock restores the exact values that were there");
+      if (/\b(fetch|XMLHttpRequest|localStorage|sessionStorage|document\.cookie|console\.)\b/.test(s) || /position\s*=\s*["']fixed/.test(s)) add("S50", slF, "the scroll lock keeps nothing, sends nothing and does not use position fixed on the body");
+    } else add("S50", slF, "js/scroll-lock.js is missing");
+    for (const [tf, nm] of [["comments-report.test.js", "negative controls: each defect in the report section makes a scenario fail"], ["search-ui.test.js", "negative controls: each defect in the search fields or the scroll lock makes a check fail"]]) { const p = path.join(root, "tests", tf); if (!fs.existsSync(p)) add("S50", p, "the browser test " + tf + " is missing"); else if (!read(p).includes("test(\"" + nm + "\"")) add("S50", p, tf + " must keep its negative controls test: " + nm); }
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

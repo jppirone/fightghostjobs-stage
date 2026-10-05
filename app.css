@@ -200,6 +200,14 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 }
 @media (max-width:360px){.nav{padding:6px 8px}.nav-links a{font-size:13px}}
 
+/* the search fields (October 4, 2026): white on a white card with no border, they looked locked once filled in. Each of the three now has a bottom line at rest (#8A8379 on white: 3.7 to 1, above the 3 to 1 rule for interface
+   boundaries) and a heavier ember line plus the focus ring when focused. The page sets border:none inline, hence !important. The layout, labels, placeholders and the one white card are unchanged. */
+.srch-input{border-bottom:2px solid #8A8379!important;border-radius:0!important;padding-bottom:6px!important}
+.srch-input:focus{border-bottom-color:var(--ember-dark)!important;box-shadow:0 1px 0 0 var(--ember-dark)}
+/* the details window: a swipe on the dark backdrop does not scroll the page behind (js/scroll-lock.js locks the page itself); the window's own box still scrolls */
+.modal-backdrop{touch-action:none;overscroll-behavior:contain}
+.modal{touch-action:pan-y;overscroll-behavior:contain}
+
 /* phone layout for the pages themselves (October 4, 2026). The pages were desktop designs: 64 pixel side padding on every section, 28 pixel padding inside every card (a card's content got about 190 of 375 pixels)
    and every two-column layout stayed two columns. At 640 pixels and below: pages use 16 pixel sides, cards 16 pixel inside, two columns stack, side-by-side fields go one per row, tables become one card per row,
    buttons and links are 44 pixel targets, and form text is 16 pixels (a phone browser zooms the page when a smaller field is focused). Above 640 pixels nothing here applies.

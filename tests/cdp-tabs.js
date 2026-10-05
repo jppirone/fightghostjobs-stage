@@ -12,8 +12,8 @@ const CANDIDATES = [process.env.FGJ_BROWSER, "C:/Program Files/Google/Chrome/App
 async function connect(target) {
   const ws = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = () => rej(new Error("DevTools socket failed")); });
-  let seq = 0; const pending = new Map(); const loads = [];
-  ws.onmessage = (m) => { const j = JSON.parse(m.data); if (j.id && pending.has(j.id)) { pending.get(j.id)(j); pending.delete(j.id); return; } if (j.method === "Page.loadEventFired") for (const r of loads.splice(0)) r(); };
+  let seq = 0; const pending = new Map(); const loads = []; const errs = [];
+  ws.onmessage = (m) => { const j = JSON.parse(m.data); if (j.id && pending.has(j.id)) { pending.get(j.id)(j); pending.delete(j.id); return; } if (j.method === "Page.loadEventFired") for (const r of loads.splice(0)) r(); if (j.method === "Runtime.exceptionThrown") errs.push(String(j.params.exceptionDetails.exception && j.params.exceptionDetails.exception.description || j.params.exceptionDetails.text).slice(0, 200)); };
   const send = (method, params) => new Promise((res, rej) => { const id = ++seq; pending.set(id, (j) => (j.error ? rej(new Error(method + ": " + j.error.message)) : res(j.result))); ws.send(JSON.stringify({ id, method, params: params || {} })); });
   await send("Page.enable"); await send("Runtime.enable");
   const evalOn = async (expression) => {
@@ -22,7 +22,12 @@ async function connect(target) {
     return r.result ? r.result.value : undefined;
   };
   return {
-    id: target.id, send, eval: evalOn,
+    id: target.id, send, eval: evalOn, errors: () => errs.slice(), clearErrors: () => { errs.length = 0; },
+    // make the page count as focused (a headless page is not): :focus and :focus-visible apply to a field that gets focus
+    async focusEmulation(on) { await send("Emulation.setFocusEmulationEnabled", { enabled: !!on }); },
+    // a touch swipe (dy < 0 scrolls the page down) or a mouse wheel, at a point of the window
+    async swipe(x, y, dy) { const pt = (type, yy) => send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y: yy }] }); const dir = dy < 0 ? -1 : 1; await pt("touchStart", y); for (let d = 0; d <= Math.abs(dy); d += 20) { await pt("touchMove", y + dir * d); await new Promise((r) => setTimeout(r, 16)); } await pt("touchEnd", y + dy); await new Promise((r) => setTimeout(r, 500)); },
+    async wheel(x, y, dy) { await send("Input.dispatchMouseEvent", { type: "mouseWheel", x, y, deltaX: 0, deltaY: dy }); await new Promise((r) => setTimeout(r, 350)); },
     async goto(url, timeoutMs) { const loaded = new Promise((r) => loads.push(r)); await send("Page.navigate", { url }); await Promise.race([loaded, new Promise((r) => setTimeout(r, timeoutMs || 15000))]); },
     async waitFor(expr, ms) { const until = Date.now() + (ms || 8000); while (Date.now() < until) { let v = false; try { v = await evalOn(expr); } catch { v = false; } if (v) return v; await new Promise((r) => setTimeout(r, 120)); } return false; },
     // phone: touch, mobile viewport, device pixel ratio 2 (what the browser's device toolbar sets); otherwise an ordinary window

@@ -5,6 +5,7 @@ import { api, mountAccount, go, signOut, describeError, isAuthFailure } from "..
 import { requestLink, currentSession, watchOtherTabSignIn } from "../session.js";
 import { savePending, takePending } from "../signin-handoff.js";
 import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js";
+import { lockScroll } from "../scroll-lock.js";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js";
 import { locationLine, waitText } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
@@ -138,6 +139,7 @@ function openModal(row) {
   $("#modalIntro").textContent = "This posting was registered through FightGhostJobs by a registered poster. The dates and disclosures are the poster's own. FightGhostJobs has not confirmed that the job exists, that the poster works for the company named, or that the employer will respond.";
   clear($("#modalLinks")); const empty = $("#modalEmpty"); empty.hidden = true; empty.textContent = ""; $("#modalLinksNote").hidden = true; $("#modalMore").hidden = true; clear($("#modalMore"));
   backdrop.classList.add("open");
+  if (!unlockScroll) unlockScroll = lockScroll(document, window);   // the page behind does not scroll while the window is open; undone exactly in closeModal
   return { links: $("#modalLinks"), empty };
 }
 // the thread and the private wrong-link report live on the posting's own comments page (reached only with the posting's opaque reference; never listed anywhere)
@@ -147,7 +149,8 @@ function moreLinks(row, count, withReport) {
   more.append(h("a", { href: page }, "Comments" + (Number.isInteger(count) ? " (" + count + ")" : "") + " →"));
   if (withReport) more.append(h("a", { href: page + "#report" }, "Report a wrong link →"));
 }
-function closeModal() { backdrop.classList.remove("open"); }
+let unlockScroll = null;
+function closeModal() { backdrop.classList.remove("open"); if (unlockScroll) { unlockScroll(); unlockScroll = null; } }
 $("#modalClose").addEventListener("click", closeModal);
 backdrop.addEventListener("click", (ev) => { if (ev.target === backdrop) closeModal(); });
 document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") closeModal(); });
