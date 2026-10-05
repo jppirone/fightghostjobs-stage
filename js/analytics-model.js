@@ -26,7 +26,7 @@ export function clickThroughPct(detailViews, linkClicks) {
 }
 export function clickThroughLabel(detailViews, linkClicks) {
   const pct = clickThroughPct(detailViews, linkClicks);
-  return pct === null ? "—" : pct + "%";
+  return pct === null ? "n/a" : pct + "%";
 }
 
 // a bar's width relative to the largest value in its group (the mock's own convention: the top row reads 100%, the rest scale under it). 0 when there is nothing to compare.

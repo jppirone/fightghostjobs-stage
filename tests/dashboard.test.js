@@ -63,13 +63,13 @@ test("sorting by posted date: newest first by default, oldest first when asked, 
 });
 
 test("table cells: a missing req number, a draft with no dates, no cap, and the close cell per status", () => {
-  assert.equal(reqCell(row({ req_number: null })), "—");
+  assert.equal(reqCell(row({ req_number: null })), "None");
   assert.equal(reqCell(row({})), "R-1");
-  assert.equal(postedCell(row({ posted_at: null })), "—");
+  assert.equal(postedCell(row({ posted_at: null })), "Not yet");
   assert.equal(capCell(row({ applicant_cap: null })), "No cap set");
   assert.equal(capCell(row({ applicant_cap: 250 })), "250");
   assert.match(closesCell(row({ status: "draft", posted_at: null, expiration_date: null, publish_by: at(9) })), /^Publish by [A-Z][a-z]{2} \d{1,2}$/);
-  assert.equal(closesCell(row({ status: "draft", posted_at: null, expiration_date: null, publish_by: null })), "—");
+  assert.equal(closesCell(row({ status: "draft", posted_at: null, expiration_date: null, publish_by: null })), "Not set");
   assert.match(closesCell(row({})), /[AP]M/);                                    // a live posting's close date carries the exact time
   assert.match(closesCell(row({ status: "closed" })), /^[A-Z][a-z]{2} \d{1,2}$/);
 });

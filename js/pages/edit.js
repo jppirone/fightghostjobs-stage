@@ -228,7 +228,7 @@ async function populate(doc, opts) {
   }
   $("#companyShown").textContent = p.company_name;
   $("#aiFilterHint").textContent = p.ai_filtering === null ? "Not stated yet. Once you state it, it can be changed but not cleared." : "Shown to candidates as a plain fact, never scored.";
-  $("#aiInterviewHint").textContent = p.ai_interview_other === null ? "Not stated yet. Once you state it, it can be changed but not cleared." : "Independent of filtering — an employer can have neither, either, or both on.";
+  $("#aiInterviewHint").textContent = p.ai_interview_other === null ? "Not stated yet. Once you state it, it can be changed but not cleared." : "Independent of filtering. An employer can have neither, either, or both on.";
   $("#postId").textContent = groupCode(p.post_id); $("#postIdLine").hidden = false;   // the same postID, formatted the same way, as the dashboard row and the comments page
   const chip = statusChip(p, Date.now());
   const line = $("#statusLine"); line.hidden = false; clear(line);

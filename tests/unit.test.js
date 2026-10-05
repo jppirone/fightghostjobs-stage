@@ -55,7 +55,7 @@ test("the two AI disclosures are independent, worded exactly as designed, and nu
   assert.deepEqual(aiInterviewChip(false), { text: "No AI interview/other", tooltip: TOOLTIP_INTERVIEW });
   assert.equal(aiInterviewChip(undefined).text, "AI interview/other not disclosed");
   assert.match(TOOLTIP_FILTERING, /^Resume screening or keyword\/ATS-style matching used to prioritize applications before a human reviews them\.$/);
-  assert.match(TOOLTIP_INTERVIEW, /^Any AI that interacts with a candidate directly — an AI-conducted interview, a chatbot screening call, or similar\.$/);
+  assert.match(TOOLTIP_INTERVIEW, /^Any AI that interacts with a candidate directly, such as an AI-conducted interview or a chatbot screening call\.$/);
   assert.doesNotMatch(TOOLTIP_FILTERING + TOOLTIP_INTERVIEW, /reject/i);   // design brief 12: the tooltip describes the mechanism, never an outcome
 });
 
@@ -315,7 +315,7 @@ test("register form: what the result says about the links", () => {
 });
 
 test("register form: a liveness warning turns the links line into a notice", () => {
-  assert.deepEqual(linksOutcome(2, null, "When we checked, link 2 answered HTTP 404. It is saved anyway — make sure it is right."), { kind: "notice", text: "2 destination links are stored with it. When we checked, link 2 answered HTTP 404. It is saved anyway — make sure it is right." });
+  assert.deepEqual(linksOutcome(2, null, "When we checked, link 2 answered HTTP 404. It is saved anyway. Make sure it is right."), { kind: "notice", text: "2 destination links are stored with it. When we checked, link 2 answered HTTP 404. It is saved anyway. Make sure it is right." });
   assert.equal(linksOutcome(1, null, null).kind, "ok");
 });
 

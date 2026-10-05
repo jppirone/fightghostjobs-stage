@@ -4,7 +4,7 @@
 import { fmtDateTz, fmtClose } from "./format.js";
 
 export const TOOLTIP_FILTERING = "Resume screening or keyword/ATS-style matching used to prioritize applications before a human reviews them.";
-export const TOOLTIP_INTERVIEW = "Any AI that interacts with a candidate directly — an AI-conducted interview, a chatbot screening call, or similar.";
+export const TOOLTIP_INTERVIEW = "Any AI that interacts with a candidate directly, such as an AI-conducted interview or a chatbot screening call.";
 
 // null means the employer has not stated it (only possible for rows written outside the normal registration flow): say so plainly, never guess.
 export function aiFilteringChip(v) {

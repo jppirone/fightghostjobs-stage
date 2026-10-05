@@ -7,7 +7,7 @@
 <meta name="referrer" content="same-origin">
 <meta name="robots" content="noindex, nofollow">
 <script src="js/stage-gate.js"></script>
-<title>FightGhostJobs — Register a Posting</title>
+<title>FightGhostJobs | Register a Posting</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="app.css">
 </head>
@@ -70,7 +70,7 @@
         <div id="dupHint" class="field-hint">One line, 300 characters at most. Then press Register posting again.</div>
         <button type="button" id="dupChange" class="btn btn-outline btn-sm" style="margin-top:10px;">Change the req number</button>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-top:-10px;">If set, the cap is shown to candidates too. Reaching it doesn't auto-close the posting — that's on you to come back and pause or close it. Pausing never resets this cap or the close date.</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:-10px;">If set, the cap is shown to candidates too. Reaching it doesn't auto-close the posting. You need to come back and pause or close it yourself. Pausing never resets this cap or the close date.</div>
       <div class="alert alert-notice" id="windowNote" role="note">
         <strong style="color:var(--ink);">How long it stays live: you choose, 14 to 45 days.</strong>
         Your posting goes live the moment you register it (unless you choose a go-live time below) and closes automatically after the number of days you set above (45 unless you change it, and never more than 45). The days start when it goes live, not when you fill in this form, so a saved draft does not start the clock until you publish it.
@@ -121,8 +121,8 @@
 
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div>
-          <div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">AI used for interviewing or other<span class="info-icon" tabindex="0">i<span class="info-tooltip">Any AI that interacts with a candidate directly — an AI-conducted interview, a chatbot screening call, or similar.</span></span></div>
-          <div style="font-size:13px;color:var(--muted);margin-top:2px;">Independent of filtering — an employer can have neither, either, or both on.</div>
+          <div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">AI used for interviewing or other<span class="info-icon" tabindex="0">i<span class="info-tooltip">Any AI that interacts with a candidate directly, such as an AI-conducted interview or a chatbot screening call.</span></span></div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px;">Independent of filtering. An employer can have neither, either, or both on.</div>
         </div>
         <button type="button" id="aiInterviewToggle" class="toggle" role="switch" aria-checked="false" aria-label="AI used for interviewing or other"><span class="toggle-knob"></span></button>
       </div>
@@ -166,7 +166,7 @@
         </div><!-- /linksLocked -->
         <div id="linksPlan" hidden></div>
         <div id="linksForm" hidden style="display:flex;flex-direction:column;gap:12px;">
-          <div class="field-hint" style="margin-top:0;">Optional. Candidates never see these addresses. When a candidate chooses to apply, they are sent through a one-time link to the address you enter here (position 1 first). For safety the addresses are not shown back to you afterwards; from My postings (Edit) you can replace the set at any time. Up to 10. The label is a note for you only: candidates see where a link goes (LinkedIn, an application system, your own site) or "employer-provided link — not verified by us"; a link shortener or redirect is not accepted. When you save, we try each address once and tell you if it did not answer.</div>
+          <div class="field-hint" style="margin-top:0;">Optional. Candidates never see these addresses. When a candidate chooses to apply, they are sent through a one-time link to the address you enter here (position 1 first). For safety the addresses are not shown back to you afterwards; from My postings (Edit) you can replace the set at any time. Up to 10. The label is a note for you only: candidates see where a link goes (LinkedIn, an application system, your own site) or "employer-provided link, not verified by us"; a link shortener or redirect is not accepted. When you save, we try each address once and tell you if it did not answer.</div>
           <div id="linkRows" style="display:flex;flex-direction:column;gap:12px;"></div>
           <div><button type="button" id="addLinkBtn" class="btn btn-outline btn-sm">Add another link</button></div>
           <div id="linksAlert" hidden></div>
@@ -189,8 +189,8 @@
       <div style="font-size:13px;font-weight:700;color:#F2A98C;text-transform:uppercase;letter-spacing:.06em;">Free on every tier</div>
       <ul style="margin:14px 0 0 0;padding-left:18px;font-size:14px;line-height:1.9;color:#E9E4DB;">
         <li>Title, location, dates, postID</li>
-        <li>AI-use disclosure — filtering &amp; interviewing, shown separately</li>
-        <li>Recruiter involved — yes/no</li>
+        <li>AI-use disclosure, with filtering and interviewing shown separately</li>
+        <li>Recruiter involved, yes or no</li>
         <li>A go-live time you schedule, and a dashboard to manage it all</li>
       </ul>
     </div>

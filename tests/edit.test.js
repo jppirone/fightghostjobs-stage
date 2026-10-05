@@ -186,9 +186,9 @@ test("the plan and the stored links in the answers: fail closed; an address is n
 test("pass B: the liveness warning names the links that did not answer, and a stored link reads as label + what candidates see", () => {
   assert.equal(checkWarnings([]), null); assert.equal(checkWarnings(undefined), null);
   assert.equal(checkWarnings([{ position: 1, check_status: "ok", check_http: 200 }, { position: 2, check_status: "skipped", check_http: null }]), null);
-  assert.equal(checkWarnings([{ position: 2, check_status: "failed", check_http: 404 }]), "When we checked, link 2 answered HTTP 404. It is saved anyway — make sure it is right.");
-  assert.equal(checkWarnings([{ position: 1, check_status: "failed", check_http: null }, { position: 3, check_status: "failed", check_http: 999 }]), "When we checked, link 1 could not be reached; link 3 answered HTTP 999. They are saved anyway — make sure they are right.");
-  assert.equal(storedLinkText({ position: 1, label: "Careers", shown_as: "LinkedIn", check_status: "ok", check_http: 200 }), "1. Careers — candidates see “LinkedIn”");
+  assert.equal(checkWarnings([{ position: 2, check_status: "failed", check_http: 404 }]), "When we checked, link 2 answered HTTP 404. It is saved anyway. Make sure it is right.");
+  assert.equal(checkWarnings([{ position: 1, check_status: "failed", check_http: null }, { position: 3, check_status: "failed", check_http: 999 }]), "When we checked, link 1 could not be reached; link 3 answered HTTP 999. They are saved anyway. Make sure they are right.");
+  assert.equal(storedLinkText({ position: 1, label: "Careers", shown_as: "LinkedIn", check_status: "ok", check_http: 200 }), "1. Careers, candidates see “LinkedIn”");
   assert.equal(storedLinkText({ position: 2, label: null, shown_as: "Employer-provided link — not verified by us", check_status: "failed", check_http: 503 }), "2. candidates see “Employer-provided link — not verified by us” (did not answer when we checked: HTTP 503)");
   assert.equal(storedLinkText({ position: 3, label: null }), "3. candidates see “Application link 3”");            // an answer from before pass B
 });
@@ -205,8 +205,8 @@ test("pass C: recruiter-firm rows: the name is required, the link optional; blan
   assert.equal(mapLinksErrors({ code: "recruiter_off", message: "Turn it on first." }, [0]).recruiterOff, true);
   const m = mapLinksErrors({ field: "links[0].name", message: "name must not be empty", errors: [{ field: "links[0].name", message: "name must not be empty" }] }, [2]);
   assert.deepEqual(m.rows, { 2: { name: "name must not be empty" } });
-  assert.equal(storedLinkText({ position: 1, kind: "recruiter", firm: "Acme Staffing", label: null, shown_as: null }), "1. Acme Staffing — no link");
-  assert.equal(storedLinkText({ position: 2, kind: "recruiter", firm: "Beta Search", label: null, shown_as: "LinkedIn", check_status: "ok" }), "2. Beta Search — with a link, shown as “LinkedIn”");
+  assert.equal(storedLinkText({ position: 1, kind: "recruiter", firm: "Acme Staffing", label: null, shown_as: null }), "1. Acme Staffing, no link");
+  assert.equal(storedLinkText({ position: 2, kind: "recruiter", firm: "Beta Search", label: null, shown_as: "LinkedIn", check_status: "ok" }), "2. Beta Search, with a link, shown as “LinkedIn”");
   const both = [{ position: 1, kind: "apply", label: "x" }, { position: 1, kind: "recruiter", firm: "Acme" }, { position: 2, label: null }];
   assert.equal(applyLinks(both).length, 2); assert.equal(recruiterFirms(both).length, 1);
 });

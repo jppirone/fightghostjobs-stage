@@ -57,14 +57,14 @@ export function sortByPosted(rows, dir) {
   });
 }
 
-export const reqCell = (p) => (p.req_number ? p.req_number : "—");
-export const postedCell = (p) => (p.posted_at ? fmtDate(p.posted_at) : "—");
+export const reqCell = (p) => (p.req_number ? p.req_number : "None");
+export const postedCell = (p) => (p.posted_at ? fmtDate(p.posted_at) : "Not yet");
 export const capCell = (p) => (p.applicant_cap === null ? "No cap set" : String(p.applicant_cap));
 export function closesCell(p) {
-  if (p.status === "scheduled") return p.go_live_at ? "Goes live " + fmtClose(p.go_live_at) : "—";
-  if (p.status === "draft") return p.publish_by ? "Publish by " + fmtDate(p.publish_by) : "—";
+  if (p.status === "scheduled") return p.go_live_at ? "Goes live " + fmtClose(p.go_live_at) : "Not set";
+  if (p.status === "draft") return p.publish_by ? "Publish by " + fmtDate(p.publish_by) : "Not set";
   if (p.status === "live" || p.status === "paused") return fmtClose(p.expiration_date);
-  return p.expiration_date ? fmtDate(p.expiration_date) : "—";
+  return p.expiration_date ? fmtDate(p.expiration_date) : "None";
 }
 
 // ---- row actions (slice B)

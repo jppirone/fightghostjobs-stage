@@ -175,7 +175,7 @@ function unlockForm() { for (const el of $$("input, textarea", form)) el.disable
 
 function showResult(p, kind, problem, goLiveAt) {
   result.hidden = false; clear(result);
-  const heading = kind === "live" ? "Registered — live now" : kind === "draft" ? "Saved as a draft" : kind === "scheduled" ? "Registered — scheduled" : kind === "schedule-failed" ? "Saved as a draft — the go-live time was not set" : kind === "publish-failed" ? "Saved as a draft — publishing did not finish" : "Registered";
+  const heading = kind === "live" ? "Registered. It is live now." : kind === "draft" ? "Saved as a draft" : kind === "scheduled" ? "Registered. It is scheduled." : kind === "schedule-failed" ? "Saved as a draft. The go-live time was not set." : kind === "publish-failed" ? "Saved as a draft. Publishing did not finish." : "Registered";
   result.append(h("h2", { style: "font-size:22px;font-weight:700;" }, heading));
   if (kind === "publish-failed") {
     result.append(h("div", { style: "margin-top:12px;" }, alertBox("error", problem + " Your posting is saved as a draft; nothing is visible to candidates yet.")),

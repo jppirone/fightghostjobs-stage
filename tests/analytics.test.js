@@ -30,12 +30,12 @@ test("share of registry: a real percentage renders as a percentage; no platform 
   assert.equal(sharePctLabel(undefined), "Not enough platform data yet");
 });
 
-test("click-through: link clicks over detail views, and no detail views is '—' (unknown), never a divide-by-zero 0%", () => {
+test("click-through: link clicks over detail views, and no detail views is 'n/a' (unknown), never a divide-by-zero 0%", () => {
   assert.equal(clickThroughPct(100, 37), 37);
   assert.equal(clickThroughPct(3, 1), 33);           // rounds
   assert.equal(clickThroughPct(0, 0), null);
   assert.equal(clickThroughPct(0, 5), null);          // clicks with no recorded views is a data oddity, not a real 0/0
-  assert.equal(clickThroughLabel(0, 0), "—");
+  assert.equal(clickThroughLabel(0, 0), "n/a");
   assert.equal(clickThroughLabel(40, 10), "25%");
   assert.equal(clickThroughPct(10, -3), 0);           // a negative count (should never happen) never produces a negative percentage
 });

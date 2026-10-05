@@ -35,7 +35,7 @@ function renderKpis(d) {
     kpiCard("Live postings", String(d.live_postings)),
     kpiCard("Searches that found you", String(d.searches)),
     kpiCard("Posting detail views", String(d.detail_views)),
-    kpiCard("Destination link clicks", String(d.link_clicks), clickThroughLabel(d.detail_views, d.link_clicks) === "—" ? null : clickThroughLabel(d.detail_views, d.link_clicks) + " of viewers clicked through", LINK_CLICK_CAVEAT),
+    kpiCard("Destination link clicks", String(d.link_clicks), clickThroughLabel(d.detail_views, d.link_clicks) === "n/a" ? null : clickThroughLabel(d.detail_views, d.link_clicks) + " of viewers clicked through", LINK_CLICK_CAVEAT),
     kpiCard("Share of registry traffic", sharePctLabel(d.share_of_registry_pct), "Of all searches + detail views on the registry"),
   );
 }
@@ -49,7 +49,7 @@ function postingRow(p) {
     h("td", { role: "cell", "data-label": "Searches" }, String(p.searches)),
     h("td", { role: "cell", "data-label": "Detail views" }, String(p.detail_views)),
     h("td", { role: "cell", "data-label": "Link clicks" }, String(p.link_clicks)),
-    h("td", { role: "cell", "data-label": "Click-through", style: "width:160px;" }, ct === "—" ? h("span", { style: "color:var(--faint);" }, "—") :
+    h("td", { role: "cell", "data-label": "Click-through", style: "width:160px;" }, ct === "n/a" ? h("span", { style: "color:var(--faint);" }, "n/a") :
       h("div", { style: "display:flex;align-items:center;gap:8px;" },
         h("div", { class: "bar-track", style: "width:80px;" }, h("div", { class: "bar-fill", style: "width:" + w + "%;" })),
         h("span", { style: "font-size:13px;font-weight:600;" }, ct))));

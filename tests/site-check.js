@@ -269,7 +269,7 @@ export function checkSite(root) {
   // icon (position:relative, or the tooltip lands off the page) and shows the tooltip on hover, focus AND the tap/click state; the pages with icons wire the click handler; register.html has the
   // links section (locked panel, rows, add button) and register.js saves them through api.setDestinationLinks after the posting is created; both pages use the shared row component.
   {
-    const TIP1 = "Resume screening or keyword/ATS-style matching used to prioritize applications before a human reviews them.", TIP2 = "Any AI that interacts with a candidate directly — an AI-conducted interview, a chatbot screening call, or similar.";
+    const TIP1 = "Resume screening or keyword/ATS-style matching used to prioritize applications before a human reviews them.", TIP2 = "Any AI that interacts with a candidate directly, such as an AI-conducted interview or a chatbot screening call.";
     for (const name of ["register.html", "edit.html"]) {
       const p = path.join(root, name); if (!fs.existsSync(p)) { add("S25", p, name + " is missing"); continue; }
       const t = read(p);
