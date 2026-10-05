@@ -1,7 +1,7 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js";
 import { requestLink, currentSession, watchOtherTabSignIn } from "../session.js";
 import { savePending, takePending } from "../signin-handoff.js";
 import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js";
@@ -112,7 +112,7 @@ recapEditBtn.addEventListener("click", () => {
   lastSearch = null; hideRecap(); companyIn.focus();
 });
 
-async function runSearch() {
+async function runSearch(auto) {   // auto: the saved search replayed after the sign-in link (the person did nothing, so the landing note stays)
   if (busy) return;
   setFormError(""); hideRecap();
   const c = checkCompany(companyIn.value), q = resolveSearch(queryIn.value, reqIn.value);
@@ -144,10 +144,12 @@ async function runSearch() {
     setFormError(describeError(r.error));
   } finally {
     busy = false;
+    if (!auto) clearLandingNote();   // a search the person started has finished: the landing note has done its job
     if (cooldown) startCooldown(searchBtn, cooldown, label); else { searchBtn.disabled = false; searchBtn.textContent = label; if (hadFocus && document.activeElement === document.body) searchBtn.focus(); }
   }
 }
 form.addEventListener("submit", (ev) => { ev.preventDefault(); runSearch(); });
+for (const el of [companyIn, queryIn, reqIn]) el.addEventListener("input", clearLandingNote);   // typing in a search box: the person is using the page, the landing note clears
 // show / hide the req number while typing (hidden by default, like a password)
 reqToggle.addEventListener("click", () => {
   const show = reqIn.type === "password";
@@ -247,7 +249,7 @@ function resumePending() {
   const p = takePending(localStorage);
   if (!p) return false;
   companyIn.value = p.company; queryIn.value = p.q; reqIn.value = p.r;
-  runSearch();
+  runSearch(true);
   return true;
 }
 

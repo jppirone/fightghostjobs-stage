@@ -46,6 +46,15 @@ export async function requirePoster(thisPage) {
   return { session, info: r.data };
 }
 
+// The landing note clears on the person's first real action on the page (October 5, 2026), so it does not sit above the work for the whole visit: on the search page, typing in one of the three boxes or a search the person started
+// finishing (search.js calls clearLandingNote; a search replayed by the sign-in handoff does not count, the person did nothing); on every other page, the first click or key press inside the page content (a save, a pause, a close,
+// any button or field), not on the note itself. No close button, no timer, nothing is announced when it goes. (js/landing-notice.js has the words.)
+let landingNoteOn = null;
+export function clearLandingNote() {
+  if (!landingNoteOn) return;
+  const { box, off } = landingNoteOn; landingNoteOn = null; off();
+  box.hidden = true; clear(box);
+}
 // The one-time note on the page a sign-in link lands on (landing-notice.js). The first page that builds the top bar after the link shows it, once, in #landedNotice or at the top of the main area.
 function showLandingNote(session) {
   if (!session) return;
@@ -63,6 +72,10 @@ function showLandingNote(session) {
     main.insertBefore(box, main.firstChild);
   }
   box.hidden = false; clear(box); box.append(alertBox("ok", text));
+  const onAct = (ev) => { const main = document.getElementById("main"), t = ev.target; if (t && t.nodeType === 1 && main && main.contains(t) && !box.contains(t)) clearLandingNote(); };
+  const off = () => { for (const t of ["click", "keydown"]) document.removeEventListener(t, onAct, true); };
+  landingNoteOn = { box, off };
+  if (!/search\.html$/.test(location.pathname)) for (const t of ["click", "keydown"]) document.addEventListener(t, onAct, true);   // the search page clears it from search.js (typing, or a search the person started)
 }
 
 // The right-hand side of the top bar. Signed-in employer: the links, the initials circle (the control: name and organization are its accessible name and its label, see account-menu.js) and Sign out.

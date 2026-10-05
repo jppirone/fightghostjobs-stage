@@ -716,6 +716,17 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the skip link does not move focus", "S54", edit("js/unsaved-guard.js", (s) => s.replace("(saveBtn.hidden || saveBtn.disabled ? discardBtn : saveBtn).focus()", "void 0")));
   control("edit.js does not hand over the skip link", "S54", edit("js/pages/edit.js", (s) => s.replace("skip: $(\"#skipToUnsaved\")", "skip: null")));
 }
+
+// S55: the landing note clears on the person's first real action (Part E3), with no close button, no timer and no announcement
+{
+  control("the landing note never clears on content pages", "S55", edit("js/app.js", (s) => s.replace("for (const t of [\"click\", \"keydown\"]) document.addEventListener(t, onAct, true);", "void 0;")));
+  control("a click on the note itself clears it", "S55", edit("js/app.js", (s) => s.replace("main.contains(t) && !box.contains(t)", "main.contains(t)")));
+  control("a finished search does not clear the note", "S55", edit("js/pages/search.js", (s) => s.replace("if (!auto) clearLandingNote();", "")));
+  control("a replayed search is not marked automatic", "S55", edit("js/pages/search.js", (s) => s.replace("runSearch(true);", "runSearch();")));
+  control("typing does not clear the note", "S55", edit("js/pages/search.js", (s) => s.replace("el.addEventListener(\"input\", clearLandingNote)", "el.addEventListener(\"input\", () => {})")));
+  control("the note gets a timer", "S55", edit("js/app.js", (s) => s.replace("landingNoteOn = { box, off };", "landingNoteOn = { box, off }; setTimeout(clearLandingNote, 9000);")));
+  control("the landing-clear test is not run", "S55", edit("tests/run-all.js", (s) => s.replace("landing-clear.test.js", "landing-clear-old.test.js")));
+}
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");

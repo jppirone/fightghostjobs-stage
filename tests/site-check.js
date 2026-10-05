@@ -42,6 +42,7 @@
 //   S49 the sign-in link opens in a new tab: pending search and landing page in localStorage (one hour, removed when used, never sent), a watch for a sign-in in another tab, the two notices pinned until John approves new wording, and tests/signin-tabs.test.js
 //   S50 the stage recheck round: landing wording by page, the home page wording (Look up a posting), Report a wrong link only for a posting with links, the search fields' visible line, the details window's scroll lock, and the tests that prove them
 //   S54 the edit page's skip link to the unsaved bar
+//   S55 the landing note clears on the person's first real action (Part E3), with no close button, no timer and no announcement
 //   S53 the search recap (Part C): sentence, never the req number or postID, Edit this search, memory only, one spoken message
 //   S52 the accessibility round: header Tab order, one polite search status, the details window's focus handling, the unsaved bar's closing message, 24 pixel hit areas, and the four tests that prove them
 //   S51 the home page's step 3 (Candidates look up), the search form's three boxes (Company required, Then one of these, a visible or, the approved sentence) and the callback without the flash on employer pages
@@ -1158,6 +1159,14 @@ export function checkSite(root) {
     if (fs.existsSync(raF) && !read(raF).includes("edit-a11y.test.js")) add("S54", raF, "tests/run-all.js must run edit-a11y.test.js");
     const tf = path.join(root, "tests", "edit-a11y.test.js");
     if (fs.existsSync(tf) && !read(tf).includes("Skip to unsaved changes")) add("S54", tf, "edit-a11y.test.js must test the skip link");
+  }
+
+  // S55 (2026-10-05, E3): the green "You are signed in" note clears on the first real action: typing in a search box or a finished search the person started (search page), the first click or key press in the page content (every other page).
+  {
+    const appF = path.join(root, "js", "app.js"), srF = path.join(root, "js", "pages", "search.js"), raF = path.join(root, "tests", "run-all.js"), tf = path.join(root, "tests", "landing-clear.test.js");
+    if (fs.existsSync(appF)) { const t = stripJsComments(read(appF)); for (const [needle, why] of [["export function clearLandingNote()", "export clearLandingNote"], ['for (const t of ["click", "keydown"]) document.addEventListener(t, onAct, true);', "clear on a click or key press in the page content (pages other than search)"], ["main.contains(t) && !box.contains(t)", "ignore the top bar and the note itself"]]) if (!t.includes(needle)) add("S55", appF, "app.js must " + why); if (/setTimeout\(clearLandingNote|setTimeout\([^)]*landing/i.test(t)) add("S55", appF, "the landing note must have no timer"); }
+    if (fs.existsSync(srF)) { const t = stripJsComments(read(srF)); for (const [needle, why] of [["if (!auto) clearLandingNote();", "clear the note when a search the person started has finished (and not for a replayed one)"], ["runSearch(true);", "mark the replayed search as automatic"], ['el.addEventListener("input", clearLandingNote)', "clear the note when the person types in a search box"]]) if (!t.includes(needle)) add("S55", srF, "search.js must " + why); }
+    if (!fs.existsSync(tf)) add("S55", tf, "the test landing-clear.test.js must exist"); else if (fs.existsSync(raF) && !read(raF).includes("landing-clear.test.js")) add("S55", raF, "tests/run-all.js must run landing-clear.test.js");
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

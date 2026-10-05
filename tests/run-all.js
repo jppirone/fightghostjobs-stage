@@ -16,6 +16,7 @@ const steps = [
   ["edit page: the unsaved bar is announced once each way (real browser)", [path.join(here, "edit-a11y.test.js")], true],
   ["every link and control is at least 24 x 24 CSS pixels (real browser)", [path.join(here, "target-size.test.js")], true],
   ["search recap: boxes emptied, recap between form and results, never the req number or postID, Edit this search (real browser)", [path.join(here, "search-recap.test.js")], true],
+  ["landing note: clears on the first real action (real browser)", [path.join(here, "landing-clear.test.js")], true],
   ["static site rules", [path.join(here, "site-check.js")], false],
   ["static rules: negative controls", [path.join(here, "site-check.controls.js")], false],
 ];
