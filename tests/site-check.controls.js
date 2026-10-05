@@ -385,9 +385,9 @@ control("the search page loses the easiest-and-most-exact sentence", "S40", edit
 control("the search page loses the no-ID title fallback sentence", "S40", edit("search.html", (s) => s.replace("No ID? Use the company name plus part of the job title, copied from the posting if you can.", "Or use a job title.")));
 control("the search page loses the company-name sentence", "S40", edit("search.html", (s) => s.replace("We ignore endings like Inc., Co. and LLC.", "")));
 control("the search page loses the title-search limits sentence", "S40", edit("search.html", (s) => s.replace("and it will not show postings that are not live. Closed or expired postings are found only by postID or req number.", "and it shows every posting.")));
-control("the search page loses the one-lookup-box sentence", "S40", edit("search.html", (s) => s.replace("Fill in only one of the two lookup boxes:", "Fill in the boxes:")));
+control("the search page loses the one-lookup-box sentence", "S40", edit("search.html", (s) => s.replace("Company is required. Then fill in one of the other two boxes:", "Fill in the boxes:")));
 control("the search form gains a fourth box (a way to browse)", "S40", edit("search.html", (s) => s.replace('<button type="submit" id="searchBtn"', '<input id="browse" type="text"><button type="submit" id="searchBtn"')));
-control("the search form puts the title box before the req number", "S40", edit("search.html", (s) => { const L = s.split(String.fromCharCode(10)), seps = L.map((l, i) => (l.includes('class="srch-sep"') ? i : -1)).filter((i) => i >= 0), btn = L.findIndex((l) => l.includes('<button type="submit" id="searchBtn"')); if (seps.length !== 2 || btn < 0) throw new Error("form shape changed"); return [...L.slice(0, seps[0] + 1), ...L.slice(seps[1] + 1, btn), L[seps[1]], ...L.slice(seps[0] + 1, seps[1]), ...L.slice(btn)].join(String.fromCharCode(10)); }));
+control("the search form puts the title box before the req number", "S40", edit("search.html", (s) => { const L = s.split(String.fromCharCode(10)), pair = L.findIndex((l) => l.includes('class="srch-pair"')), or = L.findIndex((l) => l.includes('class="srch-or"')), btn = L.findIndex((l) => l.includes('<button type="submit" id="searchBtn"')); if (pair < 0 || or < pair || btn < or + 3) throw new Error("form shape changed"); return [...L.slice(0, pair + 1), ...L.slice(or + 1, btn - 2), L[or], ...L.slice(pair + 1, or), ...L.slice(btn - 2)].join(String.fromCharCode(10)); }));
 control("the title box label goes back to Title or postID", "S40", edit("search.html", (s) => s.replace(">PostID, or part of the title\n", ">Title or postID\n")));
 control("the company box is no longer described by its hint", "S40", edit("search.html", (s) => s.replace(' aria-describedby="companyHint"', "")));
 control("the title box is no longer described by the title note", "S40", edit("search.html", (s) => s.replace('aria-describedby="titleHint reqHint titleNote"', 'aria-describedby="titleHint reqHint"')));
@@ -624,8 +624,8 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the landing note ignores the page", "S50", edit("js/app.js", (s) => s.replace("landingKindForPage(location.pathname, location.search) || flag", "flag")));
   control("the landing note ignores the role check", "S50", edit("js/app.js", (s) => s.replace("kind === \"poster\" && session.isPoster ? landingText(\"poster\")", "kind === \"poster\" ? landingText(\"poster\")")));
   control("the home button says Search a company again", "S50", edit("index.html", (s) => s.replace("<a class=\"btn btn-dark\" href=\"search.html\">Look up a posting</a>", "<a class=\"btn btn-dark\" href=\"search.html\">Search a company</a>")));
-  control("the home sentence goes back to the old wording", "S50", edit("index.html", (s) => s.replace("Look up a posting by company and req number, or by company and title, before applying. No account required.", "Search by company and title before applying. No account required to look up a posting.")));
-  control("the home sentence is reworded", "S50", edit("index.html", (s) => s.replace("or by company and title, before applying.", "or by title, before applying.")));
+  control("the home sentence goes back to the old wording", "S50", edit("index.html", (s) => s.replace("Look up a posting by company and req number, or by company and postID or title, before applying. No account required.", "Search by company and title before applying. No account required to look up a posting.")));
+  control("the home sentence is reworded", "S50", edit("index.html", (s) => s.replace("or by company and postID or title, before applying.", "or by title, before applying.")));
   control("the old wording appears on another page", "S50", edit("privacy.html", (s) => s.replace("<h1", "<p>Search a company</p><h1")));
   control("the report section is shown whatever the posting has", "S50", edit("js/pages/comments.js", (s) => s.replace("$(\"#reportWrap\").hidden = !picker;", "$(\"#reportWrap\").hidden = false;")));
   control("the report section is shown again somewhere", "S50", edit("js/pages/comments.js", (s) => s.replace("async function sessionEnded() {", "async function sessionEnded() { if (false) $(\"#reportWrap\").hidden = false;")));
@@ -647,6 +647,25 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the search UI test is missing", "S50", (dir) => { fs.rmSync(path.join(dir, "tests/search-ui.test.js")); });
   control("the search UI test loses its negative controls", "S50", edit("tests/search-ui.test.js", (s) => s.replace("negative controls: each defect", "controls skipped: each defect")));
   control("the report section test loses its negative controls", "S50", edit("tests/comments-report.test.js", (s) => s.replace("negative controls: each defect", "controls skipped: each defect")));
+}
+
+// S51 (2026-10-05): home step 3, the search form's boxes, the callback without the flash on employer pages.
+{
+  control("the home heading goes back to Candidates verify", "S51", edit("index.html", (s) => s.replace("Candidates look up</h3>", "Candidates verify</h3>")));
+  control("the home step 3 sentence goes back to the earlier wording", "S51", edit("index.html", (s) => s.replace("Look up a posting by company and req number, or by company and postID or title, before applying. No account required.", "Look up a posting by company and req number, or by company and title, before applying. No account required.")));
+  control("the old heading appears on another page", "S51", edit("privacy.html", (s) => s.replace("<h1", "<h3>Candidates verify</h3><h1")));
+  control("the Company label loses (required)", "S51", edit("search.html", (s) => s.replace(" <span class=\"srch-req\">(required)</span>", "")));
+  control("the company box is no longer aria-required", "S51", edit("search.html", (s) => s.replace(" type=\"text\" aria-required=\"true\" maxlength=\"200\"", " type=\"text\" maxlength=\"200\"")));
+  control("the group loses its role", "S51", edit("search.html", (s) => s.replace("class=\"srch-group\" role=\"group\" aria-labelledby=\"oneOfHead\"", "class=\"srch-group\"")));
+  control("the group loses its label link", "S51", edit("search.html", (s) => s.replace(" role=\"group\" aria-labelledby=\"oneOfHead\"", " role=\"group\"")));
+  control("the heading Then one of these is gone", "S51", edit("search.html", (s) => s.replace("<div id=\"oneOfHead\" class=\"srch-then\">Then one of these</div>", "<div id=\"oneOfHead\" class=\"srch-then\"></div>")));
+  control("the visible or is gone", "S51", edit("search.html", (s) => s.replace("<div class=\"srch-or\">or</div>", "<div class=\"srch-or\"></div>")));
+  control("the old sentence is back", "S51", edit("search.html", (s) => s.replace("Company is required. Then fill in one of the other two boxes: the req number, or the postID / title box, not both. The req number is hidden as you type; press Show to check it.", "Fill in only one of the two lookup boxes: the req number, or the postID / title box. The req number is hidden as you type; press Show to check it.")));
+  control("the new sentence is reworded", "S51", edit("search.html", (s) => s.replace("not both.", "not both!")));
+  control("the required word loses its ember color", "S51", edit("app.css", (s) => s.replace(".srch-req{text-transform:none;letter-spacing:0;font-weight:700;color:var(--ember)}", ".srch-req{text-transform:none;letter-spacing:0;font-weight:700}")));
+  control("the or loses its rule", "S51", edit("app.css", (s) => s.replace(".srch-or{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700;color:var(--muted)}", ".srch-or{display:none}")));
+  control("the callback flashes on employer pages again", "S51", edit("js/pages/auth-callback.js", (s) => s.replace("landingKindForPage(\"/\" + destPage[0], destPage[1] ? \"?\" + destPage[1] : \"\") !== \"poster\")", "true)")));
+  control("the search form test loses its grouping checks", "S51", edit("tests/search-ui.test.js", (s) => s.split("Then one of these").join("Then one")));
 }
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });

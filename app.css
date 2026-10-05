@@ -208,6 +208,15 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .modal-backdrop{touch-action:none;overscroll-behavior:contain}
 .modal{touch-action:pan-y;overscroll-behavior:contain}
 
+/* the search form's three boxes (October 5, 2026): Company is required, then ONE of the req number or the postID / title box. "(required)" is real text in the ember red; the two other boxes sit under the heading "Then one of these"
+   in a labelled group with a visible "or" between them. On a wide window the three boxes stay in one row; on a narrow one (760 pixels and below) they stack. */
+.srch-req{text-transform:none;letter-spacing:0;font-weight:700;color:var(--ember)}
+.srch-then{font-size:13px;font-weight:700;line-height:20px;color:var(--ink);padding:8px 12px 0 12px}
+.srch-company{margin-top:28px}
+.srch-or{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700;color:var(--muted)}
+.srch-or::before,.srch-or::after{content:"";flex:1;width:1px;min-height:10px;background:var(--line)}
+@media (max-width:760px){.srch-company{margin-top:0}.srch-group{flex:none!important}.srch-pair{flex-direction:column!important}.srch-or{flex-direction:row;padding:0 12px}.srch-or::before,.srch-or::after{width:auto;min-height:0;height:1px}}
+
 /* phone layout for the pages themselves (October 4, 2026). The pages were desktop designs: 64 pixel side padding on every section, 28 pixel padding inside every card (a card's content got about 190 of 375 pixels)
    and every two-column layout stayed two columns. At 640 pixels and below: pages use 16 pixel sides, cards 16 pixel inside, two columns stack, side-by-side fields go one per row, tables become one card per row,
    buttons and links are 44 pixel targets, and form text is 16 pixels (a phone browser zooms the page when a smaller field is focused). Above 640 pixels nothing here applies.

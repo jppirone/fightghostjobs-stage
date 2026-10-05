@@ -228,6 +228,25 @@ SCENARIOS.landingNotes = async (site) => {
   } finally { await A.close(); }
   return bad;
 };
+// A3 (October 5, 2026): a both-roles address that asked for an employer page does not see the "Email verified / You can search now." flash on the way; a candidate destination keeps it exactly as it was.
+SCENARIOS.callbackFlash = async (site) => {
+  const bad = []; site.calls.length = 0;
+  const A = await browser.newTab();
+  try {
+    await A.onNewDocument("if (location.pathname.endsWith('auth-callback.html')) { new MutationObserver(() => { const t = document.getElementById('title'); if (t && /Email verified/.test(t.textContent)) sessionStorage.setItem('__flash', 'yes'); }).observe(document, { childList: true, subtree: true, characterData: true }); }");
+    const cases = [["both", "dashboard.html", false], ["both", "team.html", false], ["both", "register.html", false], ["candidate", "search.html", true], ["both", "search.html", true], ["candidate", "comments.html?ref=" + REF, true]];
+    for (const [kind, page, flash] of cases) {
+      await clean(A, site);
+      await A.eval("localStorage.setItem('fgj-landing-page', JSON.stringify({ v: " + JSON.stringify(page) + ", exp: Date.now() + 600000 }))");
+      await A.goto(site.url + "/_dev/link?kind=" + kind);
+      if (!(await A.waitFor("location.pathname === '/" + page.split("?")[0] + "'", 12000))) { bad.push(kind + " to " + page + ": did not land there"); continue; }
+      await sleep(500);
+      const saw = (await A.eval("sessionStorage.getItem('__flash')")) === "yes";
+      if (saw !== flash) bad.push(kind + " session going to " + page.split("?")[0] + ": the 'Email verified' flash " + (saw ? "showed" : "did not show") + " (wanted " + (flash ? "shown" : "not shown") + ")");
+    }
+  } finally { await A.close(); }
+  return bad;
+};
 async function clean0(tab, site) { await tab.goto(site.url + "/404.html"); }
 
 async function withSite(root, fn) { const site = await startFakeSite(root); try { return await fn(site); } finally { await site.close(); } }
@@ -241,6 +260,8 @@ test("the sign-in link in a new tab: search, no search, expiry, tab in front, em
 
 // ---- negative controls ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 const DEFECTS = [
+  ["the callback flashes Email verified on employer pages again", ["callbackFlash"], "js/pages/auth-callback.js", (s) => s.replace('landingKindForPage("/" + destPage[0], destPage[1] ? "?" + destPage[1] : "") !== "poster")', "true)")],
+  ["the callback never flashes Email verified (the candidate keeps nothing)", ["callbackFlash"], "js/pages/auth-callback.js", (s) => s.replace('say("Email verified", "You can search now.", []);', "")],
   ["the landing note is chosen by the flag the callback left (the page is ignored)", ["landingNotes"], "js/app.js", (s) => s.replace("const kind = landingKindForPage(location.pathname, location.search) || flag;", "const kind = flag;")],
   ["the landing note is chosen by the session's role (employer wording whenever there is an employer claim)", ["landingNotes"], "js/app.js", (s) => s.replace("const kind = landingKindForPage(location.pathname, location.search) || flag;", 'const kind = session.isPoster ? "poster" : "candidate";')],
   ["the Team page is missing from the employer pages", ["landingNotes"], "js/landing-notice.js", (s) => s.replace('"analytics.html", "team.html", ', '"analytics.html", ')],

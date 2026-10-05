@@ -23,6 +23,8 @@ async function connect(target) {
   };
   return {
     id: target.id, send, eval: evalOn, errors: () => errs.slice(), clearErrors: () => { errs.length = 0; },
+    // run a script in every document this tab loads from now on, before the page's own scripts
+    async onNewDocument(source) { await send("Page.addScriptToEvaluateOnNewDocument", { source }); },
     // make the page count as focused (a headless page is not): :focus and :focus-visible apply to a field that gets focus
     async focusEmulation(on) { await send("Emulation.setFocusEmulationEnabled", { enabled: !!on }); },
     // a touch swipe (dy < 0 scrolls the page down) or a mouse wheel, at a point of the window

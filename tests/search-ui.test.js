@@ -82,6 +82,45 @@ async function fieldProblems(tab, width, phone) {
   return bad;
 }
 
+// ---- the three boxes: Company (required), then ONE of the req number or the postID / title box (October 5, 2026). Wording is exact; the group is labelled; the visible "or" sits between the two; the three boxes keep their layout.
+const NEW_SENTENCE = "Company is required. Then fill in one of the other two boxes: the req number, or the postID / title box, not both. The req number is hidden as you type; press Show to check it.";
+const FORM_CHECK = `(() => {
+  const q = (s) => document.querySelector(s);
+  const vis = (e) => { if (!e) return false; const c = getComputedStyle(e), r = e.getBoundingClientRect(); return c.display !== "none" && c.visibility !== "hidden" && r.width > 0 && r.height > 0; };
+  const rect = (s) => { const r = q(s).getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; };
+  const lab = q("label[for=company]"), req = q("label[for=company] .srch-req"), g = q("#searchForm [role=group]"), orEl = q(".srch-or"), head = q("#oneOfHead");
+  const rgb = req ? getComputedStyle(req).color.match(/\\d+/g).map(Number) : [0, 0, 0];
+  const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const L = 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+  return { label: lab ? lab.innerText.trim() : null, reqText: req ? req.textContent : null, reqVisible: vis(req), reqEmber: rgb[0] > rgb[1] + 80 && rgb[0] > rgb[2] + 80, reqContrast: 1.05 / (L + 0.05), aria: q("#company").getAttribute("aria-required"),
+    groupOk: !!g && g.getAttribute("aria-labelledby") === "oneOfHead" && !!head && head.textContent === "Then one of these" && vis(head), groupHolds: g ? Array.from(g.querySelectorAll("input")).map((i) => i.id).join() : "",
+    orText: orEl ? orEl.innerText.trim() : null, orVisible: vis(orEl), sentence: q("#reqHint").textContent.trim(), note: q("#titleNote").textContent.trim(),
+    c: rect("#company"), r: rect("#reqq"), t: rect("#titleq"), o: orEl ? rect(".srch-or") : null, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth };
+})()`;
+async function formStructureProblems(tab, width, phone) {
+  const bad = [], tag = "form at " + width + ": ";
+  await tab.viewport(width, phone); await sleep(250);
+  const f = await tab.eval(FORM_CHECK);
+  if (f.label !== "COMPANY (required)") bad.push(tag + "the Company label reads '" + f.label + "' (wanted COMPANY (required))");
+  if (f.reqText !== "(required)" || !f.reqVisible) bad.push(tag + "the word (required) is not real visible text");
+  if (!f.reqEmber || f.reqContrast < 4.5) bad.push(tag + "the word (required) is not ember red with enough contrast (" + f.reqContrast.toFixed(2) + ")");
+  if (f.aria !== "true") bad.push(tag + "the Company box is not aria-required");
+  if (!f.groupOk) bad.push(tag + "the two lookup boxes are not in a labelled group under the heading Then one of these");
+  if (f.groupHolds !== "reqq,titleq") bad.push(tag + "the group holds " + f.groupHolds + " (wanted reqq,titleq)");
+  if (f.orText !== "or" || !f.orVisible) bad.push(tag + "there is no visible or between the two boxes");
+  if (f.sentence !== NEW_SENTENCE) bad.push(tag + "the sentence under the form is '" + f.sentence + "'");
+  if (!f.note.startsWith("A title search will not list all of a company's jobs, and it will not show postings that are not live. Closed or expired postings are found only by postID or req number.")) bad.push(tag + "the second line under the form changed: " + f.note.slice(0, 80));
+  if (f.sw > f.cw + 0.5) bad.push(tag + "the page scrolls sideways");
+  if (width >= 1000) {
+    if (!(f.c.l < f.r.l && f.r.l < f.t.l) || Math.abs(f.c.t - f.r.t) > 60 || Math.abs(f.r.t - f.t.t) > 6) bad.push(tag + "the three boxes are not in one row, company then req then title: " + JSON.stringify([f.c, f.r, f.t]));
+    if (f.o && !(f.r.r <= f.o.l + 1 && f.o.r <= f.t.l + 1)) bad.push(tag + "the or does not sit between the req number box and the postID / title box");
+  } else {
+    if (!(f.c.t < f.r.t && f.r.t < f.t.t)) bad.push(tag + "the three boxes are not stacked company, req, title");
+    if (f.o && !(f.r.b <= f.o.t + 1 && f.o.b <= f.t.t + 40)) bad.push(tag + "the or does not sit between the two boxes when stacked");
+  }
+  return bad;
+}
+
 // ---- the details window: the page behind it must not scroll
 async function lockProblems(tab, site, width, phone) {
   const bad = [], tag = (phone ? "phone " : "desktop ") + width + ": ";
@@ -129,6 +168,7 @@ async function lockProblems(tab, site, width, phone) {
 
 const SCENARIOS = {
   async fields(site) { const tab = await browser.newTab(); try { await openSearch(tab, site, "out"); const bad = []; for (const [w, p] of [[320, true], [375, true], [1280, false]]) bad.push(...(await fieldProblems(tab, w, p))); return bad; } finally { await tab.close(); } },
+  async form(site) { const tab = await browser.newTab(); try { await openSearch(tab, site, "out"); const bad = []; for (const [w, p] of [[1280, false], [375, true], [320, true]]) bad.push(...(await formStructureProblems(tab, w, p))); return bad; } finally { await tab.close(); } },
   async lockPhone(site) { const tab = await browser.newTab(); try { await openSearch(tab, site, "cand"); return await lockProblems(tab, site, 375, true); } finally { await tab.close(); } },
   async lockDesktop(site) { const tab = await browser.newTab(); try { await openSearch(tab, site, "cand"); return await lockProblems(tab, site, 1280, false); } finally { await tab.close(); } },
 };
@@ -141,6 +181,19 @@ test("search page: the three fields have a visible line and a focus ring; the de
 });
 
 const CSS_NO_TOUCH = (s) => s.replace(".modal-backdrop{touch-action:none;overscroll-behavior:contain}", "").replace(".modal{touch-action:pan-y;overscroll-behavior:contain}", "");
+const FORM_DEFECTS = [
+  ["the Company label loses (required)", ["form"], [["search.html", (s) => s.replace(' <span class="srch-req">(required)</span>', "")]]],
+  ["the word required loses its ember color", ["form"], [["app.css", (s) => s.replace(".srch-req{text-transform:none;letter-spacing:0;font-weight:700;color:var(--ember)}", ".srch-req{text-transform:none;letter-spacing:0;font-weight:700;color:var(--muted)}")]]],
+  ["the Company box is not aria-required", ["form"], [["search.html", (s) => s.replace(' type="text" aria-required="true" maxlength="200"', ' type="text" maxlength="200"')]]],
+  ["the group has no role", ["form"], [["search.html", (s) => s.replace(' role="group" aria-labelledby="oneOfHead"', "")]]],
+  ["the group is not labelled by its heading", ["form"], [["search.html", (s) => s.replace('aria-labelledby="oneOfHead"', 'aria-labelledby="nothing"')]]],
+  ["the heading Then one of these is missing", ["form"], [["search.html", (s) => s.replace("Then one of these</div>", "</div>")]]],
+  ["the visible or is missing", ["form"], [["search.html", (s) => s.replace('<div class="srch-or">or</div>', '<div class="srch-or"></div>')]]],
+  ["the or is hidden by the stylesheet", ["form"], [["app.css", (s) => s.replace(".srch-or{display:flex;", ".srch-or{display:none;")]]],
+  ["the old sentence is back", ["form"], [["search.html", (s) => s.replace(NEW_SENTENCE, "Fill in only one of the two lookup boxes: the req number, or the postID / title box. The req number is hidden as you type; press Show to check it.")]]],
+  ["the second line under the form is changed", ["form"], [["search.html", (s) => s.replace("Closed or expired postings are found only by postID or req number.", "Closed postings are found by postID.")]]],
+  ["the three boxes are stacked on a wide window", ["form"], [["app.css", (s) => s.replace(".srch-company{margin-top:28px}", ".srch-company{margin-top:28px}.srch-form{flex-direction:column!important}")]]],
+];
 const DEFECTS = [
   ["the fields lose their line (the old border:none)", ["fields"], [["app.css", (s) => s.replace(".srch-input{border-bottom:2px solid #8A8379!important;border-radius:0!important;padding-bottom:6px!important}", ".srch-input{border-bottom:0!important}")]]],
   ["the line is too light (1.5 to 1)", ["fields"], [["app.css", (s) => s.replace("border-bottom:2px solid #8A8379!important", "border-bottom:2px solid #D8D2C6!important")]]],
@@ -155,7 +208,7 @@ const DEFECTS = [
 ];
 test("negative controls: each defect in the search fields or the scroll lock makes a check fail", { timeout: 900000 }, async () => {
   const missed = [];
-  for (const [label, scenarios, edits] of DEFECTS) {
+  for (const [label, scenarios, edits] of [...DEFECTS, ...FORM_DEFECTS]) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fgj-sui-ctl-"));
     try {
       fs.cpSync(ROOT, dir, { recursive: true, filter: (src) => !/[\\/](\.git|node_modules)([\\/]|$)/.test(src) });

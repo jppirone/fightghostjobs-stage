@@ -5,7 +5,7 @@
 import { api, go, signOut, describeError, posterInfo, forgetLocalState } from "../app.js";
 import { currentSession, takeNext } from "../session.js";
 import { $, h, clear } from "../dom.js";
-import { markLanded } from "../landing-notice.js";
+import { markLanded, landingKindForPage } from "../landing-notice.js";
 
 const hashError = (() => {
   // read BEFORE the Auth client tidies the fragment away
@@ -67,7 +67,9 @@ const button = (text, fn, cls = "btn btn-ghost") => h("button", { type: "button"
       [button("Sign out", async () => { await signOut(); go("search.html"); }), link("Back", "register.html", "btn btn-outline")]);
     return;
   }
-  say("Email verified", "You can search now.", []);
+  // a both-roles address that asked for an employer page: no "Email verified / You can search now." flash on the way to an employer page (nothing replaces it). A candidate destination keeps the flash.
+  const dest = next || "search.html", destPage = dest.split("?");
+  if (landingKindForPage("/" + destPage[0], destPage[1] ? "?" + destPage[1] : "") !== "poster") say("Email verified", "You can search now.", []);
   markLanded(sessionStorage, "candidate");
-  go(next || "search.html");
+  go(dest);
 })();

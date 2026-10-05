@@ -41,6 +41,7 @@
 //   S48 the pages at phone widths: the phone block in app.css (all of it inside the 640 and 360 pixel media blocks), the classes, the table roles and data-labels, the labelled scroll areas, and the browser test tests/phone-layout.test.js
 //   S49 the sign-in link opens in a new tab: pending search and landing page in localStorage (one hour, removed when used, never sent), a watch for a sign-in in another tab, the two notices pinned until John approves new wording, and tests/signin-tabs.test.js
 //   S50 the stage recheck round: landing wording by page, the home page wording (Look up a posting), Report a wrong link only for a posting with links, the search fields' visible line, the details window's scroll lock, and the tests that prove them
+//   S51 the home page's step 3 (Candidates look up), the search form's three boxes (Company required, Then one of these, a visible or, the approved sentence) and the callback without the flash on employer pages
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
 import fs from "node:fs";
@@ -733,7 +734,7 @@ export function checkSite(root) {
         "No ID? Use the company name plus part of the job title, copied from the posting if you can.",
         "Must match the employer's name. We ignore endings like Inc., Co. and LLC.",
         "A title search will not list all of a company's jobs, and it will not show postings that are not live. Closed or expired postings are found only by postID or req number.",
-        "Fill in only one of the two lookup boxes: the req number, or the postID / title box.",
+        "Company is required. Then fill in one of the other two boxes: the req number, or the postID / title box, not both. The req number is hidden as you type; press Show to check it.",
       ]) if (!t.includes(s)) add("S40", sh, "the search guidance must say: " + s);
       const form = (t.match(/<form id="searchForm"[\s\S]*?<\/form>/) || [""])[0];
       const inputs = [...form.matchAll(/<input\b[^>]*\bid="([^"]*)"/g)].map((m) => m[1]);
@@ -1025,7 +1026,7 @@ export function checkSite(root) {
     }
     if (fs.existsSync(ixF)) {
       const t = read(ixF);
-      if (!t.includes('<a class="btn btn-dark" href="search.html">Look up a posting</a>') || !t.includes("Look up a posting by company and req number, or by company and title, before applying. No account required.")) add("S50", ixF, "the home page must carry the approved wording: the button Look up a posting and the sentence Look up a posting by company and req number, or by company and title, before applying. No account required.");
+      if (!t.includes('<a class="btn btn-dark" href="search.html">Look up a posting</a>') || !t.includes("Look up a posting by company and req number, or by company and postID or title, before applying. No account required.")) add("S50", ixF, "the home page must carry the approved wording: the button Look up a posting and the sentence " + "Look up a posting by company and req number, or by company and postID or title, before applying. No account required.");
     }
     for (const f of html.concat(js)) { const t = read(f); if (/Search a company|Search by company and title before applying/.test(t)) add("S50", f, "the old wording that says a company is what is searched (Search a company; Search by company and title before applying) must not come back"); }
     if (fs.existsSync(cmF)) {
@@ -1052,6 +1053,29 @@ export function checkSite(root) {
       if (/\b(fetch|XMLHttpRequest|localStorage|sessionStorage|document\.cookie|console\.)\b/.test(s) || /position\s*=\s*["']fixed/.test(s)) add("S50", slF, "the scroll lock keeps nothing, sends nothing and does not use position fixed on the body");
     } else add("S50", slF, "js/scroll-lock.js is missing");
     for (const [tf, nm] of [["comments-report.test.js", "negative controls: each defect in the report section makes a scenario fail"], ["search-ui.test.js", "negative controls: each defect in the search fields or the scroll lock makes a check fail"]]) { const p = path.join(root, "tests", tf); if (!fs.existsSync(p)) add("S50", p, "the browser test " + tf + " is missing"); else if (!read(p).includes("test(\"" + nm + "\"")) add("S50", p, tf + " must keep its negative controls test: " + nm); }
+  }
+
+  // S51 (2026-10-05): the home page's step 3 and the search form's three boxes. Step 3 reads "Candidates look up" and its approved sentence; the search form says Company is REQUIRED (real text in the ember red), puts the req number and the
+  // postID / title box under the heading "Then one of these" in a labelled group with a visible "or" between them, and carries the approved sentence under the form; the old sentence and the old heading must not come back. The callback
+  // does not flash "Email verified / You can search now." on the way to an employer page.
+  {
+    const ixF = path.join(root, "index.html"), shF = path.join(root, "search.html"), cssF = path.join(root, "app.css"), cbF = path.join(root, "js", "pages", "auth-callback.js"), uiF = path.join(root, "tests", "search-ui.test.js");
+    if (fs.existsSync(ixF)) { const t = read(ixF); if (!t.includes('<h3 style="font-size:19px;font-weight:700;">Candidates look up</h3>') || !t.includes("Look up a posting by company and req number, or by company and postID or title, before applying. No account required." + "</p>")) add("S51", ixF, "home step 3 must read Candidates look up, with the approved sentence"); }
+    for (const f of html.concat(js)) { if (/Candidates verify/.test(read(f))) add("S51", f, "the old heading Candidates verify must not come back on an app page"); }
+    if (fs.existsSync(shF)) {
+      const t = read(shF);
+      if (!t.includes('>Company <span class="srch-req">(required)</span></label>') || !/<input id="company" class="srch-input" type="text" aria-required="true"/.test(t)) add("S51", shF, "the Company label must say (required) as real text, and the company box must be aria-required");
+      const g = t.indexOf('<div class="srch-group" role="group" aria-labelledby="oneOfHead"'), h = t.indexOf('<div id="oneOfHead" class="srch-then">Then one of these</div>'), a = t.indexOf('<input id="reqq"'), o = t.indexOf('<div class="srch-or">or</div>'), b = t.indexOf('<input id="titleq"'), c = t.indexOf('<input id="company"');
+      if (!(c >= 0 && c < g && g < h && h < a && a < o && o < b)) add("S51", shF, "the req number box and the postID / title box must sit in a labelled group (role=group, aria-labelledby=oneOfHead) under the heading Then one of these, with a visible or between them, after the company box");
+      if (!t.includes("Company is required. Then fill in one of the other two boxes: the req number, or the postID / title box, not both. The req number is hidden as you type; press Show to check it.")) add("S51", shF, "the sentence under the form must be the approved one: " + "Company is required. Then fill in one of the other two boxes: the req number, or the postID / title box, not both. The req number is hidden as you type; press Show to check it.");
+      if (t.includes("Fill in only one of the two lookup boxes")) add("S51", shF, "the old sentence (Fill in only one of the two lookup boxes) must not come back");
+    }
+    if (fs.existsSync(cssF)) {
+      const c = read(cssF);
+      for (const [needle, why] of [[".srch-req{text-transform:none;letter-spacing:0;font-weight:700;color:var(--ember)}", "the word (required) is ember red real text"], [".srch-or{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700;color:var(--muted)}", "the visible or between the two boxes"], [".srch-then{font-size:13px;font-weight:700;line-height:20px;color:var(--ink);padding:8px 12px 0 12px}", "the heading Then one of these"]]) if (!c.includes(needle)) add("S51", cssF, "app.css must keep: " + why);
+    }
+    if (fs.existsSync(cbF)) { const s = stripJsComments(read(cbF)); if (!s.includes('landingKindForPage("/" + destPage[0], destPage[1] ? "?" + destPage[1] : "") !== "poster") say("Email verified", "You can search now.", []);')) add("S51", cbF, "the callback must skip the Email verified flash when the destination is an employer page"); }
+    if (fs.existsSync(uiF) && !read(uiF).includes("Then one of these")) add("S51", uiF, "tests/search-ui.test.js must test the search form's grouping");
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");
