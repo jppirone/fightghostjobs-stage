@@ -11,6 +11,10 @@ const steps = [
   ["sign-in link in a new tab, two real tabs (needs Chrome or Edge)", [path.join(here, "signin-tabs.test.js")], true],
   ["comments page: Report a wrong link only for a posting with links (real browser)", [path.join(here, "comments-report.test.js")], true],
   ["search page: the field lines, the focus ring and the scroll lock of the details window (real browser)", [path.join(here, "search-ui.test.js")], true],
+  ["top bar: Tab order equals the drawn order, every width and page (real browser)", [path.join(here, "header-tab-order.test.js")], true],
+  ["search page for keyboard and screen readers: one status message, the details window focus handling (real browser)", [path.join(here, "search-a11y.test.js")], true],
+  ["edit page: the unsaved bar is announced once each way (real browser)", [path.join(here, "edit-a11y.test.js")], true],
+  ["every link and control is at least 24 x 24 CSS pixels (real browser)", [path.join(here, "target-size.test.js")], true],
   ["static site rules", [path.join(here, "site-check.js")], false],
   ["static rules: negative controls", [path.join(here, "site-check.controls.js")], false],
 ];

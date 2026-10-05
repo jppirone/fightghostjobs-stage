@@ -6,8 +6,8 @@
 //        getModel(): { form, panels, status, noteMissing, noteRequired },   save(): Promise<boolean> (true when the main form was saved),   discard(): void,
 //        go(url), activeElement(): the focused element, confirmDiscard(): boolean, rescueFocus(): where focus goes when the bar closes with focus inside it }
 //   win: needs addEventListener / removeEventListener (the window); root: the <html> element (gets the class unsaved-on while the bar shows)
-// -> { refresh, isDirty, summary, announce, interceptClick, openDialog, dialogOpen, allowLeave }
-import { summarize, linkLeaves } from "./dirty-state.js";
+// -> { refresh, isDirty, summary, announce, hush, interceptClick, openDialog, dialogOpen, allowLeave }
+import { summarize, linkLeaves, UNSAVED } from "./dirty-state.js";
 
 // is node inside ancestor (works on a real DOM and on the small fake the tests use)
 const within = (node, ancestor) => { for (let n = node; n; n = n.parentNode || n.parent) if (n === ancestor) return true; return false; };
@@ -15,20 +15,22 @@ const isBody = (el) => !el || String(el.tagName || el.tag || "").toUpperCase() =
 
 export function mountUnsavedGuard(ctx) {
   const { win, root, bar, head, detail, live, saveBtn, discardBtn, dlg } = ctx;
-  let listening = false, leaving = false, lastLive = "", dialog = null, bypass = false, busy = false;
+  let listening = false, leaving = false, lastLive = "", dialog = null, bypass = false, busy = false, hushed = false;
 
   const summary = () => summarize(ctx.getModel());
   function onBeforeUnload(ev) { if (leaving) return undefined; ev.preventDefault(); ev.returnValue = ""; return ""; }
 
-  // redraw the bar and the leave-page warning from the page's current state; call it after anything that can change it
-  function refresh() {
-    const s = summary();
+  // redraw the bar and the leave-page warning from the page's current state; call it after anything that can change it. { quiet: true }: the caller says something itself about the bar going away (a discard)
+  // A screen reader is told once when the bar appears (what is unsaved) and once when it goes away (UNSAVED.CLEARED); focus never moves for either.
+  function refresh(opts) {
+    const s = summary(), quiet = hushed || !!(opts && opts.quiet), wasShown = !bar.hidden;
     const hadFocus = !s.any && within(ctx.activeElement(), bar);
     bar.hidden = !s.any;
     if (root && root.classList) root.classList.toggle("unsaved-on", s.any);
     if (s.any) { head.textContent = s.headline; detail.textContent = s.detail; saveBtn.hidden = !s.showSave; }
-    const say = s.any ? s.liveText : "";
-    if (say !== lastLive) { live.textContent = say; lastLive = say; }          // told once per change of meaning, not on every keystroke
+    // what the status says: the unsaved-changes message while the bar shows; when it has just closed, UNSAVED.CLEARED (or nothing, when the page says its own sentence); after that it is left alone, so the closing message is not wiped by the next refresh
+    const say = s.any ? s.liveText : (wasShown ? (quiet ? "" : UNSAVED.CLEARED) : null);
+    if (say !== null && say !== lastLive) { live.textContent = say; lastLive = say; }          // told once per change of meaning, not on every keystroke
     if (s.any && !listening) { win.addEventListener("beforeunload", onBeforeUnload); listening = true; }
     else if (!s.any && listening) { win.removeEventListener("beforeunload", onBeforeUnload); listening = false; }
     if (hadFocus && ctx.rescueFocus) ctx.rescueFocus();                          // the bar closed under the focus: keyboard users are not left on nothing
@@ -97,5 +99,7 @@ export function mountUnsavedGuard(ctx) {
 
   // say something to a screen reader through the polite live region (told once; the next refresh clears it)
   const announce = (text) => { live.textContent = text; lastLive = text; };
-  return { refresh, summary, announce, isDirty: () => summary().any, interceptClick, openDialog, dialogOpen: () => dialog !== null, allowLeave: () => { leaving = true; } };
+  // hush(true) while the page itself is about to say why the bar goes away (a discard redraws the form, which closes the bar before the discard sentence is spoken): the closing is not announced as well
+  const hush = (on) => { hushed = !!on; };
+  return { refresh, summary, announce, hush, isDirty: () => summary().any, interceptClick, openDialog, dialogOpen: () => dialog !== null, allowLeave: () => { leaving = true; } };
 }

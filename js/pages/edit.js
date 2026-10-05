@@ -362,10 +362,13 @@ function refreshUnsaved() {
 // Discard: the saved values go back into the form and every section (a fresh read of what was last loaded or saved; nothing is sent)
 async function discardAll() {
   if (!state.doc || state.busy) return;
-  await populate(state.doc, { saved: "*" });
-  if (shown("#linksPanel")) linkPanel.discard();            // the rows are drawn again from the stored links: an open edit form and what was typed in it are gone
-  showErrors({}); say(formAlert, "error", "");
-  guard.refresh();
+  guard.hush(true);                          // the discard says its own sentence, so the bar going away is not announced a second time
+  try {
+    await populate(state.doc, { saved: "*" });
+    if (shown("#linksPanel")) linkPanel.discard();            // the rows are drawn again from the stored links: an open edit form and what was typed in it are gone
+    showErrors({}); say(formAlert, "error", "");
+    guard.refresh();
+  } finally { guard.hush(false); }
   guard.announce(UNSAVED.DISCARDED);
 }
 guard = mountUnsavedGuard({

@@ -6,6 +6,8 @@ import { requestLink, currentSession, watchOtherTabSignIn } from "../session.js"
 import { savePending, takePending } from "../signin-handoff.js";
 import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js";
 import { lockScroll } from "../scroll-lock.js";
+import { trapFocus } from "../dialog-focus.js";
+import { makeAnnouncer } from "../search-status.js";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js";
 import { locationLine, waitText } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
@@ -14,7 +16,7 @@ import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, search
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
-const backdrop = $("#modalBackdrop");
+const backdrop = $("#modalBackdrop"), status = makeAnnouncer($("#searchStatus"), window);
 let session = null, busy = false, cooldownTimer = null;
 
 function setFormError(text) { formError.hidden = !text; formError.textContent = text || ""; }
@@ -83,11 +85,12 @@ function showResults(data, searched) {
   countEl.hidden = false;
   const n = data.results.length;
   if (n === 0) {
-    countEl.textContent = "No matching postings";
+    countEl.textContent = "No matching postings"; status.announce(countEl.textContent);
     resultsEl.append(h("div", { class: "empty-note", style: "margin-top:0;" }, noMatchMessage(searched.company, searched.query, searched.kind)));
     return;
   }
   countEl.textContent = n + (n === 1 ? " matching posting" : " matching postings") + (data.truncated ? ": showing the first 25; add more of the title to narrow it" : "");
+  status.announce(countEl.textContent);   // the one spoken message of this search (js/search-status.js)
   for (const row of data.results) resultsEl.append(renderCard(row));
 }
 
@@ -105,7 +108,9 @@ async function runSearch() {
     $("#candEmail").focus();
     return;
   }
+  const hadFocus = document.activeElement === searchBtn;   // a disabled button drops the focus: it is given back when the search is over (the screen-reader message that follows is spoken with the focus where it was)
   busy = true; searchBtn.disabled = true; const label = "Search"; searchBtn.textContent = "Searching…";
+  status.clear();
   let cooldown = 0;
   try {
     let r = await api.candidateSearch(q.kind === "req" ? { company: c.value, req: q.value } : q.kind === "code" ? { company: c.value, code: q.value } : { company: c.value, phrase: q.value });
@@ -120,7 +125,7 @@ async function runSearch() {
     setFormError(describeError(r.error));
   } finally {
     busy = false;
-    if (cooldown) startCooldown(searchBtn, cooldown, label); else { searchBtn.disabled = false; searchBtn.textContent = label; }
+    if (cooldown) startCooldown(searchBtn, cooldown, label); else { searchBtn.disabled = false; searchBtn.textContent = label; if (hadFocus && document.activeElement === document.body) searchBtn.focus(); }
   }
 }
 form.addEventListener("submit", (ev) => { ev.preventDefault(); runSearch(); });
@@ -132,7 +137,7 @@ reqToggle.addEventListener("click", () => {
 });
 
 // ---- the details dialog
-function openModal(row) {
+function openModal(row, opener) {
   $("#modalCompany").textContent = row.company_name;
   $("#modalTitle").textContent = row.title;
   $("#modalRefs").textContent = "postID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : "");
@@ -140,6 +145,8 @@ function openModal(row) {
   clear($("#modalLinks")); const empty = $("#modalEmpty"); empty.hidden = true; empty.textContent = ""; $("#modalLinksNote").hidden = true; $("#modalMore").hidden = true; clear($("#modalMore"));
   backdrop.classList.add("open");
   if (!unlockScroll) unlockScroll = lockScroll(document, window);   // the page behind does not scroll while the window is open; undone exactly in closeModal
+  // focus moves into the window, Tab stays inside it, the page behind is inert; closing returns focus to the button that opened it (js/dialog-focus.js)
+  if (!releaseFocus) releaseFocus = trapFocus({ doc: document, dialog: backdrop.querySelector(".modal"), backdrop, opener, fallback: resultsEl });
   return { links: $("#modalLinks"), empty };
 }
 // the thread and the private wrong-link report live on the posting's own comments page (reached only with the posting's opaque reference; never listed anywhere)
@@ -149,8 +156,8 @@ function moreLinks(row, count, withReport) {
   more.append(h("a", { href: page }, "Comments" + (Number.isInteger(count) ? " (" + count + ")" : "") + " →"));
   if (withReport) more.append(h("a", { href: page + "#report" }, "Report a wrong link →"));
 }
-let unlockScroll = null;
-function closeModal() { backdrop.classList.remove("open"); if (unlockScroll) { unlockScroll(); unlockScroll = null; } }
+let unlockScroll = null, releaseFocus = null;
+function closeModal() { backdrop.classList.remove("open"); if (unlockScroll) { unlockScroll(); unlockScroll = null; } if (releaseFocus) { releaseFocus(); releaseFocus = null; } }
 $("#modalClose").addEventListener("click", closeModal);
 backdrop.addEventListener("click", (ev) => { if (ev.target === backdrop) closeModal(); });
 document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") closeModal(); });
@@ -160,7 +167,7 @@ async function openDetails(row, button) {
   let cooldown = 0;
   try {
     const r = await api.candidateDetail(row.posting_ref);
-    const m = openModal(row);
+    const m = openModal(row, button);
     if (r.ok) {
       if (r.data.links.length === 0) {
         m.empty.hidden = false;

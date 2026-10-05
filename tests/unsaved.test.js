@@ -179,7 +179,7 @@ test("the bar: hidden and silent before any change; after a change it shows, say
   assert.match(d.live.textContent, /^You have unsaved changes\. They take effect only when you press Save changes\. This posting is live, so a change to it needs a note\./);
   assert.equal(d.win.count("beforeunload"), 1); r = d.win.run("beforeunload"); assert.equal(r.ev.defaultPrevented, true); assert.equal(r.ev.returnValue, "");
   pg.edit({ title: "Data Analyst" });
-  assert.equal(d.bar.hidden, true); assert.equal(d.live.textContent, "", "the screen reader region is emptied"); assert.equal(d.win.count("beforeunload"), 0); assert.equal(d.win.run("beforeunload").ev.defaultPrevented, false); assert.equal(d.classes.has("unsaved-on"), false);
+  assert.equal(d.bar.hidden, true); assert.equal(d.live.textContent, "No unsaved changes.", "the screen reader region says, once, that nothing is unsaved any more (October 5, 2026: it used to be emptied, which says nothing)"); assert.equal(d.win.count("beforeunload"), 0); assert.equal(d.win.run("beforeunload").ev.defaultPrevented, false); assert.equal(d.classes.has("unsaved-on"), false);
 });
 
 test("the bar's live region is announced once per change of meaning, not on every keystroke; the detail line follows the note", () => {

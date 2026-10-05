@@ -41,6 +41,7 @@
 //   S48 the pages at phone widths: the phone block in app.css (all of it inside the 640 and 360 pixel media blocks), the classes, the table roles and data-labels, the labelled scroll areas, and the browser test tests/phone-layout.test.js
 //   S49 the sign-in link opens in a new tab: pending search and landing page in localStorage (one hour, removed when used, never sent), a watch for a sign-in in another tab, the two notices pinned until John approves new wording, and tests/signin-tabs.test.js
 //   S50 the stage recheck round: landing wording by page, the home page wording (Look up a posting), Report a wrong link only for a posting with links, the search fields' visible line, the details window's scroll lock, and the tests that prove them
+//   S52 the accessibility round: header Tab order, one polite search status, the details window's focus handling, the unsaved bar's closing message, 24 pixel hit areas, and the four tests that prove them
 //   S51 the home page's step 3 (Candidates look up), the search form's three boxes (Company required, Then one of these, a visible or, the approved sentence) and the callback without the flash on employer pages
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
 //       attribution is on the page, the catalog files are the ones recorded in their manifest, and only js/location-catalog.js loads the catalog module
@@ -1076,6 +1077,48 @@ export function checkSite(root) {
     }
     if (fs.existsSync(cbF)) { const s = stripJsComments(read(cbF)); if (!s.includes('landingKindForPage("/" + destPage[0], destPage[1] ? "?" + destPage[1] : "") !== "poster") say("Email verified", "You can search now.", []);')) add("S51", cbF, "the callback must skip the Email verified flash when the destination is an employer page"); }
     if (fs.existsSync(uiF) && !read(uiF).includes("Then one of these")) add("S51", uiF, "tests/search-ui.test.js must test the search form's grouping");
+  }
+
+  // S52 (2026-10-05): accessibility round from John's keyboard-only pass (October 4, 2026). The top bar's Tab order follows what is drawn (js/header-order.js, breakpoints equal the stylesheet's 640 and 1080); the search page has ONE polite
+  // status message per search (#searchStatus, js/search-status.js) and the visible count is not read a second time; the details window takes focus, traps Tab, makes the page inert and gives focus back (js/dialog-focus.js); the unsaved
+  // bar says once that it is gone; every link and control has a 24 pixel hit area without a look change (the hit-area rules in app.css, class hit on the two links the audit named); and the four tests that prove it exist and are in run-all.
+  {
+    const hoF = path.join(root, "js", "header-order.js"), appF = path.join(root, "js", "app.js"), cssF = path.join(root, "app.css"), shF = path.join(root, "search.html"), srF = path.join(root, "js", "pages", "search.js");
+    const ssF = path.join(root, "js", "search-status.js"), dfF = path.join(root, "js", "dialog-focus.js"), dsF = path.join(root, "js", "dirty-state.js"), ugF = path.join(root, "js", "unsaved-guard.js"), ixF = path.join(root, "index.html"), rgF = path.join(root, "register.html"), raF = path.join(root, "tests", "run-all.js");
+    if (!fs.existsSync(hoF)) add("S52", hoF, "js/header-order.js must exist (the top bar's Tab order follows what is drawn)");
+    else {
+      const t = stripJsComments(read(hoF));
+      if (!t.includes('PHONE_QUERY = "(max-width:640px)"') || !t.includes('MIDDLE_QUERY = "(max-width:1080px)"')) add("S52", hoF, "header-order.js must use the stylesheet's own breakpoints: (max-width:640px) and (max-width:1080px)");
+      if (fs.existsSync(cssF)) { const c = read(cssF); if (!c.includes("@media (max-width:640px){") || !c.includes("@media (max-width:1080px){")) add("S52", cssF, "app.css must keep the 640 and 1080 pixel breakpoints that js/header-order.js mirrors"); }
+    }
+    if (fs.existsSync(appF)) {
+      const t = stripJsComments(read(appF));
+      if (!t.includes('import { orderHeader, watchHeaderOrder } from "./header-order.js";') || !t.includes("watchHeaderOrder(document, window)") || (t.match(/orderHeader\(document, window\);/g) || []).length < 3) add("S52", appF, "app.js must watch the header order and re-apply it after every kind of account area (signed in as an employer, as a candidate, signed out)");
+    }
+    if (fs.existsSync(shF)) {
+      const t = read(shF);
+      if (!t.includes('<div id="searchStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>')) add("S52", shF, "the search page must carry the polite search status message (#searchStatus, role=status, aria-live=polite, aria-atomic=true)");
+      if (!t.includes('<div id="resultCount" class="result-count" aria-hidden="true" hidden></div>')) add("S52", shF, "the visible result count must be aria-hidden so it is not read a second time");
+    }
+    if (fs.existsSync(srF)) {
+      const t = stripJsComments(read(srF));
+      for (const [needle, why] of [['import { makeAnnouncer } from "../search-status.js";', "the search status announcer"], ['import { trapFocus } from "../dialog-focus.js";', "the details window's focus handling"], ["countEl.textContent = \"No matching postings\"; status.announce(countEl.textContent);", "announce a search that found nothing"], ["status.clear();", "clear the status when a search starts"], ["releaseFocus = trapFocus({", "trap focus in the details window"], ["releaseFocus();", "give focus back when it closes"], ["openModal(row, button)", "the exact opener button"], ["hadFocus", "give the Search button its focus back"]]) if (!t.includes(needle)) add("S52", srF, "search.js must use " + why); if ((t.match(/status\.announce\(countEl\.textContent\)/g) || []).length < 2) add("S52", srF, "search.js must announce the count of a search that found postings as well as the no-match one");
+    }
+    if (!fs.existsSync(ssF)) add("S52", ssF, "js/search-status.js must exist");
+    if (!fs.existsSync(dfF)) add("S52", dfF, "js/dialog-focus.js must exist");
+    else { const t = stripJsComments(read(dfF)); for (const [needle, why] of [['setAttribute("inert", "")', "make the page behind inert"], ['removeAttribute("inert")', "make it live again"], ['addEventListener("keydown", onKey, true)', "trap Tab"], ["dialog.focus(", "move focus into the window"], ["target.focus(", "give focus back"]]) if (!t.includes(needle)) add("S52", dfF, "dialog-focus.js must " + why); }
+    if (fs.existsSync(cssF)) {
+      const c = read(cssF);
+      for (const [needle, why] of [[".sr-only{position:absolute;width:1px;height:1px;", "the screen-reader-only class"], [".nav-links a::before,.site-footer a::before,footer.wrapflex a::before,.hit::before,#modalMore a::before,.row-action::before,.check-row::before{content:\"\";position:absolute;left:0;right:0;top:50%;height:24px;transform:translateY(-50%)}", "the 24 pixel hit area of links and row actions"], [".loc-remove::before{content:\"\";position:absolute;inset:-1px}", "the hit area of the location chip's remove cross"], [".info-icon::before{content:\"\";position:absolute;inset:-5px}", "the hit area of the little i icons"], ["select{min-height:24px}", "the minimum height of a drop-down list"], [".modal:focus{outline:none}", "no ring around the whole details window when focus moves into it"]]) if (!c.includes(needle)) add("S52", cssF, "app.css must keep: " + why);
+    }
+    if (fs.existsSync(dsF) && !read(dsF).includes('CLEARED: "No unsaved changes."')) add("S52", dsF, "dirty-state.js must carry the closing message CLEARED: No unsaved changes.");
+    if (fs.existsSync(ugF)) { const t = stripJsComments(read(ugF)); if (!t.includes("UNSAVED.CLEARED") || !t.includes("hushed = !!on")) add("S52", ugF, "unsaved-guard.js must announce the bar going away (UNSAVED.CLEARED) and let a discard hush it"); }
+    if (fs.existsSync(ixF) && !read(ixF).includes('<a class="hit" href="search.html"')) add("S52", ixF, "the 3 Comments link on the home page's example card must carry the hit class");
+    if (fs.existsSync(rgF) && !read(rgF).includes('<a class="hit" href="https://www.fightghostjobs.com/plans.html"')) add("S52", rgF, "the See what's included link on the register page must carry the hit class");
+    for (const f of ["header-tab-order.test.js", "search-a11y.test.js", "edit-a11y.test.js", "target-size.test.js"]) {
+      if (!fs.existsSync(path.join(root, "tests", f))) add("S52", path.join(root, "tests", f), "the test " + f + " must exist");
+      else if (fs.existsSync(raF) && !read(raF).includes(f)) add("S52", raF, "tests/run-all.js must run " + f);
+    }
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

@@ -52,6 +52,8 @@ export const UNSAVED = {
   SAVE: "Save changes", DISCARD: "Discard",
   CONFIRM_DISCARD: "Discard your unsaved changes? The saved values will be put back.",
   DISCARDED: "Your unsaved changes were discarded. The saved values are back.",
+  // told to a screen reader (not shown) once, when the bar goes away because nothing is unsaved any more (saved, or changed back by hand); a discard says DISCARDED instead
+  CLEARED: "No unsaved changes.",
   noteRequired: (status) => "This posting is " + status + ", so a change to it needs a note. Say what changed and why.",
   noteAdd: (status) => "This posting is " + status + ", so add a note saying what changed and why.",
   titleRule: (status) => "On a " + status + " posting, a new title must keep at least 60% of the wording of the current one. A bigger change needs a new posting.",

@@ -27,6 +27,14 @@ async function connect(target) {
     async onNewDocument(source) { await send("Page.addScriptToEvaluateOnNewDocument", { source }); },
     // make the page count as focused (a headless page is not): :focus and :focus-visible apply to a field that gets focus
     async focusEmulation(on) { await send("Emulation.setFocusEmulationEnabled", { enabled: !!on }); },
+    // a real key press (Tab, Escape, Enter; shift for Shift+Tab) delivered to whatever has the focus, the way a keyboard does
+    async key(name, { shift = false } = {}) {
+      const vk = { Tab: 9, Escape: 27, Enter: 13, " ": 32 }[name], m = shift ? 8 : 0;
+      const down = name === "Tab" ? { type: "rawKeyDown" } : { type: "keyDown", text: name === "Enter" ? "\r" : name === " " ? " " : undefined };
+      await send("Input.dispatchKeyEvent", { ...down, key: name, code: name === " " ? "Space" : name, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk, modifiers: m });
+      await send("Input.dispatchKeyEvent", { type: "keyUp", key: name, code: name === " " ? "Space" : name, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk, modifiers: m });
+      await new Promise((r) => setTimeout(r, 60));
+    },
     // a touch swipe (dy < 0 scrolls the page down) or a mouse wheel, at a point of the window
     async swipe(x, y, dy) { const pt = (type, yy) => send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y: yy }] }); const dir = dy < 0 ? -1 : 1; await pt("touchStart", y); for (let d = 0; d <= Math.abs(dy); d += 20) { await pt("touchMove", y + dir * d); await new Promise((r) => setTimeout(r, 16)); } await pt("touchEnd", y + dy); await new Promise((r) => setTimeout(r, 500)); },
     async wheel(x, y, dy) { await send("Input.dispatchMouseEvent", { type: "mouseWheel", x, y, deltaX: 0, deltaY: dy }); await new Promise((r) => setTimeout(r, 350)); },

@@ -332,9 +332,9 @@ control("the requirements hint goes back to always tell (S19 pins the new wordin
 // S33: links (2026-09-30)
 control("a mailto to an address that is not approved", "S33", edit("comments.html", (s) => s.replace("</main>", '<p><a href="mailto:info@fightghostjobs.com">info@fightghostjobs.com</a></p></main>')));
 control("a mailto whose text does not say it opens an email", "S33", edit("comments.html", (s) => s.replace("</main>", '<p><a href="mailto:sales@fightghostjobs.com">See what is included</a></p></main>')));
-control("the pricing card link is a mailto again", "S33", edit("register.html", (s) => s.replace('<a href="https://www.fightghostjobs.com/plans.html" style="display:inline-block', '<a href="mailto:sales@fightghostjobs.com?subject=Destination%20links%20tier" style="display:inline-block')));
+control("the pricing card link is a mailto again", "S33", edit("register.html", (s) => s.replace('<a class="hit" href="https://www.fightghostjobs.com/plans.html" style="display:inline-block', '<a class="hit" href="mailto:sales@fightghostjobs.com?subject=Destination%20links%20tier" style="display:inline-block')));
 control("the pricing card link points somewhere else", "S33", edit("register.html", (s) => s.replace('href="https://www.fightghostjobs.com/plans.html"', 'href="https://www.fightghostjobs.com/index.html"')));
-control("the pricing card link is removed", "S33", edit("register.html", (s) => s.replace(/<a href="https:\/\/www\.fightghostjobs\.com\/plans\.html"[^>]*>See what's included \u2192<\/a>/, "")));
+control("the pricing card link is removed", "S33", edit("register.html", (s) => s.replace(/<a class="hit" href="https:\/\/www\.fightghostjobs\.com\/plans\.html"[^>]*>See what's included \u2192<\/a>/, "")));
 control("a link with # as its target", "S33", edit("team.html", (s) => s.replace("</main>", '<p><a href="#">More</a></p></main>')));
 control("a link with an empty target", "S33", edit("team.html", (s) => s.replace("</main>", '<p><a href="">More</a></p></main>')));
 control("a javascript: link", "S33", edit("team.html", (s) => s.replace("</main>", '<p><a href="javascript:void(0)">More</a></p></main>')));
@@ -666,6 +666,28 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the or loses its rule", "S51", edit("app.css", (s) => s.replace(".srch-or{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700;color:var(--muted)}", ".srch-or{display:none}")));
   control("the callback flashes on employer pages again", "S51", edit("js/pages/auth-callback.js", (s) => s.replace("landingKindForPage(\"/\" + destPage[0], destPage[1] ? \"?\" + destPage[1] : \"\") !== \"poster\")", "true)")));
   control("the search form test loses its grouping checks", "S51", edit("tests/search-ui.test.js", (s) => s.split("Then one of these").join("Then one")));
+}
+
+// S52 (2026-10-05): the accessibility round.
+{
+  control("header-order.js is gone", "S52", (dir) => fs.rmSync(path.join(dir, "js/header-order.js")));
+  control("the phone breakpoint of the header order is wrong", "S52", edit("js/header-order.js", (s) => s.replace("PHONE_QUERY = \"(max-width:640px)\"", "PHONE_QUERY = \"(max-width:600px)\"")));
+  control("the middle breakpoint of the header order is wrong", "S52", edit("js/header-order.js", (s) => s.replace("MIDDLE_QUERY = \"(max-width:1080px)\"", "MIDDLE_QUERY = \"(max-width:1000px)\"")));
+  control("app.js stops watching the header order", "S52", edit("js/app.js", (s) => s.replace("watchHeaderOrder(document, window);", "void 0;")));
+  control("the search status is not a live region", "S52", edit("search.html", (s) => s.replace(" role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"></div>\n    <div id=\"resultCount\"", "></div>\n    <div id=\"resultCount\"")));
+  control("the visible count is read a second time", "S52", edit("search.html", (s) => s.replace("class=\"result-count\" aria-hidden=\"true\" hidden", "class=\"result-count\" hidden")));
+  control("search.js stops announcing", "S52", edit("js/pages/search.js", (s) => s.replace("  status.announce(countEl.textContent);   // the one spoken message of this search (js/search-status.js)\n", "")));
+  control("search.js no longer traps focus in the details window", "S52", edit("js/pages/search.js", (s) => s.replace("releaseFocus = trapFocus({", "releaseFocus = ({")));
+  control("the details window no longer returns focus to the exact button", "S52", edit("js/pages/search.js", (s) => s.replace("openModal(row, button)", "openModal(row, null)")));
+  control("the page behind the details window is not made inert", "S52", edit("js/dialog-focus.js", (s) => s.replace("sib.setAttribute(\"inert\", \"\");", "")));
+  control("Tab is no longer trapped in the details window", "S52", edit("js/dialog-focus.js", (s) => s.replace("doc.addEventListener(\"keydown\", onKey, true);", "")));
+  control("the hit area of the top bar and footer links is gone", "S52", edit("app.css", (s) => s.replace(".nav-links a::before,.site-footer a::before,footer.wrapflex a::before,.hit::before,#modalMore a::before,.row-action::before,.check-row::before{", ".nav-links a::before{")));
+  control("the drop-down list has no minimum height", "S52", edit("app.css", (s) => s.replace("select{min-height:24px}", "")));
+  control("the little i icon has no hit area", "S52", edit("app.css", (s) => s.replace(".info-icon::before{content:\"\";position:absolute;inset:-5px}", "")));
+  control("the 3 Comments link loses its hit class", "S52", edit("index.html", (s) => s.replace("<a class=\"hit\" href=\"search.html\"", "<a href=\"search.html\"")));
+  control("the unsaved bar stops saying it is gone", "S52", edit("js/dirty-state.js", (s) => s.replace("CLEARED: \"No unsaved changes.\"", "CLEARED: \"\"")));
+  control("a discard no longer hushes the closing message", "S52", edit("js/unsaved-guard.js", (s) => s.replace("const hush = (on) => { hushed = !!on; };", "const hush = () => {};")));
+  control("a test of the round is not run", "S52", edit("tests/run-all.js", (s) => s.replace("target-size.test.js", "target-size-old.test.js")));
 }
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });

@@ -208,6 +208,20 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .modal-backdrop{touch-action:none;overscroll-behavior:contain}
 .modal{touch-action:pan-y;overscroll-behavior:contain}
 
+/* hit areas (October 5, 2026): every link and control can be pointed at with a 24 x 24 CSS pixel target (WCAG 2.2, 2.5.8), as the audit asked, WITHOUT changing how anything looks: the drawn text, the spacing and the layout stay as they were.
+   A clear box, absolutely positioned and invisible, is added to each small control (the same device the initials circle and the phone rules use); the pointer and a finger hit it as part of the control. A drop-down list has no such box to
+   borrow, so it gets a real minimum height. Links that are words inside a sentence are exempt, as in the standard (their size is the line of text). On a phone the 44 pixel rules below still apply and win. */
+.nav-links a,.site-footer a,footer.wrapflex a,.hit,#modalMore a,.row-action,.check-row{position:relative}
+.nav-links a::before,.site-footer a::before,footer.wrapflex a::before,.hit::before,#modalMore a::before,.row-action::before,.check-row::before{content:"";position:absolute;left:0;right:0;top:50%;height:24px;transform:translateY(-50%)}
+.loc-remove{position:relative}
+.loc-remove::before{content:"";position:absolute;inset:-1px}
+.info-icon::before{content:"";position:absolute;inset:-5px}
+select{min-height:24px}
+
+/* a message for screen readers only (October 5, 2026): the polite search status on the search page. The window the details dialog gets keyboard focus on is a container, not a control: no ring around the whole card. */
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.modal:focus{outline:none}
+
 /* the search form's three boxes (October 5, 2026): Company is required, then ONE of the req number or the postID / title box. "(required)" is real text in the ember red; the two other boxes sit under the heading "Then one of these"
    in a labelled group with a visible "or" between them. On a wide window the three boxes stay in one row; on a narrow one (760 pixels and below) they stack. */
 .srch-req{text-transform:none;letter-spacing:0;font-weight:700;color:var(--ember)}

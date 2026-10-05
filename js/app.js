@@ -7,6 +7,10 @@ import { h, clear, alertBox } from "./dom.js";
 import { takeLanded, landingText, landingKindForPage } from "./landing-notice.js";
 import { initials } from "./format.js";
 import { buildAccount, wireAccountMenu } from "./account-menu.js";
+import { orderHeader, watchHeaderOrder } from "./header-order.js";
+
+// the Tab order of the top bar follows what is drawn, at every width (js/header-order.js)
+if (typeof document !== "undefined" && typeof window !== "undefined") watchHeaderOrder(document, window);
 
 export const api = createApi({ baseUrl: SUPABASE_URL, key: PUBLISHABLE_KEY, getToken: accessToken });
 export { describeError, isAuthFailure, currentSession, signOut };
@@ -81,6 +85,7 @@ export async function mountAccount(container, { cta = true } = {}) {
       h("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: async () => { await signOut(); forgetLocalState(); go("index.html"); } }, "Sign out"),
     );
     wireAccountMenu(account, document);
+    orderHeader(document, window);
     return session;
   }
   if (session && session.isCandidate) {
@@ -89,8 +94,10 @@ export async function mountAccount(container, { cta = true } = {}) {
       h("span", { style: "font-size:13px;color:var(--muted);" }, "Email verified"),
       h("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: async () => { await signOut(); go("index.html"); } }, "Sign out"),
     );
+    orderHeader(document, window);
     return session;
   }
   if (cta) container.append(h("a", { class: "btn btn-primary btn-sm", href: "register.html" }, "Register a Posting →"));
+  orderHeader(document, window);
   return session;
 }
