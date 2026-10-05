@@ -221,6 +221,7 @@ select{min-height:24px}
 /* the search recap (October 5, 2026, Part C): a quiet read-only box between the form and the results: the sentence, and a button that puts the typed values back. */
 .recap{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:14px 18px}
 .recap[hidden]{display:none}
+.recap{scroll-margin-top:16px}
 .recap-text{margin:0;font-size:14px;line-height:1.6;color:var(--ink);overflow-wrap:anywhere;flex:1 1 280px}
 .recap .btn{flex:none}
 

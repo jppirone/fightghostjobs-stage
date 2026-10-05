@@ -727,6 +727,15 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the note gets a timer", "S55", edit("js/app.js", (s) => s.replace("landingNoteOn = { box, off };", "landingNoteOn = { box, off }; setTimeout(clearLandingNote, 9000);")));
   control("the landing-clear test is not run", "S55", edit("tests/run-all.js", (s) => s.replace("landing-clear.test.js", "landing-clear-old.test.js")));
 }
+
+// S56: after a successful search the recap scrolls to the top of the window (Part E4): smooth, no focus move, not with reduced motion, not for a replayed search
+{
+  control("the recap no longer scrolls into view", "S56", edit("js/pages/search.js", (s) => s.replace("recapEl.scrollIntoView({ block: \"start\", behavior: \"smooth\" });", "void 0;")));
+  control("the scroll ignores reduced motion", "S56", edit("js/pages/search.js", (s) => s.replace("!(window.matchMedia && window.matchMedia(\"(prefers-reduced-motion: reduce)\").matches)", "true")));
+  control("a replayed search scrolls", "S56", edit("js/pages/search.js", (s) => s.replace("if (!auto && !(window.matchMedia", "if (!(window.matchMedia")));
+  control("the recap takes the focus", "S56", edit("js/pages/search.js", (s) => s.replace("recapEl.scrollIntoView({ block: \"start\", behavior: \"smooth\" });", "recapEl.scrollIntoView({ block: \"start\", behavior: \"smooth\" }); recapEl.focus();")));
+  control("the scroll test is not run", "S56", edit("tests/run-all.js", (s) => s.replace("search-scroll.test.js", "search-scroll-old.test.js")));
+}
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");

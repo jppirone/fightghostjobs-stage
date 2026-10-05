@@ -43,6 +43,7 @@
 //   S50 the stage recheck round: landing wording by page, the home page wording (Look up a posting), Report a wrong link only for a posting with links, the search fields' visible line, the details window's scroll lock, and the tests that prove them
 //   S54 the edit page's skip link to the unsaved bar
 //   S55 the landing note clears on the person's first real action (Part E3), with no close button, no timer and no announcement
+//   S56 after a successful search the recap scrolls to the top of the window (Part E4): smooth, no focus move, not with reduced motion, not for a replayed search
 //   S53 the search recap (Part C): sentence, never the req number or postID, Edit this search, memory only, one spoken message
 //   S52 the accessibility round: header Tab order, one polite search status, the details window's focus handling, the unsaved bar's closing message, 24 pixel hit areas, and the four tests that prove them
 //   S51 the home page's step 3 (Candidates look up), the search form's three boxes (Company required, Then one of these, a visible or, the approved sentence) and the callback without the flash on employer pages
@@ -1141,7 +1142,7 @@ export function checkSite(root) {
     }
     if (fs.existsSync(srF)) {
       const t = stripJsComments(read(srF));
-      for (const [needle, why] of [['import { recapSentence } from "../search-recap.js";', "the recap sentence"], ["showRecap(typed, c.value, q);", "show the recap after a search has run"], ['setFormError(""); hideRecap();', "hide the recap whenever a new search starts"], ['companyIn.value = ""; queryIn.value = ""; reqIn.value = "";', "empty the three boxes after a search"], ["lastSearch = null; hideRecap(); companyIn.focus();", "Edit this search: hide the recap and put the cursor in Company"], ["companyIn.value = lastSearch.company; queryIn.value = lastSearch.q; reqIn.value = lastSearch.r;", "Edit this search puts the typed values back"]]) if (!t.includes(needle)) add("S53", srF, "search.js must " + why);
+      for (const [needle, why] of [['import { recapSentence } from "../search-recap.js";', "the recap sentence"], ["showRecap(typed, c.value, q, auto);", "show the recap after a search has run"], ['setFormError(""); hideRecap();', "hide the recap whenever a new search starts"], ['companyIn.value = ""; queryIn.value = ""; reqIn.value = "";', "empty the three boxes after a search"], ["lastSearch = null; hideRecap(); companyIn.focus();", "Edit this search: hide the recap and put the cursor in Company"], ["companyIn.value = lastSearch.company; queryIn.value = lastSearch.q; reqIn.value = lastSearch.r;", "Edit this search puts the typed values back"]]) if (!t.includes(needle)) add("S53", srF, "search.js must " + why);
       if (t.split("\n").some((l) => /(typed|lastSearch)/.test(l) && /(localStorage|sessionStorage|indexedDB|document\.cookie)/.test(l))) add("S53", srF, "the typed search must live in memory only (no storage of it)");
     }
     if (fs.existsSync(cssF) && !read(cssF).includes(".recap[hidden]{display:none}")) add("S53", cssF, "app.css must keep .recap[hidden]{display:none} (a hidden recap must not show)");
@@ -1167,6 +1168,14 @@ export function checkSite(root) {
     if (fs.existsSync(appF)) { const t = stripJsComments(read(appF)); for (const [needle, why] of [["export function clearLandingNote()", "export clearLandingNote"], ['for (const t of ["click", "keydown"]) document.addEventListener(t, onAct, true);', "clear on a click or key press in the page content (pages other than search)"], ["main.contains(t) && !box.contains(t)", "ignore the top bar and the note itself"]]) if (!t.includes(needle)) add("S55", appF, "app.js must " + why); if (/setTimeout\(clearLandingNote|setTimeout\([^)]*landing/i.test(t)) add("S55", appF, "the landing note must have no timer"); }
     if (fs.existsSync(srF)) { const t = stripJsComments(read(srF)); for (const [needle, why] of [["if (!auto) clearLandingNote();", "clear the note when a search the person started has finished (and not for a replayed one)"], ["runSearch(true);", "mark the replayed search as automatic"], ['el.addEventListener("input", clearLandingNote)', "clear the note when the person types in a search box"]]) if (!t.includes(needle)) add("S55", srF, "search.js must " + why); }
     if (!fs.existsSync(tf)) add("S55", tf, "the test landing-clear.test.js must exist"); else if (fs.existsSync(raF) && !read(raF).includes("landing-clear.test.js")) add("S55", raF, "tests/run-all.js must run landing-clear.test.js");
+  }
+
+  // S56 (2026-10-05, E4): after a successful search the recap scrolls to the top of the window. A scroll, not a focus move; smooth; no scroll for a person who prefers reduced motion; none for a replayed search; none for a failed search.
+  {
+    const srF = path.join(root, "js", "pages", "search.js"), cssF = path.join(root, "app.css"), raF = path.join(root, "tests", "run-all.js"), tf = path.join(root, "tests", "search-scroll.test.js");
+    if (fs.existsSync(srF)) { const t = stripJsComments(read(srF)); for (const [needle, why] of [['if (!auto && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) recapEl.scrollIntoView({ block: "start", behavior: "smooth" });', "scroll the recap to the top, smoothly, only for a search the person started and not with reduced motion"], ["showRecap(typed, c.value, q, auto);", "pass the replay flag to the recap"]]) if (!t.includes(needle)) add("S56", srF, "search.js must " + why); if (/recapEl\.focus\(|recapEl\.setAttribute\("tabindex"/.test(t)) add("S56", srF, "the recap must not take the focus"); }
+    if (fs.existsSync(cssF) && !read(cssF).includes(".recap{scroll-margin-top:16px}")) add("S56", cssF, "app.css must keep .recap{scroll-margin-top:16px}");
+    if (!fs.existsSync(tf)) add("S56", tf, "the test search-scroll.test.js must exist"); else if (fs.existsSync(raF) && !read(raF).includes("search-scroll.test.js")) add("S56", raF, "tests/run-all.js must run search-scroll.test.js");
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

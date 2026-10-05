@@ -98,7 +98,7 @@ function showResults(data, searched) {
 
 // ---- the recap (Part C): once a search has run, the boxes are emptied and this read-only sentence sits between the form and the results. The one spoken message of the search is this same sentence (js/search-status.js).
 function hideRecap() { recapEl.hidden = true; recapTextEl.textContent = ""; }
-function showRecap(typed, company, search) {
+function showRecap(typed, company, search, auto) {
   lastSearch = typed;
   companyIn.value = ""; queryIn.value = ""; reqIn.value = "";
   const text = recapSentence(company, search);
@@ -106,6 +106,9 @@ function showRecap(typed, company, search) {
   // the one spoken message of the search: the recap sentence AND the count, in the visible count line's own words (so a search that found nothing says "No matching postings" too)
   const spoken = text + " " + countEl.textContent + ".";
   status.announce(spoken);
+  // After a successful search the recap goes to the top of the window, so the recap and the first results are on screen (October 5, 2026). A scroll, never a focus move (focus stays on the Search button). Smooth; a person who prefers
+  // reduced motion gets no scroll at all. Not for a replayed search (the person did nothing, and the landing note sits above), and never for a search that failed (showRecap is only called on success).
+  if (!auto && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) recapEl.scrollIntoView({ block: "start", behavior: "smooth" });
 }
 recapEditBtn.addEventListener("click", () => {
   if (lastSearch) { companyIn.value = lastSearch.company; queryIn.value = lastSearch.q; reqIn.value = lastSearch.r; }
@@ -135,7 +138,7 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
     let r = await api.candidateSearch(q.kind === "req" ? { company: c.value, req: q.value } : q.kind === "code" ? { company: c.value, code: q.value } : { company: c.value, phrase: q.value });
     if (q.alsoTryCode && r.ok && r.data.results.length === 0) r = await api.candidateSearch({ company: c.value, code: q.value });
     if (!r.ok && r.status === 404 && r.error.code === "not_found") r = { ok: true, data: { mode: "code", truncated: false, results: [] } };   // a code that matches nothing is a plain "no such posting"
-    if (r.ok) { showResults(r.data, { company: c.value, query: q.value, kind: q.kind }); showRecap(typed, c.value, q); return; }
+    if (r.ok) { showResults(r.data, { company: c.value, query: q.value, kind: q.kind }); showRecap(typed, c.value, q, auto); return; }
     clear(resultsEl); countEl.hidden = true;
     if (isAuthFailure(r.error)) { session = null; applySession(); showSignIn(r.error.code === "reverification_required" ? "Your email verification has expired. Please verify your email again." : "Please verify your email to search."); return; }
     if (r.error.code === "rate_limited") { cooldown = r.error.retryAfter || 30; setFormError("You are searching too fast. Try again in " + waitText(cooldown) + "."); return; }
