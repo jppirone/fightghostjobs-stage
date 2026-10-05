@@ -676,7 +676,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("app.js stops watching the header order", "S52", edit("js/app.js", (s) => s.replace("watchHeaderOrder(document, window);", "void 0;")));
   control("the search status is not a live region", "S52", edit("search.html", (s) => s.replace(" role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"></div>\n    <div id=\"resultCount\"", "></div>\n    <div id=\"resultCount\"")));
   control("the visible count is read a second time", "S52", edit("search.html", (s) => s.replace("class=\"result-count\" aria-hidden=\"true\" hidden", "class=\"result-count\" hidden")));
-  control("search.js stops announcing", "S52", edit("js/pages/search.js", (s) => s.replace("  status.announce(text);\n}", "}")));
+  control("search.js stops announcing", "S52", edit("js/pages/search.js", (s) => s.replace("  status.announce(spoken);\n}", "}")));
   control("search.js no longer traps focus in the details window", "S52", edit("js/pages/search.js", (s) => s.replace("releaseFocus = trapFocus({", "releaseFocus = ({")));
   control("the details window no longer returns focus to the exact button", "S52", edit("js/pages/search.js", (s) => s.replace("openModal(row, button)", "openModal(row, null)")));
   control("the page behind the details window is not made inert", "S52", edit("js/dialog-focus.js", (s) => s.replace("sib.setAttribute(\"inert\", \"\");", "")));
@@ -702,10 +702,11 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("Edit this search does not move the cursor", "S53", edit("js/pages/search.js", (s) => s.replace("lastSearch = null; hideRecap(); companyIn.focus();", "lastSearch = null; hideRecap();")));
   control("Edit this search does not put the values back", "S53", edit("js/pages/search.js", (s) => s.replace("companyIn.value = lastSearch.company; queryIn.value = lastSearch.q; reqIn.value = lastSearch.r;", "void 0;")));
   control("the typed search is kept in storage", "S53", edit("js/pages/search.js", (s) => s.replace("  lastSearch = typed;\n", "  lastSearch = typed; localStorage.setItem(\"typed\", JSON.stringify(typed));\n")));
-  control("the count is spoken as well", "S52", edit("js/pages/search.js", (s) => s.replace("  status.announce(text);\n}", "  status.announce(text); status.announce(countEl.textContent);\n}")));
+  control("the count is spoken as a second message", "S52", edit("js/pages/search.js", (s) => s.replace("  status.announce(spoken);\n}", "  status.announce(spoken); status.announce(countEl.textContent);\n}")));
   control("a hidden recap shows", "S53", edit("app.css", (s) => s.replace(".recap[hidden]{display:none}", "")));
   control("the recap test is not run", "S53", edit("tests/run-all.js", (s) => s.replace("search-recap.test.js", "search-recap-old.test.js")));
 }
+  control("the count is left out of the spoken message", "S52", edit("js/pages/search.js", (s) => s.replace('const spoken = text + " " + countEl.textContent + ".";', "const spoken = text;")));
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");

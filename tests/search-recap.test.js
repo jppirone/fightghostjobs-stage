@@ -3,7 +3,7 @@
 // A req number and a postID are NEVER shown in clear (the recap says "a req number was entered" or "a postID was entered"; a phrase of twelve plain letters, which could be a postID, is treated the same way); they are in the page
 // nowhere and in no storage. The recap does not repeat the count ("N matching postings" / "No matching postings" stays on its own line under it). "Edit this search" (a real button, keyboard too) puts the typed values back, hides the
 // recap and puts the cursor in Company. A search stopped by a message (a missing company, both boxes filled) or by the "verify your email first" card shows no recap and the boxes keep what was typed. A reload shows an empty form and
-// no recap. ONE polite status message per search is spoken: the recap sentence (not the count as well); focus stays on the Search button. At 1280, 375 and 320 nothing scrolls sideways and the button is a real target.
+// no recap. ONE polite status message per search is spoken: the recap sentence and the count in one message ("... Your results are below. 2 matching postings." / "... No matching postings."); focus stays on the Search button. At 1280, 375 and 320 nothing scrolls sideways and the button is a real target.
 // Screenshots go to brand-kit\audits\screens-oct5\ when FGJ_SHOTS is set to that folder. Then negative controls: one defect at a time; each must make a check fail. A missing browser FAILS the test (set FGJ_BROWSER).
 // Run: node --test tests/search-recap.test.js
 import { test, before, after } from "node:test";
@@ -40,7 +40,7 @@ const RECAP = `(() => { const r = document.getElementById("recap"), t = document
   const top = (e) => e.getBoundingClientRect().top, bottom = (e) => e.getBoundingClientRect().bottom, shown = !!r && !r.hidden && r.getClientRects().length > 0;
   const b = document.getElementById("recapEdit");
   return { shown, text: t ? t.textContent : null, formBottom: bottom(form), recapTop: shown ? top(r) : null, recapBottom: shown ? bottom(r) : null, countTop: cnt.hidden ? null : top(cnt), resultsTop: top(res), countText: cnt.hidden ? null : cnt.textContent,
-    btn: b ? { text: b.textContent.trim(), tag: b.tagName, h: b.getBoundingClientRect().height, w: b.getBoundingClientRect().width } : null, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, noMatchCount: (document.body.innerText.match(/No matching postings/gi) || []).length }; })()`;
+    btn: b ? { text: b.textContent.trim(), tag: b.tagName, h: b.getBoundingClientRect().height, w: b.getBoundingClientRect().width } : null, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, noMatchCount: (document.body.innerText.match(/No matching postings/gi) || []).length - (document.getElementById("searchStatus").textContent.match(/No matching postings/gi) || []).length }; })()`;
 
 async function shot(tab, name) { if (SHOTS) { fs.mkdirSync(SHOTS, { recursive: true }); await tab.shotFull(path.join(SHOTS, name), 2400); } }
 
@@ -88,7 +88,8 @@ const SCENARIOS = {
           if (what.startsWith("twelve") === false && (leak.includes(REQ.toLowerCase()) || leak.includes(CODE.toLowerCase()))) { /* already reported above */ }
           // one spoken message, the recap sentence, once; focus stays on the Search button
           const said = JSON.parse(await tab.eval("JSON.stringify(window.__said)")), mine = said.filter((x) => x.id === "searchStatus");
-          if (mine.length !== 1 || mine[0].text !== want) bad.push(tag + what + ": the search status spoke " + JSON.stringify(mine));
+          const spoken = want + " " + wantCount + ".";
+          if (mine.length !== 1 || mine[0].text !== spoken) bad.push(tag + what + ": the search status spoke " + JSON.stringify(mine) + " (wanted " + JSON.stringify(spoken) + ")");
           if (said.some((x) => x.id !== "searchStatus")) bad.push(tag + what + ": another live region spoke too: " + JSON.stringify(said.filter((x) => x.id !== "searchStatus")));
           const at = await tab.eval("document.activeElement && document.activeElement.id");
           if (at !== "searchBtn") bad.push(tag + what + ": focus is on '" + at + "' after the search (wanted searchBtn)");
@@ -157,8 +158,9 @@ const DEFECTS = [
   ["a new search that is stopped by a message leaves the old recap showing", ["kinds"], [["js/pages/search.js", (s) => s.replace('setFormError(""); hideRecap();', 'setFormError("");')]]],
   ["the verify your email card shows a recap", ["signedOut"], [["js/pages/search.js", (s) => s.replace('    showSignIn("Verify your email first.', '    recapEl.hidden = false;\n    showSignIn("Verify your email first.')]]],
   ["the typed values are kept in browser storage", ["kinds"], [["js/pages/search.js", (s) => s.replace("  lastSearch = typed;\n", "  lastSearch = typed; sessionStorage.setItem(\"last-search\", JSON.stringify(typed));\n")]]],
-  ["the recap sentence is not spoken", ["kinds"], [["js/pages/search.js", (s) => s.replace("  status.announce(text);\n}", "}")]]],
-  ["the count is spoken as well as the recap", ["kinds"], [["js/pages/search.js", (s) => s.replace("  status.announce(text);\n}", "  status.announce(text); setTimeout(() => status.announce(countEl.textContent), 200);\n}")]]],
+  ["the recap sentence is not spoken", ["kinds"], [["js/pages/search.js", (s) => s.replace("  status.announce(spoken);\n}", "}")]]],
+  ["the count is left out of the spoken message", ["kinds"], [["js/pages/search.js", (s) => s.replace('const spoken = text + " " + countEl.textContent + ".";', "const spoken = text;")]]],
+  ["the count is spoken as a second message instead of one", ["kinds"], [["js/pages/search.js", (s) => s.replace("  status.announce(spoken);\n}", "  status.announce(text); setTimeout(() => status.announce(countEl.textContent), 200);\n}")]]],
 ];
 test("negative controls: each defect in the recap makes a check fail", { timeout: 3000000 }, async () => {
   const missed = [];

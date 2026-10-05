@@ -103,7 +103,9 @@ function showRecap(typed, company, search) {
   companyIn.value = ""; queryIn.value = ""; reqIn.value = "";
   const text = recapSentence(company, search);
   recapTextEl.textContent = text; recapEl.hidden = false;
-  status.announce(text);
+  // the one spoken message of the search: the recap sentence AND the count, in the visible count line's own words (so a search that found nothing says "No matching postings" too)
+  const spoken = text + " " + countEl.textContent + ".";
+  status.announce(spoken);
 }
 recapEditBtn.addEventListener("click", () => {
   if (lastSearch) { companyIn.value = lastSearch.company; queryIn.value = lastSearch.q; reqIn.value = lastSearch.r; }
