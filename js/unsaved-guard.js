@@ -3,7 +3,7 @@
 // Everything is built from elements the page already has (edit.html); nothing is created from HTML, nothing is stored, nothing is sent anywhere.
 //
 // ctx: { win, root, bar, head, detail, live, saveBtn, discardBtn, dlg: { overlay, title, text, save, discard, stay },
-//        getModel(): { form, panels, status, noteMissing, noteRequired },   save(): Promise<boolean> (true when the main form was saved),   discard(): void,
+//        skip (optional): the "Skip to unsaved changes" link, shown only while the bar shows;   getModel(): { form, panels, status, noteMissing, noteRequired },   save(): Promise<boolean> (true when the main form was saved),   discard(): void,
 //        go(url), activeElement(): the focused element, confirmDiscard(): boolean, rescueFocus(): where focus goes when the bar closes with focus inside it }
 //   win: needs addEventListener / removeEventListener (the window); root: the <html> element (gets the class unsaved-on while the bar shows)
 // -> { refresh, isDirty, summary, announce, hush, interceptClick, openDialog, dialogOpen, allowLeave }
@@ -14,7 +14,7 @@ const within = (node, ancestor) => { for (let n = node; n; n = n.parentNode || n
 const isBody = (el) => !el || String(el.tagName || el.tag || "").toUpperCase() === "BODY";
 
 export function mountUnsavedGuard(ctx) {
-  const { win, root, bar, head, detail, live, saveBtn, discardBtn, dlg } = ctx;
+  const { win, root, bar, head, detail, live, saveBtn, discardBtn, dlg, skip } = ctx;
   let listening = false, leaving = false, lastLive = "", dialog = null, bypass = false, busy = false, hushed = false;
 
   const summary = () => summarize(ctx.getModel());
@@ -24,8 +24,9 @@ export function mountUnsavedGuard(ctx) {
   // A screen reader is told once when the bar appears (what is unsaved) and once when it goes away (UNSAVED.CLEARED); focus never moves for either.
   function refresh(opts) {
     const s = summary(), quiet = hushed || !!(opts && opts.quiet), wasShown = !bar.hidden;
-    const hadFocus = !s.any && within(ctx.activeElement(), bar);
+    const hadFocus = !s.any && (within(ctx.activeElement(), bar) || (!!skip && ctx.activeElement() === skip));
     bar.hidden = !s.any;
+    if (skip) skip.hidden = !s.any;                                              // the first link of the page, "Skip to unsaved changes", exists exactly as long as the bar does
     if (root && root.classList) root.classList.toggle("unsaved-on", s.any);
     if (s.any) { head.textContent = s.headline; detail.textContent = s.detail; saveBtn.hidden = !s.showSave; }
     // what the status says: the unsaved-changes message while the bar shows; when it has just closed, UNSAVED.CLEARED (or nothing, when the page says its own sentence); after that it is left alone, so the closing message is not wiped by the next refresh
@@ -81,6 +82,9 @@ export function mountUnsavedGuard(ctx) {
       items[ev.shiftKey ? (i <= 0 ? items.length - 1 : i - 1) : (i < 0 || i === items.length - 1 ? 0 : i + 1)].focus();
     }
   });
+
+  // ---- the skip link: a keyboard user at the top of a long form reaches the bar's buttons in one step (Save changes; Discard when only the separately saved sections are unsaved and Save is not offered)
+  if (skip) skip.addEventListener("click", (ev) => { ev.preventDefault(); (saveBtn.hidden || saveBtn.disabled ? discardBtn : saveBtn).focus(); });
 
   // ---- the bar's buttons
   saveBtn.addEventListener("click", async () => { if (busy) return; busy = true; try { await ctx.save(); } finally { busy = false; refresh(); } });

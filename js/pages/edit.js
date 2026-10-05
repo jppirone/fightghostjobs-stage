@@ -373,7 +373,7 @@ async function discardAll() {
 }
 guard = mountUnsavedGuard({
   win: window, root: document.documentElement,
-  bar: $("#unsavedBar"), head: $("#unsavedHead"), detail: $("#unsavedDetail"), live: $("#unsavedLive"), saveBtn: $("#unsavedSave"), discardBtn: $("#unsavedDiscard"),
+  bar: $("#unsavedBar"), head: $("#unsavedHead"), detail: $("#unsavedDetail"), live: $("#unsavedLive"), saveBtn: $("#unsavedSave"), discardBtn: $("#unsavedDiscard"), skip: $("#skipToUnsaved"),
   dlg: { overlay: $("#leaveOverlay"), title: $("#leaveTitle"), text: $("#leaveText"), save: $("#leaveSave"), discard: $("#leaveDiscard"), stay: $("#leaveStay") },
   getModel: unsavedModel, save: () => submit(), discard: () => discardAll(), go,
   activeElement: () => document.activeElement, confirmDiscard: () => window.confirm(UNSAVED.CONFIRM_DISCARD), rescueFocus: () => $("#editHeading").focus(),

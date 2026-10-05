@@ -41,6 +41,7 @@
 //   S48 the pages at phone widths: the phone block in app.css (all of it inside the 640 and 360 pixel media blocks), the classes, the table roles and data-labels, the labelled scroll areas, and the browser test tests/phone-layout.test.js
 //   S49 the sign-in link opens in a new tab: pending search and landing page in localStorage (one hour, removed when used, never sent), a watch for a sign-in in another tab, the two notices pinned until John approves new wording, and tests/signin-tabs.test.js
 //   S50 the stage recheck round: landing wording by page, the home page wording (Look up a posting), Report a wrong link only for a posting with links, the search fields' visible line, the details window's scroll lock, and the tests that prove them
+//   S54 the edit page's skip link to the unsaved bar
 //   S53 the search recap (Part C): sentence, never the req number or postID, Edit this search, memory only, one spoken message
 //   S52 the accessibility round: header Tab order, one polite search status, the details window's focus handling, the unsaved bar's closing message, 24 pixel hit areas, and the four tests that prove them
 //   S51 the home page's step 3 (Candidates look up), the search form's three boxes (Company required, Then one of these, a visible or, the approved sentence) and the callback without the flash on employer pages
@@ -375,7 +376,7 @@ export function checkSite(root) {
     for (const f of html) {
       const s = read(f), name = path.basename(f), body = s.slice(s.indexOf("<body"));
       const count = (sub) => body.split(sub).length - 1;
-      if (!body.startsWith('<body>\n<a class="skip-link" href="#main">Skip to content</a>\n')) add("S31", f, "the skip link must be the first thing in the body");
+      if (!body.startsWith('<body>\n' + (name === "edit.html" ? '<a id="skipToUnsaved" class="skip-link" href="#unsavedSave" hidden>Skip to unsaved changes</a>\n' : '') + '<a class="skip-link" href="#main">Skip to content</a>\n')) add("S31", f, "the skip link must be the first thing in the body");
       if (count("<header ") !== 1 || count("</header>") !== 1) add("S31", f, "the page needs exactly one <header>");
       if (count('<main id="main">') !== 1 || count("</main>") !== 1) add("S31", f, "the page needs exactly one <main id=\"main\">");
       if (count("<footer ") !== 1 || count("</footer>") !== 1) add("S31", f, "the page needs exactly one <footer>");
@@ -1146,6 +1147,17 @@ export function checkSite(root) {
     const tf = path.join(root, "tests", "search-recap.test.js");
     if (!fs.existsSync(tf)) add("S53", tf, "the test search-recap.test.js must exist");
     else if (fs.existsSync(raF) && !read(raF).includes("search-recap.test.js")) add("S53", raF, "tests/run-all.js must run search-recap.test.js");
+  }
+
+  // S54 (2026-10-05): the edit page's skip link. "Skip to unsaved changes" is the FIRST thing in the body of edit.html (so first in the Tab order), hidden until the unsaved bar shows, goes to Save changes, and is hidden again with the bar.
+  {
+    const edF = path.join(root, "edit.html"), ugF = path.join(root, "js", "unsaved-guard.js"), epF = path.join(root, "js", "pages", "edit.js"), cssF = path.join(root, "app.css"), raF = path.join(root, "tests", "run-all.js");
+    if (fs.existsSync(edF)) { const t = read(edF); if (!t.includes('<body>\n<a id="skipToUnsaved" class="skip-link" href="#unsavedSave" hidden>Skip to unsaved changes</a>\n<a class="skip-link" href="#main">')) add("S54", edF, "edit.html must start with the hidden link Skip to unsaved changes (href #unsavedSave), before Skip to content"); }
+    if (fs.existsSync(ugF)) { const t = stripJsComments(read(ugF)); for (const [needle, why] of [["if (skip) skip.hidden = !s.any;", "show the link exactly as long as the bar shows"], ["skip.addEventListener(\"click\"", "move focus when the link is used"], ["(saveBtn.hidden || saveBtn.disabled ? discardBtn : saveBtn).focus()", "go to Save changes, or Discard when Save is not offered"]]) if (!t.includes(needle)) add("S54", ugF, "unsaved-guard.js must " + why); }
+    if (fs.existsSync(epF) && !stripJsComments(read(epF)).includes('skip: $("#skipToUnsaved")')) add("S54", epF, "edit.js must hand the skip link to the unsaved guard");
+    if (fs.existsSync(raF) && !read(raF).includes("edit-a11y.test.js")) add("S54", raF, "tests/run-all.js must run edit-a11y.test.js");
+    const tf = path.join(root, "tests", "edit-a11y.test.js");
+    if (fs.existsSync(tf) && !read(tf).includes("Skip to unsaved changes")) add("S54", tf, "edit-a11y.test.js must test the skip link");
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

@@ -707,6 +707,15 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the recap test is not run", "S53", edit("tests/run-all.js", (s) => s.replace("search-recap.test.js", "search-recap-old.test.js")));
 }
   control("the count is left out of the spoken message", "S52", edit("js/pages/search.js", (s) => s.replace('const spoken = text + " " + countEl.textContent + ".";', "const spoken = text;")));
+
+// S54 (2026-10-05): the edit page's skip link.
+{
+  control("the unsaved skip link is gone from edit.html", "S54", edit("edit.html", (s) => s.replace("<a id=\"skipToUnsaved\" class=\"skip-link\" href=\"#unsavedSave\" hidden>Skip to unsaved changes</a>\n", "")));
+  control("the unsaved skip link comes after Skip to content", "S31", edit("edit.html", (s) => s.replace("<a id=\"skipToUnsaved\" class=\"skip-link\" href=\"#unsavedSave\" hidden>Skip to unsaved changes</a>\n<a class=\"skip-link\" href=\"#main\">Skip to content</a>\n", "<a class=\"skip-link\" href=\"#main\">Skip to content</a>\n<a id=\"skipToUnsaved\" class=\"skip-link\" href=\"#unsavedSave\" hidden>Skip to unsaved changes</a>\n")));
+  control("the skip link is never hidden again", "S54", edit("js/unsaved-guard.js", (s) => s.replace("if (skip) skip.hidden = !s.any;", "if (skip) skip.hidden = false;")));
+  control("the skip link does not move focus", "S54", edit("js/unsaved-guard.js", (s) => s.replace("(saveBtn.hidden || saveBtn.disabled ? discardBtn : saveBtn).focus()", "void 0")));
+  control("edit.js does not hand over the skip link", "S54", edit("js/pages/edit.js", (s) => s.replace("skip: $(\"#skipToUnsaved\")", "skip: null")));
+}
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");

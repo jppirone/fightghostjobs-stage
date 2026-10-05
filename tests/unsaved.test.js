@@ -144,14 +144,14 @@ class FEl {
 }
 const makeDom = () => {
   const doc = { active: null }, el = (tag) => new FEl(tag, doc), body = el("body"); doc.active = body;
-  const bar = el("div"), head = el("strong"), detail = el("span"), live = el("div"), saveBtn = el("button"), discardBtn = el("button");
+  const bar = el("div"), head = el("strong"), detail = el("span"), live = el("div"), saveBtn = el("button"), discardBtn = el("button"), skip = el("a"); skip.hidden = true;
   const barText = el("div"); bar.append(barText, saveBtn, discardBtn); barText.append(head, detail); bar.hidden = true;
   const overlay = el("div"), dtitle = el("h2"), dtext = el("p"), dsave = el("button"), ddiscard = el("button"), dstay = el("button"), box = el("div");
   box.append(dtitle, dtext, dsave, ddiscard, dstay); overlay.append(box); overlay.hidden = true;
   const classes = new Set(), root = { classList: { toggle: (c, on) => (on ? classes.add(c) : classes.delete(c)), contains: (c) => classes.has(c) } };
   const wl = {}, win = { addEventListener: (t, f) => (wl[t] = wl[t] || []).push(f), removeEventListener: (t, f) => { wl[t] = (wl[t] || []).filter((x) => x !== f); }, count: (t) => (wl[t] || []).length, run: (t) => { const ev = { returnValue: undefined, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; } }; const results = (wl[t] || []).map((f) => f(ev)); return { ev, results }; } };
   const opener = el("a"), outside = el("input");
-  return { doc, el, bar, head, detail, live, saveBtn, discardBtn, dlg: { overlay, title: dtitle, text: dtext, save: dsave, discard: ddiscard, stay: dstay }, classes, root, win, opener, outside };
+  return { doc, el, bar, head, detail, live, saveBtn, discardBtn, skip, dlg: { overlay, title: dtitle, text: dtext, save: dsave, discard: ddiscard, stay: dstay }, classes, root, win, opener, outside };
 };
 
 // a model of the page: a baseline snapshot, the values in the form, the sections that save separately; save() succeeds or is refused; the same moves edit.js makes
@@ -159,7 +159,7 @@ function makePage(o = {}) {
   const dom = makeDom(), p = o.posting || posting();
   const page = { dom, v: form(), baseline: baselineOf(p), panels: new Set(), status: p.stored_status, orig: p, saves: 0, saveOk: true, discarded: 0, went: [], confirm: true, rescued: 0 };
   page.model = () => { const dirty = formDirty(page.baseline, page.v), r = earlyRules(p, page.v, dirty); return { form: dirty, panels: Array.from(page.panels), status: page.status, noteMissing: r.noteMissing, noteRequired: r.noteRequired }; };
-  page.guard = mountUnsavedGuard({ win: dom.win, root: dom.root, bar: dom.bar, head: dom.head, detail: dom.detail, live: dom.live, saveBtn: dom.saveBtn, discardBtn: dom.discardBtn, dlg: dom.dlg,
+  page.guard = mountUnsavedGuard({ win: dom.win, root: dom.root, bar: dom.bar, head: dom.head, detail: dom.detail, live: dom.live, saveBtn: dom.saveBtn, discardBtn: dom.discardBtn, skip: dom.skip, dlg: dom.dlg,
     getModel: page.model,
     save: async () => { page.saves++; if (page.gate) await page.gate; if (!page.saveOk) return false; page.baseline = snapshotOf(page.v); page.guard.refresh(); return true; },
     discard: () => { page.discarded++; page.v = form(); page.panels.clear(); page.guard.refresh(); },
@@ -347,4 +347,20 @@ test("edit.html: the bar, the polite status region and the leave dialog are ther
   assert.match(css, /\.unsaved-bar\{position:sticky;bottom:0;z-index:30;/); assert.match(css, /html\.unsaved-on\{scroll-padding-bottom:\d+px\}/);
   assert.match(css, /@media \(max-width:720px\)\{\.unsaved-inner\{padding:10px 16px\}\.unsaved-actions\{width:100%\}\.unsaved-actions \.btn\{flex:1 1 auto;justify-content:center\}/);
   assert.match(css, /\.unsaved-inner\{[^}]*flex-wrap:wrap\}/, "the text and the buttons wrap instead of running off a narrow screen");
+});
+
+test("the skip link (October 5, 2026): exists only while the bar shows, goes to Save changes (or Discard when Save is not offered), and says nothing to a screen reader", async () => {
+  const pg = makePage(), d = pg.dom;
+  pg.guard.refresh();
+  assert.equal(d.skip.hidden, true, "no link while nothing is unsaved");
+  pg.edit({ title: "Senior Data Analyst" });
+  assert.equal(d.skip.hidden, false, "the link appears with the bar"); const said = d.live.textContent;
+  const e = await d.skip.fire("click", { button: 0 }); assert.equal(e.defaultPrevented, true, "the link does not navigate"); assert.equal(d.doc.active, d.saveBtn, "focus goes to Save changes"); assert.equal(d.live.textContent, said, "the announcement is not disturbed");
+  pg.edit({ title: "Data Analyst" }); assert.equal(d.skip.hidden, true, "the link goes with the bar");
+  // only a separately saved section is unsaved: Save changes is not offered, so Discard gets the focus
+  pg.panels.add(PANEL.LINKS); pg.guard.refresh();
+  assert.equal(d.skip.hidden, false); assert.equal(d.saveBtn.hidden, true);
+  await d.skip.fire("click", { button: 0 }); assert.equal(d.doc.active, d.discardBtn);
+  // the bar closes while the link has the focus: focus is not left on nothing
+  const r0 = pg.rescued; d.skip.focus(); pg.panels.clear(); pg.guard.refresh(); assert.equal(d.skip.hidden, true); assert.equal(pg.rescued, r0 + 1, "focus was rescued");
 });
