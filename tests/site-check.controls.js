@@ -487,7 +487,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("app.js prints the name and organization beside the circle again", "S46", edit(AP, (s) => s.replace("      account.root,\n", '      account.root, name + (org ? " · " + org : ""),\n')));
   control("app.js no longer wires the control", "S46", edit(AP, (s) => s.replace("    wireAccountMenu(account, document);\n", "")));
   control("app.js builds the old span with the text", "S46", edit(AP, (s) => s.replace("const account = buildAccount(h, initials, name, org);", 'const account = buildAccount(h, initials, name, org); h("span", { class: "nav-account" }, name);')));
-  control("the candidate's signed-in area no longer wraps", "S46", edit(AP, (s) => s.replace('container.classList.add("nav-acct-area");\n    container.append(\n      h("span", { style: "font-size:13px;color:var(--muted);" }, "Email verified"),', 'container.append(\n      h("span", { style: "font-size:13px;color:var(--muted);" }, "Email verified"),')));
+  control("the candidate's signed-in area no longer wraps", "S46", edit(AP, (s) => s.replace('container.classList.add("nav-acct-area");\n    container.append(\n      h("span", { style: "font-size:13px;color:var(--muted);" }, "Email confirmed"),', 'container.append(\n      h("span", { style: "font-size:13px;color:var(--muted);" }, "Email confirmed"),')));
   control("Sign out is removed from the header (both signed-in areas)", "S46", edit(AP, (s) => s.split('"Sign out"').join('"Sign off"')));
   control("an inline margin comes back in the signed-in area", "S46", edit(AP, (s) => s.replace('href: "dashboard.html" }, "My postings")', 'href: "dashboard.html", style: "margin-right:14px;" }, "My postings")')));
   control("the label is no longer a small box under the circle", "S46", edit(CSS2, (s) => s.replace(".account-pop{display:none;position:absolute;top:calc(100% + 10px);right:0;", ".account-pop{display:none;position:static;")));
@@ -735,6 +735,16 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("a replayed search scrolls", "S56", edit("js/pages/search.js", (s) => s.replace("if (!auto && !(window.matchMedia", "if (!(window.matchMedia")));
   control("the recap takes the focus", "S56", edit("js/pages/search.js", (s) => s.replace("recapEl.scrollIntoView({ block: \"start\", behavior: \"smooth\" });", "recapEl.scrollIntoView({ block: \"start\", behavior: \"smooth\" }); recapEl.focus();")));
   control("the scroll test is not run", "S56", edit("tests/run-all.js", (s) => s.replace("search-scroll.test.js", "search-scroll-old.test.js")));
+}
+
+// S57: candidate sign-in wording, the confirm family (Part E5): search card heading, paragraph, button, the flash after the link and the top bar word; employer side stays sign-in link
+{
+  control("the search card heading goes back to Verify", "S57", edit("search.html", (s) => s.replace("<h2>Confirm your email to search</h2>", "<h2>Verify your email to search</h2>")));
+  control("the paragraph goes back to keeps you verified", "S57", edit("search.html", (s) => s.replace("that keeps your email confirmed for 90 days.", "that keeps you verified for 90 days.")));
+  control("the button goes back to Send link", "S57", edit("search.html", (s) => s.replace("id=\"candSend\" class=\"btn btn-dark\">Email me a link</button>", "id=\"candSend\" class=\"btn btn-dark\">Send link</button>")));
+  control("the top bar goes back to Email verified", "S57", edit("js/app.js", (s) => s.replace("\"Email confirmed\"", "\"Email verified\"")));
+  control("the flash goes back to Email verified", "S57", edit("js/pages/auth-callback.js", (s) => s.replace("say(\"Email confirmed\", \"You can search now.\", [])", "say(\"Email verified\", \"You can search now.\", [])")));
+  control("the employer heading changes", "S57", edit("employer-signin.html", (s) => s.replace("<h2>Email me a sign-in link</h2>", "<h2>Confirm your email</h2>")));
 }
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });

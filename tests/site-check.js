@@ -44,6 +44,7 @@
 //   S54 the edit page's skip link to the unsaved bar
 //   S55 the landing note clears on the person's first real action (Part E3), with no close button, no timer and no announcement
 //   S56 after a successful search the recap scrolls to the top of the window (Part E4): smooth, no focus move, not with reduced motion, not for a replayed search
+//   S57 candidate sign-in wording, the confirm family (Part E5): search card heading, paragraph, button, the flash after the link and the top bar word; employer side stays sign-in link
 //   S53 the search recap (Part C): sentence, never the req number or postID, Edit this search, memory only, one spoken message
 //   S52 the accessibility round: header Tab order, one polite search status, the details window's focus handling, the unsaved bar's closing message, 24 pixel hit areas, and the four tests that prove them
 //   S51 the home page's step 3 (Candidates look up), the search form's three boxes (Company required, Then one of these, a visible or, the approved sentence) and the callback without the flash on employer pages
@@ -854,7 +855,7 @@ export function checkSite(root) {
       if (a.includes('" · "') || /class: "nav-account"/.test(a)) add("S46", aF, "the name and organization must not be printed beside the circle any more (they wrapped into a tall narrow stack): they are the circle's accessible name and its label");
       if ((a.match(/container\.classList\.add\("nav-acct-area"\)/g) || []).length !== 2) add("S46", aF, "both signed-in areas (employer and candidate) must carry nav-acct-area so they wrap instead of squeezing the navigation");
       if (/margin-right:14px|margin-left:14px/.test(a)) add("S46", aF, "spacing in the signed-in area comes from the stylesheet gap, not inline margins");
-      if (!a.includes('"Sign out"') || !a.includes('"Email verified"')) add("S46", aF, "Sign out and Email verified must stay in the header");
+      if (!a.includes('"Sign out"') || !a.includes('"Email confirmed"')) add("S46", aF, "Sign out and Email confirmed must stay in the header");
     }
     if (fs.existsSync(cF)) {
       const c = read(cF);
@@ -895,7 +896,7 @@ export function checkSite(root) {
         ['#navAccount .btn-sm::before{content:"";position:absolute;inset:-6px 0}', "the account buttons have an invisible margin so the touch target is 44 pixels"],
         ["#navAccount.nav-acct-area{display:contents!important}", "the signed-in account items join the bar's rows"],
         ["#navAccount.nav-acct-area>*{order:4}", "the account buttons are the second row"],
-        ["#navAccount.nav-acct-area>span{order:2}", "the initials circle (or Email verified) sits beside the logo"],
+        ["#navAccount.nav-acct-area>span{order:2}", "the initials circle (or Email confirmed) sits beside the logo"],
         ["#navAccount.nav-acct-area>.btn-ghost{order:3}", "Sign out sits beside the circle"],
         ['#navAccount.nav-acct-area::after{content:"";order:3;flex:0 0 100%;height:0}', "a row break after Sign out"],
         [".nav{position:relative}", "the bar anchors the initials label"],
@@ -1062,7 +1063,7 @@ export function checkSite(root) {
 
   // S51 (2026-10-05): the home page's step 3 and the search form's three boxes. Step 3 reads "Candidates look up" and its approved sentence; the search form says Company is REQUIRED (real text in the ember red), puts the req number and the
   // postID / title box under the heading "Then one of these" in a labelled group with a visible "or" between them, and carries the approved sentence under the form; the old sentence and the old heading must not come back. The callback
-  // does not flash "Email verified / You can search now." on the way to an employer page.
+  // does not flash "Email confirmed / You can search now." on the way to an employer page.
   {
     const ixF = path.join(root, "index.html"), shF = path.join(root, "search.html"), cssF = path.join(root, "app.css"), cbF = path.join(root, "js", "pages", "auth-callback.js"), uiF = path.join(root, "tests", "search-ui.test.js");
     if (fs.existsSync(ixF)) { const t = read(ixF); if (!t.includes('<h3 style="font-size:19px;font-weight:700;">Candidates look up</h3>') || !t.includes("Look up a posting by company and req number, or by company and postID or title, before applying. No account or password, just a quick email check." + "</p>")) add("S51", ixF, "home step 3 must read Candidates look up, with the approved sentence"); }
@@ -1079,7 +1080,7 @@ export function checkSite(root) {
       const c = read(cssF);
       for (const [needle, why] of [[".srch-req{text-transform:none;letter-spacing:0;font-weight:700;color:var(--ember)}", "the word (required) is ember red real text"], [".srch-or{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700;color:var(--muted)}", "the visible or between the two boxes"], [".srch-then{font-size:13px;font-weight:700;line-height:20px;color:var(--ink);padding:8px 12px 0 12px}", "the heading Then one of these"]]) if (!c.includes(needle)) add("S51", cssF, "app.css must keep: " + why);
     }
-    if (fs.existsSync(cbF)) { const s = stripJsComments(read(cbF)); if (!s.includes('landingKindForPage("/" + destPage[0], destPage[1] ? "?" + destPage[1] : "") !== "poster") say("Email verified", "You can search now.", []);')) add("S51", cbF, "the callback must skip the Email verified flash when the destination is an employer page"); }
+    if (fs.existsSync(cbF)) { const s = stripJsComments(read(cbF)); if (!s.includes('landingKindForPage("/" + destPage[0], destPage[1] ? "?" + destPage[1] : "") !== "poster") say("Email confirmed", "You can search now.", []);')) add("S51", cbF, "the callback must skip the Email confirmed flash when the destination is an employer page"); }
     if (fs.existsSync(uiF) && !read(uiF).includes("Then one of these")) add("S51", uiF, "tests/search-ui.test.js must test the search form's grouping");
   }
 
@@ -1176,6 +1177,20 @@ export function checkSite(root) {
     if (fs.existsSync(srF)) { const t = stripJsComments(read(srF)); for (const [needle, why] of [['if (!auto && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) recapEl.scrollIntoView({ block: "start", behavior: "smooth" });', "scroll the recap to the top, smoothly, only for a search the person started and not with reduced motion"], ["showRecap(typed, c.value, q, auto);", "pass the replay flag to the recap"]]) if (!t.includes(needle)) add("S56", srF, "search.js must " + why); if (/recapEl\.focus\(|recapEl\.setAttribute\("tabindex"/.test(t)) add("S56", srF, "the recap must not take the focus"); }
     if (fs.existsSync(cssF) && !read(cssF).includes(".recap{scroll-margin-top:16px}")) add("S56", cssF, "app.css must keep .recap{scroll-margin-top:16px}");
     if (!fs.existsSync(tf)) add("S56", tf, "the test search-scroll.test.js must exist"); else if (fs.existsSync(raF) && !read(raF).includes("search-scroll.test.js")) add("S56", raF, "tests/run-all.js must run search-scroll.test.js");
+  }
+
+  // S57 (2026-10-05, E5): the candidate side says "confirm your email". Search card: heading "Confirm your email to search", paragraph "...that keeps your email confirmed for 90 days.", button "Email me a link"; after the link the flash
+  // "Email confirmed / You can search now." and the top bar word "Email confirmed". The employer side keeps "sign-in link" (employer-signin.html). No privacy or terms text is part of this rule.
+  {
+    const shF = path.join(root, "search.html"), appF = path.join(root, "js", "app.js"), cbF = path.join(root, "js", "pages", "auth-callback.js"), esF = path.join(root, "employer-signin.html");
+    if (fs.existsSync(shF)) {
+      const t = read(shF);
+      for (const [needle, why] of [["<h2>Confirm your email to search</h2>", "the heading Confirm your email to search"], ["One quick step: we email you a link, and that keeps your email confirmed for 90 days.", "the paragraph that keeps your email confirmed for 90 days"], ['id="candSend" class="btn btn-dark">Email me a link</button>', "the button Email me a link"]]) if (!t.includes(needle)) add("S57", shF, "the search card must have " + why);
+      if (/Verify your email to search|keeps you verified|>Send link</.test(t)) add("S57", shF, "the old candidate wording (Verify your email to search, keeps you verified, Send link) must not come back on the search card");
+    }
+    if (fs.existsSync(appF) && !stripJsComments(read(appF)).includes('"Email confirmed"')) add("S57", appF, "the top bar must say Email confirmed for a candidate");
+    if (fs.existsSync(cbF) && !stripJsComments(read(cbF)).includes('say("Email confirmed", "You can search now.", [])')) add("S57", cbF, "the flash after the link must be Email confirmed / You can search now.");
+    if (fs.existsSync(esF)) { const t = read(esF); if (!t.includes("<h2>Email me a sign-in link</h2>") || !t.includes("Send sign-in link</button>")) add("S57", esF, "the employer sign-in page keeps its sign-in link wording"); }
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

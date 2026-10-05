@@ -115,7 +115,7 @@ test("mounting the account twice (a page that does it again) removes the first w
 });
 
 // ---- the page's own source and stylesheet
-test("app.js builds the signed-in area from the control: the circle, no name or organization printed beside it, no inline margins, a wrapping area; Sign out and Email verified stay", () => {
+test("app.js builds the signed-in area from the control: the circle, no name or organization printed beside it, no inline margins, a wrapping area; Sign out and Email confirmed stay", () => {
   const js = src("js/app.js");
   assert.match(js, /import \{ buildAccount, wireAccountMenu \} from "\.\/account-menu\.js";/);
   assert.match(js, /const account = buildAccount\(h, initials, name, org\);/);
@@ -124,7 +124,7 @@ test("app.js builds the signed-in area from the control: the circle, no name or 
   assert.ok(!/class: "nav-account"/.test(js), "the old span with the printed text is gone");
   assert.equal((js.match(/container\.classList\.add\("nav-acct-area"\)/g) || []).length, 2, "both signed-in areas (employer and candidate) wrap");
   assert.ok(!/margin-right:14px|margin-left:14px/.test(js), "spacing comes from the stylesheet gap, not inline margins");
-  assert.match(js, /"Email verified"/); assert.match(js, /h\("button", \{ type: "button", class: "btn btn-ghost btn-sm", onclick: async \(\) => \{ await signOut\(\); forgetLocalState\(\); go\("index\.html"\); \} \}, "Sign out"\)/);
+  assert.match(js, /"Email confirmed"/); assert.match(js, /h\("button", \{ type: "button", class: "btn btn-ghost btn-sm", onclick: async \(\) => \{ await signOut\(\); forgetLocalState\(\); go\("index\.html"\); \} \}, "Sign out"\)/);
 });
 
 test("the edit page's leave guard holds back Sign out but NOT the initials circle (which only opens a label)", () => {

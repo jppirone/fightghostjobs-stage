@@ -67,9 +67,9 @@ const button = (text, fn, cls = "btn btn-ghost") => h("button", { type: "button"
       [button("Sign out", async () => { await signOut(); go("search.html"); }), link("Back", "register.html", "btn btn-outline")]);
     return;
   }
-  // a both-roles address that asked for an employer page: no "Email verified / You can search now." flash on the way to an employer page (nothing replaces it). A candidate destination keeps the flash.
+  // a both-roles address that asked for an employer page: no "Email confirmed / You can search now." flash on the way to an employer page (nothing replaces it). A candidate destination keeps the flash.
   const dest = next || "search.html", destPage = dest.split("?");
-  if (landingKindForPage("/" + destPage[0], destPage[1] ? "?" + destPage[1] : "") !== "poster") say("Email verified", "You can search now.", []);
+  if (landingKindForPage("/" + destPage[0], destPage[1] ? "?" + destPage[1] : "") !== "poster") say("Email confirmed", "You can search now.", []);
   markLanded(sessionStorage, "candidate");
   go(dest);
 })();

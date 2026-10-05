@@ -104,7 +104,7 @@ export async function mountAccount(container, { cta = true } = {}) {
   if (session && session.isCandidate) {
     container.classList.add("nav-acct-area");
     container.append(
-      h("span", { style: "font-size:13px;color:var(--muted);" }, "Email verified"),
+      h("span", { style: "font-size:13px;color:var(--muted);" }, "Email confirmed"),
       h("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: async () => { await signOut(); go("index.html"); } }, "Sign out"),
     );
     orderHeader(document, window);

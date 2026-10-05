@@ -31,7 +31,7 @@ function kindOf(el) {
   const tag = String(el.tagName || "").toUpperCase();
   if (tag === "A") return "link";
   if (tag === "BUTTON") return "signout";
-  return "circle";      // the initials circle's wrapper, or the plain words "Email verified" of a candidate
+  return "circle";      // the initials circle's wrapper, or the plain words "Email confirmed" of a candidate
 }
 
 function place(parent, wanted, doc) {
