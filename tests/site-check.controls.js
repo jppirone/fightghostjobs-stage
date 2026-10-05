@@ -624,7 +624,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the landing note ignores the page", "S50", edit("js/app.js", (s) => s.replace("landingKindForPage(location.pathname, location.search) || flag", "flag")));
   control("the landing note ignores the role check", "S50", edit("js/app.js", (s) => s.replace("kind === \"poster\" && session.isPoster ? landingText(\"poster\")", "kind === \"poster\" ? landingText(\"poster\")")));
   control("the home button says Search a company again", "S50", edit("index.html", (s) => s.replace("<a class=\"btn btn-dark\" href=\"search.html\">Look up a posting</a>", "<a class=\"btn btn-dark\" href=\"search.html\">Search a company</a>")));
-  control("the home sentence goes back to the old wording", "S50", edit("index.html", (s) => s.replace("Look up a posting by company and req number, or by company and postID or title, before applying. No account required.", "Search by company and title before applying. No account required to look up a posting.")));
+  control("the home sentence goes back to the old wording", "S50", edit("index.html", (s) => s.replace("Look up a posting by company and req number, or by company and postID or title, before applying. No account or password, just a quick email check.", "Search by company and title before applying. No account required to look up a posting.")));
   control("the home sentence is reworded", "S50", edit("index.html", (s) => s.replace("or by company and postID or title, before applying.", "or by title, before applying.")));
   control("the old wording appears on another page", "S50", edit("privacy.html", (s) => s.replace("<h1", "<p>Search a company</p><h1")));
   control("the report section is shown whatever the posting has", "S50", edit("js/pages/comments.js", (s) => s.replace("$(\"#reportWrap\").hidden = !picker;", "$(\"#reportWrap\").hidden = false;")));
@@ -652,7 +652,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
 // S51 (2026-10-05): home step 3, the search form's boxes, the callback without the flash on employer pages.
 {
   control("the home heading goes back to Candidates verify", "S51", edit("index.html", (s) => s.replace("Candidates look up</h3>", "Candidates verify</h3>")));
-  control("the home step 3 sentence goes back to the earlier wording", "S51", edit("index.html", (s) => s.replace("Look up a posting by company and req number, or by company and postID or title, before applying. No account required.", "Look up a posting by company and req number, or by company and title, before applying. No account required.")));
+  control("the home step 3 sentence goes back to the earlier wording", "S51", edit("index.html", (s) => s.replace("Look up a posting by company and req number, or by company and postID or title, before applying. No account or password, just a quick email check.", "Look up a posting by company and req number, or by company and title, before applying. No account required.")));
   control("the old heading appears on another page", "S51", edit("privacy.html", (s) => s.replace("<h1", "<h3>Candidates verify</h3><h1")));
   control("the Company label loses (required)", "S51", edit("search.html", (s) => s.replace(" <span class=\"srch-req\">(required)</span>", "")));
   control("the company box is no longer aria-required", "S51", edit("search.html", (s) => s.replace(" type=\"text\" aria-required=\"true\" maxlength=\"200\"", " type=\"text\" maxlength=\"200\"")));

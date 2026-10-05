@@ -1029,7 +1029,7 @@ export function checkSite(root) {
     }
     if (fs.existsSync(ixF)) {
       const t = read(ixF);
-      if (!t.includes('<a class="btn btn-dark" href="search.html">Look up a posting</a>') || !t.includes("Look up a posting by company and req number, or by company and postID or title, before applying. No account required.")) add("S50", ixF, "the home page must carry the approved wording: the button Look up a posting and the sentence " + "Look up a posting by company and req number, or by company and postID or title, before applying. No account required.");
+      if (!t.includes('<a class="btn btn-dark" href="search.html">Look up a posting</a>') || !t.includes("Look up a posting by company and req number, or by company and postID or title, before applying. No account or password, just a quick email check.")) add("S50", ixF, "the home page must carry the approved wording: the button Look up a posting and the sentence " + "Look up a posting by company and req number, or by company and postID or title, before applying. No account or password, just a quick email check.");
     }
     for (const f of html.concat(js)) { const t = read(f); if (/Search a company|Search by company and title before applying/.test(t)) add("S50", f, "the old wording that says a company is what is searched (Search a company; Search by company and title before applying) must not come back"); }
     if (fs.existsSync(cmF)) {
@@ -1063,7 +1063,7 @@ export function checkSite(root) {
   // does not flash "Email verified / You can search now." on the way to an employer page.
   {
     const ixF = path.join(root, "index.html"), shF = path.join(root, "search.html"), cssF = path.join(root, "app.css"), cbF = path.join(root, "js", "pages", "auth-callback.js"), uiF = path.join(root, "tests", "search-ui.test.js");
-    if (fs.existsSync(ixF)) { const t = read(ixF); if (!t.includes('<h3 style="font-size:19px;font-weight:700;">Candidates look up</h3>') || !t.includes("Look up a posting by company and req number, or by company and postID or title, before applying. No account required." + "</p>")) add("S51", ixF, "home step 3 must read Candidates look up, with the approved sentence"); }
+    if (fs.existsSync(ixF)) { const t = read(ixF); if (!t.includes('<h3 style="font-size:19px;font-weight:700;">Candidates look up</h3>') || !t.includes("Look up a posting by company and req number, or by company and postID or title, before applying. No account or password, just a quick email check." + "</p>")) add("S51", ixF, "home step 3 must read Candidates look up, with the approved sentence"); }
     for (const f of html.concat(js)) { if (/Candidates verify/.test(read(f))) add("S51", f, "the old heading Candidates verify must not come back on an app page"); }
     if (fs.existsSync(shF)) {
       const t = read(shF);
