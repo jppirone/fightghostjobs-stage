@@ -676,7 +676,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("app.js stops watching the header order", "S52", edit("js/app.js", (s) => s.replace("watchHeaderOrder(document, window);", "void 0;")));
   control("the search status is not a live region", "S52", edit("search.html", (s) => s.replace(" role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"></div>\n    <div id=\"resultCount\"", "></div>\n    <div id=\"resultCount\"")));
   control("the visible count is read a second time", "S52", edit("search.html", (s) => s.replace("class=\"result-count\" aria-hidden=\"true\" hidden", "class=\"result-count\" hidden")));
-  control("search.js stops announcing", "S52", edit("js/pages/search.js", (s) => s.replace("  status.announce(countEl.textContent);   // the one spoken message of this search (js/search-status.js)\n", "")));
+  control("search.js stops announcing", "S52", edit("js/pages/search.js", (s) => s.replace("  status.announce(text);\n}", "}")));
   control("search.js no longer traps focus in the details window", "S52", edit("js/pages/search.js", (s) => s.replace("releaseFocus = trapFocus({", "releaseFocus = ({")));
   control("the details window no longer returns focus to the exact button", "S52", edit("js/pages/search.js", (s) => s.replace("openModal(row, button)", "openModal(row, null)")));
   control("the page behind the details window is not made inert", "S52", edit("js/dialog-focus.js", (s) => s.replace("sib.setAttribute(\"inert\", \"\");", "")));
@@ -688,6 +688,23 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the unsaved bar stops saying it is gone", "S52", edit("js/dirty-state.js", (s) => s.replace("CLEARED: \"No unsaved changes.\"", "CLEARED: \"\"")));
   control("a discard no longer hushes the closing message", "S52", edit("js/unsaved-guard.js", (s) => s.replace("const hush = (on) => { hushed = !!on; };", "const hush = () => {};")));
   control("a test of the round is not run", "S52", edit("tests/run-all.js", (s) => s.replace("target-size.test.js", "target-size-old.test.js")));
+}
+
+// S53 (2026-10-05, Part C): the search recap.
+{
+  control("the recap moves under the results", "S53", edit("search.html", (s) => s.replace('    <div id="searchStatus"', '    <div id="results" style="display:none"></div>\n    <div id="searchStatus"')));
+  control("the Edit this search button becomes a span", "S53", edit("search.html", (s) => s.replace("<button type=\"button\" id=\"recapEdit\" class=\"btn btn-outline btn-sm\">Edit this search</button>", "<span id=\"recapEdit\" class=\"btn\">Edit this search</span>")));
+  control("the recap sentence loses its ending", "S53", edit("js/search-recap.js", (s) => s.replace("TAIL: \" Your results are below.\"", "TAIL: \"\"")));
+  control("the req number is printed in the recap", "S53", edit("js/search-recap.js", (s) => s.replace("search.kind === \"req\" ? RECAP.REQ", "search.kind === \"req\" ? search.value")));
+  control("a postID is printed in the recap", "S53", edit("js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" ? search.value : RECAP.CODE")));
+  control("the boxes are not emptied", "S53", edit("js/pages/search.js", (s) => s.replace("companyIn.value = \"\"; queryIn.value = \"\"; reqIn.value = \"\";", "void 0;")));
+  control("a new search does not hide the recap", "S53", edit("js/pages/search.js", (s) => s.replace("setFormError(\"\"); hideRecap();", "setFormError(\"\");")));
+  control("Edit this search does not move the cursor", "S53", edit("js/pages/search.js", (s) => s.replace("lastSearch = null; hideRecap(); companyIn.focus();", "lastSearch = null; hideRecap();")));
+  control("Edit this search does not put the values back", "S53", edit("js/pages/search.js", (s) => s.replace("companyIn.value = lastSearch.company; queryIn.value = lastSearch.q; reqIn.value = lastSearch.r;", "void 0;")));
+  control("the typed search is kept in storage", "S53", edit("js/pages/search.js", (s) => s.replace("  lastSearch = typed;\n", "  lastSearch = typed; localStorage.setItem(\"typed\", JSON.stringify(typed));\n")));
+  control("the count is spoken as well", "S52", edit("js/pages/search.js", (s) => s.replace("  status.announce(text);\n}", "  status.announce(text); status.announce(countEl.textContent);\n}")));
+  control("a hidden recap shows", "S53", edit("app.css", (s) => s.replace(".recap[hidden]{display:none}", "")));
+  control("the recap test is not run", "S53", edit("tests/run-all.js", (s) => s.replace("search-recap.test.js", "search-recap-old.test.js")));
 }
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });

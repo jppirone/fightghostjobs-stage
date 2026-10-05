@@ -8,6 +8,7 @@ import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js";
 import { lockScroll } from "../scroll-lock.js";
 import { trapFocus } from "../dialog-focus.js";
 import { makeAnnouncer } from "../search-status.js";
+import { recapSentence } from "../search-recap.js";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js";
 import { locationLine, waitText } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
@@ -16,6 +17,8 @@ import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, search
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
+const recapEl = $("#recap"), recapTextEl = $("#recapText"), recapEditBtn = $("#recapEdit");
+let lastSearch = null;   // what was typed in the three boxes for the search that just ran: in memory only, never stored; "Edit this search" puts it back
 const backdrop = $("#modalBackdrop"), status = makeAnnouncer($("#searchStatus"), window);
 let session = null, busy = false, cooldownTimer = null;
 
@@ -85,18 +88,31 @@ function showResults(data, searched) {
   countEl.hidden = false;
   const n = data.results.length;
   if (n === 0) {
-    countEl.textContent = "No matching postings"; status.announce(countEl.textContent);
+    countEl.textContent = "No matching postings";
     resultsEl.append(h("div", { class: "empty-note", style: "margin-top:0;" }, noMatchMessage(searched.company, searched.query, searched.kind)));
     return;
   }
   countEl.textContent = n + (n === 1 ? " matching posting" : " matching postings") + (data.truncated ? ": showing the first 25; add more of the title to narrow it" : "");
-  status.announce(countEl.textContent);   // the one spoken message of this search (js/search-status.js)
   for (const row of data.results) resultsEl.append(renderCard(row));
 }
 
+// ---- the recap (Part C): once a search has run, the boxes are emptied and this read-only sentence sits between the form and the results. The one spoken message of the search is this same sentence (js/search-status.js).
+function hideRecap() { recapEl.hidden = true; recapTextEl.textContent = ""; }
+function showRecap(typed, company, search) {
+  lastSearch = typed;
+  companyIn.value = ""; queryIn.value = ""; reqIn.value = "";
+  const text = recapSentence(company, search);
+  recapTextEl.textContent = text; recapEl.hidden = false;
+  status.announce(text);
+}
+recapEditBtn.addEventListener("click", () => {
+  if (lastSearch) { companyIn.value = lastSearch.company; queryIn.value = lastSearch.q; reqIn.value = lastSearch.r; }
+  lastSearch = null; hideRecap(); companyIn.focus();
+});
+
 async function runSearch() {
   if (busy) return;
-  setFormError("");
+  setFormError(""); hideRecap();
   const c = checkCompany(companyIn.value), q = resolveSearch(queryIn.value, reqIn.value);
   if (!c.ok) { setFormError(c.message); companyIn.focus(); return; }
   if (!q.ok) { setFormError(q.message); (q.focus === "req" ? reqIn : queryIn).focus(); return; }
@@ -109,6 +125,7 @@ async function runSearch() {
     return;
   }
   const hadFocus = document.activeElement === searchBtn;   // a disabled button drops the focus: it is given back when the search is over (the screen-reader message that follows is spoken with the focus where it was)
+  const typed = { company: companyIn.value, q: queryIn.value, r: reqIn.value };
   busy = true; searchBtn.disabled = true; const label = "Search"; searchBtn.textContent = "Searching…";
   status.clear();
   let cooldown = 0;
@@ -116,7 +133,7 @@ async function runSearch() {
     let r = await api.candidateSearch(q.kind === "req" ? { company: c.value, req: q.value } : q.kind === "code" ? { company: c.value, code: q.value } : { company: c.value, phrase: q.value });
     if (q.alsoTryCode && r.ok && r.data.results.length === 0) r = await api.candidateSearch({ company: c.value, code: q.value });
     if (!r.ok && r.status === 404 && r.error.code === "not_found") r = { ok: true, data: { mode: "code", truncated: false, results: [] } };   // a code that matches nothing is a plain "no such posting"
-    if (r.ok) { showResults(r.data, { company: c.value, query: q.value, kind: q.kind }); return; }
+    if (r.ok) { showResults(r.data, { company: c.value, query: q.value, kind: q.kind }); showRecap(typed, c.value, q); return; }
     clear(resultsEl); countEl.hidden = true;
     if (isAuthFailure(r.error)) { session = null; applySession(); showSignIn(r.error.code === "reverification_required" ? "Your email verification has expired. Please verify your email again." : "Please verify your email to search."); return; }
     if (r.error.code === "rate_limited") { cooldown = r.error.retryAfter || 30; setFormError("You are searching too fast. Try again in " + waitText(cooldown) + "."); return; }

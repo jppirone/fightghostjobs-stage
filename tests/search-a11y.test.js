@@ -53,7 +53,8 @@ const SCENARIOS = {
       if (!el || el.role !== "status" || el.live !== "polite") bad.push("the search status is not a polite status message in the page from the start: " + JSON.stringify(el));
       const countHidden = await tab.eval(`document.getElementById("resultCount").getAttribute("aria-hidden") === "true"`);
       if (!countHidden) bad.push("the visible count is also exposed to a screen reader (it would be read a second time)");
-      for (const [how, company, title, want] of [["button", "Meridian", "Nurse", "2 matching postings"], ["button", "Meridian", "Nurse", "2 matching postings"], ["enter", "Zzyzx Unknown", "Nurse", "No matching postings"]]) {
+      // Part C (October 5, 2026): the one spoken message of a search is the recap sentence (the count is not spoken as well); the boxes are emptied by the search, so each round types them again
+      for (const [how, company, title, want] of [["button", "Meridian", "Nurse", "You searched for: company Meridian, title Nurse. Your results are below."], ["button", "Meridian", "Nurse", "You searched for: company Meridian, title Nurse. Your results are below."], ["enter", "Zzyzx Unknown", "Nurse", "You searched for: company Zzyzx Unknown, title Nurse. Your results are below."]]) {
         await fill(tab, company, title); await runFrom(tab, how === "enter" ? "enter" : "button");
         await tab.waitFor(`window.__said.some((x) => x.id === "searchStatus")`, 6000); await sleep(700);
         const said = JSON.parse(await tab.eval(SAID)), mine = said.filter((x) => x.id === "searchStatus"), others = said.filter((x) => x.id !== "searchStatus");
@@ -145,12 +146,12 @@ test("search page: one polite status message per search; the details window take
 const DEFECTS = [
   // B2
   ["the status is not a live region any more", ["status"], [["search.html", (s) => s.replace(' role="status" aria-live="polite" aria-atomic="true"></div>\n    <div id="resultCount"', '></div>\n    <div id="resultCount"')]]],
-  ["a result count is never announced", ["status"], [["js/pages/search.js", (s) => s.replace('  status.announce(countEl.textContent);   // the one spoken message of this search (js/search-status.js)\n', "")]]],
-  ["no match is never announced", ["status"], [["js/pages/search.js", (s) => s.replace('countEl.textContent = "No matching postings"; status.announce(countEl.textContent);', 'countEl.textContent = "No matching postings";')]]],
+  ["the recap sentence is never announced", ["status"], [["js/pages/search.js", (s) => s.replace("  status.announce(text);\n}", "}")]]],
+  ["the result count is spoken instead of the recap sentence", ["status"], [["js/pages/search.js", (s) => s.replace("showRecap(typed, c.value, q); return; }", "showRecap(typed, c.value, q); status.announce(countEl.textContent); return; }")]]],
   ["the visible count is a live region too (read twice)", ["status"], [["search.html", (s) => s.replace('<div id="resultCount" class="result-count" aria-hidden="true" hidden></div>', '<div id="resultCount" class="result-count" role="status" hidden></div>')]]],
   ["the same search twice is announced only once", ["status"], [["js/search-status.js", (s) => s.replace('announce(text) { stop(); el.textContent = "";', "announce(text) { stop(); if (el.textContent === text) return;")], ["js/pages/search.js", (s) => s.replace("\n  status.clear();", "")]]],
   ["a search announces twice", ["status"], [["js/search-status.js", (s) => s.replace("timer = win.setTimeout(() => { timer = null; el.textContent = text; }, ANNOUNCE_DELAY_MS); },", "timer = win.setTimeout(() => { timer = null; el.textContent = text; win.setTimeout(() => { el.textContent = \"\"; el.textContent = text; }, 250); }, ANNOUNCE_DELAY_MS); },")]]],
-  ["focus is moved to the results when a search finishes", ["status"], [["js/pages/search.js", (s) => s.replace("  status.announce(countEl.textContent);   // the one spoken message of this search (js/search-status.js)\n", "  status.announce(countEl.textContent);\n  resultsEl.setAttribute(\"tabindex\", \"-1\"); resultsEl.focus();\n")]]],
+  ["focus is moved to the results when a search finishes", ["status"], [["js/pages/search.js", (s) => s.replace("  status.announce(text);\n}", "  status.announce(text);\n  resultsEl.setAttribute(\"tabindex\", \"-1\"); resultsEl.focus();\n}")]]],
   ["focus is dropped by the disabled Search button and not given back", ["status"], [["js/pages/search.js", (s) => s.replace(" if (hadFocus && document.activeElement === document.body) searchBtn.focus();", "")]]],
   // B3
   ["focus does not move into the window", ["detailsDesktop"], [["js/dialog-focus.js", (s) => s.replace("dialog.focus({ preventScroll: true });\n\n  const onKey", "void 0;\n\n  const onKey")]]],

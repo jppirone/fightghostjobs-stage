@@ -218,6 +218,12 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .info-icon::before{content:"";position:absolute;inset:-5px}
 select{min-height:24px}
 
+/* the search recap (October 5, 2026, Part C): a quiet read-only box between the form and the results: the sentence, and a button that puts the typed values back. */
+.recap{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:14px 18px}
+.recap[hidden]{display:none}
+.recap-text{margin:0;font-size:14px;line-height:1.6;color:var(--ink);overflow-wrap:anywhere;flex:1 1 280px}
+.recap .btn{flex:none}
+
 /* a message for screen readers only (October 5, 2026): the polite search status on the search page. The window the details dialog gets keyboard focus on is a container, not a control: no ring around the whole card. */
 .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .modal:focus{outline:none}

@@ -41,6 +41,7 @@
 //   S48 the pages at phone widths: the phone block in app.css (all of it inside the 640 and 360 pixel media blocks), the classes, the table roles and data-labels, the labelled scroll areas, and the browser test tests/phone-layout.test.js
 //   S49 the sign-in link opens in a new tab: pending search and landing page in localStorage (one hour, removed when used, never sent), a watch for a sign-in in another tab, the two notices pinned until John approves new wording, and tests/signin-tabs.test.js
 //   S50 the stage recheck round: landing wording by page, the home page wording (Look up a posting), Report a wrong link only for a posting with links, the search fields' visible line, the details window's scroll lock, and the tests that prove them
+//   S53 the search recap (Part C): sentence, never the req number or postID, Edit this search, memory only, one spoken message
 //   S52 the accessibility round: header Tab order, one polite search status, the details window's focus handling, the unsaved bar's closing message, 24 pixel hit areas, and the four tests that prove them
 //   S51 the home page's step 3 (Candidates look up), the search form's three boxes (Company required, Then one of these, a visible or, the approved sentence) and the callback without the flash on employer pages
 //   S16 locations are chosen from the catalog, not typed: the picker markup and the one-opening statement are on the form, the caps match the backend (13 / 3 / 10), the form never sends free text, the GeoNames + Census
@@ -1102,7 +1103,7 @@ export function checkSite(root) {
     }
     if (fs.existsSync(srF)) {
       const t = stripJsComments(read(srF));
-      for (const [needle, why] of [['import { makeAnnouncer } from "../search-status.js";', "the search status announcer"], ['import { trapFocus } from "../dialog-focus.js";', "the details window's focus handling"], ["countEl.textContent = \"No matching postings\"; status.announce(countEl.textContent);", "announce a search that found nothing"], ["status.clear();", "clear the status when a search starts"], ["releaseFocus = trapFocus({", "trap focus in the details window"], ["releaseFocus();", "give focus back when it closes"], ["openModal(row, button)", "the exact opener button"], ["hadFocus", "give the Search button its focus back"]]) if (!t.includes(needle)) add("S52", srF, "search.js must use " + why); if ((t.match(/status\.announce\(countEl\.textContent\)/g) || []).length < 2) add("S52", srF, "search.js must announce the count of a search that found postings as well as the no-match one");
+      for (const [needle, why] of [['import { makeAnnouncer } from "../search-status.js";', "the search status announcer"], ['import { trapFocus } from "../dialog-focus.js";', "the details window's focus handling"], ["status.announce(text);", "announce the recap sentence as the one spoken message of a search"], ["status.clear();", "clear the status when a search starts"], ["releaseFocus = trapFocus({", "trap focus in the details window"], ["releaseFocus();", "give focus back when it closes"], ["openModal(row, button)", "the exact opener button"], ["hadFocus", "give the Search button its focus back"]]) if (!t.includes(needle)) add("S52", srF, "search.js must use " + why); if (/status\.announce\(countEl/.test(t)) add("S52", srF, "search.js must not speak the count as well as the recap sentence (one spoken message per search)");
     }
     if (!fs.existsSync(ssF)) add("S52", ssF, "js/search-status.js must exist");
     if (!fs.existsSync(dfF)) add("S52", dfF, "js/dialog-focus.js must exist");
@@ -1119,6 +1120,32 @@ export function checkSite(root) {
       if (!fs.existsSync(path.join(root, "tests", f))) add("S52", path.join(root, "tests", f), "the test " + f + " must exist");
       else if (fs.existsSync(raF) && !read(raF).includes(f)) add("S52", raF, "tests/run-all.js must run " + f);
     }
+  }
+
+  // S53 (2026-10-05, Part C): the search recap. After a search has run the boxes are emptied and a read-only recap ("You searched for: company X, title Y. Your results are below.") sits between the form and the results, with a real
+  // Edit this search button. A req number and a postID are never printed (the recap says only that one was entered); the typed values live in memory only; the one spoken message of a search is the recap sentence.
+  {
+    const shF = path.join(root, "search.html"), srF = path.join(root, "js", "pages", "search.js"), rcF = path.join(root, "js", "search-recap.js"), cssF = path.join(root, "app.css"), raF = path.join(root, "tests", "run-all.js");
+    if (fs.existsSync(shF)) {
+      const t = read(shF);
+      const f = t.indexOf('<form id="searchForm"'), r = t.indexOf('<div id="recap" class="recap" hidden>'), st = t.indexOf('<div id="searchStatus"'), c = t.indexOf('<div id="resultCount"'), res = t.indexOf('<div id="results"');
+      if (!(f >= 0 && f < r && r < st && st < c && c < res)) add("S53", shF, "the recap must sit between the search form and the results (form, recap, status, count, results)");
+      if (!t.includes('<p id="recapText" class="recap-text"></p>') || !t.includes('<button type="button" id="recapEdit" class="btn btn-outline btn-sm">Edit this search</button>')) add("S53", shF, "the recap must carry its sentence element and a real button reading Edit this search");
+    }
+    if (!fs.existsSync(rcF)) add("S53", rcF, "js/search-recap.js must exist");
+    else {
+      const t = stripJsComments(read(rcF));
+      for (const [needle, why] of [['LEAD: "You searched for: company "', "the approved opening"], ['TAIL: " Your results are below."', "the approved ending"], ['REQ: "a req number was entered"', "the req number wording"], ['CODE: "a postID was entered"', "the postID wording"], ['search.kind === "req" ? RECAP.REQ : search.kind === "code" || search.alsoTryCode ? RECAP.CODE : "title " + oneLine(search.value)', "a req number and a postID (and twelve plain letters) are never printed, only a plain title"]]) if (!t.includes(needle)) add("S53", rcF, "search-recap.js must keep " + why);
+    }
+    if (fs.existsSync(srF)) {
+      const t = stripJsComments(read(srF));
+      for (const [needle, why] of [['import { recapSentence } from "../search-recap.js";', "the recap sentence"], ["showRecap(typed, c.value, q);", "show the recap after a search has run"], ['setFormError(""); hideRecap();', "hide the recap whenever a new search starts"], ['companyIn.value = ""; queryIn.value = ""; reqIn.value = "";', "empty the three boxes after a search"], ["lastSearch = null; hideRecap(); companyIn.focus();", "Edit this search: hide the recap and put the cursor in Company"], ["companyIn.value = lastSearch.company; queryIn.value = lastSearch.q; reqIn.value = lastSearch.r;", "Edit this search puts the typed values back"]]) if (!t.includes(needle)) add("S53", srF, "search.js must " + why);
+      if (t.split("\n").some((l) => /(typed|lastSearch)/.test(l) && /(localStorage|sessionStorage|indexedDB|document\.cookie)/.test(l))) add("S53", srF, "the typed search must live in memory only (no storage of it)");
+    }
+    if (fs.existsSync(cssF) && !read(cssF).includes(".recap[hidden]{display:none}")) add("S53", cssF, "app.css must keep .recap[hidden]{display:none} (a hidden recap must not show)");
+    const tf = path.join(root, "tests", "search-recap.test.js");
+    if (!fs.existsSync(tf)) add("S53", tf, "the test search-recap.test.js must exist");
+    else if (fs.existsSync(raF) && !read(raF).includes("search-recap.test.js")) add("S53", raF, "tests/run-all.js must run search-recap.test.js");
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

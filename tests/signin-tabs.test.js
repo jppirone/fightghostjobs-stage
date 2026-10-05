@@ -61,7 +61,14 @@ const SCENARIOS = {
       await B.goto(site.url + "/_dev/link?kind=candidate");      // what the emailed link does, in a NEW tab
       if (!(await B.waitFor("location.pathname === '/search.html' && document.querySelectorAll('#results .card').length > 0", 12000))) bad.push("the new tab did not land on the search page with the saved search's results (it is at " + (await B.eval("location.pathname + ' fields=' + document.querySelector('#company').value + '|' + document.querySelector('#titleq').value")) + ")");
       else {
-        if ((await B.eval("document.querySelector('#company').value + '|' + document.querySelector('#titleq').value")) !== "Meridian Health|Analyst") bad.push("the new tab did not refill the typed search");
+        // Part C (October 5, 2026): the replayed search ends the way a typed one does: the boxes are emptied and the recap sits above the results; Edit this search puts the typed values back
+        if ((await B.eval("document.querySelector('#company').value + '|' + document.querySelector('#titleq').value + '|' + document.querySelector('#reqq').value")) !== "||") bad.push("the replayed search did not empty the three boxes");
+        const recapB = await B.eval("(() => { const r = document.querySelector('#recap'); return r && !r.hidden ? document.querySelector('#recapText').textContent : null; })()");
+        if (recapB !== "You searched for: company Meridian Health, title Analyst. Your results are below.") bad.push("the new tab does not show the recap sentence after the replayed search (it shows: " + recapB + ")");
+        await B.eval("document.querySelector('#recapEdit').click()"); await sleep(200);
+        if ((await B.eval("document.querySelector('#company').value + '|' + document.querySelector('#titleq').value")) !== "Meridian Health|Analyst") bad.push("Edit this search did not put the typed search back in the new tab");
+        if ((await B.eval("document.activeElement && document.activeElement.id")) !== "company") bad.push("Edit this search did not put the cursor in the Company box");
+        if (await B.eval("!document.querySelector('#recap').hidden")) bad.push("the recap stays after Edit this search");
       }
       if (await B.eval("localStorage.getItem('fgj-pending-search')") !== null) bad.push("the saved search was not removed after it was used");
       if ((await B.eval("(() => { const n = document.querySelector('#landedNotice'); return n && !n.hidden ? n.textContent.trim() : null; })()")) !== CAND_LANDING) bad.push("the new tab does not show the approved landing note for a candidate (it shows: " + (await B.eval("(document.querySelector('#landedNotice') || {}).textContent")) + ")");
@@ -70,6 +77,7 @@ const SCENARIOS = {
       if (!(await A.waitFor("document.querySelector('#signinWrap').hidden === true && window.__tabA === 'same page'", 8000))) bad.push("tab A did not move to the signed-in state by itself (without a reload)");
       if (!(await A.eval("/Email verified/.test(document.querySelector('#navAccount').textContent)"))) bad.push("tab A's header does not show the signed-in state");
       if ((await A.eval("document.querySelector('#company').value + '|' + document.querySelector('#titleq').value")) !== "Meridian Health|Analyst") bad.push("tab A lost what was typed");
+      if (await A.eval("!document.querySelector('#recap').hidden")) bad.push("the background tab shows a recap although its search never ran");
       await A.setFront(true); await sleep(700);
       if (searchCalls(site) !== 1) bad.push("the saved search ran " + searchCalls(site) + " times (once is right)");
     } finally { await A.close(); await B.close(); }
