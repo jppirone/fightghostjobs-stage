@@ -11,6 +11,7 @@ import { postingChips, notOpenRecap } from "../chips.js";
 import { aiNotes } from "../ai-notes.js";
 import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js";
 import { addContestPart } from "../contest-ui.js";
+import { COMMENTS_VISIBLE } from "../config.js";   // the one comments switch: while false this page is only the wrong-link report
 
 const params = new URLSearchParams(location.search);
 const ref = String(params.get("ref") || "").toLowerCase(), pid = String(params.get("id") || "").toLowerCase();
@@ -105,7 +106,7 @@ function renderRecap(d) {
     for (const n of aiNotes(p)) notes.append(h("div", { style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text));
     $("#recapNote").textContent = d.data.links.length ? "The employer's links (" + d.data.links.length + ") are on the posting's details in Search. If one of them led you somewhere wrong, use “Report a wrong link” at the bottom of this page." : "This employer has not provided a link to where you can apply.";
   } else if (d.status === 409 && d.data && d.data.code === "posting_not_open") {
-    const nr = notOpenRecap(d.data.status, d.data.closed_reason || null);
+    const nr = notOpenRecap(d.data.status, d.data.closed_reason || null, COMMENTS_VISIBLE);
     $("#recapCompany").textContent = nr.company; $("#recapTitle").textContent = nr.title; $("#recapMeta").textContent = ""; $("#recapNote").textContent = nr.note;
   } else {
     recap.hidden = true;
@@ -130,13 +131,13 @@ async function candidateMode() {
   if (!d.ok && d.error && d.error.code === "not_found") { say(pageAlert, "error", "This posting was not found. Open it from Search."); return; }
   if (!d.ok && d.error && d.error.code === "rate_limited") { say(pageAlert, "notice", "You are opening postings too fast. Try again in " + waitText(d.error.retryAfter || 30) + "."); return; }
   renderRecap(d);
-  $("#threadWrap").hidden = false; $("#composeWrap").hidden = false; $("#composeRules").textContent = COMMENT_RULES;
+  if (COMMENTS_VISIBLE) { $("#threadWrap").hidden = false; $("#composeWrap").hidden = false; $("#composeRules").textContent = COMMENT_RULES; }
   const sel = $("#reportLink"); clear(sel); for (const c of linkChoices(state.links)) sel.append(h("option", { value: c.value }, c.text));
   const picker = showLinkPicker(state.links); sel.hidden = !picker; $("#reportLinkLabel").hidden = !picker;   // no links to choose from: no picker; the select keeps its one empty choice, so a report goes with no specific link
   // "Report a wrong link" is for a posting that HAS links: with none (or none known, as for a closed posting) the whole section stays hidden. This is decided here, once, from the posting alone; nothing the visitor does afterwards
   // (posting a comment, sending a report, reloading) changes it, and a direct address ending in #report on such a posting simply shows the page.
   $("#reportWrap").hidden = !picker;
-  await loadThread(0);
+  if (COMMENTS_VISIBLE) await loadThread(0);
 }
 $("#commentText").addEventListener("input", () => { $("#commentCount").textContent = Array.from($("#commentText").value).length.toLocaleString("en-US") + " / " + MAX_COMMENT.toLocaleString("en-US"); });
 $("#reportDetail").addEventListener("input", () => { $("#reportCount").textContent = Array.from($("#reportDetail").value).length + " / " + MAX_LINK_REPORT; });
@@ -185,6 +186,7 @@ async function employerMode() {
   const p = g.data.posting; const recap = $("#recap"); recap.hidden = false;
   $("#recapCompany").textContent = p.company_name; $("#recapTitle").textContent = p.title;
   $("#recapMeta").textContent = "postID " + groupCode(p.post_id) + " · " + p.status;
+  if (!COMMENTS_VISIBLE) return;   // comments are switched off: the employer sees the posting's identity and nothing else here
   $("#recapNote").textContent = "What verified candidates wrote about this posting. You are told by email when there is something new (at most once every six hours).";
   $("#threadIntro").textContent = "Written by verified candidates, newest first, anonymous to everyone. A comment is about the posting, never about a person. You can contest a comment on this posting once; it stays visible, with a notice, while it is under review.";
   $("#threadWrap").hidden = false; $("#employerNote").hidden = false;

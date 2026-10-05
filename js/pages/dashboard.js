@@ -8,6 +8,9 @@ import { groupCode, locationLine, waitText } from "../format.js";
 import { FILTERS, statusChip, matchesFilter, matchesText, sortByPosted, reqCell, postedCell, capCell, closesCell } from "../dashboard-model.js";
 import { actionsFor, publishWindowEnded } from "../dashboard-model.js";
 import { runAction, ACTION_LABEL } from "../dashboard-actions.js";
+import { COMMENTS_VISIBLE } from "../config.js";
+
+if (!COMMENTS_VISIBLE) { const th = document.querySelector('th[data-col="comments"]'); if (th) th.remove(); }   // the one comments switch (js/config.js): no Comments column while it is off
 
 const PAGE_CAP = 20;                       // 20 pages of 50: a hard stop, never an endless loop
 const state = { rows: [], total: 0, filter: "all", sortDir: "desc", text: "", loaded: false };
@@ -54,7 +57,7 @@ function row(p, now) {
     h("td", { role: "cell", "data-label": "Posted", style: "color:var(--muted);" }, postedCell(p)),
     h("td", { role: "cell", "data-label": "Closes", style: "color:var(--muted);" }, closesCell(p), p.bump_used ? h("div", { class: "row-note" }, "extended " + p.bump_days + (p.bump_days === 1 ? " day" : " days")) : null),
     h("td", { role: "cell", "data-label": "Applicant cap", style: "color:var(--muted);" }, capCell(p)),
-    h("td", { role: "cell", "data-label": "Comments", style: "white-space:nowrap;" }, h("a", { class: "row-action", href: "comments.html?id=" + encodeURIComponent(p.id), title: "Read the comments" }, "💬 " + p.comment_count)));
+    COMMENTS_VISIBLE ? h("td", { role: "cell", "data-label": "Comments", style: "white-space:nowrap;" }, h("a", { class: "row-action", href: "comments.html?id=" + encodeURIComponent(p.id), title: "Read the comments" }, "💬 " + p.comment_count)) : null);   // the one comments switch (js/config.js)
 }
 
 function render() {

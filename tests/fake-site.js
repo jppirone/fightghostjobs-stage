@@ -35,7 +35,8 @@ const ANALYTICS = { live_postings: 4, searches: 1284, detail_views: 406, link_cl
   by_link: [{ link_id: "4f1d5b1e-0000-4000-8000-000000000001", posting_id: "3f1d5b1e-0000-4000-8000-000000000001", source_label: "Careers site, primary listing", kind: "apply", firm_name: null, display_order: 1, clicks: 88 }, { link_id: "4f1d5b1e-0000-4000-8000-000000000003", posting_id: "3f1d5b1e-0000-4000-8000-000000000002", source_label: null, kind: "recruiter", firm_name: "Recruiter-provided link", display_order: 1, clicks: 16 }],
   by_search_mode: { phrase: 61, code: 24, req: 15 } };
 
-export function startFakeSite(root) {
+// opts.commentsOff: serve js/config.js exactly as shipped (COMMENTS_VISIBLE false). By default the fake site serves it with the comments switch ON, so every test written for the pages with comments keeps covering them (October 5, 2026)
+export function startFakeSite(root, opts = {}) {
   root = path.resolve(root);
   const calls = []; let SELF = "";
   const server = http.createServer(async (req, res) => {
@@ -59,6 +60,7 @@ export function startFakeSite(root) {
           destination_links: [], plan: { verified: false, source: null, expires_at: null, lapsed: false }, recent_changes: [{ at: inDays(-2), note: "Fixed a typo in the third paragraph", kind: "text_correction", fields: ["description_text"] }, { at: inDays(-5), note: "Renamed the role", kind: "edit", fields: ["title"] }] });
       }
       if (name === "edit-posting") return poster ? send(200, { edited: true, changed_fields: ["title"], similarity_pct: null }) : unauth();   // the saved posting reads back as it was (the fake keeps nothing), so a save ends with nothing unsaved
+      if (name === "list-posting-comments") return poster ? send(200, { posting_id: body.posting_id, comments: [{ id: "c1", body: "This role was filled last month, according to a friend who works there.", created_at: inDays(-3), is_mine: false }], total: 1, next_offset: null }) : unauth();   // the employer reads the thread of their own posting
       if (name === "candidate-session") return cand ? send(200, { ok: true }) : unauth();
       if (!cand) return send(401, { error: "unauthorized", code: poster ? "not_a_candidate_session" : "unauthorized" });
       if (name === "candidate-search") {
@@ -92,6 +94,7 @@ export function startFakeSite(root) {
     const ext = path.extname(file);
     let data = fs.readFileSync(file);
     if ([".html", ".js", ".mjs"].includes(ext)) data = Buffer.from(data.toString("utf8").split(REAL).join(SELF));
+    if (rel === "/js/config.js" && !opts.commentsOff) data = Buffer.from(data.toString("utf8").replace("COMMENTS_VISIBLE = false", "COMMENTS_VISIBLE = true"));
     res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": "no-store" }); res.end(data);
   });
   return new Promise((resolve) => server.listen(0, "127.0.0.1", () => { SELF = "http://127.0.0.1:" + server.address().port; resolve({ url: SELF, calls, close: () => new Promise((r) => server.close(r)) }); }));

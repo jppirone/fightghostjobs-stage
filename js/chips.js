@@ -55,6 +55,6 @@ export function notOpenHeading(status) {
 export function notOpenComments(status) {
   return status === "paused" ? "Comments stay open." : "Comments stay open: what happened after it closed is exactly what other candidates want to know.";
 }
-export function notOpenRecap(status, closedReason) {
-  return { company: "Posting", title: notOpenHeading(status), note: notOpenMessage(status, closedReason || null) + " " + notOpenComments(status) };
+export function notOpenRecap(status, closedReason, withComments = true) {   // withComments false: the comments switch is off, so the line about comments staying open is left out
+  return { company: "Posting", title: notOpenHeading(status), note: notOpenMessage(status, closedReason || null) + (withComments ? " " + notOpenComments(status) : "") };
 }

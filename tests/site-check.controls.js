@@ -746,6 +746,18 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the flash goes back to Email verified", "S57", edit("js/pages/auth-callback.js", (s) => s.replace("say(\"Email confirmed\", \"You can search now.\", [])", "say(\"Email verified\", \"You can search now.\", [])")));
   control("the employer heading changes", "S57", edit("employer-signin.html", (s) => s.replace("<h2>Email me a sign-in link</h2>", "<h2>Confirm your email</h2>")));
 }
+
+// S58: the one comments switch, js/config.js COMMENTS_VISIBLE, shipped false, read by every comment surface (Part E6)
+{
+  control("the switch ships on", "S58", edit("js/config.js", (s) => s.replace("export const COMMENTS_VISIBLE = false;", "export const COMMENTS_VISIBLE = true;")));
+  control("the home page card ignores the switch", "S58", edit("js/pages/index.js", (s) => s.replace("if (!COMMENTS_VISIBLE) { const c", "if (false) { const c")));
+  control("the details window ignores the switch", "S58", edit("js/pages/search.js", (s) => s.replace("if (COMMENTS_VISIBLE) more.append(", "more.append(")));
+  control("Report a wrong link is dropped from the details window", "S58", edit("js/pages/search.js", (s) => s.replace("if (withReport) more.append(", "if (false) more.append(")));
+  control("the comments page always asks for the thread", "S58", edit("js/pages/comments.js", (s) => s.replace("if (COMMENTS_VISIBLE) await loadThread(0);", "await loadThread(0);")));
+  control("the Comments stay open line ignores the switch", "S58", edit("js/pages/comments.js", (s) => s.replace("closed_reason || null, COMMENTS_VISIBLE)", "closed_reason || null, true)")));
+  control("My postings keeps its Comments cells", "S58", edit("js/pages/dashboard.js", (s) => s.replace("COMMENTS_VISIBLE ? h(\"td\"", "true ? h(\"td\"")));
+  control("the comments switch test is not run", "S58", edit("tests/run-all.js", (s) => s.replace("comments-switch.test.js", "comments-switch-old.test.js")));
+}
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");

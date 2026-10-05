@@ -13,6 +13,7 @@ import { $, h, clear, alertBox, chip, safeHref } from "../dom.js";
 import { locationLine, waitText } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
 import { aiNotes } from "../ai-notes.js";
+import { COMMENTS_VISIBLE } from "../config.js";
 import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
@@ -175,10 +176,11 @@ function openModal(row, opener) {
 }
 // the thread and the private wrong-link report live on the posting's own comments page (reached only with the posting's opaque reference; never listed anywhere)
 function moreLinks(row, count, withReport) {
-  const more = $("#modalMore"); clear(more); more.hidden = false;
+  const more = $("#modalMore"); clear(more);
   const page = "comments.html?ref=" + encodeURIComponent(row.posting_ref);
-  more.append(h("a", { href: page }, "Comments" + (Number.isInteger(count) ? " (" + count + ")" : "") + " →"));
+  if (COMMENTS_VISIBLE) more.append(h("a", { href: page }, "Comments" + (Number.isInteger(count) ? " (" + count + ")" : "") + " →"));   // the one comments switch (js/config.js)
   if (withReport) more.append(h("a", { href: page + "#report" }, "Report a wrong link →"));
+  more.hidden = more.children.length === 0;
 }
 let unlockScroll = null, releaseFocus = null;
 function closeModal() { backdrop.classList.remove("open"); if (unlockScroll) { unlockScroll(); unlockScroll = null; } if (releaseFocus) { releaseFocus(); releaseFocus = null; } }

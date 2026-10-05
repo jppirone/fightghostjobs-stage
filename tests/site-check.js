@@ -45,6 +45,7 @@
 //   S55 the landing note clears on the person's first real action (Part E3), with no close button, no timer and no announcement
 //   S56 after a successful search the recap scrolls to the top of the window (Part E4): smooth, no focus move, not with reduced motion, not for a replayed search
 //   S57 candidate sign-in wording, the confirm family (Part E5): search card heading, paragraph, button, the flash after the link and the top bar word; employer side stays sign-in link
+//   S58 the one comments switch, js/config.js COMMENTS_VISIBLE, shipped false, read by every comment surface (Part E6)
 //   S53 the search recap (Part C): sentence, never the req number or postID, Edit this search, memory only, one spoken message
 //   S52 the accessibility round: header Tab order, one polite search status, the details window's focus handling, the unsaved bar's closing message, 24 pixel hit areas, and the four tests that prove them
 //   S51 the home page's step 3 (Candidates look up), the search form's three boxes (Company required, Then one of these, a visible or, the approved sentence) and the callback without the flash on employer pages
@@ -1191,6 +1192,19 @@ export function checkSite(root) {
     if (fs.existsSync(appF) && !stripJsComments(read(appF)).includes('"Email confirmed"')) add("S57", appF, "the top bar must say Email confirmed for a candidate");
     if (fs.existsSync(cbF) && !stripJsComments(read(cbF)).includes('say("Email confirmed", "You can search now.", [])')) add("S57", cbF, "the flash after the link must be Email confirmed / You can search now.");
     if (fs.existsSync(esF)) { const t = read(esF); if (!t.includes("<h2>Email me a sign-in link</h2>") || !t.includes("Send sign-in link</button>")) add("S57", esF, "the employer sign-in page keeps its sign-in link wording"); }
+  }
+
+  // S58 (2026-10-05, E6): COMMENTS_VISIBLE in js/config.js is the one switch for the comment surfaces. It ships FALSE. Every surface reads it: the home page card link, the details window's Comments link (Report a wrong link stays), the comments page
+  // (only the wrong-link report while off, and no thread request), the employer's comments page, the My postings column header and cells. The test comments-switch.test.js checks both states.
+  {
+    const cfF = path.join(root, "js", "config.js"), ixF = path.join(root, "js", "pages", "index.js"), srF = path.join(root, "js", "pages", "search.js"), cmF = path.join(root, "js", "pages", "comments.js"), dbF = path.join(root, "js", "pages", "dashboard.js"), raF = path.join(root, "tests", "run-all.js"), tf = path.join(root, "tests", "comments-switch.test.js");
+    if (fs.existsSync(cfF) && !stripJsComments(read(cfF)).includes("export const COMMENTS_VISIBLE = false;")) add("S58", cfF, "js/config.js must export COMMENTS_VISIBLE = false (the comments switch ships OFF)");
+    const need = (f, list) => { if (!fs.existsSync(f)) return; const t = stripJsComments(read(f)); for (const [needle, why] of list) if (!t.includes(needle)) add("S58", f, "this page must follow the comments switch: " + why); };
+    need(ixF, [["if (!COMMENTS_VISIBLE) { const c = $(\"#cardComments\"); if (c) c.hidden = true; }", "hide the example card's Comments link"]]);
+    need(srF, [["if (COMMENTS_VISIBLE) more.append(", "the details window's Comments link"], ["if (withReport) more.append(", "keep Report a wrong link"], ["more.hidden = more.children.length === 0;", "hide an empty links line"]]);
+    need(cmF, [["if (COMMENTS_VISIBLE) { $(\"#threadWrap\").hidden = false;", "show the thread and the form only when on"], ["if (COMMENTS_VISIBLE) await loadThread(0);", "ask for the thread only when on"], ["notOpenRecap(d.data.status, d.data.closed_reason || null, COMMENTS_VISIBLE)", "the Comments stay open line"], ["if (!COMMENTS_VISIBLE) return;", "the employer's thread"]]);
+    need(dbF, [["if (!COMMENTS_VISIBLE) { const th", "remove the column header"], ["COMMENTS_VISIBLE ? h(\"td\"", "the Comments cell and row link"]]);
+    if (!fs.existsSync(tf)) add("S58", tf, "the test comments-switch.test.js must exist"); else if (fs.existsSync(raF) && !read(raF).includes("comments-switch.test.js")) add("S58", raF, "tests/run-all.js must run comments-switch.test.js");
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");
