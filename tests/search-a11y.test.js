@@ -146,12 +146,12 @@ test("search page: one polite status message per search; the details window take
 const DEFECTS = [
   // B2
   ["the status is not a live region any more", ["status"], [["search.html", (s) => s.replace(' role="status" aria-live="polite" aria-atomic="true"></div>\n    <div id="resultCount"', '></div>\n    <div id="resultCount"')]]],
-  ["the recap sentence is never announced", ["status"], [["js/pages/search.js", (s) => s.replace("  status.announce(spoken);\n}", "}")]]],
+  ["the recap sentence is never announced", ["status"], [["js/pages/search.js", (s) => s.replace("  status.announce(spoken);\n  // After a successful search", "  // After a successful search")]]],
   ["the result count is spoken instead of the recap sentence", ["status"], [["js/pages/search.js", (s) => s.replace("showRecap(typed, c.value, q, auto); return; }", "showRecap(typed, c.value, q); status.announce(countEl.textContent); return; }")]]],
   ["the visible count is a live region too (read twice)", ["status"], [["search.html", (s) => s.replace('<div id="resultCount" class="result-count" aria-hidden="true" hidden></div>', '<div id="resultCount" class="result-count" role="status" hidden></div>')]]],
   ["the same search twice is announced only once", ["status"], [["js/search-status.js", (s) => s.replace('announce(text) { stop(); el.textContent = "";', "announce(text) { stop(); if (el.textContent === text) return;")], ["js/pages/search.js", (s) => s.replace("\n  status.clear();", "")]]],
   ["a search announces twice", ["status"], [["js/search-status.js", (s) => s.replace("timer = win.setTimeout(() => { timer = null; el.textContent = text; }, ANNOUNCE_DELAY_MS); },", "timer = win.setTimeout(() => { timer = null; el.textContent = text; win.setTimeout(() => { el.textContent = \"\"; el.textContent = text; }, 250); }, ANNOUNCE_DELAY_MS); },")]]],
-  ["focus is moved to the results when a search finishes", ["status"], [["js/pages/search.js", (s) => s.replace("  status.announce(spoken);\n}", "  status.announce(spoken);\n  resultsEl.setAttribute(\"tabindex\", \"-1\"); resultsEl.focus();\n}")]]],
+  ["focus is moved to the results when a search finishes", ["status"], [["js/pages/search.js", (s) => s.replace("  status.announce(spoken);\n  // After a successful search", "  status.announce(spoken);\n  resultsEl.setAttribute(\"tabindex\", \"-1\"); resultsEl.focus();\n  // After a successful search")]]],
   ["focus is dropped by the disabled Search button and not given back", ["status"], [["js/pages/search.js", (s) => s.replace(" if (hadFocus && document.activeElement === document.body) searchBtn.focus();", "")]]],
   // B3
   ["focus does not move into the window", ["detailsDesktop"], [["js/dialog-focus.js", (s) => s.replace("dialog.focus({ preventScroll: true });\n\n  const onKey", "void 0;\n\n  const onKey")]]],
