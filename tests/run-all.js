@@ -1,4 +1,6 @@
 // run-all.js - everything that can be checked without a network or a secret. Run: node tests/run-all.js   (or: npm test)
+// FULL RUN (the default, no arguments): every step below, exactly as always. After each step it prints how long the step took; at the end the total and the ten slowest tests (the node test runner reports a time per TEST, not per file;
+// the step name says which file).
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,14 +24,28 @@ const steps = [
   ["static site rules", [path.join(here, "site-check.js")], false],
   ["static rules: negative controls", [path.join(here, "site-check.controls.js")], false],
 ];
+const list = steps;
+const fmt = (ms) => { const s = ms / 1000; return s < 120 ? s.toFixed(1) + " s" : Math.floor(s / 60) + " min " + String(Math.round(s % 60)).padStart(2, "0") + " s"; };
+const t00 = Date.now(), slow = [];
+console.log("started " + new Date(t00).toLocaleTimeString());
 let failed = 0;
-for (const [name, files, isTest] of steps) {
+for (const [name, files, isTest] of list) {
+  const t0 = Date.now();
   const r = spawnSync(process.execPath, isTest ? ["--test", ...files] : files, { encoding: "utf8" });
+  const took = Date.now() - t0;
   const out = (r.stdout || "") + (r.stderr || "");
-  const tail = out.trim().split("\n").filter((l) => /^(ℹ (tests|pass|fail)|site-check|caught|MISSED|DIRTY|clean|FINDING)/.test(l)).slice(-60);
-  console.log("== " + name + ": " + (r.status === 0 ? "PASS" : "FAIL"));
+  for (const m of out.matchAll(/^[\u2714\u2716] (.+?) \((\d+(?:\.\d+)?)ms\)$/gm)) slow.push([Number(m[2]), name, m[1]]);
+  const tail = out.trim().split("\n").filter((l) => /^(\u2139 (tests|pass|fail|cancelled)|site-check|caught|MISSED|DIRTY|clean|FINDING)/.test(l)).slice(-60);
+  console.log("== " + name + ": " + (r.status === 0 ? "PASS" : "FAIL") + " (" + fmt(took) + ")");
   if (r.status !== 0 || process.env.VERBOSE) console.log(tail.join("\n"));
-  else console.log(tail.filter((l) => /^(ℹ (tests|pass|fail)|site-check)/.test(l)).join("\n"));
+  else console.log(tail.filter((l) => /^(\u2139 (tests|pass|fail|cancelled)|site-check)/.test(l)).join("\n"));
+  // a failed step also prints what failed (the failing test names and the first assertion or error lines), so the exact message is in the log
+  if (r.status !== 0) console.log(out.split("\n").filter((l) => /^\s*(\u2716 |AssertionError|Error|TypeError|ReferenceError|SyntaxError)/.test(l)).slice(0, 30).join("\n"));
   if (r.status !== 0) failed++;
 }
+const total = Date.now() - t00;
+slow.sort((a, b) => b[0] - a[0]);
+console.log("TOTAL " + fmt(total) + " (" + (failed ? failed + " step(s) FAILED" : "every step passed") + "); finished " + new Date().toLocaleTimeString());
+console.log("TEN SLOWEST TESTS (a time per test; the step name shows the file):");
+for (const [ms, step, test] of slow.slice(0, 10)) console.log("  " + fmt(ms).padStart(10) + "  " + test.slice(0, 90) + "  [" + step.slice(0, 50) + "]");
 process.exit(failed ? 1 : 0);
