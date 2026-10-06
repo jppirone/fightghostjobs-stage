@@ -1,8 +1,9 @@
-// comments-switch.test.js - the one comments switch (E6, October 5, 2026): COMMENTS_VISIBLE in js/config.js, SHIPPED OFF. Real browser, the repo's own files, a fake backend (tests/fake-site.js; no real project, no key).
-// OFF (the file exactly as shipped): the home page's example card has no Comments link; the details window has no "Comments (N)" link but keeps "Report a wrong link"; the comments page shows only the wrong-link report section (no thread,
-// no comment form, no contest part, no "Comments stay open" line) and does not even ask the backend for the thread; the employer's comments page shows nothing of the thread either; My postings has no Comments column, no row link and no
-// phone card line. ON (the fake site serves the same file with the switch turned on, which is also how every other browser test sees the site): everything is as it was before the switch existed.
-// Then negative controls: one defect at a time, each must make a check fail (a switch shipped on, a surface that ignores the switch, the report section lost, a surface that stays hidden when the switch is on).
+// comments-switch.test.js - the one comments switch (E6, October 5, 2026): COMMENTS_VISIBLE in js/config.js, SHIPPED ON since October 6, 2026 (John's decision; the switch itself stays). Real browser, the repo's own files, a fake backend (tests/fake-site.js; no real project, no key).
+// ON (the file exactly as shipped, which is also how every other browser test sees the site): the home page's example card has its Comments link; the details window has "Comments (N)" and "Report a wrong link"; the comments page has the thread, the comment
+// form, the contest part and the "Comments stay open" line; the employer's comments page shows the thread; My postings has the Comments column, the row link and the phone card line.
+// OFF (the fake site serves the same file with the switch turned off, opts.commentsOff): the home page's example card has no Comments link; the details window has no "Comments (N)" link but keeps "Report a wrong link"; the comments page shows only the wrong-link
+// report section (no thread, no comment form, no contest part, no "Comments stay open" line) and does not even ask the backend for the thread; the employer's comments page shows nothing of the thread either; My postings has no Comments column, no row link and no phone card line.
+// Then negative controls: one defect at a time, each must make a check fail (a switch shipped off, a surface that ignores the switch, the report section lost, a surface that stays hidden when the switch is on).
 // A missing browser FAILS the test (set FGJ_BROWSER). Run: node --test tests/comments-switch.test.js
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -76,17 +77,17 @@ async function surfaces(site, on) {
   return bad;
 }
 
-const SCENARIOS = { async off(root) { const site = await startFakeSite(root, { commentsOff: true }); try { return await surfaces(site, false); } finally { await site.close(); } }, async on(root) { const site = await startFakeSite(root); try { return await surfaces(site, true); } finally { await site.close(); } } };
+const SCENARIOS = { async off(root) { const site = await startFakeSite(root, { commentsOff: true }); try { return await surfaces(site, false); } finally { await site.close(); } }, async on(root) { const site = await startFakeSite(root); try { return await surfaces(site, true); } finally { await site.close(); } } };   // on: the file as shipped; off: the same file with the switch turned off
 
-test("comments switch: shipped OFF every comment surface is hidden and the report stays; switched ON everything is as before", { timeout: 900000 }, async () => {
+test("comments switch: shipped ON every comment surface shows; switched OFF every comment surface is hidden and the report stays", { timeout: 900000 }, async () => {
   const problems = [];
   for (const n of Object.keys(SCENARIOS)) for (const p of await SCENARIOS[n](ROOT)) problems.push(n + ": " + p);
-  assert.match(fs.readFileSync(path.join(ROOT, "js", "config.js"), "utf8"), /export const COMMENTS_VISIBLE = false;/, "the switch ships OFF");
+  assert.match(fs.readFileSync(path.join(ROOT, "js", "config.js"), "utf8"), /export const COMMENTS_VISIBLE = true;/, "the switch ships ON");
   assert.deepEqual(problems, [], "comments switch problems:\n" + problems.join("\n"));
 });
 
 const DEFECTS = [
-  ["the switch ships ON", ["off"], [["js/config.js", (s) => s.replace("COMMENTS_VISIBLE = false", "COMMENTS_VISIBLE = true")]]],
+  ["the switch ships OFF", ["on"], [["js/config.js", (s) => s.replace("COMMENTS_VISIBLE = true", "COMMENTS_VISIBLE = false")]]],
   ["the home page card keeps its Comments link", ["off"], [["js/pages/index.js", (s) => s.replace("if (!COMMENTS_VISIBLE) { const c", "if (false) { const c")]]],
   ["the details window keeps its Comments link", ["off"], [["js/pages/search.js", (s) => s.replace("if (COMMENTS_VISIBLE) more.append(", "more.append(")]]],
   ["the details window loses Report a wrong link", ["off"], [["js/pages/search.js", (s) => s.replace("if (withReport) more.append(", "if (false) more.append(")]]],

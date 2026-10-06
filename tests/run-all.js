@@ -24,7 +24,7 @@ const steps = [
   ["search recap: boxes emptied, recap between form and results, never the req number or postID, Edit this search (real browser)", [path.join(here, "search-recap.test.js")], true],
   ["landing note: clears on the first real action (real browser)", [path.join(here, "landing-clear.test.js")], true],
   ["search page: the recap scrolls to the top after a successful search (real browser)", [path.join(here, "search-scroll.test.js")], true],
-  ["comments switch: shipped off, every comment surface hidden and the report kept; switched on, as before (real browser)", [path.join(here, "comments-switch.test.js")], true],
+  ["comments switch: shipped on, every comment surface shown; switched off, every comment surface hidden and the report kept (real browser)", [path.join(here, "comments-switch.test.js")], true],
   ["static site rules", [path.join(here, "site-check.js")], false],
   ["static rules: negative controls", [path.join(here, "site-check.controls.js")], false],
 ];

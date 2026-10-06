@@ -747,9 +747,9 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the employer heading changes", "S57", edit("employer-signin.html", (s) => s.replace("<h2>Email me a sign-in link</h2>", "<h2>Confirm your email</h2>")));
 }
 
-// S58: the one comments switch, js/config.js COMMENTS_VISIBLE, shipped false, read by every comment surface (Part E6)
+// S58: the one comments switch, js/config.js COMMENTS_VISIBLE, shipped true (since 2026-10-06), read by every comment surface (Part E6)
 {
-  control("the switch ships on", "S58", edit("js/config.js", (s) => s.replace("export const COMMENTS_VISIBLE = false;", "export const COMMENTS_VISIBLE = true;")));
+  control("the switch ships off", "S58", edit("js/config.js", (s) => s.replace("export const COMMENTS_VISIBLE = true;", "export const COMMENTS_VISIBLE = false;")));
   control("the home page card ignores the switch", "S58", edit("js/pages/index.js", (s) => s.replace("if (!COMMENTS_VISIBLE) { const c", "if (false) { const c")));
   control("the details window ignores the switch", "S58", edit("js/pages/search.js", (s) => s.replace("if (COMMENTS_VISIBLE) more.append(", "more.append(")));
   control("Report a wrong link is dropped from the details window", "S58", edit("js/pages/search.js", (s) => s.replace("if (withReport) more.append(", "if (false) more.append(")));

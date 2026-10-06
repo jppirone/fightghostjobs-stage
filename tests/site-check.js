@@ -45,7 +45,7 @@
 //   S55 the landing note clears on the person's first real action (Part E3), with no close button, no timer and no announcement
 //   S56 after a successful search the recap scrolls to the top of the window (Part E4): smooth, no focus move, not with reduced motion, not for a replayed search
 //   S57 candidate sign-in wording, the confirm family (Part E5): search card heading, paragraph, button, the flash after the link and the top bar word; employer side stays sign-in link
-//   S58 the one comments switch, js/config.js COMMENTS_VISIBLE, shipped false, read by every comment surface (Part E6)
+//   S58 the one comments switch, js/config.js COMMENTS_VISIBLE, shipped true, read by every comment surface (Part E6)
 //   S59 no verify, verified or verification in candidate-facing text (Part E7): the word is confirm; exceptions are the destination link wording, data and class names, and privacy.html
 //   S53 the search recap (Part C): sentence, never the req number or postID, Edit this search, memory only, one spoken message
 //   S52 the accessibility round: header Tab order, one polite search status, the details window's focus handling, the unsaved bar's closing message, 24 pixel hit areas, and the four tests that prove them
@@ -1195,11 +1195,11 @@ export function checkSite(root) {
     if (fs.existsSync(esF)) { const t = read(esF); if (!t.includes("<h2>Email me a sign-in link</h2>") || !t.includes("Send sign-in link</button>")) add("S57", esF, "the employer sign-in page keeps its sign-in link wording"); }
   }
 
-  // S58 (2026-10-05, E6): COMMENTS_VISIBLE in js/config.js is the one switch for the comment surfaces. It ships FALSE. Every surface reads it: the home page card link, the details window's Comments link (Report a wrong link stays), the comments page
+  // S58 (2026-10-05, E6): COMMENTS_VISIBLE in js/config.js is the one switch for the comment surfaces. It ships TRUE (changed from false on 2026-10-06, John's decision). Every surface reads it: the home page card link, the details window's Comments link (Report a wrong link stays), the comments page
   // (only the wrong-link report while off, and no thread request), the employer's comments page, the My postings column header and cells. The test comments-switch.test.js checks both states.
   {
     const cfF = path.join(root, "js", "config.js"), ixF = path.join(root, "js", "pages", "index.js"), srF = path.join(root, "js", "pages", "search.js"), cmF = path.join(root, "js", "pages", "comments.js"), dbF = path.join(root, "js", "pages", "dashboard.js"), raF = path.join(root, "tests", "run-all.js"), tf = path.join(root, "tests", "comments-switch.test.js");
-    if (fs.existsSync(cfF) && !stripJsComments(read(cfF)).includes("export const COMMENTS_VISIBLE = false;")) add("S58", cfF, "js/config.js must export COMMENTS_VISIBLE = false (the comments switch ships OFF)");
+    if (fs.existsSync(cfF) && !stripJsComments(read(cfF)).includes("export const COMMENTS_VISIBLE = true;")) add("S58", cfF, "js/config.js must export COMMENTS_VISIBLE = true (the comments switch ships ON)");
     const need = (f, list) => { if (!fs.existsSync(f)) return; const t = stripJsComments(read(f)); for (const [needle, why] of list) if (!t.includes(needle)) add("S58", f, "this page must follow the comments switch: " + why); };
     need(ixF, [["if (!COMMENTS_VISIBLE) { const c = $(\"#cardComments\"); if (c) c.hidden = true; }", "hide the example card's Comments link"]]);
     need(srF, [["if (COMMENTS_VISIBLE) more.append(", "the details window's Comments link"], ["if (withReport) more.append(", "keep Report a wrong link"], ["more.hidden = more.children.length === 0;", "hide an empty links line"]]);
