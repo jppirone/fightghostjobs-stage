@@ -32,6 +32,7 @@ const QUICK_BANNER = "QUICK RUN, NOT A FULL RUN, NOT EVIDENCE FOR A PUSH";
 const args = process.argv.slice(2), quick = args[0] === "--quick";
 let list = steps;
 if (quick) {
+  console.log(QUICK_BANNER);
   list = [steps[0], steps.find((x) => x[0] === "static site rules")];
   for (const a of args.slice(1)) {
     const base = a.replace(/\.js$/, "").replace(/\.test$/, "");
@@ -39,7 +40,6 @@ if (quick) {
     if (!fs.existsSync(file)) { console.log("quick mode: no test file tests/" + base + ".test.js"); console.log(QUICK_BANNER); process.exit(2); }
     list.push(["quick: " + base + " (main tests only; its negative controls skipped)", [file], true, true]);
   }
-  console.log(QUICK_BANNER);
 }
 const fmt = (ms) => { const s = ms / 1000; return s < 120 ? s.toFixed(1) + " s" : Math.floor(s / 60) + " min " + String(Math.round(s % 60)).padStart(2, "0") + " s"; };
 const t00 = Date.now(), slow = [];
