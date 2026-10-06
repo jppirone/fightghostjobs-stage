@@ -3,7 +3,8 @@
 // on any roster, so this page can never be used to find out who is a customer); (2) the Auth service emails the link. The page never says whether the address is on a roster either.
 
 import { api, mountAccount, go, describeError } from "../app.js";
-import { requestLink, currentSession, watchOtherTabSignIn, rememberedNext } from "../session.js";
+import { requestLink, currentSession, watchOtherTabSignIn, rememberedNext, confirmEmailCode } from "../session.js";
+import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js";
 import { $, h, clear, alertBox } from "../dom.js";
 import { waitText } from "../format.js";
 
@@ -18,12 +19,13 @@ const reason = REASONS[new URLSearchParams(location.search).get("reason")];
 if (reason) { const b = $("#banner"); b.hidden = false; b.append(alertBox(reason[0], reason[1])); }
 
 const form = $("#form"), input = $("#email"), send = $("#send"), errorEl = $("#emailError"), sent = $("#sent");
+let stopWatch = null;   // stops the "signed in in another tab" watch when the code typed here finishes the sign-in
 
 (async () => {
   const s = await currentSession();
   if (!(s && s.isPoster)) {
     // the emailed link opens in a NEW tab: when the sign-in is completed there, this tab moves on by itself (no reload) to where a signed-in employer goes
-    watchOtherTabSignIn(() => go(rememberedNext() || "register.html"), (x) => x.isPoster);
+    stopWatch = watchOtherTabSignIn(() => go(rememberedNext() || "register.html"), (x) => x.isPoster);
   }
   if (s && s.isPoster) {
     form.hidden = true;
@@ -58,6 +60,8 @@ form.addEventListener("submit", async (ev) => {
     sent.append(h("h2", { style: "font-size:22px;font-weight:700;margin-bottom:8px;" }, "Check your email"),
       h("p", { style: "font-size:14px;line-height:1.6;color:var(--muted);margin:0 0 12px 0;" }, "If this address belongs to an organization on FightGhostJobs, a sign-in link is on its way. Open it in the next 10 minutes."),
       h("p", { style: "font-size:13px;line-height:1.6;color:var(--faint);margin:0;" }, "Nothing arrived? Check spam, then ask your organization's admin to confirm your address is on your roster."));
+    // the same email carries a short code: typed here it finishes the sign-in in THIS tab. The page then does what the emailed link's landing page does (auth-callback.js, which explains a session that is not an employer's) without its "you can close this tab" note
+    if (CODE_ENABLED) { const host = $("#signCode"); clear(host); host.hidden = false; mountCodeEntry({ host, email, confirm: confirmEmailCode, hint: "No need to open the link. The code is 6 digits, works once, and must be used within 10 minutes.", onDone: () => { if (stopWatch) { stopWatch(); stopWatch = null; } go("auth-callback.html?via=code"); }, onStartOver: () => { clear(host); host.hidden = true; clear(sent); sent.hidden = true; form.hidden = false; input.focus(); } }); }
   } finally {
     send.disabled = false; send.textContent = label;
   }

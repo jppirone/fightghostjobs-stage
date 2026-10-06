@@ -78,6 +78,17 @@ export function startFakeSite(root, opts = {}) {
       return send(404, { error: "no such function", code: "not_found" });
     }
     if (url.pathname === "/auth/v1/otp") { const body = await readBody(); calls.push({ name: "auth-otp", address: req.url, body }); return send(200, {}); }
+    // the emailed one-time code (October 6, 2026): the code 123456 is right, 000429 is answered with a rate limit, anything else (or the wrong type when opts.codeType says which type this fake accepts) is refused like an expired or wrong code.
+    // The kind of session follows the address: poster* -> an employer, both* -> both roles, anything else -> a candidate.
+    if (url.pathname === "/auth/v1/verify") {
+      const body = await readBody(); calls.push({ name: "auth-verify", address: req.url, body });
+      if (body.token === "000429") return send(429, { code: 429, error_code: "over_request_rate_limit", msg: "Too many requests" });
+      if (body.token !== "123456" || (opts.codeType ? body.type !== opts.codeType : !["email", "signup"].includes(body.type))) return send(403, { code: 403, error_code: "otp_expired", msg: "Token has expired or is invalid" });
+      const em = String(body.email || ""), kind = /^both/i.test(em) ? "both" : /^poster/i.test(em) ? "poster" : "candidate", claims = {};
+      if (kind === "poster" || kind === "both") claims.poster_id = crypto.randomUUID();
+      if (kind === "candidate" || kind === "both") claims.candidate_identity_id = crypto.randomUUID();
+      return send(200, { access_token: fakeJwt({ ...claims, email: em }), token_type: "bearer", expires_in: 3600, refresh_token: "refresh-" + kind, user: { id: "00000000-0000-4000-8000-000000000001", aud: "authenticated", role: "authenticated", email: em, app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } });
+    }
     if (url.pathname === "/auth/v1/user") return send(200, { id: "00000000-0000-4000-8000-000000000001", aud: "authenticated", role: "authenticated", email: "dana@example.test", app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() });
     if (url.pathname === "/auth/v1/logout") { res.writeHead(204); return res.end(); }
     if (url.pathname === "/_dev/link") {
@@ -95,6 +106,7 @@ export function startFakeSite(root, opts = {}) {
     let data = fs.readFileSync(file);
     if ([".html", ".js", ".mjs"].includes(ext)) data = Buffer.from(data.toString("utf8").split(REAL).join(SELF));
     if (rel === "/js/config.js" && opts.commentsOff) data = Buffer.from(data.toString("utf8").replace("COMMENTS_VISIBLE = true", "COMMENTS_VISIBLE = false"));
+    if (rel === "/js/config.js" && opts.codeOff) data = Buffer.from(data.toString("utf8").replace("EMAIL_CODE_ENTRY = true", "EMAIL_CODE_ENTRY = false"));   // opts.codeOff: the emailed-code field switched off
     res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": "no-store" }); res.end(data);
   });
   return new Promise((resolve) => server.listen(0, "127.0.0.1", () => { SELF = "http://127.0.0.1:" + server.address().port; resolve({ url: SELF, calls, close: () => new Promise((r) => server.close(r)) }); }));

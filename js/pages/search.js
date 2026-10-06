@@ -2,7 +2,8 @@
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
 import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js";
-import { requestLink, currentSession, watchOtherTabSignIn } from "../session.js";
+import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js";
+import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js";
 import { savePending, takePending } from "../signin-handoff.js";
 import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js";
 import { lockScroll } from "../scroll-lock.js";
@@ -64,6 +65,8 @@ $("#signinForm").addEventListener("submit", async (ev) => {
     $("#signinForm").hidden = true;
     const sent = $("#candSent"); sent.hidden = false; clear(sent);
     sent.append(alertBox("ok", "Check your email. Open the link in this same browser and your search will be waiting. If it opens in another browser or app, enter your search again there."));
+    // the same email carries a short code: typed here it finishes the sign-in in THIS tab and the saved search runs (js/code-entry.js)
+    if (CODE_ENABLED) { const host = $("#candCode"); clear(host); host.hidden = false; mountCodeEntry({ host, email, confirm: confirmEmailCode, hint: "No need to open the link. The code is 6 digits and works once.", onDone: codeDone, onStartOver: () => { clear(host); host.hidden = true; clear(sent); sent.hidden = true; $("#signinForm").hidden = false; $("#candEmail").focus(); } }); }
   } finally { send.disabled = false; send.textContent = label; }
 });
 
@@ -267,8 +270,16 @@ function runWhenInFront() {
   const back = () => { if (!inFront()) return; window.removeEventListener("focus", back); document.removeEventListener("visibilitychange", back); resumePending(); };
   window.addEventListener("focus", back); document.addEventListener("visibilitychange", back);
 }
-let watching = false;
-function ensureWatch() { if (watching) return; watching = true; watchOtherTabSignIn(async (s) => { watching = false; await becameSignedIn(s); }); }
+let watching = false, stopWatch = null;
+function ensureWatch() { if (watching) return; watching = true; stopWatch = watchOtherTabSignIn(async (s) => { watching = false; stopWatch = null; await becameSignedIn(s); }); }
+// the code typed in this tab was accepted: the Auth client has stored the session, so this is the same state as a sign-in noticed from another tab (the saved search runs; no landing note, nobody came from another tab)
+async function codeDone() {
+  if (stopWatch) { stopWatch(); stopWatch = null; }
+  watching = false;
+  const s = await currentSession();
+  if (!s) { const err = $("#candEmailError"); err.hidden = false; err.textContent = "We could not finish signing you in. Please ask for a new link."; return; }
+  await becameSignedIn(s);
+}
 async function becameSignedIn(s) {
   session = s;
   await mountAccount($("#navAccount"));

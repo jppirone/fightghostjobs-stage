@@ -781,6 +781,17 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the flag line is removed", "S60", edit("js/config.js", (s) => s.replace("export const ALLOW_INDEXING = false;", "")));
   control("the indexing test is not run", "S60", edit("tests/run-all.js", (s) => s.replace("indexing.test.js", "indexing-old.test.js")));
 }
+
+// S61: the emailed one-time code typed in the same tab (Phase 4)
+{
+  control("the code is confirmed with the wrong call", "S61", edit("js/session.js", (s) => s.replace('call("email");', 'call("sms");')));
+  control("the search page loses its code field", "S61", edit("js/pages/search.js", (s) => s.replace("if (CODE_ENABLED) {", "if (false) {")));
+  control("the employer page loses its code field", "S61", edit("js/pages/employer-signin.js", (s) => s.replace("if (CODE_ENABLED) {", "if (false) {")));
+  control("the callback shows the landing note after a typed code", "S61", edit("js/pages/auth-callback.js", (s) => s.replace('if (!viaCode) markLanded(sessionStorage, "poster");', 'markLanded(sessionStorage, "poster");')));
+  control("the code field is no one-time-code field", "S61", edit("js/code-entry.js", (s) => s.replace('autocomplete: "one-time-code"', 'autocomplete: "off"')));
+  control("the emailed code test is not run", "S61", edit("tests/run-all.js", (s) => s.replace("code-entry.test.js", "code-entry-old.test.js")));
+  control("the switch line is removed", "S61", edit("js/config.js", (s) => s.replace("export const EMAIL_CODE_ENTRY = true;", "")));
+}
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");

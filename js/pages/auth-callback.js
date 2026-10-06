@@ -23,6 +23,8 @@ const button = (text, fn, cls = "btn btn-ghost") => h("button", { type: "button"
 
 (async () => {
   const { next, kind: askedFor } = (() => { const t = takeNext(""); return { next: t.next, kind: t.kind }; })();
+  // ?via=code: the person typed the emailed code on the sign-in page and was sent here to be taken on (October 6, 2026). Everything below is the same, except the green "You are signed in, you can close this tab" note, which is for a link opened in another tab.
+  const viaCode = new URLSearchParams(location.search).get("via") === "code";
 
   if (hashError) {
     const expired = /expired|invalid|used/i.test(hashError.code + " " + hashError.text);
@@ -56,7 +58,7 @@ const button = (text, fn, cls = "btn btn-ghost") => h("button", { type: "button"
       return;
     }
     say("Signed in", "Welcome, " + r.data.poster.full_name + ".", []);
-    markLanded(sessionStorage, "poster");
+    if (!viaCode) markLanded(sessionStorage, "poster");
     go(next || "register.html");
     return;
   }
@@ -70,6 +72,6 @@ const button = (text, fn, cls = "btn btn-ghost") => h("button", { type: "button"
   // a both-roles address that asked for an employer page: no "Email confirmed / You can search now." flash on the way to an employer page (nothing replaces it). A candidate destination keeps the flash.
   const dest = next || "search.html", destPage = dest.split("?");
   if (landingKindForPage("/" + destPage[0], destPage[1] ? "?" + destPage[1] : "") !== "poster") say("Email confirmed", "You can search now.", []);
-  markLanded(sessionStorage, "candidate");
+  if (!viaCode) markLanded(sessionStorage, "candidate");
   go(dest);
 })();

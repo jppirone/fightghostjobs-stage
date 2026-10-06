@@ -47,6 +47,7 @@
 //   S57 candidate sign-in wording, the confirm family (Part E5): search card heading, paragraph, button, the flash after the link and the top bar word; employer side stays sign-in link
 //   S58 the one comments switch, js/config.js COMMENTS_VISIBLE, shipped true, read by every comment surface (Part E6)
 //   S59 no verify, verified or verification in candidate-facing text (Part E7): the word is confirm; exceptions are the destination link wording, data and class names, and privacy.html
+//   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
 //   S60 search engines (Phase 3): the flag ALLOW_INDEXING in js/config.js (false on stage) agrees with every page's robots tag and with robots.txt; sign-in pages are noindex in every environment; the tool and the test exist and run
 //   S53 the search recap (Part C): sentence, never the req number or postID, Edit this search, memory only, one spoken message
 //   S52 the accessibility round: header Tab order, one polite search status, the details window's focus handling, the unsaved bar's closing message, 24 pixel hit areas, and the four tests that prove them
@@ -1230,6 +1231,20 @@ export function checkSite(root) {
     }
     if (!fs.existsSync(toolF)) add("S60", toolF, "tests/apply-indexing.js must exist");
     if (!fs.existsSync(tf)) add("S60", tf, "the test indexing.test.js must exist"); else if (fs.existsSync(raF) && !read(raF).includes("indexing.test.js")) add("S60", raF, "tests/run-all.js must run indexing.test.js");
+  }
+
+  // S61 (2026-10-06, Phase 4): the emailed one-time code typed in the SAME tab. EMAIL_CODE_ENTRY in js/config.js is its switch; js/session.js confirms the code with the Auth service as type "email"; the search page and the employer sign-in page mount the code
+  // field (js/code-entry.js, a one-time-code field with a label) when the switch is on; the callback page leaves out the "close this tab" landing note when the person typed the code (?via=code); tests/code-entry.test.js proves it in a real browser.
+  {
+    const cfF = path.join(root, "js", "config.js"), ceF = path.join(root, "js", "code-entry.js"), seF = path.join(root, "js", "session.js"), srF = path.join(root, "js", "pages", "search.js"), esF = path.join(root, "js", "pages", "employer-signin.js"), acF = path.join(root, "js", "pages", "auth-callback.js"), raF = path.join(root, "tests", "run-all.js"), tf = path.join(root, "tests", "code-entry.test.js");
+    if (fs.existsSync(cfF) && !/^export const EMAIL_CODE_ENTRY = (true|false);/m.test(stripJsComments(read(cfF)))) add("S61", cfF, "js/config.js must export EMAIL_CODE_ENTRY = true; (or false)");
+    const need = (f, list) => { if (!fs.existsSync(f)) { add("S61", f, "this file is part of the emailed code and must exist"); return; } const t = stripJsComments(read(f)); for (const [needle, why] of list) if (!t.includes(needle)) add("S61", f, "the emailed code needs: " + why); };
+    need(ceF, [['autocomplete: "one-time-code"', "a one-time-code field"], ['h("label", { for: "codeInput" }, "Or type the code from the email")', "a label on the field"], ["export const CODE_ENABLED = EMAIL_CODE_ENTRY === true;", "the switch"]]);
+    need(seF, [["authClient().verifyOtp({ email, token, type })", "the Auth service call that confirms the code"], ['call("email")', "the code confirmed as type email"]]);
+    need(srF, [["if (CODE_ENABLED) {", "the code field only while the switch is on"], ["confirm: confirmEmailCode", "the code confirmed through session.js"]]);
+    need(esF, [["if (CODE_ENABLED) {", "the code field only while the switch is on"], ["confirm: confirmEmailCode", "the code confirmed through session.js"], ['go("auth-callback.html?via=code")', "the way on after the code"]]);
+    need(acF, [['if (!viaCode) markLanded(sessionStorage, "poster");', "no landing note after a typed code (employer)"], ['if (!viaCode) markLanded(sessionStorage, "candidate");', "no landing note after a typed code (candidate)"]]);
+    if (!fs.existsSync(tf)) add("S61", tf, "the test code-entry.test.js must exist"); else if (fs.existsSync(raF) && !read(raF).includes("code-entry.test.js")) add("S61", raF, "tests/run-all.js must run code-entry.test.js");
   }
 
   // S59 (2026-10-05, E7): candidate-facing text says "confirm", never "verify", "verified" or "verification" (about a candidate, an email or a comment). EXCEPTIONS ONLY: the destination link wording ("not verified by us", "we could not verify it"),

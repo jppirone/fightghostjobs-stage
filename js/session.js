@@ -58,6 +58,16 @@ export async function requestLink(email, kind, next) {
   return error ? { ok: false, status: error.status || 0, message: error.message || "", code: error.code || "" } : { ok: true };
 }
 
+// Confirm the short code that the same email carries next to the link (October 6, 2026): the person types it in the tab that asked for the link, so no other tab or browser is involved. It is the same Auth service call that
+// completes a link, type "email" (Supabase documentation: signInWithOtp sends a code instead of, or next to, the link when the email template shows {{ .Token }}; verifyOtp with type "email" returns the session). The Auth client stores the session
+// exactly as it does for a link. A first-time address is sent the "Confirm signup" template by Supabase, so when "email" is refused the code is tried once as type "signup" before giving up.
+export async function confirmEmailCode(email, token) {
+  const call = (type) => authClient().verifyOtp({ email, token, type });
+  let { error } = await call("email");
+  if (error && error.status !== 429) { const second = await call("signup"); if (!second.error) error = null; }
+  return error ? { ok: false, status: error.status || 0, message: error.message || "", code: error.code || "" } : { ok: true };
+}
+
 export async function signOut() {
   try { await authClient().signOut(); } catch { /* the local session is dropped below either way */ }
   try { localStorage.removeItem(STORAGE_KEY); clearHandoff(localStorage); sessionStorage.clear(); } catch { /* ignore */ }
