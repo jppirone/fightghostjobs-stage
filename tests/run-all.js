@@ -1,7 +1,11 @@
 // run-all.js - everything that can be checked without a network or a secret. Run: node tests/run-all.js   (or: npm test)
 // FULL RUN (the default, no arguments): every step below, exactly as always. After each step it prints how long the step took; at the end the total and the ten slowest tests (the node test runner reports a time per TEST, not per file;
 // the step name says which file).
+// QUICK MODE, for building only (never evidence for a push): node tests/run-all.js --quick              the unit and API tests plus the static site rules
+//                                                            node tests/run-all.js --quick <name> ...    and also the named test file(s), main tests only (its negative controls are skipped), e.g. --quick search-recap
+// A quick run does NOT run the negative controls (static or browser) and does NOT run the browser tests unless one is named. Its first and last line say so.
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,14 +28,26 @@ const steps = [
   ["static site rules", [path.join(here, "site-check.js")], false],
   ["static rules: negative controls", [path.join(here, "site-check.controls.js")], false],
 ];
-const list = steps;
+const QUICK_BANNER = "QUICK RUN, NOT A FULL RUN, NOT EVIDENCE FOR A PUSH";
+const args = process.argv.slice(2), quick = args[0] === "--quick";
+let list = steps;
+if (quick) {
+  list = [steps[0], steps.find((x) => x[0] === "static site rules")];
+  for (const a of args.slice(1)) {
+    const base = a.replace(/\.js$/, "").replace(/\.test$/, "");
+    const file = path.join(here, base + ".test.js");
+    if (!fs.existsSync(file)) { console.log("quick mode: no test file tests/" + base + ".test.js"); console.log(QUICK_BANNER); process.exit(2); }
+    list.push(["quick: " + base + " (main tests only; its negative controls skipped)", [file], true, true]);
+  }
+  console.log(QUICK_BANNER);
+}
 const fmt = (ms) => { const s = ms / 1000; return s < 120 ? s.toFixed(1) + " s" : Math.floor(s / 60) + " min " + String(Math.round(s % 60)).padStart(2, "0") + " s"; };
 const t00 = Date.now(), slow = [];
 console.log("started " + new Date(t00).toLocaleTimeString());
 let failed = 0;
-for (const [name, files, isTest] of list) {
+for (const [name, files, isTest, skipControls] of list) {
   const t0 = Date.now();
-  const r = spawnSync(process.execPath, isTest ? ["--test", ...files] : files, { encoding: "utf8" });
+  const r = spawnSync(process.execPath, isTest ? ["--test", ...(skipControls ? ["--test-skip-pattern=negative controls"] : []), ...files] : files, { encoding: "utf8" });
   const took = Date.now() - t0;
   const out = (r.stdout || "") + (r.stderr || "");
   for (const m of out.matchAll(/^[\u2714\u2716] (.+?) \((\d+(?:\.\d+)?)ms\)$/gm)) slow.push([Number(m[2]), name, m[1]]);
@@ -48,4 +64,5 @@ slow.sort((a, b) => b[0] - a[0]);
 console.log("TOTAL " + fmt(total) + " (" + (failed ? failed + " step(s) FAILED" : "every step passed") + "); finished " + new Date().toLocaleTimeString());
 console.log("TEN SLOWEST TESTS (a time per test; the step name shows the file):");
 for (const [ms, step, test] of slow.slice(0, 10)) console.log("  " + fmt(ms).padStart(10) + "  " + test.slice(0, 90) + "  [" + step.slice(0, 50) + "]");
+if (quick) console.log(QUICK_BANNER);
 process.exit(failed ? 1 : 0);
