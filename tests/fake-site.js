@@ -106,7 +106,7 @@ export function startFakeSite(root, opts = {}) {
     let data = fs.readFileSync(file);
     if ([".html", ".js", ".mjs"].includes(ext)) data = Buffer.from(data.toString("utf8").split(REAL).join(SELF));
     if (rel === "/js/config.js" && opts.commentsOff) data = Buffer.from(data.toString("utf8").replace("COMMENTS_VISIBLE = true", "COMMENTS_VISIBLE = false"));
-    if (rel === "/js/config.js" && opts.codeOff) data = Buffer.from(data.toString("utf8").replace("EMAIL_CODE_ENTRY = true", "EMAIL_CODE_ENTRY = false"));   // opts.codeOff: the emailed-code field switched off
+    if (rel === "/js/config.js" && opts.codeOn) data = Buffer.from(data.toString("utf8").replace("EMAIL_CODE_ENTRY = false", "EMAIL_CODE_ENTRY = true"));   // opts.codeOn: the emailed-code field switched ON (it ships OFF, so every other test sees the sign-in pages as shipped)
     res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": "no-store" }); res.end(data);
   });
   return new Promise((resolve) => server.listen(0, "127.0.0.1", () => { SELF = "http://127.0.0.1:" + server.address().port; resolve({ url: SELF, calls, close: () => new Promise((r) => server.close(r)) }); }));

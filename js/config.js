@@ -8,9 +8,9 @@ export const PUBLISHABLE_KEY = "sb_publishable_b9ybhjQuSv_K8lIraieR3g_iBslDBOB";
 // robots.txt and the robots tag of the two public pages and nothing else); tests/indexing.test.js and the static rule S60 fail if the two disagree.
 export const ALLOW_INDEXING = false;
 // EMAIL_CODE_ENTRY (October 6, 2026): TRUE shows a field "Or type the code from the email" on the search page and the employer sign-in page once a sign-in link has been requested, so the person can finish in the SAME tab. It only works
-// once the Supabase sign-in email shows the code ({{ .Token }}) next to the link (a dashboard change the owner makes, see the report). While the email has no code the field does nothing useful: set this to FALSE then, or to hide the field at any time.
-// The link keeps working either way.
-export const EMAIL_CODE_ENTRY = true;
+// once the Supabase sign-in email shows the code ({{ .Token }}) next to the link (a dashboard change the owner makes, see the report). SHIPS FALSE (John's decision, October 6, 2026) and stays false until John has pasted the email template on stage
+// and tested it (the steps are in handoff\11-emailed-code-template-and-dashboard-steps.txt); then this line is set to true in its own commit, together with the pins in tests/code-entry.test.js and rule S61. The link keeps working either way.
+export const EMAIL_CODE_ENTRY = false;
 // COMMENTS_VISIBLE (switch added October 5, 2026, shipped ON from October 6, 2026 on John's decision): the one switch for candidate comments on the pages. While true everything is shown: the home page's example card has its Comments link; the details
 // window has "Comments (N)" next to "Report a wrong link"; the comments page has the thread, the comment form, the contest form and the "Comments stay open" line; My postings has the Comments column, the row link and the phone card line.
 // While false: no Comments link on the home card, none in the details window ("Report a wrong link" stays); the comments page shows only the wrong-link report section; My postings has no Comments column, no row link and no phone card line.

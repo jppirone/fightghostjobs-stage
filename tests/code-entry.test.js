@@ -1,5 +1,7 @@
 // code-entry.test.js - the emailed one-time code, typed in the SAME tab (October 6, 2026, Phase 4). Real headless Chrome, the repo's own files, a fake backend (tests/fake-site.js: /auth/v1/verify accepts the code 123456; no real project, no key).
-// The sign-in email keeps its link and also carries a short code. The search page and the employer sign-in page have a field for it, shown once a link has been requested. Proven here:
+// The sign-in email keeps its link and also carries a short code. The search page and the employer sign-in page have a field for it, shown once a link has been requested, WHILE the switch EMAIL_CODE_ENTRY in js/config.js is on.
+// The switch SHIPS OFF (John's decision, October 6, 2026) until the Supabase email template has been pasted on stage and tested: the scenarios below run with the fake site serving the file with the switch turned ON (opts.codeOn), the "switched off"
+// scenario runs the file exactly as shipped, and the test pins "ships false". Proven here:
 //   1. candidate, search page: a wrong code is refused with the plain sentence and the field is emptied and nothing is signed in; letters and an empty field are refused without any request; a rate limit has its own sentence; the right code (typed with a space) signs in
 //      IN THE SAME TAB (no reload, no second tab): the saved search runs once and the recap shows, the header shows the signed-in state, no "close this tab" landing note, the saved search is removed; the request carries only the address, the code and the type, never the search;
 //   2. a first-time address: the Auth service wants the code as type "signup" when "email" is refused, and the page then still signs in; 3. "Send a new link or use another address" brings the form back and a second request shows ONE code form;
@@ -37,7 +39,7 @@ async function withSite(root, opts, fn) { const site = await startFakeSite(root,
 
 const SCENARIOS = {
   async candidateSameTab(root) {
-    return withSite(root, {}, async (site) => {
+    return withSite(root, { codeOn: true }, async (site) => {
       const bad = [], A = await browser.newTab();
       try {
         await A.focusEmulation(true);
@@ -84,7 +86,7 @@ const SCENARIOS = {
     });
   },
   async firstTimeAddress(root) {
-    return withSite(root, { codeType: "signup" }, async (site) => {
+    return withSite(root, { codeType: "signup", codeOn: true }, async (site) => {
       const bad = [], A = await browser.newTab();
       try {
         await A.focusEmulation(true);
@@ -100,7 +102,7 @@ const SCENARIOS = {
     });
   },
   async startOver(root) {
-    return withSite(root, {}, async (site) => {
+    return withSite(root, { codeOn: true }, async (site) => {
       const bad = [], A = await browser.newTab();
       try {
         await A.focusEmulation(true);
@@ -118,7 +120,7 @@ const SCENARIOS = {
     });
   },
   async employerSameTab(root) {
-    return withSite(root, {}, async (site) => {
+    return withSite(root, { codeOn: true }, async (site) => {
       const bad = [], A = await browser.newTab();
       try {
         await A.focusEmulation(true);
@@ -139,7 +141,7 @@ const SCENARIOS = {
     });
   },
   async employerNotOnRoster(root) {
-    return withSite(root, {}, async (site) => {
+    return withSite(root, { codeOn: true }, async (site) => {
       const bad = [], A = await browser.newTab();
       try {
         await A.focusEmulation(true);
@@ -154,7 +156,7 @@ const SCENARIOS = {
     });
   },
   async codeOff(root) {
-    return withSite(root, { codeOff: true }, async (site) => {
+    return withSite(root, {}, async (site) => {   // the file as shipped: the switch is OFF
       const bad = [], A = await browser.newTab();
       try {
         await A.focusEmulation(true);
@@ -162,12 +164,12 @@ const SCENARIOS = {
         await A.waitFor("!!document.querySelector('#signinWrap') && !document.querySelector('#signinWrap').hidden");
         await askLinkCand(A, "reader@example.test");
         await A.waitFor("!document.querySelector('#candSent').hidden"); await sleep(300);
-        if (await A.eval("!!document.querySelector('#codeForm')")) bad.push("the search page shows the code field although EMAIL_CODE_ENTRY is off");
+        if (await A.eval("!!document.querySelector('#codeForm')")) bad.push("the search page shows the code field although EMAIL_CODE_ENTRY is off (as shipped)");
         await clean(A, site); await A.goto(site.url + "/employer-signin.html");
         await A.waitFor("!!document.querySelector('#email')");
         await askLinkEmp(A, "poster@meridian.example");
         await A.waitFor("!document.querySelector('#sent').hidden"); await sleep(300);
-        if (await A.eval("!!document.querySelector('#codeForm')")) bad.push("the employer page shows the code field although EMAIL_CODE_ENTRY is off");
+        if (await A.eval("!!document.querySelector('#codeForm')")) bad.push("the employer page shows the code field although EMAIL_CODE_ENTRY is off (as shipped)");
       } finally { await A.close(); }
       return bad;
     });
@@ -178,6 +180,7 @@ const ALL = Object.keys(SCENARIOS);
 test("the emailed code typed in the same tab: candidate, first-time address, start over, employer, employer not on a roster, switched off", { timeout: 600000 }, async () => {
   const problems = [];
   for (const name of ALL) for (const p of await SCENARIOS[name](ROOT)) problems.push(name + ": " + p);
+  assert.match(fs.readFileSync(path.join(ROOT, "js", "config.js"), "utf8"), /^export const EMAIL_CODE_ENTRY = false;/m, "the emailed code field ships OFF until the owner has pasted the email template on stage and tested it (switching it on is a deliberate edit of this test and of S61)");
   assert.deepEqual(problems, [], "emailed code problems:\n" + problems.join("\n"));
 });
 
@@ -204,6 +207,9 @@ const DEFECTS = [
   ["the employer who is not on a roster is treated as one", ["employerNotOnRoster"], "js/pages/auth-callback.js", (s) => s.replace("if (!session.isPoster) {", "if (false) {")],
   ["the switch is ignored by the search page", ["codeOff"], "js/code-entry.js", (s) => s.replace("export const CODE_ENABLED = EMAIL_CODE_ENTRY === true;", "export const CODE_ENABLED = true;")],
   ["the switch is ignored by the employer page", ["codeOff"], "js/pages/employer-signin.js", (s) => s.replace("if (CODE_ENABLED) {", "if (true) {")],
+  ["the switch ships ON", ["codeOff"], "js/config.js", (s) => s.replace("EMAIL_CODE_ENTRY = false;", "EMAIL_CODE_ENTRY = true;")],
+  ["switched on, the search page shows no code field", ["candidateSameTab"], "js/pages/search.js", (s) => s.replace("if (CODE_ENABLED) {", "if (false) {")],
+  ["switched on, the employer page shows no code field", ["employerSameTab"], "js/pages/employer-signin.js", (s) => s.replace("if (CODE_ENABLED) {", "if (false) {")],
 ];
 test("negative controls: each deliberate defect makes an emailed-code scenario fail", { timeout: 3000000 }, async () => {
   const missed = [];

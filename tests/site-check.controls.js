@@ -790,7 +790,8 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the callback shows the landing note after a typed code", "S61", edit("js/pages/auth-callback.js", (s) => s.replace('if (!viaCode) markLanded(sessionStorage, "poster");', 'markLanded(sessionStorage, "poster");')));
   control("the code field is no one-time-code field", "S61", edit("js/code-entry.js", (s) => s.replace('autocomplete: "one-time-code"', 'autocomplete: "off"')));
   control("the emailed code test is not run", "S61", edit("tests/run-all.js", (s) => s.replace("code-entry.test.js", "code-entry-old.test.js")));
-  control("the switch line is removed", "S61", edit("js/config.js", (s) => s.replace("export const EMAIL_CODE_ENTRY = true;", "")));
+  control("the switch line is removed", "S61", edit("js/config.js", (s) => s.replace("export const EMAIL_CODE_ENTRY = false;", "")));
+  control("the switch ships on", "S61", edit("js/config.js", (s) => s.replace("export const EMAIL_CODE_ENTRY = false;", "export const EMAIL_CODE_ENTRY = true;")));
 }
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });
