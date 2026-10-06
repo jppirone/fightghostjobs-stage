@@ -47,6 +47,7 @@
 //   S57 candidate sign-in wording, the confirm family (Part E5): search card heading, paragraph, button, the flash after the link and the top bar word; employer side stays sign-in link
 //   S58 the one comments switch, js/config.js COMMENTS_VISIBLE, shipped true, read by every comment surface (Part E6)
 //   S59 no verify, verified or verification in candidate-facing text (Part E7): the word is confirm; exceptions are the destination link wording, data and class names, and privacy.html
+//   S60 search engines (Phase 3): the flag ALLOW_INDEXING in js/config.js (false on stage) agrees with every page's robots tag and with robots.txt; sign-in pages are noindex in every environment; the tool and the test exist and run
 //   S53 the search recap (Part C): sentence, never the req number or postID, Edit this search, memory only, one spoken message
 //   S52 the accessibility round: header Tab order, one polite search status, the details window's focus handling, the unsaved bar's closing message, 24 pixel hit areas, and the four tests that prove them
 //   S51 the home page's step 3 (Candidates look up), the search form's three boxes (Company required, Then one of these, a visible or, the approved sentence) and the callback without the flash on employer pages
@@ -77,13 +78,14 @@ export function checkSite(root) {
   const html = files.filter((f) => f.endsWith(".html")), js = files.filter((f) => f.endsWith(".js") && !f.includes(path.sep + "tests" + path.sep) && !f.includes(path.sep + "vendor" + path.sep)), css = files.filter((f) => f.endsWith(".css"));
   const mjs = files.filter((f) => f.endsWith(".mjs"));
   const read = (f) => fs.readFileSync(f, "utf8");
+  const idxCfg = path.join(root, "js", "config.js"), idxOn = fs.existsSync(idxCfg) && /^export const ALLOW_INDEXING = true;/m.test(stripJsComments(read(idxCfg)));   // ALLOW_INDEXING (2026-10-06, S60): false on stage
 
   for (const f of html) {
     const s = read(f); const name = path.basename(f);
     const csps = [...s.matchAll(/<meta http-equiv="Content-Security-Policy" content="([^"]*)">/g)].map((m) => m[1]);
     if (csps.length !== 1) add("S1", f, "expected exactly one Content-Security-Policy meta, found " + csps.length);
     else if (csps[0] !== (name === "404.html" ? EXPECTED_CSP_404 : EXPECTED_CSP)) add("S1", f, "the Content-Security-Policy is not the expected one");
-    if (!/<meta name="robots" content="noindex, nofollow">/.test(s)) add("S2", f, "missing noindex, nofollow");
+    if (!/<meta name="robots" content="noindex, nofollow">/.test(s) && !(idxOn && ["index.html", "privacy.html"].includes(name) && s.includes('<meta name="robots" content="index, follow">'))) add("S2", f, "missing noindex, nofollow");   // only a PUBLIC page may say index, follow, and only while ALLOW_INDEXING is true (S60 checks the rest)
     const scripts = [...s.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
     for (const m of scripts) {
       const attrs = m[1];
@@ -1206,6 +1208,28 @@ export function checkSite(root) {
     need(cmF, [["if (COMMENTS_VISIBLE) { $(\"#threadWrap\").hidden = false;", "show the thread and the form only when on"], ["if (COMMENTS_VISIBLE) await loadThread(0);", "ask for the thread only when on"], ["notOpenRecap(d.data.status, d.data.closed_reason || null, COMMENTS_VISIBLE)", "the Comments stay open line"], ["if (!COMMENTS_VISIBLE) return;", "the employer's thread"]]);
     need(dbF, [["if (!COMMENTS_VISIBLE) { const th", "remove the column header"], ["COMMENTS_VISIBLE ? h(\"td\"", "the Comments cell and row link"]]);
     if (!fs.existsSync(tf)) add("S58", tf, "the test comments-switch.test.js must exist"); else if (fs.existsSync(raF) && !read(raF).includes("comments-switch.test.js")) add("S58", raF, "tests/run-all.js must run comments-switch.test.js");
+  }
+
+  // S60 (2026-10-06, Phase 3): search engines. ALLOW_INDEXING in js/config.js is the one flag (false on stage). While false every page says noindex, nofollow and robots.txt disallows everything. While true only the PUBLIC pages (index.html,
+  // privacy.html) say index, follow and robots.txt allows crawling; every other page (anything that needs a sign-in or shows a person's own data) says noindex, nofollow in every environment. tests/apply-indexing.js makes the files agree with the flag;
+  // tests/indexing.test.js reads the pages and robots.txt over HTTP and tests the tool. This rule checks the files agree with the flag and that the tool, the test and the run-all step exist.
+  {
+    const cfF = path.join(root, "js", "config.js"), toolF = path.join(root, "tests", "apply-indexing.js"), rbF = path.join(root, "robots.txt"), raF = path.join(root, "tests", "run-all.js"), tf = path.join(root, "tests", "indexing.test.js");
+    const PUB = ["index.html", "privacy.html"], NO = '<meta name="robots" content="noindex, nofollow">', YES = '<meta name="robots" content="index, follow">';
+    const m = fs.existsSync(cfF) ? stripJsComments(read(cfF)).match(/^export const ALLOW_INDEXING = (true|false);/m) : null;
+    if (!m) add("S60", cfF, "js/config.js must export ALLOW_INDEXING = false; (or true)");
+    else {
+      const on = m[1] === "true";
+      for (const f of html) {
+        const name = path.basename(f), tags = read(f).match(/<meta name="robots" content="[^"]*">/g) || [], want = PUB.includes(name) && on ? YES : NO;
+        if (tags.length !== 1 || tags[0] !== want) add("S60", f, "this page must carry exactly " + want + " while ALLOW_INDEXING is " + m[1] + (PUB.includes(name) ? "" : " (it needs a sign-in or shows a person's own data: noindex in every environment)"));
+      }
+      const robots = fs.existsSync(rbF) ? read(rbF).replace(/\r\n/g, "\n") : null;
+      if (robots === null) add("S60", rbF, "robots.txt is missing");
+      else if (robots !== (on ? "User-agent: *\nAllow: /\n" : "User-agent: *\nDisallow: /\n")) add("S60", rbF, "robots.txt must be exactly " + (on ? "User-agent: *, Allow: /" : "User-agent: *, Disallow: /") + " while ALLOW_INDEXING is " + m[1]);
+    }
+    if (!fs.existsSync(toolF)) add("S60", toolF, "tests/apply-indexing.js must exist");
+    if (!fs.existsSync(tf)) add("S60", tf, "the test indexing.test.js must exist"); else if (fs.existsSync(raF) && !read(raF).includes("indexing.test.js")) add("S60", raF, "tests/run-all.js must run indexing.test.js");
   }
 
   // S59 (2026-10-05, E7): candidate-facing text says "confirm", never "verify", "verified" or "verification" (about a candidate, an email or a comment). EXCEPTIONS ONLY: the destination link wording ("not verified by us", "we could not verify it"),

@@ -769,6 +769,18 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the employer notice says verified candidate session", "S59", edit("js/pages/search.js", (s) => s.replace("needs a candidate sign-in: sign out, then confirm a candidate email address.", "needs a verified candidate session: sign out, then verify a candidate email address.")));
   control("the verify word comes back on the home page", "S59", edit("index.html", (s) => s.replace("Candidates look up</h3>", "Candidates look up</h3><p>Verify first.</p>")));
 }
+
+// S60: search engines, the flag ALLOW_INDEXING in js/config.js (false on stage), robots.txt, the robots tag of every page, the tool and the test (Phase 3)
+{
+  control("My postings says index, follow", "S60", edit("dashboard.html", (s) => s.replace('<meta name="robots" content="noindex, nofollow">', '<meta name="robots" content="index, follow">')));
+  control("a sign-in page says only noindex", "S60", edit("auth-callback.html", (s) => s.replace('<meta name="robots" content="noindex, nofollow">', '<meta name="robots" content="noindex">')));
+  control("the home page says index, follow while the flag is false", "S60", edit("index.html", (s) => s.replace('<meta name="robots" content="noindex, nofollow">', '<meta name="robots" content="index, follow">')));
+  control("robots.txt allows crawling on stage", "S60", edit("robots.txt", (s) => s.replace("Disallow: /", "Allow: /")));
+  control("robots.txt is emptied", "S60", edit("robots.txt", (s) => s.replace("Disallow: /", "")));
+  control("the flag is switched on without running the tool", "S60", edit("js/config.js", (s) => s.replace("export const ALLOW_INDEXING = false;", "export const ALLOW_INDEXING = true;")));
+  control("the flag line is removed", "S60", edit("js/config.js", (s) => s.replace("export const ALLOW_INDEXING = false;", "")));
+  control("the indexing test is not run", "S60", edit("tests/run-all.js", (s) => s.replace("indexing.test.js", "indexing-old.test.js")));
+}
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");
