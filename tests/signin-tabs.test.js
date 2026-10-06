@@ -23,7 +23,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const CAND_LANDING = "You are signed in. You can close this tab and go back to the one you started from, or keep searching here.";
 const EMP_LANDING = "You are signed in. You can close this tab and go back to the one you started from, or keep working here.";
 const BOTH_NOTE = "This address is also registered as an employer, so the employer buttons show above. Searching here works as a candidate.";
-const VERIFY_NOTE = "Verify your email first. We keep your search in this browser for one hour and run it when you open the link in this browser. If the link opens somewhere else, enter your search again.";
+const VERIFY_NOTE = "Confirm your email first. We keep your search in this browser for one hour and run it when you open the link in this browser. If the link opens somewhere else, enter your search again.";
 const SENT_NOTE = "Check your email. Open the link in this same browser and your search will be waiting. If it opens in another browser or app, enter your search again there.";
 let browser;
 before(async () => { browser = await launchBrowser(); });

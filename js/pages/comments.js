@@ -27,7 +27,7 @@ function startCooldown(button, seconds, idleLabel) {
 
 // ---- the thread (both modes)
 function commentCard(c) {
-  const meta = h("div", { style: "font-size:12px;color:var(--faint);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;" }, h("span", {}, "Verified candidate · " + ago(c.created_at)));
+  const meta = h("div", { style: "font-size:12px;color:var(--faint);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;" }, h("span", {}, "Candidate · " + ago(c.created_at)));
   const body = h("p", { style: "font-size:15px;line-height:1.6;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;" }, c.body);
   const card = h("article", { class: "card", style: "padding:16px 20px;display:flex;flex-direction:column;gap:8px;" }, meta, body);
   // everything about a contest on this comment (js/contest-ui.js decides from c.contest_state, by view): the notice for an open contest, the owner's control when none exists, the plain sentence after a decision
@@ -77,7 +77,7 @@ async function loadThread(offset) {
 $("#loadMore").addEventListener("click", () => { if (state.nextOffset !== null) loadThread(state.nextOffset); });
 
 // ---- the candidate side
-async function sessionEnded() { state.session = null; $("#threadWrap").hidden = true; $("#composeWrap").hidden = true; $("#reportWrap").hidden = true; showSignIn("Please verify your email again."); }
+async function sessionEnded() { state.session = null; $("#threadWrap").hidden = true; $("#composeWrap").hidden = true; $("#reportWrap").hidden = true; showSignIn("Please confirm your email again."); }
 let watching = false;
 function showSignIn(message) { $("#signinWrap").hidden = false; ensureWatch(); if (message) { const b = $("#candEmailError"); b.hidden = false; b.textContent = message; } }
 $("#signinForm").addEventListener("submit", async (ev) => {
@@ -120,7 +120,7 @@ async function candidateMode() {
   if (!state.session || !state.session.isCandidate) {
     if (state.session && state.session.isPoster) {
       const n = $("#roleNotice"); n.hidden = false; clear(n);
-      n.append(alertBox("notice", "You are signed in as an employer. Reading and posting comments here needs a verified candidate session: sign out, then verify a candidate email address. (Your own postings' comments are in My postings.)"),
+      n.append(alertBox("notice", "You are signed in as an employer. Reading and posting comments here needs a candidate sign-in: sign out, then confirm a candidate email address. (Your own postings' comments are in My postings.)"),
         h("div", { style: "margin-top:12px;" }, h("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: async () => { await signOut(); go("comments.html?ref=" + encodeURIComponent(ref)); } }, "Sign out")));
       return;
     }
@@ -149,7 +149,7 @@ $("#composeForm").addEventListener("submit", async (ev) => {
   state.busy = true; send.disabled = true; const label = send.textContent; send.textContent = "Posting…"; let cooldown = 0;
   try {
     const r = await api.candidatePostComment(ref, c.text);
-    if (r.ok) { $("#commentText").value = ""; $("#commentCount").textContent = "0 / 2,000"; say(box, "ok", "Posted. It is visible to every verified candidate now."); await loadThread(0); return; }
+    if (r.ok) { $("#commentText").value = ""; $("#commentCount").textContent = "0 / 2,000"; say(box, "ok", "Posted. Every candidate who has confirmed their email can see it now."); await loadThread(0); return; }
     if (isAuthFailure(r.error)) return sessionEnded();
     if (r.error.code === "rate_limited") { cooldown = r.error.retryAfter || 60; err.hidden = false; err.textContent = "You are commenting too fast (at most a few an hour, and two on the same posting in six hours). Try again in " + waitText(cooldown) + "."; return; }
     if (r.status === 400) { err.hidden = false; err.textContent = refusalText(r.error); return; }
@@ -187,8 +187,8 @@ async function employerMode() {
   $("#recapCompany").textContent = p.company_name; $("#recapTitle").textContent = p.title;
   $("#recapMeta").textContent = "postID " + groupCode(p.post_id) + " · " + p.status;
   if (!COMMENTS_VISIBLE) return;   // comments are switched off: the employer sees the posting's identity and nothing else here
-  $("#recapNote").textContent = "What verified candidates wrote about this posting. You are told by email when there is something new (at most once every six hours).";
-  $("#threadIntro").textContent = "Written by verified candidates, newest first, anonymous to everyone. A comment is about the posting, never about a person. You can contest a comment on this posting once; it stays visible, with a notice, while it is under review.";
+  $("#recapNote").textContent = "What candidates wrote about this posting. You are told by email when there is something new (at most once every six hours).";
+  $("#threadIntro").textContent = "Written by candidates, newest first, anonymous to everyone. A comment is about the posting, never about a person. You can contest a comment on this posting once; it stays visible, with a notice, while it is under review.";
   $("#threadWrap").hidden = false; $("#employerNote").hidden = false;
   await loadThread(0);
 }

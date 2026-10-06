@@ -46,6 +46,7 @@
 //   S56 after a successful search the recap scrolls to the top of the window (Part E4): smooth, no focus move, not with reduced motion, not for a replayed search
 //   S57 candidate sign-in wording, the confirm family (Part E5): search card heading, paragraph, button, the flash after the link and the top bar word; employer side stays sign-in link
 //   S58 the one comments switch, js/config.js COMMENTS_VISIBLE, shipped false, read by every comment surface (Part E6)
+//   S59 no verify, verified or verification in candidate-facing text (Part E7): the word is confirm; exceptions are the destination link wording, data and class names, and privacy.html
 //   S53 the search recap (Part C): sentence, never the req number or postID, Edit this search, memory only, one spoken message
 //   S52 the accessibility round: header Tab order, one polite search status, the details window's focus handling, the unsaved bar's closing message, 24 pixel hit areas, and the four tests that prove them
 //   S51 the home page's step 3 (Candidates look up), the search form's three boxes (Company required, Then one of these, a visible or, the approved sentence) and the callback without the flash on employer pages
@@ -333,7 +334,7 @@ export function checkSite(root) {
       const t = read(ch); for (const id of ["signinWrap", "recap", "thread", "loadMore", "composeForm", "commentText", "reportForm", "reportLink", "reportDetail", "employerNote"]) if (!t.includes('id="' + id + '"')) add("S29", ch, "comments.html is missing #" + id);
       if (!t.includes('maxlength="2000"')) add("S29", ch, "the comment box must be capped at 2000"); if (!t.includes("privately")) add("S29", ch, "the wrong-link report must say it is private");
       const c = read(cj); for (const m of ["api.candidateListComments(", "api.candidatePostComment(", "api.candidateReportComment(", "api.candidateReportLink(", "api.employerListComments(", "api.candidateDetail(", "api.getMyPosting("]) if (!c.includes(m)) add("S29", cj, "comments.js must use " + m);
-      if (!c.includes('"Verified candidate ' + String.fromCharCode(183) + ' "')) add("S29", cj, "a comment must be attributed as Verified candidate, never by name");
+      if (!c.includes('"Candidate ' + String.fromCharCode(183) + ' "')) add("S29", cj, "a comment must be attributed as Candidate, never by name");
       if (!read(cm).includes("Comments are public and anonymous; anyone can report one.")) add("S29", cm, "the rules text must say comments are public, anonymous and reportable");
     }
     for (const f of files.filter((x) => (x.endsWith(".html") || x.endsWith(".js")) && !x.includes(path.sep + "tests" + path.sep) && !x.includes(path.sep + "vendor" + path.sep))) {
@@ -1000,7 +1001,7 @@ export function checkSite(root) {
       const s = stripJsComments(read(pF));
       if (!s.includes("savePending(localStorage,") || !s.includes("takePending(localStorage)") || /sessionStorage\.(get|set)Item\(PENDING|fgj-pending-search/.test(s)) add("S49", pF, "the pending search lives in localStorage (signin-handoff.js), never in tab-local storage");
       if (!s.includes("watchOtherTabSignIn(") || !s.includes("function runWhenInFront()")) add("S49", pF, "the search page watches for a sign-in in another tab and lets the tab in front run the saved search");
-      if (!s.includes('"Verify your email first. We keep your search in this browser for one hour and run it when you open the link in this browser. If the link opens somewhere else, enter your search again."') || !s.includes('"Check your email. Open the link in this same browser and your search will be waiting. If it opens in another browser or app, enter your search again there."')) add("S49", pF, "the two notices carry the wording John approved on October 4, 2026, exactly (true in every browser case: the saved search lives in this browser only)");
+      if (!s.includes('"Confirm your email first. We keep your search in this browser for one hour and run it when you open the link in this browser. If the link opens somewhere else, enter your search again."') || !s.includes('"Check your email. Open the link in this same browser and your search will be waiting. If it opens in another browser or app, enter your search again there."')) add("S49", pF, "the two notices carry the wording John approved on October 4, 2026, exactly (true in every browser case: the saved search lives in this browser only)");
       if (!s.includes('roleNoteKind(session) === "both"') || !s.includes("BOTH_ROLES_TEXT")) add("S49", pF, "the search page shows the both-roles note for a session with both claims (and only through roleNoteKind)");
     }
     if (fs.existsSync(eF) && (!stripJsComments(read(eF)).includes("watchOtherTabSignIn(") || (stripJsComments(read(eF)).split('rememberedNext() || "register.html"').length - 1) !== 2)) add("S49", eF, "the employer sign-in page watches for a sign-in in another tab and returns to the page that sent the person to sign in");
@@ -1205,6 +1206,19 @@ export function checkSite(root) {
     need(cmF, [["if (COMMENTS_VISIBLE) { $(\"#threadWrap\").hidden = false;", "show the thread and the form only when on"], ["if (COMMENTS_VISIBLE) await loadThread(0);", "ask for the thread only when on"], ["notOpenRecap(d.data.status, d.data.closed_reason || null, COMMENTS_VISIBLE)", "the Comments stay open line"], ["if (!COMMENTS_VISIBLE) return;", "the employer's thread"]]);
     need(dbF, [["if (!COMMENTS_VISIBLE) { const th", "remove the column header"], ["COMMENTS_VISIBLE ? h(\"td\"", "the Comments cell and row link"]]);
     if (!fs.existsSync(tf)) add("S58", tf, "the test comments-switch.test.js must exist"); else if (fs.existsSync(raF) && !read(raF).includes("comments-switch.test.js")) add("S58", raF, "tests/run-all.js must run comments-switch.test.js");
+  }
+
+  // S59 (2026-10-05, E7): candidate-facing text says "confirm", never "verify", "verified" or "verification" (about a candidate, an email or a comment). EXCEPTIONS ONLY: the destination link wording ("not verified by us", "we could not verify it"),
+  // data field and class names (verified_at, plan.verified, badge-verified, --verified, reverification_required: a word joined to a dot, dash, underscore or colon, or inside a longer word), and privacy.html (its wording waits for John).
+  // The rule reads every page and script of the site, with comments and styles removed. The email template text is not in the repository (it lives in the Supabase dashboard), so it is not scanned here.
+  {
+    const WORD = /(^|[^\w.\-])(verify|verifies|verified|verifying|verification)(?![\w:\-])/i, ALLOWED = /not verified by us|could not verify it/gi;
+    for (const f of html.concat(js)) {
+      if (path.basename(f) === "privacy.html") continue;
+      const raw = read(f), t = f.endsWith(".html") ? raw.replace(/<!--[\s\S]*?-->/g, "").replace(/<style[\s\S]*?<\/style>/g, "") : stripJsComments(raw);
+      const hit = t.split("\n").map((l) => l.replace(ALLOWED, "")).find((l) => WORD.test(l));
+      if (hit) add("S59", f, "candidate-facing text must say confirm, not verify, verified or verification: " + hit.trim().slice(0, 100));
+    }
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

@@ -45,7 +45,7 @@ function applySession() {
   if (roleNoteKind(session) === "both") { notice.hidden = false; notice.append(alertBox("notice", BOTH_ROLES_TEXT)); }
   if (session && session.isPoster && !session.isCandidate) {
     notice.hidden = false;
-    notice.append(alertBox("notice", "You are signed in as an employer. Candidate search needs a verified candidate session: sign out, then verify a candidate email address."),
+    notice.append(alertBox("notice", "You are signed in as an employer. Candidate search needs a candidate sign-in: sign out, then confirm a candidate email address."),
       h("div", { style: "margin-top:12px;" }, h("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: async () => { await signOut(); go("search.html"); } }, "Sign out")));
     $("#signinWrap").hidden = true;
   }
@@ -126,7 +126,7 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
     // kept in localStorage (all tabs of this browser, one hour, removed when used, never sent anywhere): the emailed link opens in a NEW tab (signin-handoff.js)
     savePending(localStorage, { company: companyIn.value, q: queryIn.value, r: reqIn.value });
     if (session && session.isPoster) { applySession(); return; }
-    showSignIn("Verify your email first. We keep your search in this browser for one hour and run it when you open the link in this browser. If the link opens somewhere else, enter your search again.");
+    showSignIn("Confirm your email first. We keep your search in this browser for one hour and run it when you open the link in this browser. If the link opens somewhere else, enter your search again.");
     $("#candEmail").focus();
     return;
   }
@@ -141,7 +141,7 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
     if (!r.ok && r.status === 404 && r.error.code === "not_found") r = { ok: true, data: { mode: "code", truncated: false, results: [] } };   // a code that matches nothing is a plain "no such posting"
     if (r.ok) { showResults(r.data, { company: c.value, query: q.value, kind: q.kind }); showRecap(typed, c.value, q, auto); return; }
     clear(resultsEl); countEl.hidden = true;
-    if (isAuthFailure(r.error)) { session = null; applySession(); showSignIn(r.error.code === "reverification_required" ? "Your email verification has expired. Please verify your email again." : "Please verify your email to search."); return; }
+    if (isAuthFailure(r.error)) { session = null; applySession(); showSignIn(r.error.code === "reverification_required" ? "Your email confirmation has expired. Please confirm your email again." : "Please confirm your email to search."); return; }
     if (r.error.code === "rate_limited") { cooldown = r.error.retryAfter || 30; setFormError("You are searching too fast. Try again in " + waitText(cooldown) + "."); return; }
     // the backend refused the search itself (for example a 1 or 2 letter title that is not one of its short forms): say so calmly and put the cursor in the box that needs fixing
     if (r.status === 400 && r.error.field) { setFormError(searchErrorMessage(r.error)); const f = searchErrorFocus(r.error); (f === "company" ? companyIn : f === "req" ? reqIn : queryIn).focus(); return; }
@@ -209,7 +209,7 @@ async function openDetails(row, button) {
     m.empty.hidden = false;
     if (r.status === 409 && r.data && r.data.code === "posting_not_open") m.empty.textContent = notOpenMessage(r.data.status, r.data.closed_reason || null);
     else if (r.error.code === "not_found") m.empty.textContent = "This posting is no longer available.";
-    else if (isAuthFailure(r.error)) { closeModal(); session = null; applySession(); showSignIn("Please verify your email again."); }
+    else if (isAuthFailure(r.error)) { closeModal(); session = null; applySession(); showSignIn("Please confirm your email again."); }
     else if (r.error.code === "rate_limited") { cooldown = r.error.retryAfter || 30; m.empty.textContent = "You are opening details too fast. Try again in " + waitText(cooldown) + "."; }
     else m.empty.textContent = describeError(r.error);
   } finally {

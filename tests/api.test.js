@@ -154,7 +154,7 @@ test("row actions send exactly the documented bodies (never an identity), and re
 
 test("wording for failures never shows raw server text for 5xx", () => {
   assert.doesNotMatch(describeError({ code: "server_error", message: "SQL exploded at line 9" }), /SQL/);
-  assert.match(describeError({ code: "reverification_required" }), /verify your email again/i);
+  assert.match(describeError({ code: "reverification_required" }), /confirm your email again/i);
   assert.match(describeError({ code: "request_refused", message: "closed_reason must be filled or withdrawn" }), /closed_reason/);
 });
 

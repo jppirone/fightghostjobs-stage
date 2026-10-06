@@ -63,7 +63,7 @@ const button = (text, fn, cls = "btn btn-ghost") => h("button", { type: "button"
 
   // candidate
   if (!session.isCandidate) {
-    say("Signed in, but not as a verified candidate", "This session is an employer session. Sign out to search as a candidate with a different email address.",
+    say("Signed in, but not as a candidate", "This session is an employer session. Sign out to search as a candidate with a different email address.",
       [button("Sign out", async () => { await signOut(); go("search.html"); }), link("Back", "register.html", "btn btn-outline")]);
     return;
   }

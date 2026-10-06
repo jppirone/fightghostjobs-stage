@@ -32,8 +32,8 @@
 
   <div id="signinWrap" hidden>
     <div class="card signin-card">
-      <h2>Verify your email to read and post comments</h2>
-      <p>One quick step: we email you a link, and that keeps you verified for 90 days. No password, no account form. Free for job seekers. Your email is only used to confirm you are a person and is never shown to anyone. <a href="privacy.html">Privacy</a>.</p>
+      <h2>Confirm your email to read and post comments</h2>
+      <p>One quick step: we email you a link, and that keeps your email confirmed for 90 days. No password, no account form. Free for job seekers. Your email is only used to confirm you are a person and is never shown to anyone. <a href="privacy.html">Privacy</a>.</p>
       <form id="signinForm" novalidate>
         <div class="signin-row">
           <div><label for="candEmail">Your email</label><input id="candEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
@@ -56,7 +56,7 @@
 
   <div id="threadWrap" hidden style="display:flex;flex-direction:column;gap:14px;">
     <h2 id="threadHead" style="font-size:20px;font-weight:700;margin:0;">Comments</h2>
-    <p id="threadIntro" style="font-size:14px;color:var(--muted);line-height:1.6;margin:0;">Written by verified candidates, newest first, anonymous. A comment is about the posting, never about a person. Anyone can report a comment; we read every report.</p>
+    <p id="threadIntro" style="font-size:14px;color:var(--muted);line-height:1.6;margin:0;">Written by candidates who confirmed their email, newest first, anonymous. A comment is about the posting, never about a person. Anyone can report a comment; we read every report.</p>
     <div id="thread" style="display:flex;flex-direction:column;gap:12px;"></div>
     <div id="threadEmpty" class="empty-note" hidden>No comments yet.</div>
     <div><button type="button" id="loadMore" class="btn btn-outline btn-sm" hidden>Load older comments</button></div>
@@ -92,7 +92,7 @@
     </form>
   </div>
 
-  <div id="employerNote" hidden style="font-size:13px;color:var(--muted);line-height:1.6;">Comments are written by verified candidates and are anonymous to everyone, you included. This page shows the comments on this one posting. <a href="dashboard.html">Back to My postings</a></div>
+  <div id="employerNote" hidden style="font-size:13px;color:var(--muted);line-height:1.6;">Comments are written by candidates who confirmed their email and are anonymous to everyone, you included. This page shows the comments on this one posting. <a href="dashboard.html">Back to My postings</a></div>
 </div>
 
 </main>

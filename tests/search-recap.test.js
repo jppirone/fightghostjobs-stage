@@ -156,7 +156,7 @@ const DEFECTS = [
   ["Edit this search does not move the cursor to Company", ["kinds"], [["js/pages/search.js", (s) => s.replace("lastSearch = null; hideRecap(); companyIn.focus();", "lastSearch = null; hideRecap();")]]],
   ["Edit this search leaves the recap showing", ["kinds"], [["js/pages/search.js", (s) => s.replace("lastSearch = null; hideRecap(); companyIn.focus();", "lastSearch = null; companyIn.focus();")]]],
   ["a new search that is stopped by a message leaves the old recap showing", ["kinds"], [["js/pages/search.js", (s) => s.replace('setFormError(""); hideRecap();', 'setFormError("");')]]],
-  ["the verify your email card shows a recap", ["signedOut"], [["js/pages/search.js", (s) => s.replace('    showSignIn("Verify your email first.', '    recapEl.hidden = false;\n    showSignIn("Verify your email first.')]]],
+  ["the verify your email card shows a recap", ["signedOut"], [["js/pages/search.js", (s) => s.replace('    showSignIn("Confirm your email first.', '    recapEl.hidden = false;\n    showSignIn("Confirm your email first.')]]],
   ["the typed values are kept in browser storage", ["kinds"], [["js/pages/search.js", (s) => s.replace("  lastSearch = typed;\n", "  lastSearch = typed; sessionStorage.setItem(\"last-search\", JSON.stringify(typed));\n")]]],
   ["the recap sentence is not spoken", ["kinds"], [["js/pages/search.js", (s) => s.replace("  status.announce(spoken);\n  // After a successful search", "  // After a successful search")]]],
   ["the count is left out of the spoken message", ["kinds"], [["js/pages/search.js", (s) => s.replace('const spoken = text + " " + countEl.textContent + ".";', "const spoken = text;")]]],

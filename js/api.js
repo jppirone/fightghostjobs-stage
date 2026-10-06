@@ -226,8 +226,8 @@ export function describeError(err, { what = "That" } = {}) {
     case "bad_response": return "The server answered in a way this page did not expect, so nothing was shown. Please try again, and tell us if it keeps happening.";
     case "server_error": return "The server had a problem. Nothing was changed; please try again in a moment.";
     case "unauthorized": case "no_session": return "Please sign in again.";
-    case "reverification_required": return "Your email verification has expired. Please verify your email again.";
-    case "no_candidate_identity": case "not_a_candidate_session": return "This page needs a verified candidate session.";
+    case "reverification_required": return "Your email confirmation has expired. Please confirm your email again.";
+    case "no_candidate_identity": case "not_a_candidate_session": return "This page needs a candidate sign-in.";
     case "not_found": return what + " could not be found.";
     case "body_too_large": return "That is too large to send.";
     case "invalid_request": return "That could not be sent. Check what you entered and try again.";

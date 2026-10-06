@@ -134,7 +134,7 @@ control("the note label stops saying the words are shown to candidates", "S28", 
 control("the register form stops checking the notes with the shared rule", "S28", edit("js/register-form.js", (s) => s.replace('import { aiNoteProblem } from "./ai-notes.js";', "const aiNoteProblem = () => null;")));
 control("the search card stops showing the notes", "S28", edit("js/pages/search.js", (s) => s.replace("...aiNotes(row).map(", "...[].map(")));
 control("a page links to comments.html without a reference (a listing in the making)", "S29", append("index.html", '<a href="comments.html">All comments</a>'));
-control("the comments page names the author", "S29", edit("js/pages/comments.js", (s) => s.replace('"Verified candidate ' + String.fromCharCode(183) + ' "', '"Candidate #" + c.id + " ' + String.fromCharCode(183) + ' "')));
+control("the comments page names the author", "S29", edit("js/pages/comments.js", (s) => s.replace('"Candidate ' + String.fromCharCode(183) + ' "', '"Candidate #" + c.id + " ' + String.fromCharCode(183) + ' "')));
 control("the wrong-link report stops saying it is private", "S29", edit("comments.html", (s) => s.replace("Tell us here, privately:", "Tell us here:")));
 control("the dashboard stops linking the comments", "S29", edit("js/pages/dashboard.js", (s) => s.replace('"comments.html?id=" + encodeURIComponent(p.id)', '"dashboard.html"')));
 // S38 (item 4, 2026-10-03): the destination links rows panel. Write-only: no address on the page, the blank tab first, the plan's words once, no new host.
@@ -598,7 +598,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the search page does not watch for a sign-in elsewhere", "S49", edit("js/pages/search.js", (s) => s.replace("watchOtherTabSignIn(async", "(async")));
   control("the verify card's wording is changed without approval", "S49", edit("js/pages/search.js", (s) => s.replace("We keep your search in this browser for one hour and run it when you open the link in this browser.", "We keep your search and run it when you are back.")));
   control("the Check your email wording is changed without approval", "S49", edit("js/pages/search.js", (s) => s.replace("Open the link in this same browser and your search will be waiting.", "Your search will be waiting.")));
-  control("the verify card goes back to the old promise", "S49", edit("js/pages/search.js", (s) => s.replace("Verify your email first. We keep your search in this browser for one hour and run it when you open the link in this browser. If the link opens somewhere else, enter your search again.", "Verify your email first; your search is saved and runs as soon as you are back.")));
+  control("the verify card goes back to the old promise", "S49", edit("js/pages/search.js", (s) => s.replace("Confirm your email first. We keep your search in this browser for one hour and run it when you open the link in this browser. If the link opens somewhere else, enter your search again.", "Verify your email first; your search is saved and runs as soon as you are back.")));
   control("the employer sign-in page does not watch", "S49", edit("js/pages/employer-signin.js", (s) => s.replace("watchOtherTabSignIn(() =>", "(() =>")));
   control("the employer sign-in page always lands in the employer area", "S49", edit("js/pages/employer-signin.js", (s) => s.replace('rememberedNext() || "register.html"', '"register.html"')));
   control("the comments page does not watch", "S49", edit("js/pages/comments.js", (s) => s.replace("watchOtherTabSignIn(async", "(async")));
@@ -757,6 +757,17 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the Comments stay open line ignores the switch", "S58", edit("js/pages/comments.js", (s) => s.replace("closed_reason || null, COMMENTS_VISIBLE)", "closed_reason || null, true)")));
   control("My postings keeps its Comments cells", "S58", edit("js/pages/dashboard.js", (s) => s.replace("COMMENTS_VISIBLE ? h(\"td\"", "true ? h(\"td\"")));
   control("the comments switch test is not run", "S58", edit("tests/run-all.js", (s) => s.replace("comments-switch.test.js", "comments-switch-old.test.js")));
+}
+
+// S59: no verify, verified or verification in candidate-facing text (Part E7): the word is confirm; exceptions are the destination link wording, data and class names, and privacy.html
+{
+  control("a page says Verify your email again", "S59", edit("search.html", (s) => s.replace("<h2>Confirm your email to search</h2>", "<h2>Verify your email to search</h2>")));
+  control("a comments page sentence says verified candidates", "S59", edit("comments.html", (s) => s.replace("Written by candidates who confirmed their email, newest first, anonymous.", "Written by verified candidates, newest first, anonymous.")));
+  control("a script message says verification", "S59", edit("js/api.js", (s) => s.replace("Your email confirmation has expired. Please confirm your email again.", "Your email verification has expired. Please verify your email again.")));
+  control("the comment tag goes back to Verified candidate", "S59", edit("js/pages/comments.js", (s) => s.replace("\"Candidate · \" + ago(", "\"Verified candidate · \" + ago(")));
+  control("the callback says verified candidate", "S59", edit("js/pages/auth-callback.js", (s) => s.replace("Signed in, but not as a candidate", "Signed in, but not as a verified candidate")));
+  control("the employer notice says verified candidate session", "S59", edit("js/pages/search.js", (s) => s.replace("needs a candidate sign-in: sign out, then confirm a candidate email address.", "needs a verified candidate session: sign out, then verify a candidate email address.")));
+  control("the verify word comes back on the home page", "S59", edit("index.html", (s) => s.replace("Candidates look up</h3>", "Candidates look up</h3><p>Verify first.</p>")));
 }
 }
 fs.rmSync(tmpBase, { recursive: true, force: true });
