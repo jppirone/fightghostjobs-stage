@@ -47,6 +47,7 @@
 //   S57 candidate sign-in wording, the confirm family (Part E5): search card heading, paragraph, button, the flash after the link and the top bar word; employer side stays sign-in link
 //   S58 the one comments switch, js/config.js COMMENTS_VISIBLE, shipped true, read by every comment surface (Part E6)
 //   S59 no verify, verified or verification in candidate-facing text (Part E7): the word is confirm; exceptions are the destination link wording, data and class names, and privacy.html
+//   S62 the search page opened with the company and one other value in the URL fragment (extension hand-off): only c, p, r, t, the site's limits, plain text, refuse on doubt, fragment removed at once, never an automatic search
 //   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
 //   S60 search engines (Phase 3): the flag ALLOW_INDEXING in js/config.js (false on stage) agrees with every page's robots tag and with robots.txt; sign-in pages are noindex in every environment; the tool and the test exist and run
 //   S53 the search recap (Part C): sentence, never the req number or postID, Edit this search, memory only, one spoken message
@@ -1245,6 +1246,21 @@ export function checkSite(root) {
     need(esF, [["if (CODE_ENABLED) {", "the code field only while the switch is on"], ["confirm: confirmEmailCode", "the code confirmed through session.js"], ['go("auth-callback.html?via=code")', "the way on after the code"]]);
     need(acF, [['if (!viaCode) markLanded(sessionStorage, "poster");', "no landing note after a typed code (employer)"], ['if (!viaCode) markLanded(sessionStorage, "candidate");', "no landing note after a typed code (candidate)"]]);
     if (!fs.existsSync(tf)) add("S61", tf, "the test code-entry.test.js must exist"); else if (fs.existsSync(raF) && !read(raF).includes("code-entry.test.js")) add("S61", raF, "tests/run-all.js must run code-entry.test.js");
+  }
+
+  // S62 (2026-10-06, extension hand-off): the search page can be opened with the company and ONE other value in the URL fragment (js/fragment-prefill.js). The fragment is untrusted input: only the keys c, p, r, t, the site's own length limits,
+  // plain text only (.value, never markup), a key twice or more than one second value or a control character refuses the whole fragment, the fragment is taken out of the address bar at once, and the page NEVER runs the search by itself.
+  // tests/fragment-prefill.unit.test.js and tests/fragment-prefill.test.js prove the behavior; this rule keeps the pieces in place.
+  {
+    const fpF = path.join(root, "js", "fragment-prefill.js"), srF = path.join(root, "js", "pages", "search.js"), raF = path.join(root, "tests", "run-all.js"), t1 = path.join(root, "tests", "fragment-prefill.unit.test.js"), t2 = path.join(root, "tests", "fragment-prefill.test.js");
+    const need = (f, list) => { if (!fs.existsSync(f)) { add("S62", f, "this file is part of the fragment hand-off and must exist"); return; } const t = stripJsComments(read(f)); for (const [needle, why] of list) if (!t.includes(needle)) add("S62", f, "the fragment hand-off needs: " + why); };
+    need(fpF, [['export const FRAGMENT_KEYS = { c: "company", p: "postid", r: "req", t: "title" };', "only the keys c, p, r, t"], ["export const FRAGMENT_MAX = { company: 200, postid: 14, req: 100, title: 80 };", "the site's own length limits"], ["MAX_TOTAL = 700, MAX_PARTS = 12", "a limit on the whole fragment"],
+      ["Object.prototype.hasOwnProperty.call(FRAGMENT_KEYS, key)", "unknown keys ignored"], ["if (found.has(key)) { bad = true; continue; }", "a key given twice refuses the fragment"], ["if (hasControl(value)) { bad = true; continue; }", "a control character refuses the fragment"],
+      ["catch { bad = true; continue; }", "a bad percent escape refuses the fragment"], ["seconds.length !== 1", "exactly one second value"], ["win.history.replaceState(", "the fragment taken out of the address bar"], ["companyEl.value = result.company;", "text into the box with .value"],
+      ["if (result.kind === \"req\") reqEl.value = result.value; else queryEl.value = result.value;", "the req number into the req box only"]]);
+    if (fs.existsSync(fpF)) { const t = stripJsComments(read(fpF)); if (/innerHTML|insertAdjacentHTML|outerHTML|document\.write|\beval\b|new Function|createContextualFragment/.test(t)) add("S62", fpF, "the fragment text must only ever go into a box with .value, never into the page as markup"); }
+    need(srF, [["import { applyFragmentPrefill } from \"../fragment-prefill.js\";", "the import"], ["if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn })) takePending(localStorage);", "the fragment read once, at the start, dropping a saved search, with no search run by it"]]);
+    for (const tf of [t1, t2]) { if (!fs.existsSync(tf)) add("S62", tf, "the test " + path.basename(tf) + " must exist"); else if (fs.existsSync(raF) && !read(raF).includes(path.basename(tf))) add("S62", raF, "tests/run-all.js must run " + path.basename(tf)); }
   }
 
   // S59 (2026-10-05, E7): candidate-facing text says "confirm", never "verify", "verified" or "verification" (about a candidate, an email or a comment). EXCEPTIONS ONLY: the destination link wording ("not verified by us", "we could not verify it"),

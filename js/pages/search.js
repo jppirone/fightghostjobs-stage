@@ -5,6 +5,7 @@ import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLand
 import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js";
 import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js";
 import { savePending, takePending } from "../signin-handoff.js";
+import { applyFragmentPrefill } from "../fragment-prefill.js";
 import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js";
 import { lockScroll } from "../scroll-lock.js";
 import { trapFocus } from "../dialog-focus.js";
@@ -23,6 +24,10 @@ const recapEl = $("#recap"), recapTextEl = $("#recapText"), recapEditBtn = $("#r
 let lastSearch = null;   // what was typed in the three boxes for the search that just ran: in memory only, never stored; "Edit this search" puts it back
 const backdrop = $("#modalBackdrop"), status = makeAnnouncer($("#searchStatus"), window);
 let session = null, busy = false, cooldownTimer = null;
+
+// opened with the company and ONE other value in the URL fragment (the browser extension does this): the boxes are filled, the fragment is taken out of the address bar at once, and the person presses Search. Never an automatic search,
+// and a search saved before the sign-in link is dropped so it can not run over what was filled in (js/fragment-prefill.js has the rules for this untrusted input)
+if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn })) takePending(localStorage);
 
 function setFormError(text) { formError.hidden = !text; formError.textContent = text || ""; }
 function startCooldown(button, seconds, idleLabel) {

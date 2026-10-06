@@ -782,6 +782,19 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the indexing test is not run", "S60", edit("tests/run-all.js", (s) => s.replace("indexing.test.js", "indexing-old.test.js")));
 }
 
+// S62: the search page opened with the company and one other value in the URL fragment (extension hand-off)
+{
+  control("the fragment is no longer taken out of the address bar", "S62", edit("js/fragment-prefill.js", (s) => s.replace("win.history.replaceState(", "win.history.pushState(")));
+  control("the search page never reads the fragment", "S62", edit("js/pages/search.js", (s) => s.replace("if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn })) takePending(localStorage);", "")));
+  control("the fragment starts the search by itself", "S62", edit("js/pages/search.js", (s) => s.replace("reqEl: reqIn })) takePending(localStorage);", "reqEl: reqIn })) { takePending(localStorage); runSearch(); }")));
+  control("the title limit is raised", "S62", edit("js/fragment-prefill.js", (s) => s.replace("req: 100, title: 80 };", "req: 100, title: 8000 };")));
+  control("a key given twice is accepted", "S62", edit("js/fragment-prefill.js", (s) => s.replace("if (found.has(key)) { bad = true; continue; }", "if (found.has(key)) { continue; }")));
+  control("a control character is accepted", "S62", edit("js/fragment-prefill.js", (s) => s.replace("if (hasControl(value)) { bad = true; continue; }", "")));
+  control("more than one second value is accepted", "S62", edit("js/fragment-prefill.js", (s) => s.replace("seconds.length !== 1", "seconds.length < 1")));
+  control("the fragment text goes into the page as markup", "S62", edit("js/fragment-prefill.js", (s) => s.replace("companyEl.value = result.company;", "companyEl.value = result.company; companyEl.insertAdjacentHTML(\"afterend\", result.company);")));
+  control("the fragment test is not run", "S62", edit("tests/run-all.js", (s) => s.replace("fragment-prefill.test.js", "fragment-prefill-old.test.js")));
+}
+
 // S61: the emailed one-time code typed in the same tab (Phase 4)
 {
   control("the code is confirmed with the wrong call", "S61", edit("js/session.js", (s) => s.replace('call("email");', 'call("sms");')));

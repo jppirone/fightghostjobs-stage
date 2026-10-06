@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const steps = [
-  ["unit + API tests", [path.join(here, "unit.test.js"), path.join(here, "api.test.js"), path.join(here, "locations.test.js"), path.join(here, "dashboard.test.js"), path.join(here, "edit.test.js"), path.join(here, "schedule.test.js"), path.join(here, "roster.test.js"), path.join(here, "ai-notes.test.js"), path.join(here, "comments.test.js"), path.join(here, "analytics.test.js"), path.join(here, "contest.test.js"), path.join(here, "linkpanel.test.js"), path.join(here, "unsaved.test.js"), path.join(here, "account-menu.test.js"), path.join(here, "signin-handoff.test.js"), path.join(here, "scroll-lock.test.js"), path.join(here, "code-entry-unit.test.js")], true],
+  ["unit + API tests", [path.join(here, "unit.test.js"), path.join(here, "api.test.js"), path.join(here, "locations.test.js"), path.join(here, "dashboard.test.js"), path.join(here, "edit.test.js"), path.join(here, "schedule.test.js"), path.join(here, "roster.test.js"), path.join(here, "ai-notes.test.js"), path.join(here, "comments.test.js"), path.join(here, "analytics.test.js"), path.join(here, "contest.test.js"), path.join(here, "linkpanel.test.js"), path.join(here, "unsaved.test.js"), path.join(here, "account-menu.test.js"), path.join(here, "signin-handoff.test.js"), path.join(here, "scroll-lock.test.js"), path.join(here, "code-entry-unit.test.js"), path.join(here, "fragment-prefill.unit.test.js")], true],
   ["header layout in a real browser (phone widths; needs Chrome or Edge)", [path.join(here, "header-layout.test.js")], true],
   ["phone layout of every page in a real browser (needs Chrome or Edge)", [path.join(here, "phone-layout.test.js")], true],
   ["sign-in link in a new tab, two real tabs (needs Chrome or Edge)", [path.join(here, "signin-tabs.test.js")], true],
@@ -26,6 +26,7 @@ const steps = [
   ["search page: the recap scrolls to the top after a successful search (real browser)", [path.join(here, "search-scroll.test.js")], true],
   ["comments switch: shipped on, every comment surface shown; switched off, every comment surface hidden and the report kept (real browser)", [path.join(here, "comments-switch.test.js")], true],
   ["emailed code next to the link: typed in the same tab on the search page and the employer sign-in page (real browser)", [path.join(here, "code-entry.test.js")], true],
+  ["search page opened with the company and one other value in the URL fragment (the extension's hand-off): filled, no automatic search, hostile input refused (real browser)", [path.join(here, "fragment-prefill.test.js")], true],
   ["search engines: every page and robots.txt keep them out on stage, and the tool that switches production on (no browser)", [path.join(here, "indexing.test.js")], true],
   ["static site rules", [path.join(here, "site-check.js")], false],
   ["static rules: negative controls", [path.join(here, "site-check.controls.js")], false],
