@@ -47,6 +47,7 @@
 //   S57 candidate sign-in wording, the confirm family (Part E5): search card heading, paragraph, button, the flash after the link and the top bar word; employer side stays sign-in link
 //   S58 the one comments switch, js/config.js COMMENTS_VISIBLE, shipped true, read by every comment surface (Part E6)
 //   S59 no verify, verified or verification in candidate-facing text (Part E7): the word is confirm; exceptions are the destination link wording, data and class names, and privacy.html
+//   S63 back from Comments or Report a wrong link: the Auth client is created WITHOUT its cross-tab channel (the channel evicts the search page from the browser's back/forward cache), no other script opens one, no unload handler, and the search page has the pageshow guard
 //   S62 the search page opened with the company and one other value in the URL fragment (extension hand-off): only c, p, r, t, the site's limits, plain text, refuse on doubt, fragment removed at once, never an automatic search
 //   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
 //   S60 search engines (Phase 3): the flag ALLOW_INDEXING in js/config.js (false on stage) agrees with every page's robots tag and with robots.txt; sign-in pages are noindex in every environment; the tool and the test exist and run
@@ -1261,6 +1262,32 @@ export function checkSite(root) {
     if (fs.existsSync(fpF)) { const t = stripJsComments(read(fpF)); if (/innerHTML|insertAdjacentHTML|outerHTML|document\.write|\beval\b|new Function|createContextualFragment/.test(t)) add("S62", fpF, "the fragment text must only ever go into a box with .value, never into the page as markup"); }
     need(srF, [["import { applyFragmentPrefill } from \"../fragment-prefill.js\";", "the import"], ["if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn })) takePending(localStorage);", "the fragment read once, at the start, dropping a saved search, with no search run by it"]]);
     for (const tf of [t1, t2]) { if (!fs.existsSync(tf)) add("S62", tf, "the test " + path.basename(tf) + " must exist"); else if (fs.existsSync(raF) && !read(raF).includes(path.basename(tf))) add("S62", raF, "tests/run-all.js must run " + path.basename(tf)); }
+  }
+
+  // S63 (2026-10-07): Back from Comments or Report a wrong link must give the search page back as it was. The browser keeps the page it is leaving (back/forward cache) and throws it away when a message reaches it on a BroadcastChannel; the Auth library
+  // opens one on every page, so js/session.js creates the client with globalThis.BroadcastChannel hidden for that one synchronous moment and puts it back. No other script may open a channel, no script may register an unload handler (it also stops the cache),
+  // and the search page checks the session when the browser hands the page back (results are cleared for a person who signed out meanwhile). tests/back-restore.test.js proves the behavior in a real browser; this rule keeps the pieces in place.
+  {
+    const ssF = path.join(root, "js", "session.js"), srF = path.join(root, "js", "pages", "search.js"), raF = path.join(root, "tests", "run-all.js"), btF = path.join(root, "tests", "back-restore.test.js");
+    if (!fs.existsSync(ssF)) add("S63", ssF, "js/session.js must exist");
+    else {
+      const t = stripJsComments(read(ssF)), a = t.indexOf("const channel = globalThis.BroadcastChannel;"), b = t.indexOf("globalThis.BroadcastChannel = undefined;"), c = t.indexOf("new GoTrueClient("), d = t.indexOf("} finally { globalThis.BroadcastChannel = channel; }");
+      if (a < 0 || b < 0 || c < 0 || d < 0 || !(a < b && b < c && c < d)) add("S63", ssF, "the Auth client must be created with the cross-tab channel hidden (const channel = ...; globalThis.BroadcastChannel = undefined; new GoTrueClient(...); finally put back)");
+    }
+    for (const f of js) {
+      if (path.basename(f) === "session.js") continue;
+      const t = stripJsComments(read(f));
+      if (/BroadcastChannel/.test(t)) add("S63", f, "no script but js/session.js may touch BroadcastChannel (a message evicts a page from the back/forward cache)");
+      if (/addEventListener\(\s*["']unload["']|\bonunload\b/.test(t)) add("S63", f, "no unload handler: it stops the browser from keeping the page for Back (use pagehide if something must run)");
+    }
+    if (!fs.existsSync(srF)) add("S63", srF, "js/pages/search.js must exist");
+    else {
+      const t = stripJsComments(read(srF));
+      for (const [needle, why] of [['window.addEventListener("pageshow", async (ev) => {', "the pageshow guard"], ["if (!ev.persisted) return;", "the guard runs only for a page the browser hands back"], ["if (s && s.isCandidate) { session = s; return; }", "a person who is still signed in keeps the page as it is"],
+        ["closeModal(); clear(resultsEl); countEl.hidden = true; hideRecap(); lastSearch = null; status.clear();", "results, recap and the details window are cleared for a person who is not signed in"], ['if (!session) showSignIn("Please confirm your email to search.");', "the sign-in card is shown"]]) if (!t.includes(needle)) add("S63", srF, "the page guard needs: " + why);
+    }
+    if (!fs.existsSync(btF)) add("S63", btF, "tests/back-restore.test.js must exist");
+    else if (fs.existsSync(raF) && !read(raF).includes("back-restore.test.js")) add("S63", raF, "tests/run-all.js must run back-restore.test.js");
   }
 
   // S59 (2026-10-05, E7): candidate-facing text says "confirm", never "verify", "verified" or "verification" (about a candidate, an email or a comment). EXCEPTIONS ONLY: the destination link wording ("not verified by us", "we could not verify it"),

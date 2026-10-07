@@ -782,6 +782,17 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the indexing test is not run", "S60", edit("tests/run-all.js", (s) => s.replace("indexing.test.js", "indexing-old.test.js")));
 }
 
+// S63: back from Comments or Report a wrong link (the Auth client without its cross-tab channel, the page guard)
+control("the Auth client keeps its cross-tab channel", "S63", edit("js/session.js", (s) => s.replace("    globalThis.BroadcastChannel = undefined;\n", "")));
+control("the channel is never put back", "S63", edit("js/session.js", (s) => s.replace("} finally { globalThis.BroadcastChannel = channel; }", "} finally { }")));
+control("the client is created before the channel is hidden", "S63", edit("js/session.js", (s) => s.replace("    globalThis.BroadcastChannel = undefined;\n    try {\n    client = new GoTrueClient({", "    try {\n    client = new GoTrueClient({").replace("    } finally {", "    globalThis.BroadcastChannel = undefined;\n    } finally {")));
+control("another script opens a channel", "S63", append("js/pages/comments.js", "const bc = new BroadcastChannel('x');"));
+control("an unload handler", "S63", append("js/pages/search.js", "window.addEventListener('unload', () => {});"));
+control("an onunload handler", "S63", append("js/pages/edit.js", "window.onunload = () => {};"));
+control("the page guard is gone", "S63", edit("js/pages/search.js", (s) => s.replace('window.addEventListener("pageshow", async (ev) => {', 'window.addEventListener("pageshow-gone", async (ev) => {')));
+control("the guard runs for every load", "S63", edit("js/pages/search.js", (s) => s.replace("if (!ev.persisted) return;", "")));
+control("the guard keeps the results", "S63", edit("js/pages/search.js", (s) => s.replace("closeModal(); clear(resultsEl); countEl.hidden = true; hideRecap(); lastSearch = null; status.clear();", "lastSearch = null;")));
+control("the new test is not part of the full run", "S63", edit("tests/run-all.js", (s) => s.replace("back-restore.test.js", "back-restore-gone.test.js")));
 // S62: the search page opened with the company and one other value in the URL fragment (extension hand-off)
 {
   control("the fragment is no longer taken out of the address bar", "S62", edit("js/fragment-prefill.js", (s) => s.replace("win.history.replaceState(", "win.history.pushState(")));

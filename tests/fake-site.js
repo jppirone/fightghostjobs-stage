@@ -35,7 +35,7 @@ const ANALYTICS = { live_postings: 4, searches: 1284, detail_views: 406, link_cl
   by_link: [{ link_id: "4f1d5b1e-0000-4000-8000-000000000001", posting_id: "3f1d5b1e-0000-4000-8000-000000000001", source_label: "Careers site, primary listing", kind: "apply", firm_name: null, display_order: 1, clicks: 88 }, { link_id: "4f1d5b1e-0000-4000-8000-000000000003", posting_id: "3f1d5b1e-0000-4000-8000-000000000002", source_label: null, kind: "recruiter", firm_name: "Recruiter-provided link", display_order: 1, clicks: 16 }],
   by_search_mode: { phrase: 61, code: 24, req: 15 } };
 
-// opts.commentsOff: serve js/config.js with the comments switch turned OFF (COMMENTS_VISIBLE false), to test the pages in that state. By default the fake site serves the file exactly as shipped, which is ON since October 6, 2026, so every test written for the pages with comments keeps covering them
+// opts.pageCache: Cache-Control for the pages and scripts (default no-store, as always). opts.commentsOff: serve js/config.js with the comments switch turned OFF (COMMENTS_VISIBLE false), to test the pages in that state. By default the fake site serves the file exactly as shipped, which is ON since October 6, 2026, so every test written for the pages with comments keeps covering them
 export function startFakeSite(root, opts = {}) {
   root = path.resolve(root);
   const calls = []; let SELF = "";
@@ -107,7 +107,7 @@ export function startFakeSite(root, opts = {}) {
     if ([".html", ".js", ".mjs"].includes(ext)) data = Buffer.from(data.toString("utf8").split(REAL).join(SELF));
     if (rel === "/js/config.js" && opts.commentsOff) data = Buffer.from(data.toString("utf8").replace("COMMENTS_VISIBLE = true", "COMMENTS_VISIBLE = false"));
     if (rel === "/js/config.js" && opts.codeOn) data = Buffer.from(data.toString("utf8").replace("EMAIL_CODE_ENTRY = false", "EMAIL_CODE_ENTRY = true"));   // opts.codeOn: the emailed-code field switched ON (it ships OFF, so every other test sees the sign-in pages as shipped)
-    res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": "no-store" }); res.end(data);
+    res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": opts.pageCache || "no-store" }); res.end(data);   // opts.pageCache: the Cache-Control the real stage serves (max-age=600), for the test that needs the browser's back/forward cache to be allowed; the default is unchanged
   });
   return new Promise((resolve) => server.listen(0, "127.0.0.1", () => { SELF = "http://127.0.0.1:" + server.address().port; resolve({ url: SELF, calls, close: () => new Promise((r) => server.close(r)) }); }));
 }

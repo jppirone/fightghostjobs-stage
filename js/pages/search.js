@@ -293,6 +293,19 @@ async function becameSignedIn(s) {
   if (session && session.isCandidate) runWhenInFront();
 }
 
+// ---- back to this page: the browser can hand it back exactly as it was left (Back from Comments or Report a wrong link: the back/forward cache), results, recap, scroll position and the details window included.
+// That page holds results found for whoever was signed in when it was left. When the person is no longer signed in as a candidate (signed out in another tab, or the session ended) the results, the recap and the details
+// window are dropped and the sign-in card is shown, so results never sit in a signed-out page. A page that is simply loaded (event.persisted false) is the normal start below.
+window.addEventListener("pageshow", async (ev) => {
+  if (!ev.persisted) return;
+  const s = await currentSession();
+  if (s && s.isCandidate) { session = s; return; }
+  closeModal(); clear(resultsEl); countEl.hidden = true; hideRecap(); lastSearch = null; status.clear();
+  session = await mountAccount($("#navAccount"));
+  applySession();
+  if (!session) showSignIn("Please confirm your email to search.");
+});
+
 // ---- start
 (async () => {
   session = await mountAccount($("#navAccount"));

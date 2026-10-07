@@ -11,8 +11,15 @@ import { SUPABASE_URL, PUBLISHABLE_KEY, STORAGE_KEY, NEXT_KEY, KIND_KEY } from "
 import { saveLanding, takeLanding, clearHandoff, watchSignIn, SAFE_PAGE } from "./signin-handoff.js";
 
 let client = null;
+// The client is created WITHOUT the library's cross-tab channel. The library opens a BroadcastChannel on every page and posts every sign-in event on it; a page the browser has kept for Back (its back/forward cache)
+// is thrown away the moment such a message reaches it, so Back from Comments or Report a wrong link gave a blank search form (October 7, 2026; the browser's own reason is "broadcastchannel-message").
+// Nothing here uses the channel: a sign-in done in another tab is noticed through the browser's storage event (js/signin-handoff.js), and every call reads the session again from localStorage.
+// The constructor reads globalThis.BroadcastChannel once, synchronously: it is hidden for that moment and put back at once. tests/site-check.js pins this and tests/back-restore.test.js proves the result.
 export function authClient() {
   if (!client) {
+    const channel = globalThis.BroadcastChannel;
+    globalThis.BroadcastChannel = undefined;
+    try {
     client = new GoTrueClient({
       url: SUPABASE_URL + "/auth/v1",
       headers: { apikey: PUBLISHABLE_KEY },
@@ -23,6 +30,7 @@ export function authClient() {
       detectSessionInUrl: true,     // the sign-in link lands on auth-callback.html with the session in the URL fragment
       flowType: "implicit",         // works when the email is opened on a different device than the one that asked for it
     });
+    } finally { globalThis.BroadcastChannel = channel; }
   }
   return client;
 }

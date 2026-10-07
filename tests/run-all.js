@@ -27,6 +27,7 @@ const steps = [
   ["comments switch: shipped on, every comment surface shown; switched off, every comment surface hidden and the report kept (real browser)", [path.join(here, "comments-switch.test.js")], true],
   ["emailed code next to the link: typed in the same tab on the search page and the employer sign-in page (real browser)", [path.join(here, "code-entry.test.js")], true],
   ["search page opened with the company and one other value in the URL fragment (the extension's hand-off): filled, no automatic search, hostile input refused (real browser)", [path.join(here, "fragment-prefill.test.js")], true],
+  ["back from Comments or Report a wrong link: the search page comes back as it was, signed out meanwhile clears it, nothing new is stored (real browser)", [path.join(here, "back-restore.test.js")], true],
   ["search engines: every page and robots.txt keep them out on stage, and the tool that switches production on (no browser)", [path.join(here, "indexing.test.js")], true],
   ["static site rules", [path.join(here, "site-check.js")], false],
   ["static rules: negative controls", [path.join(here, "site-check.controls.js")], false],
