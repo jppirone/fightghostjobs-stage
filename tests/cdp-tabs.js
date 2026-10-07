@@ -9,12 +9,21 @@ import path from "node:path";
 
 const CANDIDATES = [process.env.FGJ_BROWSER, "C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Microsoft/Edge/Application/msedge.exe", "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"].filter(Boolean);
 
+// A DevTools call that never answers (a page in the back/forward cache is frozen, the browser died) would hang a whole test run, so every call has a time limit. The limit is generous (90 s, a normal call takes well under 1 s;
+// FGJ_CDP_TIMEOUT_MS changes it) so a slow machine does not trip it by itself. When it is hit the test FAILS with a message that names the call, it does not hang.
+export const CALL_LIMIT_MS = Number(process.env.FGJ_CDP_TIMEOUT_MS) || 90000;
+export function withCallLimit(promise, label, ms = CALL_LIMIT_MS) {
+  let timer;
+  const limit = new Promise((_, rej) => { timer = setTimeout(() => rej(new Error("DevTools call '" + label + "' got no answer in " + Math.round(ms / 1000) + " s (the page may be frozen in the back/forward cache, or the browser is gone)")), ms); });
+  return Promise.race([promise, limit]).finally(() => clearTimeout(timer));
+}
+
 async function connect(target) {
   const ws = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = () => rej(new Error("DevTools socket failed")); });
   let seq = 0; const pending = new Map(); const loads = []; const errs = [];
   ws.onmessage = (m) => { const j = JSON.parse(m.data); if (j.id && pending.has(j.id)) { pending.get(j.id)(j); pending.delete(j.id); return; } if (j.method === "Page.loadEventFired") for (const r of loads.splice(0)) r(); if (j.method === "Runtime.exceptionThrown") errs.push(String(j.params.exceptionDetails.exception && j.params.exceptionDetails.exception.description || j.params.exceptionDetails.text).slice(0, 200)); };
-  const send = (method, params) => new Promise((res, rej) => { const id = ++seq; pending.set(id, (j) => (j.error ? rej(new Error(method + ": " + j.error.message)) : res(j.result))); ws.send(JSON.stringify({ id, method, params: params || {} })); });
+  const send = (method, params) => { let id; const p = new Promise((res, rej) => { id = ++seq; pending.set(id, (j) => (j.error ? rej(new Error(method + ": " + j.error.message)) : res(j.result))); ws.send(JSON.stringify({ id, method, params: params || {} })); }); return withCallLimit(p, method + (method === "Runtime.evaluate" && params && params.expression ? " " + String(params.expression).replace(/\s+/g, " ").slice(0, 70) : "")).catch((e) => { pending.delete(id); throw e; }); };
   await send("Page.enable"); await send("Runtime.enable");
   const evalOn = async (expression) => {
     const r = await send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true });

@@ -208,6 +208,8 @@ const DEFECTS = [
   ["the fragment is not taken out of the address bar", [["js/fragment-prefill.js", (s) => s.replace("win.history.replaceState(win.history.state, \"\", win.location.pathname + win.location.search);", "void 0;")]], ["fragment"]],
   ["the Comments link opens the page in the same window but the details window is closed first", [["js/pages/search.js", (s) => s.replace("function moreLinks(row, count, withReport) {", "function moreLinks(row, count, withReport) { setTimeout(() => { for (const a of document.querySelectorAll('#modalMore a')) a.addEventListener('click', () => closeModal()); }, 0);")]], ["comments", "report"]],
 ];
+// FGJ_CTL_LOG=<file>: one line per defect and scenario with the seconds it took (for a slow machine); nothing is written without it
+const log = (line) => { if (process.env.FGJ_CTL_LOG) fs.appendFileSync(process.env.FGJ_CTL_LOG, new Date().toLocaleTimeString() + "  " + line + "\n"); };
 test("negative controls: each defect makes the scenario that guards it fail", { timeout: 3500000 }, async () => {
   const missed = [];
   for (const [label, edits, scenarios] of DEFECTS) {
@@ -217,7 +219,7 @@ test("negative controls: each defect makes the scenario that guards it fail", { 
       fs.cpSync(ROOT, dir, { recursive: true, filter: (src) => !/[\\/](\.git|node_modules)([\\/]|$)/.test(src) });
       for (const [rel, mutate] of edits) { const p = path.join(dir, rel), b0 = fs.readFileSync(p, "utf8"), a0 = mutate(b0); assert.notEqual(a0, b0, "the defect '" + label + "' changed nothing in " + rel); fs.writeFileSync(p, a0); }
       const found = [];
-      await withSite(dir, async (site) => { for (const n of scenarios) for (const p of await SCENARIOS[n](site)) found.push(n + ": " + p); });
+      await withSite(dir, async (site) => { for (const n of scenarios) { const t0 = Date.now(); for (const p of await SCENARIOS[n](site)) found.push(n + ": " + p); log(label.slice(0, 50) + " | " + n + " | " + Math.round((Date.now() - t0) / 1000) + " s"); } });
       if (found.length === 0) missed.push(label); else console.log("caught  " + label + "  (" + found[0].slice(0, 150) + ")");
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   }

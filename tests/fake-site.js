@@ -109,5 +109,5 @@ export function startFakeSite(root, opts = {}) {
     if (rel === "/js/config.js" && opts.codeOn) data = Buffer.from(data.toString("utf8").replace("EMAIL_CODE_ENTRY = false", "EMAIL_CODE_ENTRY = true"));   // opts.codeOn: the emailed-code field switched ON (it ships OFF, so every other test sees the sign-in pages as shipped)
     res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": opts.pageCache || "no-store" }); res.end(data);   // opts.pageCache: the Cache-Control the real stage serves (max-age=600), for the test that needs the browser's back/forward cache to be allowed; the default is unchanged
   });
-  return new Promise((resolve) => server.listen(0, "127.0.0.1", () => { SELF = "http://127.0.0.1:" + server.address().port; resolve({ url: SELF, calls, close: () => new Promise((r) => server.close(r)) }); }));
+  return new Promise((resolve) => server.listen(0, "127.0.0.1", () => { SELF = "http://127.0.0.1:" + server.address().port; resolve({ url: SELF, calls, close: () => new Promise((r) => { server.close(r); if (server.closeAllConnections) server.closeAllConnections(); }) }); }));
 }
