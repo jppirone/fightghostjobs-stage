@@ -7,7 +7,7 @@ import { parseSearchFragment, applyFragmentPrefill, FRAGMENT_MAX } from "../js/f
 const enc = encodeURIComponent;
 const ok = (hash) => parseSearchFragment(hash).result;
 
-test("the three accepted shapes: company plus ONE of postID, req number or title", () => {
+test("the three accepted shapes: company plus ONE of Opening ID, req number or title", () => {
   assert.deepEqual(ok("#c=Northwind%20Analytics&p=D21M-48YB-ZQBF"), { company: "Northwind Analytics", kind: "postid", value: "D21M-48YB-ZQBF" });
   assert.deepEqual(ok("#c=Northwind%20Analytics&r=R-2026-0451"), { company: "Northwind Analytics", kind: "req", value: "R-2026-0451" });
   assert.deepEqual(ok("#c=Northwind%20Analytics&t=Senior%20Data%20Analyst"), { company: "Northwind Analytics", kind: "title", value: "Senior Data Analyst" });

@@ -76,7 +76,7 @@ test("the tool switches the two public pages and robots.txt together with the fl
 });
 
 const DEFECTS = [
-  ["My postings loses its noindex tag", "audit", [["dashboard.html", (s) => s.replace(NOINDEX + "\n", "")]]],
+  ["My openings loses its noindex tag", "audit", [["dashboard.html", (s) => s.replace(NOINDEX + "\n", "")]]],
   ["the search page says index, follow", "audit", [["search.html", (s) => s.replace(NOINDEX, INDEXABLE)]]],
   ["the page for an address that does not exist loses its noindex tag", "audit", [["404.html", (s) => s.replace(NOINDEX + "\n", "")]]],
   ["the sign-in landing page says index, follow", "audit", [["auth-callback.html", (s) => s.replace(NOINDEX, INDEXABLE)]]],
@@ -86,7 +86,7 @@ const DEFECTS = [
   ["the flag is switched on without running the tool", "audit", [["js/config.js", (s) => s.replace("ALLOW_INDEXING = false;", "ALLOW_INDEXING = true;")]]],
   ["the flag line is removed", "audit", [["js/config.js", (s) => s.replace("export const ALLOW_INDEXING = false;", "")]]],
   ["a new page is added without the tag", "audit", [["newpage.html", () => "<!doctype html><html><head><meta charset=\"utf-8\"><title>x</title></head><body>x</body></html>\n"]]],
-  ["the tool treats My postings as a public page", "flip", [["tests/apply-indexing.js", (s) => s.replace('["index.html", "privacy.html"]', '["index.html", "privacy.html", "dashboard.html"]')]]],
+  ["the tool treats My openings as a public page", "flip", [["tests/apply-indexing.js", (s) => s.replace('["index.html", "privacy.html"]', '["index.html", "privacy.html", "dashboard.html"]')]]],
   ["the tool does not rewrite robots.txt", "flip", [["tests/apply-indexing.js", (s) => s.replace('put("robots.txt", allow ? ROBOTS_ALLOW : ROBOTS_BLOCK_ALL);', "")]]],
   ["the tool never switches back to noindex", "flip", [["tests/apply-indexing.js", (s) => s.replace("allow ? INDEXABLE : NOINDEX", "INDEXABLE")]]],
   ["the tool also edits the search page", "flip", [["tests/apply-indexing.js", (s) => s.replace('["index.html", "privacy.html"]', '["index.html", "privacy.html", "search.html"]')]]],

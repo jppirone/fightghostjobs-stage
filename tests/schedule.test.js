@@ -55,13 +55,13 @@ test("schedule-posting and the employer's views: the answers the pages accept, a
   const noKey = Object.assign({}, row); delete noKey.go_live_at; assert.equal(shapes.myPosting(noKey), false);      // an answer without the key is not trusted
 });
 
-test("schedulePosting sends the posting id and the instant (or null to remove it)", async () => {
+test("schedulePosting sends the opening id and the instant (or null to remove it)", async () => {
   const calls = []; const api = createApi({ baseUrl: "https://x.example", key: "k", getToken: async () => "T", fetchImpl: async (url, init) => { calls.push([url, JSON.parse(init.body)]); return { ok: true, status: 200, headers: new Map(), text: async () => JSON.stringify({ posting_id: ID, changed: true, go_live_at: null, status: "draft" }) }; } });
   const r = await api.schedulePosting(ID, null); assert.equal(r.ok, true); assert.deepEqual(calls[0], ["https://x.example/functions/v1/schedule-posting", { posting_id: ID, go_live_at: null }]);
   await api.schedulePosting(ID, "2026-10-05T14:00:00.000Z"); assert.deepEqual(calls[1][1], { posting_id: ID, go_live_at: "2026-10-05T14:00:00.000Z" });
 });
 
-test("My postings: a scheduled draft has its own chip, filter, date column and actions (and is exempt from the 14-day window)", () => {
+test("My openings: a scheduled draft has its own chip, filter, date column and actions (and is exempt from the 14-day window)", () => {
   const p = { id: ID, title: "T", status: "scheduled", stored_status: "draft", go_live_at: new Date(NOW + 5 * DAY).toISOString(), publish_by: null, created_at: new Date(NOW - 30 * DAY).toISOString(), closed_reason: null };
   assert.deepEqual(statusChip(p, NOW), { text: "Scheduled", cls: "status-draft" });
   assert.equal(matchesFilter(p, "scheduled", NOW), true); assert.equal(matchesFilter(p, "draft", NOW), false); assert.equal(matchesFilter(Object.assign({}, p, { status: "draft" }), "scheduled", NOW), false);

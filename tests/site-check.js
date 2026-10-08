@@ -156,15 +156,15 @@ export function checkSite(root) {
   const si = path.join(root, "js", "search-input.js"), sp = path.join(root, "js", "pages", "search.js");
   if (fs.existsSync(si) && fs.existsSync(sp)) {
     const note = (read(si).match(/export const NO_MATCH_NOTE = "([^"]*)";/) || [])[1] || "";
-    if (!note.endsWith("A title search finds only postings that are live: closed or expired postings are found only by postID or req number.")) add("S14", si, "NO_MATCH_NOTE must end with the closed-or-expired-by-postID-or-req sentence");
-    if (!note.includes("Check the company name, and check the ID exactly as it is printed in the posting. If you searched by title, try a different part of the title.")) add("S14", si, "NO_MATCH_NOTE must tell the person to check the ID and to try a different part of the title");
+    if (!note.endsWith("A title search finds only openings that are live: closed or expired openings are found only by Opening ID or req number.")) add("S14", si, "NO_MATCH_NOTE must end with the closed-or-expired-by-postID-or-req sentence");
+    if (!note.includes("Check the company name, and check the ID exactly as it is printed in the job ad. If you searched by title, try a different part of the title.")) add("S14", si, "NO_MATCH_NOTE must tell the person to check the ID and to try a different part of the title");
     const src = read(si);
     const fn = (src.match(/export function noMatchMessage\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1] || "";
     if (!/\+\s*NO_MATCH_NOTE;\s*$/.test(fn.trim())) add("S14", si, "noMatchMessage must end with NO_MATCH_NOTE");
-    if (!/No postings found for/.test(fn)) add("S14", si, "noMatchMessage must echo what was searched (\"No postings found for ...\")");
+    if (!/No openings found for/.test(fn)) add("S14", si, "noMatchMessage must echo what was searched (\"No openings found for ...\")");
     const page = read(sp);
     if (!/import\s*\{[^}]*\bnoMatchMessage\b[^}]*\}\s*from\s*"\.\.\/search-input\.js"/.test(page) || !/empty-note[^\n]*noMatchMessage\(searched\.company, searched\.query, searched\.kind\)\)/.test(page)) add("S14", sp, "the empty-result message must be noMatchMessage(company, query, kind)");
-    if (/No postings? (found|matched)/.test(page)) add("S14", sp, "a second, hand-written empty-result message");
+    if (/No openings? (found|matched)/.test(page)) add("S14", sp, "a second, hand-written empty-result message");
   } else add("S14", root, "js/search-input.js or js/pages/search.js is missing");
 
   // S15: the register form offers the standard window range the backend and the database enforce (14 to 45 days, 45 by default) and offers nothing longer.
@@ -211,7 +211,7 @@ export function checkSite(root) {
     const shtml = read(sh), rhtml2 = read(rh);
     if (!/<input id="reqq" (class="srch-input" )?type="password"/.test(shtml)) add("S18", sh, "the candidate's req number box (id=reqq) must be a masked input (type=password)");
     if (!/<button type="button" id="reqToggle"/.test(shtml)) add("S18", sh, "the req box needs its show/hide toggle (id=reqToggle)");
-    const hint = "Required. Your own reference, such as your ATS number. Once the posting is live, candidates can find it by company name plus this number. They see it masked (for example FGJ****45), and these lookups are rate-limited. You always see the full number in My postings.";
+    const hint = "Required. Your own reference, such as your ATS number. Once the opening is live, candidates can find it by company name plus this number. They see it masked (for example FGJ****45), and these lookups are rate-limited. You always see the full number in My openings.";
     if (!rhtml2.includes(hint)) add("S18", rh, "the register form's req number hint must carry the approved wording, word for word");
     if (/Req number (optional)/.test(rhtml2)) add("S18", rh, "the req number is required: its label must not say optional");
   }
@@ -219,9 +219,9 @@ export function checkSite(root) {
   // S19: the approved requirements-text hint and the change-note label (slice C)
   const eh = path.join(root, "edit.html");
   if (fs.existsSync(rh) && fs.existsSync(eh)) {
-    const REQ_TEXT_HINT = "This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to register it as a new posting with its own req number, so candidates can tell which role they're looking at. Each change is saved with a short note.";
+    const REQ_TEXT_HINT = "This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to register it as a new opening with its own req number, so candidates can tell which role they're looking at. Each change is saved with a short note.";
     for (const f of [rh, eh]) if (!read(f).includes('<div id="reqTextHint" class="field-hint">' + REQ_TEXT_HINT + "</div>")) add("S19", f, "the requirements-text hint (#reqTextHint) must carry the approved wording, word for word");
-    if (!read(eh).includes("What changed, and why? (required; kept with the posting).")) add("S19", eh, "the change-note label must be the approved wording");
+    if (!read(eh).includes("What changed, and why? (required; kept with the opening).")) add("S19", eh, "the change-note label must be the approved wording");
     if (!/<input id="note" type="text" maxlength="500"/.test(read(eh))) add("S19", eh, "the change note input (id=note, at most 500 characters) is missing");
   }
 
@@ -240,7 +240,7 @@ export function checkSite(root) {
   // S21: the scheduled go-live control (pass 14): on the register form AND the edit page, the approved disclosure (0-15 minutes after the chosen time; the window counts from the actual go-live) word for word,
   // a datetime-local input, and the pages send it through api.schedulePosting (never a made-up start date)
   {
-    const HINT = "Choose a time between 1 hour and 90 days from now. Your posting goes live within 15 minutes after that time, and its closing date is counted from the moment it actually goes live, not from now. Until then it is a scheduled draft that candidates cannot see; you can change the time, remove it or publish it now from My postings.";
+    const HINT = "Choose a time between 1 hour and 90 days from now. Your opening goes live within 15 minutes after that time, and its closing date is counted from the moment it actually goes live, not from now. Until then it is a scheduled draft that candidates cannot see; you can change the time, remove it or publish it now from My openings.";
     for (const f of [rh, eh]) {
       if (!fs.existsSync(f)) continue;
       const t = read(f);
@@ -258,10 +258,10 @@ export function checkSite(root) {
     if (!fs.existsSync(ph)) add("S22", ph, "privacy.html is missing");
     else {
       const t = read(ph);
-      for (const need of ["If you look up postings", "If you register postings", "Cookies", "Who processes the data", "How long", "<code>__cf_bm</code>", "We set no cookies of our own", "privacy@fightghostjobs.com", "for as long as the registry exists", 'id="privacyEmails"', "five days and one day from closing", "at most once every six hours", "never its description, a comment's text or an apply link", "no unsubscribe for these operational messages yet"]) if (!t.includes(need)) add("S22", ph, "privacy.html must say: " + need);
+      for (const need of ["If you look up openings", "If you register openings", "Cookies", "Who processes the data", "How long", "<code>__cf_bm</code>", "We set no cookies of our own", "privacy@fightghostjobs.com", "for as long as the registry exists", 'id="privacyEmails"', "five days and one day from closing", "at most once every six hours", "never its description, a comment's text or an apply link", "no unsubscribe for these operational messages yet"]) if (!t.includes(need)) add("S22", ph, "privacy.html must say: " + need);
       // the contest email sentences (owner approved text) must sit INSIDE the emails paragraph, not elsewhere on the page
       const em = /<p class="privacy-p" id="privacyEmails">([\s\S]*?)<\/p>/.exec(t);
-      for (const need of ["When a contest on a comment is decided, we email the outcome to the account that filed it.", "When a contest is filed, we may email our own staff the organization, posting and reason category.", "That email does not include the comment or your explanation."]) if (!em || !em[1].includes(need)) add("S22", ph, "the privacyEmails paragraph must say: " + need);
+      for (const need of ["When a contest on a comment is decided, we email the outcome to the account that filed it.", "When a contest is filed, we may email our own staff the organization, opening and reason category.", "That email does not include the comment or your explanation."]) if (!em || !em[1].includes(need)) add("S22", ph, "the privacyEmails paragraph must say: " + need);
     }
     for (const f of html) { const t = read(f); if (!/<a href="privacy\.html">Privacy<\/a>/.test(t)) add("S22", f, "every page must link to privacy.html from its footer"); if (!t.includes('href="mailto:privacy@fightghostjobs.com"')) add("S22", f, "every page must carry the privacy contact"); }
     if (fs.existsSync(sh) && !/never shown to anyone\. <a href="privacy\.html">Privacy<\/a>\./.test(read(sh))) add("S22", sh, "the candidate email box must end with the privacy one-liner and link");
@@ -277,7 +277,7 @@ export function checkSite(root) {
   }
   // S25: the AI-disclosure tooltips and the destination-link rows (pass A). Both toggles on register.html AND edit.html carry the designed "i" tooltip, word for word; the stylesheet positions the
   // icon (position:relative, or the tooltip lands off the page) and shows the tooltip on hover, focus AND the tap/click state; the pages with icons wire the click handler; register.html has the
-  // links section (locked panel, rows, add button) and register.js saves them through api.setDestinationLinks after the posting is created; both pages use the shared row component.
+  // links section (locked panel, rows, add button) and register.js saves them through api.setDestinationLinks after the opening is created; both pages use the shared row component.
   {
     const TIP1 = "Resume screening or keyword/ATS-style matching used to prioritize applications before a human reviews them.", TIP2 = "Any AI that interacts with a candidate directly, such as an AI-conducted interview or a chatbot screening call.";
     for (const name of ["register.html", "edit.html"]) {
@@ -346,8 +346,8 @@ export function checkSite(root) {
       const t = read(f);
       for (const m of t.matchAll(/comments\.html([^"'`\s)]*)/g)) if (!/^\?(ref|id)=/.test(m[1]) && !(path.basename(f) === "comments.js" && m[1] === "")) add("S29", f, "a link to comments.html must carry ?ref= or ?id= (no listing): " + m[0].slice(0, 60));
     }
-    const sj2 = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj2)) { const c = read(sj2); if (!c.includes('"comments.html?ref=" + encodeURIComponent(row.posting_ref)')) add("S29", sj2, "the details dialog must link to the posting's comments by its reference"); if (!c.includes("Report a wrong link")) add("S29", sj2, "the details dialog must offer Report a wrong link"); }
-    const dj = path.join(root, "js", "pages", "dashboard.js"); if (fs.existsSync(dj) && !read(dj).includes('"comments.html?id=" + encodeURIComponent(p.id)')) add("S29", dj, "the dashboard must link each posting's comments");
+    const sj2 = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj2)) { const c = read(sj2); if (!c.includes('"comments.html?ref=" + encodeURIComponent(row.posting_ref)')) add("S29", sj2, "the details dialog must link to the opening's comments by its reference"); if (!c.includes("Report a wrong link")) add("S29", sj2, "the details dialog must offer Report a wrong link"); }
+    const dj = path.join(root, "js", "pages", "dashboard.js"); if (fs.existsSync(dj) && !read(dj).includes('"comments.html?id=" + encodeURIComponent(p.id)')) add("S29", dj, "the dashboard must link each opening's comments");
     const ph2 = path.join(root, "privacy.html"); if (fs.existsSync(ph2)) { const t = read(ph2); for (const need of ['id="privacyComments"', "never who wrote it", "read only by us"]) if (!t.includes(need)) add("S29", ph2, "privacy.html must say: " + need); }
   }
   // S30 (STAGE ONLY): while js/stage-gate.js exists, it is bound to the stage host by name, says so, and is loaded (once, in the head) by every app page so no page shows data without it.
@@ -480,21 +480,21 @@ export function checkSite(root) {
   // The old claims are caught wherever they come back (page text, attributes, script strings), and the approved replacements must be where they belong. Candidate email verification ("Verified candidate", "keeps you verified for 90 days", rule S29) is NOT in this rule.
   {
     const RETIRED = [
-      [/\u2713 Verified/, "the posting badge must say Registered, not Verified"],
+      [/\u2713 Verified/, "the opening badge must say Registered, not Verified"],
       [/This listing is verified/i, "the details dialog must not say the listing is verified"],
-      [/a real employer|real employer/i, "no text may say a real employer registered or disclosed a posting"],
-      [/(has|have) confirmed (it|the posting)/i, "no text may say an employer confirmed a posting"],
-      [/any less real/i, "no text may talk about a posting being real or less real"],
+      [/a real employer|real employer/i, "no text may say a real employer registered or disclosed an opening"],
+      [/(has|have) confirmed (it|the (posting|opening))/i, "no text may say an employer confirmed an opening"],
+      [/any less real/i, "no text may talk about an opening being real or less real"],
       [/Prove your listing/i, "no text may promise to prove a listing is real"],
-      [/free public registry/i, "the registry is described as a registry of job postings disclosed by employers, not a free public registry"],
+      [/free public registry/i, "the registry is described as a registry of job openings disclosed by employers, not a free public registry"],
       [/Free, always|register and disclose, always|always free/i, "no always-free promise"],
       [/tier, permanently|free, forever|free forever|never pay for anything|ever paywalled/i, "no forever or permanent price promise"],
       [/costs? nothing|no cost/i, "no cost promise (say Free for job seekers where it is decided)"],
       [/Company and title always works/i, "no always promise about search"],
-      [/specific verified posting/i, "a Post ID belongs to a specific posting, not a verified one"],
+      [/specific verified (posting|opening)/i, "an Opening ID belongs to a specific opening, not a verified one"],
       [/\bpaid\b/i, "the paid tier's user-facing name is Destination links tier: no page, script text or attribute says paid (pass 5)"],
       [/verified[- ](plan|tier)/i, "the paid tier's user-facing name is Destination links tier (the database value and function names keep their names, but no page, script text or attribute says verified plan or verified tier)"],
-      [/itself worth knowing/i, "a missing posting must not be presented as meaningful about the job"],
+      [/itself worth knowing/i, "a missing opening must not be presented as meaningful about the job"],
     ];
     for (const f of html.concat(js)) {
       const t = f.endsWith(".html") ? read(f).replace(/<!--[\s\S]*?-->/g, "") : stripJsComments(read(f));
@@ -502,13 +502,13 @@ export function checkSite(root) {
     }
     const need = (rel, str, why) => { const p = path.join(root, rel); if (!fs.existsSync(p) || !read(p).includes(str)) add("S32", p, why); };
     need("js/pages/search.js", '"\u2713 Registered"', "the badge on every search result must say Registered");
-    need("js/pages/search.js", "This posting was registered through FightGhostJobs by a registered poster. The dates and disclosures are the poster's own. FightGhostJobs has not confirmed that the job exists, that the poster works for the company named, or that the employer will respond.", "the details dialog must carry the approved sentence, including what FightGhostJobs has not confirmed");
+    need("js/pages/search.js", "This opening was registered through FightGhostJobs by a registered employer. The dates and disclosures are the employer's own. FightGhostJobs has not confirmed that the job exists, that the employer representative works for the company named, or that the employer will respond.", "the details dialog must carry the approved sentence, including what FightGhostJobs has not confirmed");
     need("index.html", '<div class="pill badge-verified">\u2713 Registered</div>', "the sample card badge must say Registered");
-    need("index.html", ">A registry of job postings disclosed by employers</div>", "the home pill must describe the registry as job postings disclosed by employers");
+    need("index.html", ">A registry of job openings disclosed by employers</div>", "the home pill must describe the registry as job openings disclosed by employers");
     need("index.html", "The facts candidates see are free for employers to publish on every tier, and free for job seekers to search. The destination links tier adds destination links.", "the home page tier sentence must be the approved one (it matches the marketing site: the destination links tier adds the destination links)");
     need("register.html", ">Free on every tier</div>", "the register page price label must be Free on every tier");
     need("js/chips.js", "The employer has paused it, so it is not accepting applicants right now.", "the paused message must say the employer paused it");
-    need("js/search-input.js", "A missing posting may simply not be registered; it says nothing about whether the job exists.", "the empty-search note must say a missing posting says nothing about whether the job exists");
+    need("js/search-input.js", "A missing opening may simply not be registered; it says nothing about whether the job exists.", "the empty-search note must say a missing opening says nothing about whether the job exists");
   }
 
   // S35 (TEMPORARY, John 2026-09-30): employer analytics and reporting are a destination links tier feature that the code does not gate yet, so no user-facing text may say they are free, paid, included, or part of a tier or plan.
@@ -584,7 +584,7 @@ export function checkSite(root) {
       if (/["'][^"']*\b(Add a|Add another|Add link|Add new)\b/.test(c)) add("S38", panelF, "the panel has no Add control (a new link goes through the whole-set form)");
       if (raw.includes(EMDASH)) add("S38", panelF, "no em dash in the panel's text");
       for (const need of ["LP.removeConfirm(row.position, row.label)", "LP.editTitle(row.position, row.label)", "confirmText(row.position, plan, row.label)"]) if (!c.includes(need)) add("S38", panelF, "the dialog texts must be given the row's label so a labelled row keeps its number in one title form: " + need);
-      if (!/api\.checkDestinationLink\(ctx\.getPostingId\(\), row\.position\)/.test(c) || !/api\.editDestinationLink\(ctx\.getPostingId\(\), row\.position, plan\.change\)/.test(c) || !/api\.removeDestinationLink\(ctx\.getPostingId\(\), row\.position\)/.test(c)) add("S38", panelF, "the three row actions must call the three api functions with the posting id and the row's stored position");
+      if (!/api\.checkDestinationLink\(ctx\.getPostingId\(\), row\.position\)/.test(c) || !/api\.editDestinationLink\(ctx\.getPostingId\(\), row\.position, plan\.change\)/.test(c) || !/api\.removeDestinationLink\(ctx\.getPostingId\(\), row\.position\)/.test(c)) add("S38", panelF, "the three row actions must call the three api functions with the opening id and the row's stored position");
     }
     if (fs.existsSync(apiF)) {
       const a = stripJsComments(read(apiF));
@@ -609,8 +609,8 @@ export function checkSite(root) {
   // A contested comment stays visible with ONE notice, shown to candidates and to the owner. There is no editing of a comment anywhere, no hide or delete for an employer, no promised response time,
   // no contest control for a candidate, and no view across postings. The server decides everything that matters; these rules keep the page from saying or offering anything else.
   {
-    const NOTICE = "This comment has been contested by the employer/poster and is under review. It may be removed after additional investigation, at the sole discretion of FightGhostJobs.com.";
-    const CATEGORIES = [["inaccurate", "Factually inaccurate about this posting"], ["closed_or_outdated", "Posting closed or comment outdated"], ["confidential_or_personal", "Contains confidential or personal information"], ["not_about_posting", "Not about this posting"], ["abusive", "Abusive language"], ["other", "Other"]];
+    const NOTICE = "This comment has been contested by the employer and is under review. It may be removed after additional investigation, at the sole discretion of FightGhostJobs.com.";
+    const CATEGORIES = [["inaccurate", "Factually inaccurate about this opening"], ["closed_or_outdated", "Opening closed or comment outdated"], ["confidential_or_personal", "Contains confidential or personal information"], ["not_about_posting", "Not about this opening"], ["abusive", "Abusive language"], ["other", "Other"]];
     const text = (f) => (f.endsWith(".html") ? read(f).replace(/<!--[\s\S]*?-->/g, "") : stripJsComments(read(f)));
     const literals = (f) => (f.endsWith(".html") ? text(f) : [...text(f).matchAll(/"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g)].map((m) => m[1] || m[2] || m[3] || "").join("\n"));
     const P = (r) => path.join(root, r);
@@ -620,7 +620,7 @@ export function checkSite(root) {
     const CLAIMS = [
       [/\b(dispute|challenge|rebut|appeal)\w*\b[^.\n<]{0,50}\bcomments?\b|\bcomments?\b[^.\n<]{0,60}\b(dispute|challenge|rebut|appeal)\w*\b/i, "no text may say an employer can dispute, challenge or appeal a comment (the one action is the contest)"],
       [/\b(respond|reply|answer) to (a|the|any) comments?\b/i, "no text may say an employer can reply to a comment"],
-      [/\bcomments?\b[^.\n<]{0,60}\b(across|all|every one of|each of) (of )?(your|their|the) postings\b|\b(roll-?up|company-wide)\b[^.\n<]{0,40}\bcomments?\b/i, "no text may say an employer sees comments across all their postings (there is no such view)"],
+      [/\bcomments?\b[^.\n<]{0,60}\b(across|all|every one of|each of) (of )?(your|their|the) (postings|openings)\b|\b(roll-?up|company-wide)\b[^.\n<]{0,40}\bcomments?\b/i, "no text may say an employer sees comments across all their openings (there is no such view)"],
       [/\bedit(ed|ing)? (by|your|this|the|a|my) (author|comment)|\b(modified|edited|amended)\b[^.\n<]{0,40}\bcomments?\b|\bcomments?\b[^.\n<]{0,40}\b(modified|edited|amended)\b/i, "no text may say a comment can be or was edited or modified (comments are never edited)"],
     ];
     for (const f of html.concat(js)) {
@@ -628,7 +628,7 @@ export function checkSite(root) {
       for (const [re, why] of CLAIMS) if (re.test(t)) add("S36", f, why);
       if (!MAY_SAY_CONTEST.includes(f) && /\bcontest\w*\b[^.\n<]{0,50}\bcomments?\b|\bcomments?\b[^.\n<]{0,60}\bcontest\w*\b/i.test(t)) add("S36", f, "only the comments page, its scripts and the privacy page may talk about contesting a comment");
     }
-    if (fs.existsSync(chtml) && !read(chtml).includes("This page shows the comments on this one posting.")) add("S36", chtml, "the employer's note must say the page shows the comments on this one posting");
+    if (fs.existsSync(chtml) && !read(chtml).includes("This page shows the comments on this one opening.")) add("S36", chtml, "the employer's note must say the page shows the comments on this one opening");
 
     // the notice: this exact text, defined once (js/comments-model.js), used for candidates AND the owner
     for (const f of html.concat(js)) {
@@ -716,20 +716,20 @@ export function checkSite(root) {
     const appFiles = html.concat(js);
     const count = (str) => appFiles.reduce((n, f) => n + read(f).split(str).length - 1, 0);
     const once = (str, why) => { const k = count(str); if (k !== 1) add("S37", chipsF, why + " (found " + k + " times, expected once): " + str.slice(0, 70)); };
-    once('"This posting is paused"', "the paused posting's heading must exist exactly once");
-    once('"Comments stay open."', "the paused posting's comments sentence must exist exactly once");
-    once('"This posting is no longer open"', "the closed and expired heading must be unchanged and exist exactly once");
+    once('"This opening is paused"', "the paused opening's heading must exist exactly once");
+    once('"Comments stay open."', "the paused opening's comments sentence must exist exactly once");
+    once('"This opening is no longer open"', "the closed and expired heading must be unchanged and exist exactly once");
     once('"Comments stay open: what happened after it closed is exactly what other candidates want to know."', "the closed and expired comments sentence must be unchanged and exist exactly once");
-    for (const b of ["so its links are not listed", "You can still tell us about a link you followed", "The employer's links are not listed here for this posting"]) if (count(b) > 0) add("S37", chipsF, "this sentence was not approved and must not be used: " + b);
+    for (const b of ["so its links are not listed", "You can still tell us about a link you followed", "The employer's links are not listed here for this opening"]) if (count(b) > 0) add("S37", chipsF, "this sentence was not approved and must not be used: " + b);
     if (fs.existsSync(chipsF)) {
       const c = read(chipsF);
-      if (!c.includes('return status === "paused" ? "This posting is paused" : "This posting is no longer open";') || !c.includes('return status === "paused" ? "Comments stay open." : "Comments stay open: what happened after it closed')) add("S37", chipsF, "the heading and the comments sentence must be chosen by status === \"paused\" only, so closed, expired and every other status keep the long wording");
+      if (!c.includes('return status === "paused" ? "This opening is paused" : "This opening is no longer open";') || !c.includes('return status === "paused" ? "Comments stay open." : "Comments stay open: what happened after it closed')) add("S37", chipsF, "the heading and the comments sentence must be chosen by status === \"paused\" only, so closed, expired and every other status keep the long wording");
     }
     if (fs.existsSync(pageF)) {
       const p = stripJsComments(read(pageF));
       if (!p.includes("notOpenRecap(d.data.status")) add("S37", pageF, "the not-open branch must take its heading and note from notOpenRecap (js/chips.js), not from literals");
-      if (/"Posting"|no longer open|Comments stay open/.test(p)) add("S37", pageF, "the not-open wording is defined in js/chips.js only");
-      if (!p.includes("showLinkPicker(state.links)") || !p.includes('$("#reportLinkLabel").hidden = !picker') || !p.includes("sel.hidden = !picker")) add("S37", pageF, "the Which link? label and dropdown must be hidden when the posting has no links (showLinkPicker)");
+      if (/"Opening"|no longer open|Comments stay open/.test(p)) add("S37", pageF, "the not-open wording is defined in js/chips.js only");
+      if (!p.includes("showLinkPicker(state.links)") || !p.includes('$("#reportLinkLabel").hidden = !picker') || !p.includes("sel.hidden = !picker")) add("S37", pageF, "the Which link? label and dropdown must be hidden when the opening has no links (showLinkPicker)");
       if (/"Wait "|setInterval/.test(p)) add("S37", pageF, "the comment button must not tick down (no \"Wait Ns\" text, no one-second timer): the wait is said once, in words, in the message");
     }
     if (fs.existsSync(htmlF) && !read(htmlF).includes('<label id="reportLinkLabel" for="reportLink"')) add("S37", htmlF, "the Which link? label must carry id=reportLinkLabel (the page hides it when there are no links)");
@@ -743,21 +743,21 @@ export function checkSite(root) {
       const t = read(sh).replace(/<!--[\s\S]*?-->/g, ""), src = read(si), page = read(sp);
       for (const s of [
         "Search for one specific job you already know about.",
-        "Easiest and most exact: the company name plus the requisition (req) number or the postID from the employer's posting.",
-        "No ID? Use the company name plus part of the job title, copied from the posting if you can.",
+        "Easiest and most exact: the company name plus the requisition (req) number or the Opening ID from the employer's job ad.",
+        "No ID? Use the company name plus part of the job title, copied from the job ad if you can.",
         "Must match the employer's name. We ignore endings like Inc., Co. and LLC.",
-        "A title search will not list all of a company's jobs, and it will not show postings that are not live. Closed or expired postings are found only by postID or req number.",
-        "Company is required. Then fill in one of the other two boxes: the req number, or the postID / title box, not both. The req number is hidden as you type; press Show to check it.",
+        "A title search will not list all of a company's jobs, and it will not show openings that are not live. Closed or expired openings are found only by Opening ID or req number.",
+        "Company is required. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.",
       ]) if (!t.includes(s)) add("S40", sh, "the search guidance must say: " + s);
       const form = (t.match(/<form id="searchForm"[\s\S]*?<\/form>/) || [""])[0];
       const inputs = [...form.matchAll(/<input\b[^>]*\bid="([^"]*)"/g)].map((m) => m[1]);
-      if (inputs.join(",") !== "company,reqq,titleq") add("S40", sh, "the search form must have exactly three inputs, in this order: company, req number, postID / title (the exact IDs come first, and there is no way to browse); found: " + inputs.join(","));
-      if (!/<label for="titleq"[^>]*>PostID, or part of the title/.test(form)) add("S40", sh, "the title box label must say \"PostID, or part of the title\" (the title is the fallback, named as such)");
+      if (inputs.join(",") !== "company,reqq,titleq") add("S40", sh, "the search form must have exactly three inputs, in this order: company, req number, Opening ID / title (the exact IDs come first, and there is no way to browse); found: " + inputs.join(","));
+      if (!/<label for="titleq"[^>]*>Opening ID, or part of the title/.test(form)) add("S40", sh, "the title box label must say \"Opening ID, or part of the title\" (the title is the fallback, named as such)");
       for (const id of ["company", "reqq", "titleq"]) if (!new RegExp('<label for="' + id + '"').test(form)) add("S40", sh, "the " + id + " input has no label");
       const ids = new Set([...t.matchAll(/\bid="([^"]*)"/g)].map((m) => m[1]));
       const describedBy = (id) => ((form.match(new RegExp('<input id="' + id + '"[^>]*aria-describedby="([^"]*)"')) || [])[1] || "").split(/\s+/).filter(Boolean);
       for (const id of ["company", "reqq", "titleq"]) { const d = describedBy(id); if (!d.length) add("S40", sh, "the " + id + " input must point at its guidance with aria-describedby"); for (const x of d) if (!ids.has(x)) add("S40", sh, "the " + id + " input is described by #" + x + ", which is not on the page"); }
-      if (!describedBy("titleq").includes("titleNote")) add("S40", sh, "the title box must be described by #titleNote (a title search does not list every job and finds only live postings)");
+      if (!describedBy("titleq").includes("titleNote")) add("S40", sh, "the title box must be described by #titleNote (a title search does not list every job and finds only live openings)");
       if (!describedBy("company").includes("companyHint")) add("S40", sh, "the company box must be described by #companyHint");
       if (!/<div id="formError"[^>]*role="alert"/.test(t)) add("S40", sh, "the form error (#formError) must be an alert so it is announced");
       const cq = (src.match(/export function classifyQuery\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1] || "";
@@ -766,7 +766,7 @@ export function checkSite(root) {
       if (!src.includes('export const PHRASE_TOO_SHORT_MESSAGE = "That part of the title is too short to search on its own. Use at least 3 letters or digits, or a short form like VP, SR or JR if the employer used one.";')) add("S40", si, "the too-short-title message must be the approved wording");
       if (!/searchErrorMessage\(r\.error\)/.test(page)) add("S40", sp, "the page must show the backend's refusal through searchErrorMessage (the calm too-short wording)");
       const dh = path.join(root, "dashboard.html");
-      if (fs.existsSync(dh) && !read(dh).includes('<div id="postIdNote" class="field-hint">You may place a posting\'s postID on your own site: it lets candidates find the posting exactly.</div>')) add("S40", dh, "the dashboard must tell employers they may place the postID on their own site (it lets candidates find the posting exactly)");
+      if (fs.existsSync(dh) && !read(dh).includes('<div id="postIdNote" class="field-hint">You may place an opening\'s Opening ID on your own site: it lets candidates find the opening exactly.</div>')) add("S40", dh, "the dashboard must tell employers they may place the Opening ID on their own site (it lets candidates find the opening exactly)");
     } else add("S40", root, "search.html, js/search-input.js or js/pages/search.js is missing");
   }
 
@@ -803,8 +803,8 @@ export function checkSite(root) {
     if (fs.existsSync(dsF)) {
       const raw = read(dsF), c = stripJsComments(raw);
       for (const need of ['HEAD: "You have unsaved changes",', 'FORM_DETAIL: "They take effect only when you press Save changes.",', 'SAVE: "Save changes", DISCARD: "Discard",',
-        'titleRule: (status) => "On a " + status + " posting, a new title must keep at least 60% of the wording of the current one. A bigger change needs a new posting.",',
-        'noteRequired: (status) => "This posting is " + status + ", so a change to it needs a note. Say what changed and why.",',
+        'titleRule: (status) => "On a " + status + " opening, a new title must keep at least 60% of the wording of the current one. A bigger change needs a new opening.",',
+        'noteRequired: (status) => "This opening is " + status + ", so a change to it needs a note. Say what changed and why.",',
         'LEAVE_SAVE_AND_LEAVE: "Save and leave", LEAVE_SAVE: "Save changes", LEAVE_DISCARD: "Discard and leave", LEAVE_STAY: "Stay on this page",',
         'export const PANEL = { LINKS: "destination links", FIRMS: "recruiter firms", GOLIVE: "go-live time" };', 'out.headline = cap(named) + " not saved yet";',
         '" not saved yet. Save changes does not save " + itThem + ": use the button in " + section + "."']) if (!c.includes(need)) add("S45", dsF, "dirty-state.js must keep: " + need.slice(0, 90));
@@ -974,9 +974,9 @@ export function checkSite(root) {
       "employer-signin.html": ['class="pg pg-top cols"', 'class="h-big"'],
       "register.html": ['class="pg pg-top cols"', 'class="grid2"'], "edit.html": ['class="pg pg-top cols"', 'class="grid2"'],
       "search.html": ['<div class="pg" style="padding:56px 64px 32px 64px;">', 'id="signinWrap" class="pg"', 'id="roleNotice" class="pg"', 'id="landedNotice" class="pg"'],
-      "dashboard.html": ['class="pg"', 'class="fill"', 'class="card flush" data-scroll-area="My postings table"', 'class="dash-table rtable" role="table"', 'role="columnheader">Title<'],
+      "dashboard.html": ['class="pg"', 'class="fill"', 'class="card flush" data-scroll-area="My openings table"', 'class="dash-table rtable" role="table"', 'role="columnheader">Title<'],
       "team.html": ['class="pg"', 'class="grid2"', 'class="card flush" data-scroll-area="Team table"', 'class="dash-table rtable" role="table"', '<th role="columnheader">Name</th><th role="columnheader">Work email</th><th role="columnheader">Role</th><th role="columnheader">Status</th><th role="columnheader">Actions</th>'],
-      "analytics.html": ['class="pg"', 'class="grid2"', 'class="card flush" data-scroll-area="Traffic by posting table"', 'id="postingTable" class="rtable" role="table"', '<th role="columnheader">Posting</th><th role="columnheader">Searches</th><th role="columnheader">Detail views</th><th role="columnheader">Link clicks</th><th role="columnheader">Click-through</th>'],
+      "analytics.html": ['class="pg"', 'class="grid2"', 'class="card flush" data-scroll-area="Traffic by opening table"', 'id="postingTable" class="rtable" role="table"', '<th role="columnheader">Opening</th><th role="columnheader">Searches</th><th role="columnheader">Detail views</th><th role="columnheader">Link clicks</th><th role="columnheader">Click-through</th>'],
       "comments.html": ['class="pg"'], "privacy.html": ['class="pg"'], "404.html": ['class="pg pg-top"'], "auth-callback.html": ['class="pg pg-top"'],
     };
     for (const [f, needles] of Object.entries(classes)) { const p = path.join(root, f); if (!fs.existsSync(p)) continue; const t = read(p); for (const n of needles) if (!t.includes(n)) add("S48", p, "the phone layout needs " + n + " on this page"); }
@@ -1031,7 +1031,7 @@ export function checkSite(root) {
     const lnF = path.join(root, "js", "landing-notice.js"), apF = path.join(root, "js", "app.js"), cmF = path.join(root, "js", "pages", "comments.js"), cssF = path.join(root, "app.css"), shF = path.join(root, "search.html"), seF = path.join(root, "js", "pages", "search.js"), slF = path.join(root, "js", "scroll-lock.js"), ixF = path.join(root, "index.html");
     if (fs.existsSync(lnF)) {
       const l = read(lnF);
-      if (!l.includes('export const EMPLOYER_PAGES = ["dashboard.html", "analytics.html", "team.html", "edit.html", "register.html"];') || !l.includes('export const CANDIDATE_PAGES = ["search.html"];') || !l.includes("export function landingKindForPage(pathname, search)")) add("S50", lnF, "the landing wording is chosen by page: the employer pages (My postings, Analytics, Team, Edit, Register) and the candidate page (Search) must be listed, with landingKindForPage");
+      if (!l.includes('export const EMPLOYER_PAGES = ["dashboard.html", "analytics.html", "team.html", "edit.html", "register.html"];') || !l.includes('export const CANDIDATE_PAGES = ["search.html"];') || !l.includes("export function landingKindForPage(pathname, search)")) add("S50", lnF, "the landing wording is chosen by page: the employer pages (My openings, Analytics, Team, Edit, Register) and the candidate page (Search) must be listed, with landingKindForPage");
     }
     if (fs.existsSync(apF)) {
       const a = stripJsComments(read(apF));
@@ -1039,12 +1039,12 @@ export function checkSite(root) {
     }
     if (fs.existsSync(ixF)) {
       const t = read(ixF);
-      if (!t.includes('<a class="btn btn-dark" href="search.html">Look up a posting</a>') || !t.includes("Look up a posting by company and req number, or by company and postID or title, before applying. No account or password, just a quick email check.")) add("S50", ixF, "the home page must carry the approved wording: the button Look up a posting and the sentence " + "Look up a posting by company and req number, or by company and postID or title, before applying. No account or password, just a quick email check.");
+      if (!t.includes('<a class="btn btn-dark" href="search.html">Look up an opening</a>') || !t.includes("Look up an opening by company and req number, or by company and Opening ID or title, before applying. No account or password, just a quick email check.")) add("S50", ixF, "the home page must carry the approved wording: the button Look up an opening and the sentence " + "Look up an opening by company and req number, or by company and Opening ID or title, before applying. No account or password, just a quick email check.");
     }
     for (const f of html.concat(js)) { const t = read(f); if (/Search a company|Search by company and title before applying/.test(t)) add("S50", f, "the old wording that says a company is what is searched (Search a company; Search by company and title before applying) must not come back"); }
     if (fs.existsSync(cmF)) {
       const p = stripJsComments(read(cmF));
-      if (!p.includes('$("#reportWrap").hidden = !picker;') || /\$\("#reportWrap"\)\.hidden = false/.test(p)) add("S50", cmF, "Report a wrong link is shown only when the posting has links: #reportWrap.hidden = !picker, set once, and never set to false anywhere");
+      if (!p.includes('$("#reportWrap").hidden = !picker;') || /\$\("#reportWrap"\)\.hidden = false/.test(p)) add("S50", cmF, "Report a wrong link is shown only when the opening has links: #reportWrap.hidden = !picker, set once, and never set to false anywhere");
     }
     if (fs.existsSync(cssF)) {
       const c = read(cssF);
@@ -1073,14 +1073,14 @@ export function checkSite(root) {
   // does not flash "Email confirmed / You can search now." on the way to an employer page.
   {
     const ixF = path.join(root, "index.html"), shF = path.join(root, "search.html"), cssF = path.join(root, "app.css"), cbF = path.join(root, "js", "pages", "auth-callback.js"), uiF = path.join(root, "tests", "search-ui.test.js");
-    if (fs.existsSync(ixF)) { const t = read(ixF); if (!t.includes('<h3 style="font-size:19px;font-weight:700;">Candidates look up</h3>') || !t.includes("Look up a posting by company and req number, or by company and postID or title, before applying. No account or password, just a quick email check." + "</p>")) add("S51", ixF, "home step 3 must read Candidates look up, with the approved sentence"); }
+    if (fs.existsSync(ixF)) { const t = read(ixF); if (!t.includes('<h3 style="font-size:19px;font-weight:700;">Candidates look up</h3>') || !t.includes("Look up an opening by company and req number, or by company and Opening ID or title, before applying. No account or password, just a quick email check." + "</p>")) add("S51", ixF, "home step 3 must read Candidates look up, with the approved sentence"); }
     for (const f of html.concat(js)) { if (/Candidates verify/.test(read(f))) add("S51", f, "the old heading Candidates verify must not come back on an app page"); }
     if (fs.existsSync(shF)) {
       const t = read(shF);
       if (!t.includes('>Company <span class="srch-req">(required)</span></label>') || !/<input id="company" class="srch-input" type="text" aria-required="true"/.test(t)) add("S51", shF, "the Company label must say (required) as real text, and the company box must be aria-required");
       const g = t.indexOf('<div class="srch-group" role="group" aria-labelledby="oneOfHead"'), h = t.indexOf('<div id="oneOfHead" class="srch-then">Then one of these</div>'), a = t.indexOf('<input id="reqq"'), o = t.indexOf('<div class="srch-or">or</div>'), b = t.indexOf('<input id="titleq"'), c = t.indexOf('<input id="company"');
-      if (!(c >= 0 && c < g && g < h && h < a && a < o && o < b)) add("S51", shF, "the req number box and the postID / title box must sit in a labelled group (role=group, aria-labelledby=oneOfHead) under the heading Then one of these, with a visible or between them, after the company box");
-      if (!t.includes("Company is required. Then fill in one of the other two boxes: the req number, or the postID / title box, not both. The req number is hidden as you type; press Show to check it.")) add("S51", shF, "the sentence under the form must be the approved one: " + "Company is required. Then fill in one of the other two boxes: the req number, or the postID / title box, not both. The req number is hidden as you type; press Show to check it.");
+      if (!(c >= 0 && c < g && g < h && h < a && a < o && o < b)) add("S51", shF, "the req number box and the Opening ID / title box must sit in a labelled group (role=group, aria-labelledby=oneOfHead) under the heading Then one of these, with a visible or between them, after the company box");
+      if (!t.includes("Company is required. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.")) add("S51", shF, "the sentence under the form must be the approved one: " + "Company is required. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.");
       if (t.includes("Fill in only one of the two lookup boxes")) add("S51", shF, "the old sentence (Fill in only one of the two lookup boxes) must not come back");
     }
     if (fs.existsSync(cssF)) {
@@ -1146,7 +1146,7 @@ export function checkSite(root) {
     if (!fs.existsSync(rcF)) add("S53", rcF, "js/search-recap.js must exist");
     else {
       const t = stripJsComments(read(rcF));
-      for (const [needle, why] of [['LEAD: "You searched for: company "', "the approved opening"], ['TAIL: " Your results are below."', "the approved ending"], ['REQ: "a req number was entered"', "the req number wording"], ['CODE: "a postID was entered"', "the postID wording"], ['search.kind === "req" ? RECAP.REQ : search.kind === "code" || search.alsoTryCode ? RECAP.CODE : "title " + oneLine(search.value)', "a req number and a postID (and twelve plain letters) are never printed, only a plain title"]]) if (!t.includes(needle)) add("S53", rcF, "search-recap.js must keep " + why);
+      for (const [needle, why] of [['LEAD: "You searched for: company "', "the approved opening"], ['TAIL: " Your results are below."', "the approved ending"], ['REQ: "a req number was entered"', "the req number wording"], ['CODE: "an Opening ID was entered"', "the Opening ID wording"], ['search.kind === "req" ? RECAP.REQ : search.kind === "code" || search.alsoTryCode ? RECAP.CODE : "title " + oneLine(search.value)', "a req number and an Opening ID (and twelve plain letters) are never printed, only a plain title"]]) if (!t.includes(needle)) add("S53", rcF, "search-recap.js must keep " + why);
     }
     if (fs.existsSync(srF)) {
       const t = stripJsComments(read(srF));

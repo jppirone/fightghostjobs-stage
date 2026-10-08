@@ -35,9 +35,9 @@ const searches = (site) => site.calls.filter((c) => c.name === "candidate-search
 // fragments that must fill nothing (each is still removed from the address bar)
 const L = (n, ch = "x") => ch.repeat(n);
 const REFUSED = [
-  ["a company over 200 characters", "#c=" + L(201, "N") + "&t=Analyst"], ["a title over 80 characters", "#c=Northwind&t=" + L(81)], ["a req number over 100 characters", "#c=Northwind&r=" + L(101, "4")], ["a postID over 14 characters", "#c=Northwind&p=" + L(15, "D")],
+  ["a company over 200 characters", "#c=" + L(201, "N") + "&t=Analyst"], ["a title over 80 characters", "#c=Northwind&t=" + L(81)], ["a req number over 100 characters", "#c=Northwind&r=" + L(101, "4")], ["an Opening ID over 14 characters", "#c=Northwind&p=" + L(15, "D")],
   ["the company twice", "#c=A&c=B&t=Analyst"], ["the title twice", "#c=Northwind&t=Analyst&t=Planner"],
-  ["a req number together with a title", "#c=Northwind&r=4471&t=Analyst"], ["a postID together with a title", "#c=Northwind&p=D21M-48YB-ZQBF&t=Analyst"], ["a req number together with a postID", "#c=Northwind&r=4471&p=D21M-48YB-ZQBF"],
+  ["a req number together with a title", "#c=Northwind&r=4471&t=Analyst"], ["an Opening ID together with a title", "#c=Northwind&p=D21M-48YB-ZQBF&t=Analyst"], ["a req number together with an Opening ID", "#c=Northwind&r=4471&p=D21M-48YB-ZQBF"],
   ["a control character (line feed)", "#c=Northwind&t=Ana%0Alyst"], ["a control character (nul)", "#c=North%00wind&t=Analyst"], ["a bad percent escape", "#c=Northwind&t=%E0%A4%A"],
   ["no company", "#t=Analyst"], ["no second value", "#c=Northwind"], ["an empty company", "#c=&t=Analyst"],
   ["an oversized whole fragment (valid values, one very long unknown key)", "#c=Northwind&t=Analyst&zz=" + L(700, "y")], ["too many parts (valid values, twelve more keys)", "#c=Northwind&t=Analyst" + "&k=1".repeat(12)],
@@ -85,11 +85,11 @@ const SCENARIOS = {
       site.calls.length = 0;
       await open(tab, site, "#c=" + enc("Meridian Health") + "&p=" + enc("D21M-48YB-ZQBF"));
       s = await state(tab);
-      if (s.q !== "D21M-48YB-ZQBF" || s.r !== "" || s.c !== "Meridian Health") bad.push("postID: the boxes are wrong: " + JSON.stringify([s.c, s.q, s.r]));
+      if (s.q !== "D21M-48YB-ZQBF" || s.r !== "" || s.c !== "Meridian Health") bad.push("Opening ID: the boxes are wrong: " + JSON.stringify([s.c, s.q, s.r]));
       await sleep(1200);
-      if (searches(site).length !== 0) bad.push("postID: a search ran by itself");
+      if (searches(site).length !== 0) bad.push("Opening ID: a search ran by itself");
       await tab.eval("document.getElementById('searchForm').requestSubmit()"); await sleep(1500);
-      if (searches(site).length !== 1 || !searches(site)[0].body.code) bad.push("postID: Search did not send a postID lookup (" + JSON.stringify(searches(site).map((c) => c.body)) + ")");
+      if (searches(site).length !== 1 || !searches(site)[0].body.code) bad.push("Opening ID: Search did not send an Opening ID lookup (" + JSON.stringify(searches(site).map((c) => c.body)) + ")");
     } finally { await tab.close(); await site.close(); }
     return bad;
   },
@@ -162,7 +162,7 @@ const DEFECTS = [
   ["a bad percent escape is accepted as it is", ["hostile"], FP, (s) => s.replace("try { value = decodeURIComponent(piece.slice(eq + 1)); } catch { bad = true; continue; }", "try { value = decodeURIComponent(piece.slice(eq + 1)); } catch { value = piece.slice(eq + 1); }")],
   ["unknown keys make the fragment ours", ["hostile"], FP, (s) => s.replace("if (!Object.prototype.hasOwnProperty.call(FRAGMENT_KEYS, key)) continue;   // an unknown key (or \"__proto__\") is ignored", "")],
   ["the fragment text is put into the page as markup", ["hostile"], FP, (s) => s.replace("companyEl.value = result.company;", "companyEl.value = result.company; companyEl.insertAdjacentHTML(\"afterend\", result.company);")],
-  ["the req number goes into the postID/title box", ["signedOutReq"], FP, (s) => s.replace("if (result.kind === \"req\") reqEl.value = result.value; else queryEl.value = result.value;", "queryEl.value = result.value;")],
+  ["the req number goes into the Opening ID/title box", ["signedOutReq"], FP, (s) => s.replace("if (result.kind === \"req\") reqEl.value = result.value; else queryEl.value = result.value;", "queryEl.value = result.value;")],
   ["the company is not filled", ["signedOutReq", "signedInTitleAndPostid"], FP, (s) => s.replace("companyEl.value = result.company;", "")],
 ];
 test("negative controls: each deliberate defect in the fragment handling makes a scenario fail", { timeout: 3000000 }, async () => {

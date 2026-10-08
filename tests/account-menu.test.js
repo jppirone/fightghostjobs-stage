@@ -119,7 +119,7 @@ test("app.js builds the signed-in area from the control: the circle, no name or 
   const js = src("js/app.js");
   assert.match(js, /import \{ buildAccount, wireAccountMenu \} from "\.\/account-menu\.js";/);
   assert.match(js, /const account = buildAccount\(h, initials, name, org\);/);
-  assert.match(js, /container\.append\([\s\S]*?"My postings"[\s\S]*?"Analytics"[\s\S]*?"Team"[\s\S]*?account\.root,[\s\S]*?"Sign out"[\s\S]*?\);\s*wireAccountMenu\(account, document\);/);
+  assert.match(js, /container\.append\([\s\S]*?"My openings"[\s\S]*?"Analytics"[\s\S]*?"Team"[\s\S]*?account\.root,[\s\S]*?"Sign out"[\s\S]*?\);\s*wireAccountMenu\(account, document\);/);
   assert.ok(!/name \+ \(org \? " · " \+ org : ""\)/.test(js) && !js.includes('" · "'), "the text is no longer printed beside the circle");
   assert.ok(!/class: "nav-account"/.test(js), "the old span with the printed text is gone");
   assert.equal((js.match(/container\.classList\.add\("nav-acct-area"\)/g) || []).length, 2, "both signed-in areas (employer and candidate) wrap");

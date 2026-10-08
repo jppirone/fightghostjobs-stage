@@ -59,7 +59,7 @@ async function surfaces(site, on) {
     // a closed posting: the line about comments staying open
     await tab.goto(site.url + "/comments.html?ref=" + CLOSED_REF); await tab.waitFor("document.readyState === 'complete' && !document.getElementById('recap').hidden", 10000); await sleep(800);
     const note = await tab.eval("document.getElementById('recapNote').textContent");
-    if (/Comments stay open/.test(note) !== on) bad.push(t("the closed posting's note " + (on ? "lost" : "still has") + " the line Comments stay open (" + note.slice(-80) + ")"));
+    if (/Comments stay open/.test(note) !== on) bad.push(t("the closed opening's note " + (on ? "lost" : "still has") + " the line Comments stay open (" + note.slice(-80) + ")"));
     // 4. the employer's side
     await become(tab, site, "poster");
     site.calls.length = 0;
@@ -71,7 +71,7 @@ async function surfaces(site, on) {
     for (const [w, phone] of [[1280, false], [375, true]]) {
       await tab.viewport(w, phone); await tab.goto(site.url + "/dashboard.html"); await tab.waitFor("document.querySelectorAll('.rtable tbody tr').length > 0", 10000); await sleep(500);
       const d = await tab.eval(`({ th: Array.from(document.querySelectorAll("th")).some((e) => e.textContent.trim() === "Comments"), td: document.querySelectorAll('td[data-label="Comments"]').length, links: document.querySelectorAll('a[href^="comments.html?id="]').length, rows: document.querySelectorAll('.rtable tbody tr').length })`);
-      if (d.th !== on || (d.td > 0) !== on || (d.links > 0) !== on) bad.push(t("at " + w + " My postings: Comments column " + d.th + ", cells " + d.td + ", row links " + d.links + " (rows " + d.rows + ")"));
+      if (d.th !== on || (d.td > 0) !== on || (d.links > 0) !== on) bad.push(t("at " + w + " My openings: Comments column " + d.th + ", cells " + d.td + ", row links " + d.links + " (rows " + d.rows + ")"));
     }
   } finally { await tab.close(); }
   return bad;
@@ -93,14 +93,14 @@ const DEFECTS = [
   ["the details window loses Report a wrong link", ["off"], [["js/pages/search.js", (s) => s.replace("if (withReport) more.append(", "if (false) more.append(")]]],
   ["the comments page keeps the thread and the comment form", ["off"], [["js/pages/comments.js", (s) => s.replace("if (COMMENTS_VISIBLE) { $(\"#threadWrap\")", "if (true) { $(\"#threadWrap\")")]]],
   ["the comments page still loads the thread", ["off"], [["js/pages/comments.js", (s) => s.replace("if (COMMENTS_VISIBLE) await loadThread(0);", "await loadThread(0);")]]],
-  ["the closed posting keeps the line Comments stay open", ["off"], [["js/pages/comments.js", (s) => s.replace("d.data.closed_reason || null, COMMENTS_VISIBLE)", "d.data.closed_reason || null, true)")]]],
+  ["the closed opening keeps the line Comments stay open", ["off"], [["js/pages/comments.js", (s) => s.replace("d.data.closed_reason || null, COMMENTS_VISIBLE)", "d.data.closed_reason || null, true)")]]],
   ["the employer's comments page keeps the thread", ["off"], [["js/pages/comments.js", (s) => s.replace("  if (!COMMENTS_VISIBLE) return;   // comments are switched off", "  // comments are switched off")]]],
-  ["My postings keeps the Comments column header", ["off"], [["js/pages/dashboard.js", (s) => s.replace("if (!COMMENTS_VISIBLE) { const th", "if (false) { const th")]]],
-  ["My postings keeps the Comments cell and link", ["off"], [["js/pages/dashboard.js", (s) => s.replace("    COMMENTS_VISIBLE ? h(\"td\"", "    true ? h(\"td\"")]]],
+  ["My openings keeps the Comments column header", ["off"], [["js/pages/dashboard.js", (s) => s.replace("if (!COMMENTS_VISIBLE) { const th", "if (false) { const th")]]],
+  ["My openings keeps the Comments cell and link", ["off"], [["js/pages/dashboard.js", (s) => s.replace("    COMMENTS_VISIBLE ? h(\"td\"", "    true ? h(\"td\"")]]],
   ["switched on, the home page card has no Comments link", ["on"], [["js/pages/index.js", (s) => s.replace("if (!COMMENTS_VISIBLE) { const c", "if (true) { const c")]]],
   ["switched on, the details window has no Comments link", ["on"], [["js/pages/search.js", (s) => s.replace("if (COMMENTS_VISIBLE) more.append(", "if (false) more.append(")]]],
   ["switched on, the comments page has no thread", ["on"], [["js/pages/comments.js", (s) => s.replace("if (COMMENTS_VISIBLE) { $(\"#threadWrap\")", "if (false) { $(\"#threadWrap\")")]]],
-  ["switched on, My postings has no Comments column", ["on"], [["js/pages/dashboard.js", (s) => s.replace("if (!COMMENTS_VISIBLE) { const th", "if (true) { const th")]]],
+  ["switched on, My openings has no Comments column", ["on"], [["js/pages/dashboard.js", (s) => s.replace("if (!COMMENTS_VISIBLE) { const th", "if (true) { const th")]]],
 ];
 async function withSite(root, fn) { const site = await startFakeSite(root); try { return await fn(site); } finally { await site.close(); } }
 test("negative controls: each defect in the comments switch makes a check fail", { timeout: 3000000 }, async () => {

@@ -31,7 +31,7 @@ async function signInAndOpen(tab, site, ref, hash) {
   await tab.waitFor("!document.querySelector('#threadWrap').hidden || !document.querySelector('#pageAlert').hidden", 10000);
   await sleep(500);
 }
-const postComment = async (tab) => { await tab.eval("(() => { document.querySelector('#commentText').value = 'A comment about this posting.'; document.querySelector('#composeForm').requestSubmit(); })()"); await sleep(900); };
+const postComment = async (tab) => { await tab.eval("(() => { document.querySelector('#commentText').value = 'A comment about this opening.'; document.querySelector('#composeForm').requestSubmit(); })()"); await sleep(900); };
 const sendReport = async (tab) => { await tab.eval("(() => { document.querySelector('#reportDetail').value = 'It went to a different job.'; document.querySelector('#reportForm').requestSubmit(); })()"); await sleep(900); };
 
 const SCENARIOS = {
@@ -39,12 +39,12 @@ const SCENARIOS = {
     const bad = [], tab = await browser.newTab();
     try {
       await signInAndOpen(tab, site, WITH_LINKS);
-      if (!(await shown(tab))) bad.push("a posting WITH links does not show the Report a wrong link section");
+      if (!(await shown(tab))) bad.push("an opening WITH links does not show the Report a wrong link section");
       const opts = await tab.eval("Array.from(document.querySelectorAll('#reportLink option')).map((o) => o.textContent)");
-      if (!(opts.length === 3 && /^Link 1: /.test(opts[0]) && /^Link 2: /.test(opts[1]) && opts[2] === "Something else about this posting’s links")) bad.push("the link picker is not as before: " + JSON.stringify(opts));
-      if (!(await tab.eval("!document.querySelector('#reportLinkLabel').hidden && !document.querySelector('#reportLink').hidden"))) bad.push("the Which link? label and picker are hidden on a posting with links");
+      if (!(opts.length === 3 && /^Link 1: /.test(opts[0]) && /^Link 2: /.test(opts[1]) && opts[2] === "Something else about this opening’s links")) bad.push("the link picker is not as before: " + JSON.stringify(opts));
+      if (!(await tab.eval("!document.querySelector('#reportLinkLabel').hidden && !document.querySelector('#reportLink').hidden"))) bad.push("the Which link? label and picker are hidden on an opening with links");
       await postComment(tab);
-      if (!(await shown(tab))) bad.push("posting a comment hid the report section");
+      if (!(await shown(tab))) bad.push("opening a comment hid the report section");
       await sendReport(tab);
       if (!(await tab.eval("/^Sent\\./.test(document.querySelector('#reportAlert').textContent)"))) bad.push("sending a report did not say Sent");
       if (!(await shown(tab))) bad.push("sending a report hid the report section");
@@ -60,17 +60,17 @@ const SCENARIOS = {
     try {
       await signInAndOpen(tab, site, NOLINKS_REF);
       if (!(await tab.eval("/This employer has not provided a link to where you can apply\\./.test(document.querySelector('#recapNote').textContent)"))) bad.push("the page does not say the employer has not provided a link (it says: " + (await tab.eval("document.querySelector('#recapNote').textContent")) + ")");
-      if (await shown(tab)) bad.push("a posting with NO links still shows the Report a wrong link section");
+      if (await shown(tab)) bad.push("an opening with NO links still shows the Report a wrong link section");
       if (await tab.eval("!document.querySelector('#threadWrap').hidden") !== true) bad.push("the comments thread is not shown (the rest of the page must work)");
       await postComment(tab);
       if (site.calls.filter((c) => c.name === "candidate-post-comment").length !== 1) bad.push("the comment was not posted (the composer must still work)");
-      if (await shown(tab)) bad.push("after posting a comment the report section appeared on a posting with no links");
+      if (await shown(tab)) bad.push("after opening a comment the report section appeared on an opening with no links");
       await tab.goto(site.url + "/comments.html?ref=" + NOLINKS_REF); await tab.waitFor("!document.querySelector('#threadWrap').hidden"); await sleep(400);
-      if (await shown(tab)) bad.push("after a reload the report section appeared on a posting with no links");
+      if (await shown(tab)) bad.push("after a reload the report section appeared on an opening with no links");
       // a direct address ending in #report: no error, no jump
       tab.clearErrors();
       await tab.goto(site.url + "/comments.html?ref=" + NOLINKS_REF + "#report"); await tab.waitFor("!document.querySelector('#threadWrap').hidden"); await sleep(600);
-      if (await shown(tab)) bad.push("a direct #report address showed the section on a posting with no links");
+      if (await shown(tab)) bad.push("a direct #report address showed the section on an opening with no links");
       if (tab.errors().length) bad.push("a direct #report address raised an error: " + tab.errors()[0]);
       const y = await tab.eval("window.scrollY");
       if (y !== 0) bad.push("a direct #report address scrolled the page to " + y + " (to nothing)");
@@ -81,9 +81,9 @@ const SCENARIOS = {
     const bad = [], tab = await browser.newTab();
     try {
       await signInAndOpen(tab, site, CLOSED_REF);
-      if (!(await tab.eval("/no longer open/.test(document.querySelector('#recapTitle').textContent)"))) bad.push("the closed posting does not say it is no longer open");
-      if (await shown(tab)) bad.push("a closed posting (links not known) shows the Report a wrong link section");
-      if (await tab.eval("!document.querySelector('#threadWrap').hidden") !== true) bad.push("the thread of a closed posting is not shown");
+      if (!(await tab.eval("/no longer open/.test(document.querySelector('#recapTitle').textContent)"))) bad.push("the closed opening does not say it is no longer open");
+      if (await shown(tab)) bad.push("a closed opening (links not known) shows the Report a wrong link section");
+      if (await tab.eval("!document.querySelector('#threadWrap').hidden") !== true) bad.push("the thread of a closed opening is not shown");
     } finally { await tab.close(); }
     return bad;
   },
@@ -91,7 +91,7 @@ const SCENARIOS = {
 const ALL = Object.keys(SCENARIOS);
 async function withSite(root, fn) { const site = await startFakeSite(root); try { return await fn(site); } finally { await site.close(); } }
 
-test("Report a wrong link: shown for a posting with links, hidden for one with no links and for a closed one, whatever the visitor does", { timeout: 300000 }, async () => {
+test("Report a wrong link: shown for an opening with links, hidden for one with no links and for a closed one, whatever the visitor does", { timeout: 300000 }, async () => {
   const problems = [];
   await withSite(ROOT, async (site) => { for (const n of ALL) { site.calls.length = 0; for (const p of await SCENARIOS[n](site)) problems.push(n + ": " + p); } });
   assert.deepEqual(problems, [], "report section problems:\n" + problems.join("\n"));

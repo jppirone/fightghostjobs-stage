@@ -39,7 +39,7 @@ const SCENARIOS = {
     const bad = [], tab = await browser.newTab();
     try {
       await tab.focusEmulation(true);
-      for (const [kind, page, want, label] of [["poster", "dashboard.html", EMP, "My postings"], ["poster", "edit.html?id=" + GID, EMP, "Edit"], ["candidate", "comments.html?ref=" + REF, CAND, "candidate comments"]]) {
+      for (const [kind, page, want, label] of [["poster", "dashboard.html", EMP, "My openings"], ["poster", "edit.html?id=" + GID, EMP, "Edit"], ["candidate", "comments.html?ref=" + REF, CAND, "candidate comments"]]) {
         const tag = label + ": ";
         await land(tab, site, kind, page);
         if ((await note(tab)) !== want) { bad.push(tag + "the landing note is not shown on arrival"); continue; }

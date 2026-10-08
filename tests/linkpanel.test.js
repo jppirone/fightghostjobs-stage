@@ -94,7 +94,7 @@ test("every refusal has plain words, and says what the page must do", () => {
   for (const op of ["check", "edit", "remove"]) { const s = refusalFor(op, { code: "posting_status" }); assert.equal(s.stale, true); assert.equal(s.text, ""); }
   assert.equal(refusalFor("edit", { code: "request_refused", field: "status", message: "x" }).stale, true);
   const gone = refusalFor("remove", { code: "link_not_found" }); assert.deepEqual([gone.where, gone.stale, gone.text], ["panel", true, "That link is no longer stored, so nothing was changed."]);
-  assert.match(refusalFor("check", { code: "not_found" }).text, /^That posting was not found\./);
+  assert.match(refusalFor("check", { code: "not_found" }).text, /^That opening was not found\./);
   assert.equal(refusalFor("check", { code: "rate_limited", retryAfter: 30 }).text, "You are checking links too fast. Try again in 30 seconds.");
   assert.equal(refusalFor("check", { code: "rate_limited" }).text, "You are checking links too fast. Try again in 30 seconds.");
   assert.equal(refusalFor("edit", { code: "rate_limited", retryAfter: 120 }).text, "Too many requests just now. Try again in 2 minutes.");
@@ -142,7 +142,7 @@ test("api check: the answer must be exactly go_url (an https link with no creden
   assert.equal(shapes.checkIssue({ go_url: TICKET, expires_at: EXP }), true);
 });
 
-test("api check: refusals keep their codes (plan, posting status, link gone, not found, rate limit with its wait)", async () => {
+test("api check: refusals keep their codes (plan, opening status, link gone, not found, rate limit with its wait)", async () => {
   const run = async (status, body, headers) => (await mk(() => ({ status, body, headers })).api.checkDestinationLink(PID, 1));
   let r = await run(403, { error: "plan_required", code: "plan_required" }); assert.equal(r.error.code, "plan_required");
   r = await run(409, { error: "posting_status", code: "posting_status", current_status: "closed" }); assert.equal(r.error.code, "posting_status");
@@ -153,7 +153,7 @@ test("api check: refusals keep their codes (plan, posting status, link gone, not
   r = await run(500, { error: "Internal error" }); assert.equal(r.error.code, "server_error");
 });
 
-test("api edit: the body names the posting, kind, op and position; the address goes only when typed; a label change goes alone; no identity", async () => {
+test("api edit: the body names the opening, kind, op and position; the address goes only when typed; a label change goes alone; no identity", async () => {
   const links = [L(1), L(3)];
   const a = mk(() => ({ status: 200, body: ANSWER("edit", 3, links) }));
   let r = await a.api.editDestinationLink(PID, 3, { url: "  https://jobs.example.invalid/apply/2  ", label: "Careers" }); assert.equal(r.ok, true);
@@ -186,7 +186,7 @@ test("api edit and remove: the answer is checked; an unknown key anywhere (an ad
   const bads = [
     ["extra top key", Object.assign({}, good, { url: "https://secret.example/x" })], ["extra link key url", Object.assign({}, good, { links: [L(1), Object.assign(L(3), { url: "https://secret.example/x" })] })],
     ["extra link key host", Object.assign({}, good, { links: [L(1), Object.assign(L(3), { host: "secret.example" })] })], ["extra link key url_enc", Object.assign({}, good, { links: [L(1), Object.assign(L(3), { url_enc: "00" })] })],
-    ["wrong op", ANSWER("remove", 3, [L(1), L(3)])], ["wrong position", ANSWER("edit", 2, [L(1), L(3)])], ["bad posting id", Object.assign({}, good, { posting_id: "x" })], ["other posting id", Object.assign({}, good, { posting_id: "22222222-2222-4222-8222-222222222222" })],
+    ["wrong op", ANSWER("remove", 3, [L(1), L(3)])], ["wrong position", ANSWER("edit", 2, [L(1), L(3)])], ["bad opening id", Object.assign({}, good, { posting_id: "x" })], ["other opening id", Object.assign({}, good, { posting_id: "22222222-2222-4222-8222-222222222222" })],
     ["count mismatch", Object.assign({}, good, { active_links: 3 })], ["not ascending", ANSWER("edit", 3, [L(3), L(1)])], ["duplicate position", ANSWER("edit", 3, [L(1), L(1)])], ["recruiter row", ANSWER("edit", 3, [L(1), { position: 1, kind: "recruiter", firm: "Acme", label: null, shown_as: null }])],
     ["firm given on an apply row", ANSWER("edit", 3, [L(1, { firm: "Acme" })])], ["position 11", ANSWER("edit", 3, [L(11)])], ["changed missing", (({ changed, ...o }) => o)(good)], ["changed a string", Object.assign({}, good, { changed: "yes" })],
     ["kind recruiter", Object.assign({}, good, { kind: "recruiter" })], ["links missing", (({ links, ...o }) => o)(good)], ["bad check status", ANSWER("edit", 3, [L(3, { check_status: "great" })])], ["more than ten", ANSWER("edit", 3, Array.from({ length: 11 }, (_, i) => L(i + 1)))], ["array", []], ["null", null]];
@@ -259,7 +259,7 @@ test("panel: one row per stored link by its stored position, three buttons each 
   const r3 = rowEl(s.host, 3); assert.deepEqual(byClass(r3, "link-row-actions")[0].children.map((b) => [b.textContent, b.attrs["aria-label"]]), [["Check link", "Check Link 3"], ["Edit", "Edit Link 3"], ["Remove", "Remove Link 3"]]);
   assert.equal(s.hint.hidden, false); assert.equal(s.note.hidden, false);
   assert.equal(byClass(s.host, "link-row-actions").every((a) => a.children.length === 3), true);
-  s.panel.render([]); assert.equal(s.hint.hidden, true); assert.equal(s.note.hidden, true); assert.match(text(s.host), /No destination links are stored for this posting yet\./); assert.equal(byClass(s.host, "link-row").length, 0);
+  s.panel.render([]); assert.equal(s.hint.hidden, true); assert.equal(s.note.hidden, true); assert.match(text(s.host), /No destination links are stored for this opening yet\./); assert.equal(byClass(s.host, "link-row").length, 0);
 });
 
 test("panel: the edit form's address box is created empty and is never given a value, even when the server sends one; the label is prefilled", () => {
@@ -295,7 +295,7 @@ test("panel, Check link: the window is opened first even when the answer is slow
 });
 
 test("panel, Check link: a refusal closes the blank tab and says why, in the row", async () => {
-  for (const [error, re] of [[{ code: "rate_limited", retryAfter: 30 }, /You are checking links too fast\. Try again in 30 seconds\./], [{ code: "network" }, /Could not reach the server/], [{ code: "not_found" }, /That posting was not found/], [{ code: "bad_response" }, /did not expect/]]) {
+  for (const [error, re] of [[{ code: "rate_limited", retryAfter: 30 }, /You are checking links too fast\. Try again in 30 seconds\./], [{ code: "network" }, /Could not reach the server/], [{ code: "not_found" }, /That opening was not found/], [{ code: "bad_response" }, /did not expect/]]) {
     const s = setup({ api: { checkDestinationLink: async () => ({ ok: false, status: 400, error }) } });
     await btn(rowEl(s.host, 1), "Check Link 1").fire("click");
     assert.equal(s.wins[0].closed, true); assert.equal(s.wins[0].location, null); assert.match(text(rowEl(s.host, 1)), re); assert.equal(byTag(s.host, "a").length, 0);
@@ -433,7 +433,7 @@ test("panel, Remove: asks first in the row; Cancel sends nothing; confirming rem
 test("panel, Remove: removing the last link leaves the empty sentence and hides the hint and the address-bar note; a refusal shows its words and keeps the row", async () => {
   const s = setup({ links: [L(1)], api: { removeDestinationLink: async (id, pos) => ({ ok: true, status: 200, data: ANSWER("remove", pos, []) }) } });
   await btn(rowEl(s.host, 1), "Remove Link 1").fire("click"); await byTag(byClass(rowEl(s.host, 1), "link-remove")[0], "button")[0].fire("click");
-  assert.match(text(s.host), /No destination links are stored for this posting yet\./); assert.equal(s.hint.hidden, true); assert.equal(s.note.hidden, true); assert.match(text(s.host), /Link 1 was removed\./);
+  assert.match(text(s.host), /No destination links are stored for this opening yet\./); assert.equal(s.hint.hidden, true); assert.equal(s.note.hidden, true); assert.match(text(s.host), /Link 1 was removed\./);
   const t = setup({ api: { removeDestinationLink: async () => ({ ok: false, status: 429, error: { code: "rate_limited", retryAfter: 45 } }) } });
   await btn(rowEl(t.host, 1), "Remove Link 1").fire("click"); await byTag(byClass(rowEl(t.host, 1), "link-remove")[0], "button")[0].fire("click");
   assert.ok(rowEl(t.host, 1)); assert.match(text(rowEl(t.host, 1)), /Too many requests just now\. Try again in 45 seconds\./); assert.equal(t.events.changed.length, 0);

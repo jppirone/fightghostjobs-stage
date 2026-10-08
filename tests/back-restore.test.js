@@ -90,7 +90,7 @@ async function restores(site, which) {
       // Escape closes the window and focus goes back to View posting details (the existing focus code), as before
       await tab.key("Escape"); await sleep(300);
       const esc = await tab.eval(`({ open: !!document.querySelector("#modalBackdrop.open"), onButton: document.activeElement && document.activeElement.classList.contains("view-details") })`);
-      if (esc.open || !esc.onButton) bad.push("after Back, Escape: window open " + esc.open + ", focus on View posting details " + esc.onButton);
+      if (esc.open || !esc.onButton) bad.push("after Back, Escape: window open " + esc.open + ", focus on View opening details " + esc.onButton);
     }
   } finally { await tab.close(); }
   return bad;

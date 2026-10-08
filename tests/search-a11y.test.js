@@ -54,7 +54,7 @@ const SCENARIOS = {
       const countHidden = await tab.eval(`document.getElementById("resultCount").getAttribute("aria-hidden") === "true"`);
       if (!countHidden) bad.push("the visible count is also exposed to a screen reader (it would be read a second time)");
       // Part C (October 5, 2026): the one spoken message of a search is the recap sentence AND the count in one message; the boxes are emptied by the search, so each round types them again
-      for (const [how, company, title, want] of [["button", "Meridian", "Nurse", "You searched for: company Meridian, title Nurse. Your results are below. 2 matching postings."], ["button", "Meridian", "Nurse", "You searched for: company Meridian, title Nurse. Your results are below. 2 matching postings."], ["enter", "Zzyzx Unknown", "Nurse", "You searched for: company Zzyzx Unknown, title Nurse. Your results are below. No matching postings."]]) {
+      for (const [how, company, title, want] of [["button", "Meridian", "Nurse", "You searched for: company Meridian, title Nurse. Your results are below. 2 matching openings."], ["button", "Meridian", "Nurse", "You searched for: company Meridian, title Nurse. Your results are below. 2 matching openings."], ["enter", "Zzyzx Unknown", "Nurse", "You searched for: company Zzyzx Unknown, title Nurse. Your results are below. No matching openings."]]) {
         await fill(tab, company, title); await runFrom(tab, how === "enter" ? "enter" : "button");
         await tab.waitFor(`window.__said.some((x) => x.id === "searchStatus")`, 6000); await sleep(700);
         const said = JSON.parse(await tab.eval(SAID)), mine = said.filter((x) => x.id === "searchStatus"), others = said.filter((x) => x.id !== "searchStatus");

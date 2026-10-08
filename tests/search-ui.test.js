@@ -70,7 +70,7 @@ async function fieldProblems(tab, width, phone) {
       if (f.ph !== EXPECT_PH[f.id]) bad.push(tag + f.id + " placeholder changed: " + f.ph);
     }
     if (r.order.join() !== "company,reqq,titleq") bad.push(tag + "field order changed: " + r.order.join());
-    if (r.labels.join("|") !== "Company|Req number|PostID, or part of the title") bad.push(tag + "labels changed: " + r.labels.join("|"));
+    if (r.labels.join("|") !== "Company|Req number|Opening ID, or part of the title") bad.push(tag + "labels changed: " + r.labels.join("|"));
     if (r.button !== "Search") bad.push(tag + "the Search button changed: " + r.button);
     if (r.out.find((f) => f.id === "reqq").type !== "password") bad.push(tag + "the req number is no longer hidden as typed");
     if (r.sw > r.cw + 0.5) bad.push(tag + "the page scrolls sideways (" + r.sw + " in " + r.cw + ")");
@@ -83,7 +83,7 @@ async function fieldProblems(tab, width, phone) {
 }
 
 // ---- the three boxes: Company (required), then ONE of the req number or the postID / title box (October 5, 2026). Wording is exact; the group is labelled; the visible "or" sits between the two; the three boxes keep their layout.
-const NEW_SENTENCE = "Company is required. Then fill in one of the other two boxes: the req number, or the postID / title box, not both. The req number is hidden as you type; press Show to check it.";
+const NEW_SENTENCE = "Company is required. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.";
 const FORM_CHECK = `(() => {
   const q = (s) => document.querySelector(s);
   const vis = (e) => { if (!e) return false; const c = getComputedStyle(e), r = e.getBoundingClientRect(); return c.display !== "none" && c.visibility !== "hidden" && r.width > 0 && r.height > 0; };
@@ -109,11 +109,11 @@ async function formStructureProblems(tab, width, phone) {
   if (f.groupHolds !== "reqq,titleq") bad.push(tag + "the group holds " + f.groupHolds + " (wanted reqq,titleq)");
   if (f.orText !== "or" || !f.orVisible) bad.push(tag + "there is no visible or between the two boxes");
   if (f.sentence !== NEW_SENTENCE) bad.push(tag + "the sentence under the form is '" + f.sentence + "'");
-  if (!f.note.startsWith("A title search will not list all of a company's jobs, and it will not show postings that are not live. Closed or expired postings are found only by postID or req number.")) bad.push(tag + "the second line under the form changed: " + f.note.slice(0, 80));
+  if (!f.note.startsWith("A title search will not list all of a company's jobs, and it will not show openings that are not live. Closed or expired openings are found only by Opening ID or req number.")) bad.push(tag + "the second line under the form changed: " + f.note.slice(0, 80));
   if (f.sw > f.cw + 0.5) bad.push(tag + "the page scrolls sideways");
   if (width >= 1000) {
     if (!(f.c.l < f.r.l && f.r.l < f.t.l) || Math.abs(f.c.t - f.r.t) > 60 || Math.abs(f.r.t - f.t.t) > 6) bad.push(tag + "the three boxes are not in one row, company then req then title: " + JSON.stringify([f.c, f.r, f.t]));
-    if (f.o && !(f.r.r <= f.o.l + 1 && f.o.r <= f.t.l + 1)) bad.push(tag + "the or does not sit between the req number box and the postID / title box");
+    if (f.o && !(f.r.r <= f.o.l + 1 && f.o.r <= f.t.l + 1)) bad.push(tag + "the or does not sit between the req number box and the Opening ID / title box");
   } else {
     if (!(f.c.t < f.r.t && f.r.t < f.t.t)) bad.push(tag + "the three boxes are not stacked company, req, title");
     if (f.o && !(f.r.b <= f.o.t + 1 && f.o.b <= f.t.t + 40)) bad.push(tag + "the or does not sit between the two boxes when stacked");
@@ -190,8 +190,8 @@ const FORM_DEFECTS = [
   ["the heading Then one of these is missing", ["form"], [["search.html", (s) => s.replace("Then one of these</div>", "</div>")]]],
   ["the visible or is missing", ["form"], [["search.html", (s) => s.replace('<div class="srch-or">or</div>', '<div class="srch-or"></div>')]]],
   ["the or is hidden by the stylesheet", ["form"], [["app.css", (s) => s.replace(".srch-or{display:flex;", ".srch-or{display:none;")]]],
-  ["the old sentence is back", ["form"], [["search.html", (s) => s.replace(NEW_SENTENCE, "Fill in only one of the two lookup boxes: the req number, or the postID / title box. The req number is hidden as you type; press Show to check it.")]]],
-  ["the second line under the form is changed", ["form"], [["search.html", (s) => s.replace("Closed or expired postings are found only by postID or req number.", "Closed postings are found by postID.")]]],
+  ["the old sentence is back", ["form"], [["search.html", (s) => s.replace(NEW_SENTENCE, "Fill in only one of the two lookup boxes: the req number, or the Opening ID / title box. The req number is hidden as you type; press Show to check it.")]]],
+  ["the second line under the form is changed", ["form"], [["search.html", (s) => s.replace("Closed or expired openings are found only by Opening ID or req number.", "Closed openings are found by Opening ID.")]]],
   ["the three boxes are stacked on a wide window", ["form"], [["app.css", (s) => s.replace(".srch-company{margin-top:28px}", ".srch-company{margin-top:28px}.srch-form{flex-direction:column!important}")]]],
 ];
 const DEFECTS = [

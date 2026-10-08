@@ -40,7 +40,7 @@ const RECAP = `(() => { const r = document.getElementById("recap"), t = document
   const top = (e) => e.getBoundingClientRect().top, bottom = (e) => e.getBoundingClientRect().bottom, shown = !!r && !r.hidden && r.getClientRects().length > 0;
   const b = document.getElementById("recapEdit");
   return { shown, text: t ? t.textContent : null, formBottom: bottom(form), recapTop: shown ? top(r) : null, recapBottom: shown ? bottom(r) : null, countTop: cnt.hidden ? null : top(cnt), resultsTop: top(res), countText: cnt.hidden ? null : cnt.textContent,
-    btn: b ? { text: b.textContent.trim(), tag: b.tagName, h: b.getBoundingClientRect().height, w: b.getBoundingClientRect().width } : null, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, noMatchCount: (document.body.innerText.match(/No matching postings/gi) || []).length - (document.getElementById("searchStatus").textContent.match(/No matching postings/gi) || []).length }; })()`;
+    btn: b ? { text: b.textContent.trim(), tag: b.tagName, h: b.getBoundingClientRect().height, w: b.getBoundingClientRect().width } : null, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, noMatchCount: (document.body.innerText.match(/No matching openings/gi) || []).length - (document.getElementById("searchStatus").textContent.match(/No matching openings/gi) || []).length }; })()`;
 
 async function shot(tab, name) { if (SHOTS) { fs.mkdirSync(SHOTS, { recursive: true }); await tab.shotFull(path.join(SHOTS, name), 2400); } }
 
@@ -57,11 +57,11 @@ const SCENARIOS = {
         const before = await tab.eval(RECAP);
         if (before.shown) bad.push(tag + "a recap shows before any search");
         const cases = [
-          ["a title", "Meridian", "Nurse", "", sentence("Meridian", "title Nurse"), "2 matching postings"],
-          ["a req number", "Meridian", "", REQ, sentence("Meridian", "a req number was entered"), "2 matching postings"],
-          ["a postID", "Meridian", CODE, "", sentence("Meridian", "a postID was entered"), "2 matching postings"],
-          ["twelve plain letters (could be a postID)", "Meridian", PLAIN12, "", sentence("Meridian", "a postID was entered"), "2 matching postings"],
-          ["a search that finds nothing", "Zzyzx Unknown", "Nurse", "", sentence("Zzyzx Unknown", "title Nurse"), "No matching postings"],
+          ["a title", "Meridian", "Nurse", "", sentence("Meridian", "title Nurse"), "2 matching openings"],
+          ["a req number", "Meridian", "", REQ, sentence("Meridian", "a req number was entered"), "2 matching openings"],
+          ["an Opening ID", "Meridian", CODE, "", sentence("Meridian", "an Opening ID was entered"), "2 matching openings"],
+          ["twelve plain letters (could be an Opening ID)", "Meridian", PLAIN12, "", sentence("Meridian", "an Opening ID was entered"), "2 matching openings"],
+          ["a search that finds nothing", "Zzyzx Unknown", "Nurse", "", sentence("Zzyzx Unknown", "title Nurse"), "No matching openings"],
         ];
         for (const [what, company, title, req, want, wantCount] of cases) {
           await fill(tab, company, title, req); await tab.eval("window.__said = []"); await search(tab);
@@ -73,8 +73,8 @@ const SCENARIOS = {
           if (!(r.formBottom <= r.recapTop + 1 && r.recapBottom <= r.resultsTop + 1)) bad.push(tag + what + ": the recap is not between the form and the results " + JSON.stringify([r.formBottom, r.recapTop, r.recapBottom, r.resultsTop]));
           if (r.countText !== wantCount) bad.push(tag + what + ": the count line says '" + r.countText + "'");
           if (r.countTop !== null && !(r.recapBottom <= r.countTop + 1)) bad.push(tag + what + ": the count line is not under the recap");
-          if (/matching posting/i.test(r.text || "")) bad.push(tag + what + ": the recap repeats the count");
-          if (r.noMatchCount > (wantCount === "No matching postings" ? 1 : 0)) bad.push(tag + what + ": 'No matching postings' appears " + r.noMatchCount + " times on the page");
+          if (/matching opening/i.test(r.text || "")) bad.push(tag + what + ": the recap repeats the count");
+          if (r.noMatchCount > (wantCount === "No matching openings" ? 1 : 0)) bad.push(tag + what + ": 'No matching openings' appears " + r.noMatchCount + " times on the page");
           if (!r.btn || r.btn.tag !== "BUTTON" || r.btn.text !== "Edit this search") bad.push(tag + what + ": no real Edit this search button (" + JSON.stringify(r.btn) + ")");
           else if (r.btn.h < 43.5 && phone) bad.push(tag + what + ": the Edit this search button is only " + Math.round(r.btn.h) + " high on a phone");
           else if (r.btn.h < 23.5 || r.btn.w < 23.5) bad.push(tag + what + ": the Edit this search button is smaller than 24 x 24");
@@ -137,7 +137,7 @@ const SCENARIOS = {
 
 async function withSite(root, fn) { const site = await startFakeSite(root); try { return await fn(site); } finally { await site.close(); } }
 
-test("search recap: boxes emptied, read-only recap between form and results, req and postID never shown, Edit this search, no recap when a search is stopped, one spoken message", { timeout: 600000 }, async () => {
+test("search recap: boxes emptied, read-only recap between form and results, req and Opening ID never shown, Edit this search, no recap when a search is stopped, one spoken message", { timeout: 600000 }, async () => {
   const problems = [];
   await withSite(ROOT, async (site) => { for (const n of Object.keys(SCENARIOS)) for (const p of await SCENARIOS[n](site)) problems.push(n + ": " + p); });
   assert.deepEqual(problems, [], "recap problems:\n" + problems.join("\n"));
@@ -146,9 +146,9 @@ test("search recap: boxes emptied, read-only recap between form and results, req
 const DEFECTS = [
   ["the boxes are not emptied after a search", ["kinds"], [["js/pages/search.js", (s) => s.replace('companyIn.value = ""; queryIn.value = ""; reqIn.value = "";\n  const text', "const text")]]],
   ["the req number is shown in clear", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"req\" ? RECAP.REQ", "search.kind === \"req\" ? \"req \" + search.value")]]],
-  ["the postID is shown in clear", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" ? \"postID \" + search.value : search.alsoTryCode ? RECAP.CODE")]]],
+  ["the Opening ID is shown in clear", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" ? \"Opening ID \" + search.value : search.alsoTryCode ? RECAP.CODE")]]],
   ["twelve plain letters are printed as a title", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" ? RECAP.CODE")]]],
-  ["the recap repeats the count", ["kinds"], [["js/search-recap.js", (s) => s.replace('"." + RECAP.TAIL', '"." + RECAP.TAIL + " 2 matching postings"')]]],
+  ["the recap repeats the count", ["kinds"], [["js/search-recap.js", (s) => s.replace('"." + RECAP.TAIL', '"." + RECAP.TAIL + " 2 matching openings"')]]],
   ["the recap sentence is reworded", ["kinds"], [["js/search-recap.js", (s) => s.replace('TAIL: " Your results are below."', 'TAIL: " The results are below."')]]],
   ["the recap sits under the results", ["kinds"], [["search.html", (s) => { const a = s.indexOf('    <div id="recap" class="recap" hidden>'), b = s.indexOf('    <div id="searchStatus"'), blk = s.slice(a, b), rest = s.slice(0, a) + s.slice(b), at = rest.indexOf('    <div id="results"'), end = rest.indexOf("</div>", at) + 7; return rest.slice(0, end) + blk + rest.slice(end); }]]],
   ["the Edit this search button is a plain link-looking span", ["kinds"], [["search.html", (s) => s.replace('<button type="button" id="recapEdit" class="btn btn-outline btn-sm">Edit this search</button>', '<span id="recapEdit" tabindex="0" class="btn btn-outline btn-sm">Edit this search</span>')]]],

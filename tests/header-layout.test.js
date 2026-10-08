@@ -148,7 +148,7 @@ export function problems(m, { width, phone, signedIn }) {
   need("logo", 1); need("wordmark", 1); need("link", 3);
   if (signedIn) {
     need("circle", 1);
-    for (const t of ["My postings", "Analytics", "Team", "Sign out"]) if (!m.controls.some((c) => c.kind === "button" && c.name === t && c.shown)) P.push("'" + t + "' is missing or hidden");
+    for (const t of ["My openings", "Analytics", "Team", "Sign out"]) if (!m.controls.some((c) => c.kind === "button" && c.name === t && c.shown)) P.push("'" + t + "' is missing or hidden");
   }
   if (phone) {
     // touch targets: 44 pixels both ways (the drawn size or its invisible margin)

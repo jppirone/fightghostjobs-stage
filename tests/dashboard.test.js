@@ -19,7 +19,7 @@ test("closing soon: live or paused, and 10 days or fewer left (exactly 10 days c
   assert.equal(isClosingSoon(row({ status: "draft", expiration_date: null }), NOW), false);
 });
 
-test("status chips say what the posting is, in the site's own words", () => {
+test("status chips say what the opening is, in the site's own words", () => {
   const t = (o) => statusChip(row(o), NOW);
   assert.deepEqual(t({}), { text: "Live", cls: "status-active" });
   assert.deepEqual(t({ expiration_date: at(4) }), { text: "Closing soon", cls: "status-closing" });
@@ -33,7 +33,7 @@ test("status chips say what the posting is, in the site's own words", () => {
   assert.equal(t({ status: "closed", closed_reason: null }).text, "Closed");
 });
 
-test("filters: each posting lands under the right pill; Closed includes expired; All includes everything", () => {
+test("filters: each opening lands under the right pill; Closed includes expired; All includes everything", () => {
   const rows = { live: row({}), closing: row({ expiration_date: at(4) }), paused: row({ status: "paused" }), draft: row({ status: "draft" }), closed: row({ status: "closed" }), expired: row({ status: "expired" }), flagged: row({ status: "flagged" }) };
   const count = (key) => Object.entries(rows).filter(([, r]) => matchesFilter(r, key, NOW)).map(([n]) => n).sort().join(",");
   assert.equal(count("all"), "closed,closing,draft,expired,flagged,live,paused");
@@ -45,7 +45,7 @@ test("filters: each posting lands under the right pill; Closed includes expired;
   assert.deepEqual(FILTERS.map((f) => f[0]), ["all", "live", "closing", "paused", "scheduled", "draft", "closed"]);
 });
 
-test("text filter: title, req number or postID, ignoring case and punctuation", () => {
+test("text filter: title, req number or Opening ID, ignoring case and punctuation", () => {
   const r = row({ title: "Senior Data Analyst", req_number: "R-2026/0451", post_id: "K7Q3W9ZT2XPM" });
   assert.equal(matchesText(r, ""), true);
   assert.equal(matchesText(r, "data analyst"), true);

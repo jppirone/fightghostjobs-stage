@@ -84,7 +84,7 @@ test("typed rows in the sections that save separately: blank boxes are not work,
   assert.equal(rowsTyped(undefined), false); assert.equal(rowsTyped([]), false);
 });
 
-test("the rules found only on Save are shown as soon as they apply: a live or paused posting needs the note; a draft does not; the title rule appears when the title is changed", () => {
+test("the rules found only on Save are shown as soon as they apply: a live or paused opening needs the note; a draft does not; the title rule appears when the title is changed", () => {
   const live = posting(), paused = posting({ stored_status: "paused", status: "paused" }), draft = posting({ stored_status: "draft", status: "draft" });
   assert.deepEqual(earlyRules(live, form(), false), { noteRequired: false, noteMissing: false, titleRule: false }, "nothing changed: nothing is required yet");
   assert.deepEqual(earlyRules(live, form({ desc: "x" }), true), { noteRequired: true, noteMissing: true, titleRule: false });
@@ -99,8 +99,8 @@ test("the rules found only on Save are shown as soon as they apply: a live or pa
 test("the words: the bar says what is unsaved, never claims Save changes covers the sections that save separately, and has no em dash", () => {
   const f = summarize({ form: true, panels: [], status: "live", noteMissing: true, noteRequired: true });
   assert.equal(f.any, true); assert.equal(f.headline, "You have unsaved changes"); assert.equal(f.showSave, true);
-  assert.equal(f.detail, "They take effect only when you press Save changes. This posting is live, so add a note saying what changed and why.");
-  assert.equal(f.liveText, "You have unsaved changes. They take effect only when you press Save changes. This posting is live, so a change to it needs a note. Say what changed and why.");
+  assert.equal(f.detail, "They take effect only when you press Save changes. This opening is live, so add a note saying what changed and why.");
+  assert.equal(f.liveText, "You have unsaved changes. They take effect only when you press Save changes. This opening is live, so a change to it needs a note. Say what changed and why.");
   const typed = summarize({ form: true, panels: [], status: "live", noteMissing: false, noteRequired: true });
   assert.equal(typed.detail, "They take effect only when you press Save changes."); assert.equal(typed.liveText, f.liveText, "typing the note does not change what a screen reader is told, so it is not read again");
   const l = summarize({ form: false, panels: [PANEL.LINKS], status: "live" });
@@ -119,7 +119,7 @@ test("the words: the bar says what is unsaved, never claims Save changes covers 
   assert.match(summarize({ form: false, panels: [PANEL.LINKS] }).dialogText, /saved with its own button, not with Save changes\./);
   const all = JSON.stringify([UNSAVED, summarize({ form: true, panels: [PANEL.LINKS, PANEL.FIRMS, PANEL.GOLIVE], status: "live", noteMissing: true, noteRequired: true }), UNSAVED.titleRule("live"), UNSAVED.noteRequired("paused")]);
   assert.equal(all.includes("—"), false, "no em dash");
-  assert.equal(UNSAVED.titleRule("live"), "On a live posting, a new title must keep at least 60% of the wording of the current one. A bigger change needs a new posting.");
+  assert.equal(UNSAVED.titleRule("live"), "On a live opening, a new title must keep at least 60% of the wording of the current one. A bigger change needs a new opening.");
 });
 
 test("which clicks leave the page: a plain click on a link does; a new tab, a download, an anchor, mail and a modified click do not", () => {
@@ -176,7 +176,7 @@ test("the bar: hidden and silent before any change; after a change it shows, say
   let r = d.win.run("beforeunload"); assert.equal(r.ev.defaultPrevented, false);
   pg.edit({ title: "Senior Data Analyst" });
   assert.equal(d.bar.hidden, false); assert.equal(d.head.textContent, "You have unsaved changes"); assert.equal(d.saveBtn.hidden, false); assert.equal(d.classes.has("unsaved-on"), true);
-  assert.match(d.live.textContent, /^You have unsaved changes\. They take effect only when you press Save changes\. This posting is live, so a change to it needs a note\./);
+  assert.match(d.live.textContent, /^You have unsaved changes\. They take effect only when you press Save changes\. This opening is live, so a change to it needs a note\./);
   assert.equal(d.win.count("beforeunload"), 1); r = d.win.run("beforeunload"); assert.equal(r.ev.defaultPrevented, true); assert.equal(r.ev.returnValue, "");
   pg.edit({ title: "Data Analyst" });
   assert.equal(d.bar.hidden, true); assert.equal(d.live.textContent, "No unsaved changes.", "the screen reader region says, once, that nothing is unsaved any more (October 5, 2026: it used to be emptied, which says nothing)"); assert.equal(d.win.count("beforeunload"), 0); assert.equal(d.win.run("beforeunload").ev.defaultPrevented, false); assert.equal(d.classes.has("unsaved-on"), false);
@@ -213,7 +213,7 @@ test("the bar's Save button is reachable and never offered for work Save changes
   pg.panels.add(PANEL.LINKS); pg.guard.refresh();
   assert.equal(d.bar.hidden, false); assert.equal(d.head.textContent, "Destination links not saved yet"); assert.equal(d.saveBtn.hidden, true, "the main Save is not offered for the links");
   assert.match(d.detail.textContent, /^Save changes does not save them\. Press Save destination links in that section, or press Discard\.$/); assert.equal(d.win.count("beforeunload"), 1, "a pending section also warns on leave");
-  pg.edit({ title: "Y" }); assert.equal(d.saveBtn.hidden, false); assert.equal(d.head.textContent, "You have unsaved changes"); assert.equal(d.detail.textContent, "Save changes does not save the destination links. Press Save destination links in that section, or press Discard. This posting is live, so add a note saying what changed and why.");
+  pg.edit({ title: "Y" }); assert.equal(d.saveBtn.hidden, false); assert.equal(d.head.textContent, "You have unsaved changes"); assert.equal(d.detail.textContent, "Save changes does not save the destination links. Press Save destination links in that section, or press Discard. This opening is live, so add a note saying what changed and why.");
 });
 
 // the bar for the destination links, case by case (the two kinds of unsaved links work: typed NEW rows, and the open Edit of a STORED link, which has its own Save inside the link)
@@ -232,11 +232,11 @@ test("the destination links bar names the right button: typed rows, an open Edit
   const f = summarize({ form: true, panels: [PANEL.LINKS], linkRows: true, linkEdit: false, status: "live", noteMissing: false, noteRequired: false });
   assert.equal(f.headline, "You have unsaved changes"); assert.equal(f.detail, FORM); assert.equal(f.liveText, "You have unsaved changes. " + FORM); assert.equal(f.showSave, true);
   // the note sentence still follows when the posting needs one
-  assert.equal(summarize({ form: true, panels: [PANEL.LINKS], linkRows: true, linkEdit: false, status: "live", noteMissing: true, noteRequired: true }).detail, FORM + " This posting is live, so add a note saying what changed and why.");
+  assert.equal(summarize({ form: true, panels: [PANEL.LINKS], linkRows: true, linkEdit: false, status: "live", noteMissing: true, noteRequired: true }).detail, FORM + " This opening is live, so add a note saying what changed and why.");
   // 4. the main form and the open Edit of a stored link (nothing else): the form's lead, the text names the Save on that link
   const fe = summarize({ form: true, panels: [PANEL.LINKS], linkRows: false, linkEdit: true, status: "live", noteMissing: false, noteRequired: false });
   assert.equal(fe.headline, "You have unsaved changes"); assert.equal(fe.detail, FORM_EDIT); assert.equal(fe.liveText, "You have unsaved changes. " + FORM_EDIT); assert.equal(fe.showSave, true);
-  assert.equal(summarize({ form: true, panels: [PANEL.LINKS], linkRows: false, linkEdit: true, status: "live", noteMissing: true, noteRequired: true }).detail, FORM_EDIT + " This posting is live, so add a note saying what changed and why.");
+  assert.equal(summarize({ form: true, panels: [PANEL.LINKS], linkRows: false, linkEdit: true, status: "live", noteMissing: true, noteRequired: true }).detail, FORM_EDIT + " This opening is live, so add a note saying what changed and why.");
   // 5. typed new rows and the open Edit of a stored link together (the main form saved): the section's lead, both buttons named
   const both = summarize({ form: false, panels: [PANEL.LINKS], linkRows: true, linkEdit: true });
   assert.equal(both.headline, "Destination links not saved yet"); assert.equal(both.detail, BOTH); assert.equal(both.liveText, "Destination links not saved yet. " + BOTH); assert.equal(both.showSave, false);
@@ -256,12 +256,12 @@ test("the bar on the page shows the Edit-of-a-stored-link text while an Edit is 
   assert.equal(d.detail.textContent, "Save changes does not save them. Press Save destination links in that section, or press Discard.");
   pg.edit({ title: "Z" }); assert.equal(d.head.textContent, "You have unsaved changes");
   const FORM = "Save changes does not save the destination links. Press Save destination links in that section, or press Discard.";
-  assert.ok(d.detail.textContent === FORM || d.detail.textContent === FORM + " This posting is " + pg.status + ", so add a note saying what changed and why.", "the form text, with the note sentence only when the posting needs a note: " + d.detail.textContent);
+  assert.ok(d.detail.textContent === FORM || d.detail.textContent === FORM + " This opening is " + pg.status + ", so add a note saying what changed and why.", "the form text, with the note sentence only when the opening needs a note: " + d.detail.textContent);
   // the form is still changed, and the open Edit of a stored link is the only links work: the form's lead, the text names the Save on that link
   pg.linkRows = false; pg.linkEdit = true; pg.guard.refresh();
   assert.equal(d.head.textContent, "You have unsaved changes");
   const FE = "Save changes does not save the link you are editing. Press Save on that link, or press Discard.";
-  assert.ok(d.detail.textContent === FE || d.detail.textContent === FE + " This posting is " + pg.status + ", so add a note saying what changed and why.", d.detail.textContent);
+  assert.ok(d.detail.textContent === FE || d.detail.textContent === FE + " This opening is " + pg.status + ", so add a note saying what changed and why.", d.detail.textContent);
   // discard the form changes: typed rows and the open Edit together, the main form saved
   pg.v = form(); pg.linkRows = true; pg.linkEdit = true; pg.guard.refresh();
   assert.equal(d.head.textContent, "Destination links not saved yet");
@@ -281,7 +281,7 @@ test("leaving by one of the page's own links: nothing unsaved goes straight thro
   d.opener.focus(); const ev = {}; const held = pg.guard.interceptClick(Object.assign(ev, { button: 0, preventDefault() { ev.defaultPrevented = true; }, stopImmediatePropagation() { ev.stopped = true; } }), { kind: "link", href: "dashboard.html", el: d.opener });
   assert.equal(held, true); assert.equal(ev.defaultPrevented, true); assert.equal(ev.stopped, true); assert.equal(pg.went.length, 0, "not left yet");
   assert.equal(d.dlg.overlay.hidden, false); assert.equal(d.doc.active, d.dlg.stay, "focus moves into the dialog, on the choice that loses nothing");
-  assert.equal(d.dlg.title.textContent, "You have unsaved changes"); assert.equal(d.dlg.text.textContent, "If you leave this page now, your changes to this posting are lost.");
+  assert.equal(d.dlg.title.textContent, "You have unsaved changes"); assert.equal(d.dlg.text.textContent, "If you leave this page now, your changes to this opening are lost.");
   assert.equal(d.dlg.save.hidden, false); assert.equal(d.dlg.save.textContent, "Save and leave");
   assert.equal(pg.guard.dialogOpen(), true);
 });
@@ -318,9 +318,9 @@ test("the dialog's Save: a good save leaves; a refused save stays (bar and warni
   assert.equal(pg.saves, 1); assert.equal(pg.went.length, 0, "a refused save does not leave"); assert.equal(d.dlg.overlay.hidden, true, "the dialog closes so the person can read why");
   assert.equal(d.bar.hidden, false); assert.equal(d.win.count("beforeunload"), 1); assert.equal(d.doc.active, d.opener, "focus is back where it was");
   pg = makePage(); d = pg.dom; pg.panels.add(PANEL.LINKS);
-  pg.edit({ title: "Senior" }); pg.leaveClick(); assert.equal(d.dlg.save.textContent, "Save changes"); assert.match(d.dlg.text.textContent, /Save changes saves the posting only\./);
+  pg.edit({ title: "Senior" }); pg.leaveClick(); assert.equal(d.dlg.save.textContent, "Save changes"); assert.match(d.dlg.text.textContent, /Save changes saves the opening only\./);
   await d.dlg.save.fire("click");
-  assert.equal(pg.saves, 1); assert.equal(pg.went.length, 0, "the posting is saved but the links are not: the person stays"); assert.equal(d.head.textContent, "Destination links not saved yet");
+  assert.equal(pg.saves, 1); assert.equal(pg.went.length, 0, "the opening is saved but the links are not: the person stays"); assert.equal(d.head.textContent, "Destination links not saved yet");
 });
 
 test("leaving with only a section unsaved: the dialog names it, offers no Save, and Discard leaves", async () => {
@@ -370,14 +370,14 @@ test("edit.js: the guard is wired in, every save path says whether it saved, and
   assert.match(js, /document\.addEventListener\("click", \(ev\) => \{[\s\S]*?guard\.interceptClick\(ev, \{ kind: "link"[\s\S]*?"#navAccount button:not\(\.avatar-btn\)"[\s\S]*?\}, true\);/, "a capture-phase click handler holds back links and Sign out (but not the initials circle, which only opens a label)");
   assert.ok(js.includes('for (const t of ["input", "change", "click", "keyup"]) document.addEventListener(t, () => refreshUnsaved());'));
   assert.ok(js.includes("onChange: () => refreshUnsaved()"), "the location picker reports its changes");
-  assert.ok(js.includes("state.baseline = snapshotOf(collect());"), "the snapshot is taken when a posting is loaded or saved");
+  assert.ok(js.includes("state.baseline = snapshotOf(collect());"), "the snapshot is taken when an opening is loaded or saved");
   assert.match(js, /async function submit\(\) \{\n  if \(state\.busy \|\| !state\.orig\) return false;/);
   const sub = js.slice(js.indexOf("async function submit() {"), js.indexOf("async function submitLinks"));
   assert.equal((sub.match(/return true;/g) || []).length, 2, "saved, and nothing-to-change"); assert.ok((sub.match(/return false;/g) || []).length >= 5, "every refusal returns false, so the warning stays");
   // the three sections that save separately read the posting again WITHOUT throwing away the main form's unsaved edits, and the main save without throwing away their typed work
   for (const [call, label] of [["populate(reload.data, { keepForm: true, saved: PANEL.LINKS })", "links form"], ["populate(reload.data, { keepForm: true, saved: PANEL.FIRMS })", "firms"], ["populate(reload.data, { keepForm: true, saved: PANEL.GOLIVE })", "go-live"]]) assert.ok(js.includes(call), label);
   assert.ok(js.includes("populate(reload.data, { keepForm: true, saved: PANEL.LINKS }); },"), "the links panel's stale reload");
-  assert.equal((js.match(/populate\((reload|same)\.data\)/g) || []).length, 2, "only the main Save (saved, or the server found nothing to change) reads the posting into the whole form");
+  assert.equal((js.match(/populate\((reload|same)\.data\)/g) || []).length, 2, "only the main Save (saved, or the server found nothing to change) reads the opening into the whole form");
   assert.equal((js.match(/(await populate|function populate)\(/g) || []).length, 10, "populate: its definition and nine calls (load, the main Save twice, links form twice, links panel, firms, go-live, Discard): a new call must decide what it keeps");
   assert.ok(js.includes('populate(state.doc, { saved: "*" })'), "Discard puts the saved values back everywhere");
   assert.ok(js.includes("if (!state.linksBusy && !state.keepPanels.has(PANEL.LINKS)) resetLinkRows();") && js.includes("if (!state.firmsBusy && !state.keepPanels.has(PANEL.FIRMS)) firms.reset();") && js.includes("if (!state.keepPanels.has(PANEL.GOLIVE)) $(\"#gldate\").value = state.glBaseline;"));

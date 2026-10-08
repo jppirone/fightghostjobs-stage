@@ -72,11 +72,11 @@ control("the current page loses aria-current", "S31", edit("search.html", (s) =>
 control("a new tab opened without noopener", "S12", append("js/pages/index.js", "window.open('x.html', '_blank');"));
 control("app.css loaded before styles.css", "S13", edit("register.html", (s) => s.replace('<link rel="stylesheet" href="styles.css">\n<link rel="stylesheet" href="app.css">', '<link rel="stylesheet" href="app.css">\n<link rel="stylesheet" href="styles.css">')));
 
-control("the closed-or-expired sentence removed from the note", "S14", edit("js/search-input.js", (s) => s.replace(" A title search finds only postings that are live: closed or expired postings are found only by postID or req number.", "")));
-control("the sentence reworded", "S14", edit("js/search-input.js", (s) => s.replace("are found only by postID or req number.", "may be found by postID or req number.")));
-control("search.js goes back to its own hand-written message", "S14", edit("js/pages/search.js", (s) => s.replace("noMatchMessage(searched.company, searched.query, searched.kind))", "\"No postings found. Check the name.\")")));
+control("the closed-or-expired sentence removed from the note", "S14", edit("js/search-input.js", (s) => s.replace(" A title search finds only openings that are live: closed or expired openings are found only by Opening ID or req number.", "")));
+control("the sentence reworded", "S14", edit("js/search-input.js", (s) => s.replace("are found only by Opening ID or req number.", "may be found by Opening ID or req number.")));
+control("search.js goes back to its own hand-written message", "S14", edit("js/pages/search.js", (s) => s.replace("noMatchMessage(searched.company, searched.query, searched.kind))", "\"No openings found. Check the name.\")")));
 control("search.js no longer imports the message builder", "S14", edit("js/pages/search.js", (s) => s.replace("resolveSearch, noMatchMessage, searchErrorMessage", "resolveSearch, searchErrorMessage")));
-control("the message stops echoing what was searched", "S14", edit("js/search-input.js", (s) => s.split("return \"No postings found for").join("return \"Nothing for")));
+control("the message stops echoing what was searched", "S14", edit("js/search-input.js", (s) => s.split("return \"No openings found for").join("return \"Nothing for")));
 control("the message stops carrying the note", "S14", edit("js/search-input.js", (s) => s.replace("+ what + \". \" + NO_MATCH_NOTE;", "+ what + \".\";")));
 
 control("the form range drifts (floor 7)", "S15", edit("js/register-form.js", (s) => s.replace("MIN_WINDOW_DAYS = 14", "MIN_WINDOW_DAYS = 7")));
@@ -85,13 +85,13 @@ control("the dashboard table is wrapped in an element that clips it", "S17", edi
 control("the candidate req box is a plain visible text box", "S18", edit("search.html", (s) => s.replace('id="reqq" class="srch-input" type="password"', 'id="reqq" class="srch-input" type="text"')));
 control("the show/hide toggle for the req box is gone", "S18", edit("search.html", (s) => s.replace('id="reqToggle"', 'id="reqTogglX"')));
 control("the register form loses the requirements-text hint wording", "S19", edit("register.html", (s) => s.replace("Small corrections (a typo, a tightened sentence, a dropped line) save straight away", "Corrections save")));
-control("the edit page loses the requirements-text hint wording", "S19", edit("edit.html", (s) => s.replace("we'll ask you to register it as a new posting with its own req number", "we'll ask you")));
-control("the edit page's note label is changed", "S19", edit("edit.html", (s) => s.replace("(required; kept with the posting).", "(optional).")));
+control("the edit page loses the requirements-text hint wording", "S19", edit("edit.html", (s) => s.replace("we'll ask you to register it as a new opening with its own req number", "we'll ask you")));
+control("the edit page's note label is changed", "S19", edit("edit.html", (s) => s.replace("(required; kept with the opening).", "(optional).")));
 control("the edit page loses its destination-links form", "S20", edit("edit.html", (s) => s.replace('id="linksForm"', 'id="linksFormX"')));
 control("the locked section no longer points to sales", "S20", edit("edit.html", (s) => s.split("Write to sales@fightghostjobs.com →").join("Ask around")));
 control("the edit page no longer saves links through the API", "S20", edit("js/pages/edit.js", (s) => s.replace("api.setDestinationLinks(", "api.somethingElse(")));
 control("the edit page reads an address back from a stored link", "S20", append("js/pages/edit.js", "const leak = (doc) => doc.destination_links.map((x) => x.url);"));
-control("the register form's go-live disclosure is reworded", "S21", edit("register.html", (s) => s.replace("Your posting goes live within 15 minutes after that time", "Your posting goes live at that time")));
+control("the register form's go-live disclosure is reworded", "S21", edit("register.html", (s) => s.replace("Your opening goes live within 15 minutes after that time", "Your opening goes live at that time")));
 control("the edit page's go-live disclosure is reworded", "S21", edit("edit.html", (s) => s.replace("counted from the moment it actually goes live, not from now", "counted from now")));
 control("the go-live input is a plain text box", "S21", edit("register.html", (s) => s.replace('<input id="gldate" type="datetime-local"', '<input id="gldate" type="text"')));
 control("the register form loses its 'on a date and time' choice", "S21", edit("register.html", (s) => s.replace('id="glLater"', 'id="glLaterX"')));
@@ -101,7 +101,7 @@ control("privacy.html loses the cookie sentence", "S22", edit("privacy.html", (s
 control("privacy.html loses the email paragraph", "S22", edit("privacy.html", (s) => s.replace('id="privacyEmails"', 'id="privacyEmailsX"')));
 control("privacy.html stops saying what an email never carries", "S22", edit("privacy.html", (s) => s.replace("never its description, a comment's text or an apply link", "never much")));
 control("privacy.html loses the sentence about the contest outcome email", "S22", edit("privacy.html", (s) => s.replace("When a contest on a comment is decided, we email the outcome to the account that filed it.", "")));
-control("privacy.html loses the sentence about the staff email when a contest is filed", "S22", edit("privacy.html", (s) => s.replace("When a contest is filed, we may email our own staff the organization, posting and reason category.", "")));
+control("privacy.html loses the sentence about the staff email when a contest is filed", "S22", edit("privacy.html", (s) => s.replace("When a contest is filed, we may email our own staff the organization, opening and reason category.", "")));
 control("privacy.html loses the sentence that the contest email carries no comment or explanation", "S22", edit("privacy.html", (s) => s.replace("That email does not include the comment or your explanation.", "")));
 control("the contest outcome sentence moves out of the emails paragraph", "S22", edit("privacy.html", (s) => s.replace(" When a contest on a comment is decided, we email the outcome to the account that filed it.", "").replace('id="privacyContests">', 'id="privacyContests">When a contest on a comment is decided, we email the outcome to the account that filed it. ')));
 control("a page loses its privacy footer link", "S22", edit("dashboard.html", (s) => s.replace('<a href="privacy.html">Privacy</a>', '<a href="index.html">Privacy</a>')));
@@ -227,15 +227,15 @@ control("the analytics page heading says analytics is free", "S35", edit("analyt
 control("a page says analytics is part of the destination links tier", "S35", append("register.html", "<p>Analytics are part of the destination links tier.</p>"));
 control("a script string says employer reporting is a paid feature", "S35", append("js/pages/analytics.js", 'const tierNote = "Employer reporting is a paid feature";'));
 control("a page says click analytics are included on every tier", "S35", append("dashboard.html", "<p>Impression and click analytics are included on every tier.</p>"));
-control("the employer note goes back to having a comment looked at", "S36", edit("comments.html", (s) => s.replace("This page shows the comments on this one posting.", "To have one looked at, write to us with the postID.")));
+control("the employer note goes back to having a comment looked at", "S36", edit("comments.html", (s) => s.replace("This page shows the comments on this one opening.", "To have one looked at, write to us with the Opening ID.")));
 control("a page says an employer can contest a comment", "S36", append("dashboard.html", "<p>You can contest a comment about your company.</p>"));
-control("a page says employers can dispute comments", "S36", append("register.html", "<p>Employers may dispute comments on their postings.</p>"));
-control("a script string says an employer sees comments across all their postings", "S36", append("js/pages/dashboard.js", 'const cNote = "Read the comments across all your postings in one place";'));
-control("the employer note loses the one-posting statement", "S36", edit("comments.html", (s) => s.replace("This page shows the comments on this one posting.", "Comments appear here.")));
+control("a page says employers can dispute comments", "S36", append("register.html", "<p>Employers may dispute comments on their openings.</p>"));
+control("a script string says an employer sees comments across all their openings", "S36", append("js/pages/dashboard.js", 'const cNote = "Read the comments across all your openings in one place";'));
+control("the employer note loses the one-posting statement", "S36", edit("comments.html", (s) => s.replace("This page shows the comments on this one opening.", "Comments appear here.")));
 // S36 (rewritten 2026-10-02, item A): the contest notice, the six reasons, the owner-only control, no editing, no hide or delete, no promised response time, the privacy sentence
-const NOTICE_TXT = "This comment has been contested by the employer/poster and is under review. It may be removed after additional investigation, at the sole discretion of FightGhostJobs.com.";
+const NOTICE_TXT = "This comment has been contested by the employer and is under review. It may be removed after additional investigation, at the sole discretion of FightGhostJobs.com.";
 control("the notice is reworded in its one place", "S36", edit("js/comments-model.js", (s) => s.replace("after additional investigation, at the sole discretion", "after a review, at the discretion")));
-control("the notice loses 'employer/poster'", "S36", edit("js/comments-model.js", (s) => s.replace("contested by the employer/poster and is under review", "contested by the employer and is under review")));
+control("the notice gets 'employer/poster' back", "S36", edit("js/comments-model.js", (s) => s.replace("contested by the employer and is under review", "contested by the employer/poster and is under review")));
 control("the notice is copied into a page script", "S36", append("js/pages/comments.js", "const _copy = \"" + NOTICE_TXT + "\";"));
 control("the notice is copied into comments.html", "S36", edit("comments.html", (s) => s.replace("</main>", "<p>" + NOTICE_TXT + "</p></main>")));
 control("a reworded copy of the notice appears in another script", "S36", append("js/pages/dashboard.js", "const _n = 'Contested; the sole discretion of FightGhostJobs.com applies';"));
@@ -247,7 +247,7 @@ control("the notice block shows its own text instead of the shared one", "S36", 
 control("the notice has no visible border", "S36", edit("app.css", (s) => s.replace(".contest-notice{border:2px solid var(--ember-dark);", ".contest-notice{border:0 solid var(--ember-dark);")));
 control("a reason label is reworded", "S36", edit("js/comments-model.js", (s) => s.replace('label: "Abusive language"', 'label: "Rude language"')));
 control("a seventh reason is added", "S36", edit("js/comments-model.js", (s) => s.replace('  { code: "other", label: "Other" },', '  { code: "spam", label: "Spam" },\n  { code: "other", label: "Other" },')));
-control("a reason is removed", "S36", edit("js/comments-model.js", (s) => s.replace('  { code: "not_about_posting", label: "Not about this posting" },\n', "")));
+control("a reason is removed", "S36", edit("js/comments-model.js", (s) => s.replace('  { code: "not_about_posting", label: "Not about this opening" },\n', "")));
 control("the reasons change order", "S36", edit("js/comments-model.js", (s) => s.replace('  { code: "abusive", label: "Abusive language" },\n  { code: "other", label: "Other" },', '  { code: "other", label: "Other" },\n  { code: "abusive", label: "Abusive language" },')));
 control("a reason code is changed", "S36", edit("js/comments-model.js", (s) => s.replace('code: "closed_or_outdated"', 'code: "closed"')));
 control("the dropdown is hard-coded instead of built from the list", "S36", edit("js/contest-ui.js", (s) => s.replace('CONTEST_CATEGORIES.map((c) => h("option", { value: c.code }, c.label))', 'h("option", { value: "other" }, "Other")')));
@@ -309,13 +309,13 @@ control("the privacy sentence stops saying the comment stays visible", "S36", ed
 control("the privacy sentence says candidates see the explanation", "S36", edit("privacy.html", (s) => s.replace("not shown to candidates", "shown to candidates")));
 control("a script says employers can challenge a comment", "S36", append("js/pages/dashboard.js", 'const _ch = "Challenge a comment about your company";'));
 control("a script says an employer can reply to a comment", "S36", append("js/pages/dashboard.js", 'const _rp = "Reply to a comment from here";'));
-control("the dashboard offers to contest a comment", "S36", append("js/pages/dashboard.js", 'const _ct = "Contest a comment on this posting";'));
+control("the dashboard offers to contest a comment", "S36", append("js/pages/dashboard.js", 'const _ct = "Contest a comment on this opening";'));
 // S32: public wording (2026-09-30)
 control("the search badge goes back to Verified", "S32", edit("js/pages/search.js", (s) => s.replace('"\u2713 Registered"', '"\u2713 Verified"')));
-control("the details dialog says the listing is verified again", "S32", edit("js/pages/search.js", (s) => s.replace("This posting was registered through FightGhostJobs by a registered poster.", "This listing is verified: a real employer registered it directly with FightGhostJobs.")));
-control("the details dialog loses what FightGhostJobs has not confirmed", "S32", edit("js/pages/search.js", (s) => s.replace(", that the poster works for the company named, or that the employer will respond.", ".")));
+control("the details dialog says the listing is verified again", "S32", edit("js/pages/search.js", (s) => s.replace("This opening was registered through FightGhostJobs by a registered employer.", "This listing is verified: a real employer registered it directly with FightGhostJobs.")));
+control("the details dialog loses what FightGhostJobs has not confirmed", "S32", edit("js/pages/search.js", (s) => s.replace(", that the employer representative works for the company named, or that the employer will respond.", ".")));
 control("the sample card badge says Verified again", "S32", edit("index.html", (s) => s.replace('<div class="pill badge-verified">\u2713 Registered</div>', '<div class="pill badge-verified">\u2713 Verified</div>')));
-control("the home pill says a free public registry again", "S32", edit("index.html", (s) => s.replace(">A registry of job postings disclosed by employers</div>", ">A free public registry</div>")));
+control("the home pill says a free public registry again", "S32", edit("index.html", (s) => s.replace(">A registry of job openings disclosed by employers</div>", ">A free public registry</div>")));
 control("the home page promises free, always", "S32", edit("index.html", (s) => s.replace(">to register and disclose</div>", ">to register and disclose, always</div>")));
 control("the home page says permanently", "S32", edit("index.html", (s) => s.replace("Included on every tier.", "Free, on every tier, permanently.")));
 control("the home page says it costs nothing", "S32", edit("index.html", (s) => s.replace("Show candidates the facts about your listing. The core facts are free to publish.", "Prove your listing is real. It costs nothing to start.")));
@@ -323,10 +323,10 @@ control("the home page says free, forever", "S32", edit("index.html", (s) => s.r
 control("the register page label goes back to Free, always", "S32", edit("register.html", (s) => s.replace(">Free on every tier</div>", ">Free, always</div>")));
 control("the search page signup line says no cost again", "S32", edit("search.html", (s) => s.replace("No password, no account form. Free for job seekers.", "No password, no account form, no cost.")));
 control("the search page says company and title always works", "S32", edit("search.html", (s) => s.replace("<li>The most exact way to search:", "<li>Company and title always works:")));
-control("the Post ID help says verified posting again", "S32", edit("search.html", (s) => s.replace("this specific posting", "this specific verified posting")));
-control("the no-match note says a missing posting is worth knowing", "S32", edit("js/search-input.js", (s) => s.replace("A missing posting may simply not be registered; it says nothing about whether the job exists.", "A real employer registers it, so a missing posting is itself worth knowing.")));
+control("the Opening ID help says verified opening again", "S32", edit("search.html", (s) => s.replace("this specific opening", "this specific verified opening")));
+control("the no-match note says a missing opening is worth knowing", "S32", edit("js/search-input.js", (s) => s.replace("A missing opening may simply not be registered; it says nothing about whether the job exists.", "A real employer registers it, so a missing opening is itself worth knowing.")));
 control("the paused message says the employer confirmed it", "S32", edit("js/chips.js", (s) => s.replace("The employer has paused it, so it is not accepting", "The employer has confirmed it, but it is not accepting")));
-control("the no-link message says not any less real", "S32", edit("js/pages/search.js", (s) => s.replace("That's their choice to make.\"", "That's their choice to make, not a sign the posting is any less real.\"")));
+control("the no-link message says not any less real", "S32", edit("js/pages/search.js", (s) => s.replace("That's their choice to make.\"", "That's their choice to make, not a sign the opening is any less real.\"")));
 control("a real employer sentence is appended to a page", "S32", append("comments.html", "<p>Disclosed by a real employer</p>"));
 control("the requirements hint goes back to always tell (S19 pins the new wording)", "S19", edit("edit.html", (s) => s.replace("so candidates can tell which role", "so candidates can always tell which role")));
 // S33: links (2026-09-30)
@@ -358,20 +358,20 @@ control("a company textarea is added to the edit page", "S34", edit("edit.html",
 control("the read-only display is removed", "S34", edit("register.html", (s) => s.replace(/<div id="companyShown"[^>]*><\/div>/, "")));
 control("the read-only display turns into an input", "S34", edit("register.html", (s) => s.replace('<div id="companyShown" style="', '<input id="companyShown" style="').replace("min-height:20px;\"></div>", 'min-height:20px;">')));
 control("the form code sends a company name again", "S34", edit("js/register-form.js", (s) => s.replace("    tier: \"standard\",", "    company_name: String(v.company).trim(),\n    tier: \"standard\",")));
-control("the form code asks for a company name again", "S34", edit("js/register-form.js", (s) => s.replace('  need("closeout", v.closeout, "what ends this posting");', '  need("company", v.company, "the company name");\n  need("closeout", v.closeout, "what ends this posting");')));
+control("the form code asks for a company name again", "S34", edit("js/register-form.js", (s) => s.replace('  need("closeout", v.closeout, "what ends this opening");', '  need("company", v.company, "the company name");\n  need("closeout", v.closeout, "what ends this opening");')));
 control("the page reads a company value from the form again", "S34", edit("js/pages/register.js", (s) => s.replace('req: val("#req"), locEntries:', 'req: val("#req"), company: val("#company"), locEntries:')));
 control("the page stops showing the organization's name", "S34", edit("js/pages/register.js", (s) => s.replace('$("#companyShown").textContent = ctx.info.organization.name;', "")));
 // S37 (2026-10-03): the not-open comments page, the hidden link picker, the single countdown
-control("the paused heading says no longer open again", "S37", edit("js/chips.js", (s) => s.replace('? "This posting is paused" :', '? "This posting is no longer open" :')));
-control("the paused heading is defined a second time", "S37", append("js/pages/search.js", 'const _ph = "This posting is paused";'));
+control("the paused heading says no longer open again", "S37", edit("js/chips.js", (s) => s.replace('? "This opening is paused" :', '? "This opening is no longer open" :')));
+control("the paused heading is defined a second time", "S37", append("js/pages/search.js", 'const _ph = "This opening is paused";'));
 control("the paused sentence becomes the long sentence", "S37", edit("js/chips.js", (s) => s.replace('? "Comments stay open." :', '? "Comments stay open: what happened after it closed is exactly what other candidates want to know." :')));
 control("the paused sentence is dropped", "S37", edit("js/chips.js", (s) => s.replace('? "Comments stay open." :', '? "" :')));
-control("the closed heading changes", "S37", edit("js/chips.js", (s) => s.replace(': "This posting is no longer open";', ': "This posting is closed";')));
+control("the closed heading changes", "S37", edit("js/chips.js", (s) => s.replace(': "This opening is no longer open";', ': "This opening is closed";')));
 control("the closed and expired sentence loses a word", "S37", edit("js/chips.js", (s) => s.replace("is exactly what other candidates want to know.", "is what other candidates want to know.")));
-control("expired gets the paused wording", "S37", edit("js/chips.js", (s) => s.replace('status === "paused" ? "This posting is paused" :', 'status === "paused" || status === "expired" ? "This posting is paused" :')));
-control("the option B sentence is added to the page", "S37", append("js/pages/comments.js", 'const _b = "This posting is paused, so its links are not listed. You can still tell us about a link you followed from it.";'));
+control("expired gets the paused wording", "S37", edit("js/chips.js", (s) => s.replace('status === "paused" ? "This opening is paused" :', 'status === "paused" || status === "expired" ? "This opening is paused" :')));
+control("the option B sentence is added to the page", "S37", append("js/pages/comments.js", 'const _b = "This opening is paused, so its links are not listed. You can still tell us about a link you followed from it.";'));
 control("the option B sentence is added to the markup", "S37", edit("comments.html", (s) => s.replace('<label id="reportLinkLabel"', '<p>You can still tell us about a link you followed from it.</p><label id="reportLinkLabel"')));
-control("the page writes the not-open heading itself again", "S37", edit("js/pages/comments.js", (s) => s.replace("nr.title;", '"This posting is no longer open";')));
+control("the page writes the not-open heading itself again", "S37", edit("js/pages/comments.js", (s) => s.replace("nr.title;", '"This opening is no longer open";')));
 control("the page stops using the not-open helper", "S37", edit("js/pages/comments.js", (s) => s.replace("notOpenRecap(d.data.status", "notOpenRecap(d.status")));
 control("the link label stops being hidden", "S37", edit("js/pages/comments.js", (s) => s.replace('$("#reportLinkLabel").hidden = !picker;', "")));
 control("the link dropdown stops being hidden", "S37", edit("js/pages/comments.js", (s) => s.replace("sel.hidden = !picker;", "")));
@@ -381,14 +381,14 @@ control("the comment button gets a one-second timer again", "S37", append("js/pa
 control("the reportLink element is removed from the markup", "S29", edit("comments.html", (s) => s.replace('<select id="reportLink" aria-label="Which link"></select>', "")));
 // S40: the candidate search screen (one specific job; exact IDs first; title is the labelled fallback; guidance is real text wired to the inputs; a short title is left to the backend)
 control("the search page loses its one-specific-job sentence", "S40", edit("search.html", (s) => s.replace("Search for one specific job you already know about.", "Search for jobs.")));
-control("the search page loses the easiest-and-most-exact sentence", "S40", edit("search.html", (s) => s.replace("Easiest and most exact: the company name plus the requisition (req) number or the postID", "Search by the company name plus the requisition (req) number or the postID")));
-control("the search page loses the no-ID title fallback sentence", "S40", edit("search.html", (s) => s.replace("No ID? Use the company name plus part of the job title, copied from the posting if you can.", "Or use a job title.")));
+control("the search page loses the easiest-and-most-exact sentence", "S40", edit("search.html", (s) => s.replace("Easiest and most exact: the company name plus the requisition (req) number or the Opening ID", "Search by the company name plus the requisition (req) number or the Opening ID")));
+control("the search page loses the no-ID title fallback sentence", "S40", edit("search.html", (s) => s.replace("No ID? Use the company name plus part of the job title, copied from the job ad if you can.", "Or use a job title.")));
 control("the search page loses the company-name sentence", "S40", edit("search.html", (s) => s.replace("We ignore endings like Inc., Co. and LLC.", "")));
-control("the search page loses the title-search limits sentence", "S40", edit("search.html", (s) => s.replace("and it will not show postings that are not live. Closed or expired postings are found only by postID or req number.", "and it shows every posting.")));
+control("the search page loses the title-search limits sentence", "S40", edit("search.html", (s) => s.replace("and it will not show openings that are not live. Closed or expired openings are found only by Opening ID or req number.", "and it shows every opening.")));
 control("the search page loses the one-lookup-box sentence", "S40", edit("search.html", (s) => s.replace("Company is required. Then fill in one of the other two boxes:", "Fill in the boxes:")));
 control("the search form gains a fourth box (a way to browse)", "S40", edit("search.html", (s) => s.replace('<button type="submit" id="searchBtn"', '<input id="browse" type="text"><button type="submit" id="searchBtn"')));
 control("the search form puts the title box before the req number", "S40", edit("search.html", (s) => { const L = s.split(String.fromCharCode(10)), pair = L.findIndex((l) => l.includes('class="srch-pair"')), or = L.findIndex((l) => l.includes('class="srch-or"')), btn = L.findIndex((l) => l.includes('<button type="submit" id="searchBtn"')); if (pair < 0 || or < pair || btn < or + 3) throw new Error("form shape changed"); return [...L.slice(0, pair + 1), ...L.slice(or + 1, btn - 2), L[or], ...L.slice(pair + 1, or), ...L.slice(btn - 2)].join(String.fromCharCode(10)); }));
-control("the title box label goes back to Title or postID", "S40", edit("search.html", (s) => s.replace(">PostID, or part of the title\n", ">Title or postID\n")));
+control("the title box label goes back to Title or Opening ID", "S40", edit("search.html", (s) => s.replace(">Opening ID, or part of the title\n", ">Title or Opening ID\n")));
 control("the company box is no longer described by its hint", "S40", edit("search.html", (s) => s.replace(' aria-describedby="companyHint"', "")));
 control("the title box is no longer described by the title note", "S40", edit("search.html", (s) => s.replace('aria-describedby="titleHint reqHint titleNote"', 'aria-describedby="titleHint reqHint"')));
 control("the title box points at a note that is not on the page", "S40", edit("search.html", (s) => s.replace('id="titleNote"', 'id="titleNoteGone"')));
@@ -401,9 +401,9 @@ control("a title over 80 characters is no longer refused locally", "S40", edit("
 control("the too-short-title message is reworded", "S40", edit("js/search-input.js", (s) => s.replace("That part of the title is too short to search on its own.", "Title too short.")));
 control("the too-short-title message loses the short-forms hint", "S40", edit("js/search-input.js", (s) => s.replace("or a short form like VP, SR or JR if the employer used one.", "")));
 control("the page shows the raw backend refusal again", "S40", edit("js/pages/search.js", (s) => s.replace("setFormError(searchErrorMessage(r.error));", 'setFormError(r.error.message || "That search was not accepted.");')));
-control("the empty-result note stops saying to check the ID and try another part of the title", "S14", edit("js/search-input.js", (s) => s.replace("Check the company name, and check the ID exactly as it is printed in the posting. If you searched by title, try a different part of the title.", "Check the company name.")));
-control("the empty-result note stops saying closed or expired postings are found by postID or req number", "S14", edit("js/search-input.js", (s) => s.replace("closed or expired postings are found only by postID or req number.", "closed or expired postings are not shown.")));
-control("the dashboard loses the place-your-postID-on-your-site sentence", "S40", edit("dashboard.html", (s) => s.replace("it lets candidates find the posting exactly.", "")));
+control("the empty-result note stops saying to check the ID and try another part of the title", "S14", edit("js/search-input.js", (s) => s.replace("Check the company name, and check the ID exactly as it is printed in the job ad. If you searched by title, try a different part of the title.", "Check the company name.")));
+control("the empty-result note stops saying closed or expired openings are found by Opening ID or req number", "S14", edit("js/search-input.js", (s) => s.replace("closed or expired openings are found only by Opening ID or req number.", "closed or expired openings are not shown.")));
+control("the dashboard loses the place-your-postID-on-your-site sentence", "S40", edit("dashboard.html", (s) => s.replace("it lets candidates find the opening exactly.", "")));
 // S45 (2026-10-03): the edit page's unsaved-changes bar, the leave dialog, and the recruiter toggle's wording and place.
 {
   const HTML = "edit.html", DS = "js/dirty-state.js", GD = "js/unsaved-guard.js", EJ = "js/pages/edit.js", CSS = "app.css";
@@ -455,7 +455,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("an em dash in the guard", "S45", append(GD, "// a — b"));
   control("the page stops mounting the guard", "S45", edit(EJ, (s) => s.replace("guard = mountUnsavedGuard({", "const unusedGuard = ({")));
   control("the page stops holding back Sign out", "S45", edit(EJ, (s) => s.replace('t.closest("#navAccount button:not(.avatar-btn)")', 't.closest("#navAccountX")')));
-  control("the page stops taking a snapshot when a posting is loaded", "S45", edit(EJ, (s) => s.replace("state.baseline = snapshotOf(collect());", "state.baseline = null;")));
+  control("the page stops taking a snapshot when an opening is loaded", "S45", edit(EJ, (s) => s.replace("state.baseline = snapshotOf(collect());", "state.baseline = null;")));
   control("submit() no longer says whether it saved", "S45", edit(EJ, (s) => s.replace("async function submit() {\n  if (state.busy || !state.orig) return false;", "async function submit() {\n  if (state.busy || !state.orig) return;")));
   control("saving the links wipes what was typed elsewhere", "S45", edit(EJ, (s) => s.replace("populate(reload.data, { keepForm: true, saved: PANEL.LINKS });\n    const warn", "populate(reload.data);\n    const warn")));
   control("saving the firms wipes what was typed elsewhere", "S45", edit(EJ, (s) => s.replace("populate(reload.data, { keepForm: true, saved: PANEL.FIRMS })", "populate(reload.data)")));
@@ -489,7 +489,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("app.js builds the old span with the text", "S46", edit(AP, (s) => s.replace("const account = buildAccount(h, initials, name, org);", 'const account = buildAccount(h, initials, name, org); h("span", { class: "nav-account" }, name);')));
   control("the candidate's signed-in area no longer wraps", "S46", edit(AP, (s) => s.replace('container.classList.add("nav-acct-area");\n    container.append(\n      h("span", { style: "font-size:13px;color:var(--muted);" }, "Email confirmed"),', 'container.append(\n      h("span", { style: "font-size:13px;color:var(--muted);" }, "Email confirmed"),')));
   control("Sign out is removed from the header (both signed-in areas)", "S46", edit(AP, (s) => s.split('"Sign out"').join('"Sign off"')));
-  control("an inline margin comes back in the signed-in area", "S46", edit(AP, (s) => s.replace('href: "dashboard.html" }, "My postings")', 'href: "dashboard.html", style: "margin-right:14px;" }, "My postings")')));
+  control("an inline margin comes back in the signed-in area", "S46", edit(AP, (s) => s.replace('href: "dashboard.html" }, "My openings")', 'href: "dashboard.html", style: "margin-right:14px;" }, "My openings")')));
   control("the label is no longer a small box under the circle", "S46", edit(CSS2, (s) => s.replace(".account-pop{display:none;position:absolute;top:calc(100% + 10px);right:0;", ".account-pop{display:none;position:static;")));
   control("the keyboard focus no longer shows the label", "S46", edit(CSS2, (s) => s.replace(".account-pop.open,.avatar-btn:focus-visible+.account-pop{display:block}", ".account-pop.open{display:block}")));
   control("mouse-over no longer shows the label", "S46", edit(CSS2, (s) => s.replace("@media (hover:hover){.nav-account:hover .account-pop{display:block}}", "")));
@@ -570,11 +570,11 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the register page loses grid2", "S48", edit("register.html", (s) => s.replace('class="grid2"', "")));
   control("the sign-in page loses pg", "S48", edit("employer-signin.html", (s) => s.replace('class="pg pg-top cols"', 'class="cols"')));
   control("the search page's verify card loses pg", "S48", edit("search.html", (s) => s.replace('id="signinWrap" class="pg"', 'id="signinWrap"')));
-  control("the My postings table loses its table roles", "S48", edit("dashboard.html", (s) => s.replace('class="dash-table rtable" role="table"', 'class="dash-table rtable"')));
-  control("the My postings table loses its labelled scroll area", "S48", edit("dashboard.html", (s) => s.replace(' data-scroll-area="My postings table"', "")));
+  control("the My openings table loses its table roles", "S48", edit("dashboard.html", (s) => s.replace('class="dash-table rtable" role="table"', 'class="dash-table rtable"')));
+  control("the My openings table loses its labelled scroll area", "S48", edit("dashboard.html", (s) => s.replace(' data-scroll-area="My openings table"', "")));
   control("the Team table loses rtable", "S48", edit("team.html", (s) => s.replace('class="dash-table rtable" role="table"', 'class="dash-table" role="table"')));
   control("the Analytics table loses its column header roles", "S48", edit("analytics.html", (s) => s.replace('<th role="columnheader">Searches</th>', "<th>Searches</th>").replace('role="columnheader">Posting<', ">Posting<")));
-  control("a My postings row cell loses its data-label", "S48", edit("js/pages/dashboard.js", (s) => s.replace('"data-label": "Closes", ', "")));
+  control("a My openings row cell loses its data-label", "S48", edit("js/pages/dashboard.js", (s) => s.replace('"data-label": "Closes", ', "")));
   control("a Team row cell loses its role", "S48", edit("js/pages/team.js", (s) => s.replace('role: "cell", "data-label": "Role"', '"data-label": "Role"')));
   control("an Analytics row loses its row role", "S48", edit("js/pages/analytics.js", (s) => s.replace('return h("tr", { role: "row" },', 'return h("tr", {},')));
   control("the result card heading loses res-head", "S48", edit("js/pages/search.js", (s) => s.replace('class: "res-head", ', "")));
@@ -623,11 +623,11 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the search page is dropped from the candidate pages", "S50", edit("js/landing-notice.js", (s) => s.replace("export const CANDIDATE_PAGES = [\"search.html\"];", "export const CANDIDATE_PAGES = [];")));
   control("the landing note ignores the page", "S50", edit("js/app.js", (s) => s.replace("landingKindForPage(location.pathname, location.search) || flag", "flag")));
   control("the landing note ignores the role check", "S50", edit("js/app.js", (s) => s.replace("kind === \"poster\" && session.isPoster ? landingText(\"poster\")", "kind === \"poster\" ? landingText(\"poster\")")));
-  control("the home button says Search a company again", "S50", edit("index.html", (s) => s.replace("<a class=\"btn btn-dark\" href=\"search.html\">Look up a posting</a>", "<a class=\"btn btn-dark\" href=\"search.html\">Search a company</a>")));
-  control("the home sentence goes back to the old wording", "S50", edit("index.html", (s) => s.replace("Look up a posting by company and req number, or by company and postID or title, before applying. No account or password, just a quick email check.", "Search by company and title before applying. No account required to look up a posting.")));
-  control("the home sentence is reworded", "S50", edit("index.html", (s) => s.replace("or by company and postID or title, before applying.", "or by title, before applying.")));
+  control("the home button says Search a company again", "S50", edit("index.html", (s) => s.replace("<a class=\"btn btn-dark\" href=\"search.html\">Look up an opening</a>", "<a class=\"btn btn-dark\" href=\"search.html\">Search a company</a>")));
+  control("the home sentence goes back to the old wording", "S50", edit("index.html", (s) => s.replace("Look up an opening by company and req number, or by company and Opening ID or title, before applying. No account or password, just a quick email check.", "Search by company and title before applying. No account required to look up an opening.")));
+  control("the home sentence is reworded", "S50", edit("index.html", (s) => s.replace("or by company and Opening ID or title, before applying.", "or by title, before applying.")));
   control("the old wording appears on another page", "S50", edit("privacy.html", (s) => s.replace("<h1", "<p>Search a company</p><h1")));
-  control("the report section is shown whatever the posting has", "S50", edit("js/pages/comments.js", (s) => s.replace("$(\"#reportWrap\").hidden = !picker;", "$(\"#reportWrap\").hidden = false;")));
+  control("the report section is shown whatever the opening has", "S50", edit("js/pages/comments.js", (s) => s.replace("$(\"#reportWrap\").hidden = !picker;", "$(\"#reportWrap\").hidden = false;")));
   control("the report section is shown again somewhere", "S50", edit("js/pages/comments.js", (s) => s.replace("async function sessionEnded() {", "async function sessionEnded() { if (false) $(\"#reportWrap\").hidden = false;")));
   control("the search fields lose their bottom line", "S50", edit("app.css", (s) => s.replace(".srch-input{border-bottom:2px solid #8A8379!important;border-radius:0!important;padding-bottom:6px!important}", ".srch-input{border-bottom:0!important}")));
   control("the search fields lose their focus line", "S50", edit("app.css", (s) => s.replace(".srch-input:focus{border-bottom-color:var(--ember-dark)!important;box-shadow:0 1px 0 0 var(--ember-dark)}", "")));
@@ -652,7 +652,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
 // S51 (2026-10-05): home step 3, the search form's boxes, the callback without the flash on employer pages.
 {
   control("the home heading goes back to Candidates verify", "S51", edit("index.html", (s) => s.replace("Candidates look up</h3>", "Candidates verify</h3>")));
-  control("the home step 3 sentence goes back to the earlier wording", "S51", edit("index.html", (s) => s.replace("Look up a posting by company and req number, or by company and postID or title, before applying. No account or password, just a quick email check.", "Look up a posting by company and req number, or by company and title, before applying. No account required.")));
+  control("the home step 3 sentence goes back to the earlier wording", "S51", edit("index.html", (s) => s.replace("Look up an opening by company and req number, or by company and Opening ID or title, before applying. No account or password, just a quick email check.", "Look up an opening by company and req number, or by company and title, before applying. No account required.")));
   control("the old heading appears on another page", "S51", edit("privacy.html", (s) => s.replace("<h1", "<h3>Candidates verify</h3><h1")));
   control("the Company label loses (required)", "S51", edit("search.html", (s) => s.replace(" <span class=\"srch-req\">(required)</span>", "")));
   control("the company box is no longer aria-required", "S51", edit("search.html", (s) => s.replace(" type=\"text\" aria-required=\"true\" maxlength=\"200\"", " type=\"text\" maxlength=\"200\"")));
@@ -660,7 +660,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the group loses its label link", "S51", edit("search.html", (s) => s.replace(" role=\"group\" aria-labelledby=\"oneOfHead\"", " role=\"group\"")));
   control("the heading Then one of these is gone", "S51", edit("search.html", (s) => s.replace("<div id=\"oneOfHead\" class=\"srch-then\">Then one of these</div>", "<div id=\"oneOfHead\" class=\"srch-then\"></div>")));
   control("the visible or is gone", "S51", edit("search.html", (s) => s.replace("<div class=\"srch-or\">or</div>", "<div class=\"srch-or\"></div>")));
-  control("the old sentence is back", "S51", edit("search.html", (s) => s.replace("Company is required. Then fill in one of the other two boxes: the req number, or the postID / title box, not both. The req number is hidden as you type; press Show to check it.", "Fill in only one of the two lookup boxes: the req number, or the postID / title box. The req number is hidden as you type; press Show to check it.")));
+  control("the old sentence is back", "S51", edit("search.html", (s) => s.replace("Company is required. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.", "Fill in only one of the two lookup boxes: the req number, or the Opening ID / title box. The req number is hidden as you type; press Show to check it.")));
   control("the new sentence is reworded", "S51", edit("search.html", (s) => s.replace("not both.", "not both!")));
   control("the required word loses its ember color", "S51", edit("app.css", (s) => s.replace(".srch-req{text-transform:none;letter-spacing:0;font-weight:700;color:var(--ember)}", ".srch-req{text-transform:none;letter-spacing:0;font-weight:700}")));
   control("the or loses its rule", "S51", edit("app.css", (s) => s.replace(".srch-or{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700;color:var(--muted)}", ".srch-or{display:none}")));
@@ -696,7 +696,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the Edit this search button becomes a span", "S53", edit("search.html", (s) => s.replace("<button type=\"button\" id=\"recapEdit\" class=\"btn btn-outline btn-sm\">Edit this search</button>", "<span id=\"recapEdit\" class=\"btn\">Edit this search</span>")));
   control("the recap sentence loses its ending", "S53", edit("js/search-recap.js", (s) => s.replace("TAIL: \" Your results are below.\"", "TAIL: \"\"")));
   control("the req number is printed in the recap", "S53", edit("js/search-recap.js", (s) => s.replace("search.kind === \"req\" ? RECAP.REQ", "search.kind === \"req\" ? search.value")));
-  control("a postID is printed in the recap", "S53", edit("js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" ? search.value : RECAP.CODE")));
+  control("an Opening ID is printed in the recap", "S53", edit("js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" ? search.value : RECAP.CODE")));
   control("the boxes are not emptied", "S53", edit("js/pages/search.js", (s) => s.replace("companyIn.value = \"\"; queryIn.value = \"\"; reqIn.value = \"\";", "void 0;")));
   control("a new search does not hide the recap", "S53", edit("js/pages/search.js", (s) => s.replace("setFormError(\"\"); hideRecap();", "setFormError(\"\");")));
   control("Edit this search does not move the cursor", "S53", edit("js/pages/search.js", (s) => s.replace("lastSearch = null; hideRecap(); companyIn.focus();", "lastSearch = null; hideRecap();")));
@@ -755,7 +755,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("Report a wrong link is dropped from the details window", "S58", edit("js/pages/search.js", (s) => s.replace("if (withReport) more.append(", "if (false) more.append(")));
   control("the comments page always asks for the thread", "S58", edit("js/pages/comments.js", (s) => s.replace("if (COMMENTS_VISIBLE) await loadThread(0);", "await loadThread(0);")));
   control("the Comments stay open line ignores the switch", "S58", edit("js/pages/comments.js", (s) => s.replace("closed_reason || null, COMMENTS_VISIBLE)", "closed_reason || null, true)")));
-  control("My postings keeps its Comments cells", "S58", edit("js/pages/dashboard.js", (s) => s.replace("COMMENTS_VISIBLE ? h(\"td\"", "true ? h(\"td\"")));
+  control("My openings keeps its Comments cells", "S58", edit("js/pages/dashboard.js", (s) => s.replace("COMMENTS_VISIBLE ? h(\"td\"", "true ? h(\"td\"")));
   control("the comments switch test is not run", "S58", edit("tests/run-all.js", (s) => s.replace("comments-switch.test.js", "comments-switch-old.test.js")));
 }
 
@@ -772,7 +772,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
 
 // S60: search engines, the flag ALLOW_INDEXING in js/config.js (false on stage), robots.txt, the robots tag of every page, the tool and the test (Phase 3)
 {
-  control("My postings says index, follow", "S60", edit("dashboard.html", (s) => s.replace('<meta name="robots" content="noindex, nofollow">', '<meta name="robots" content="index, follow">')));
+  control("My openings says index, follow", "S60", edit("dashboard.html", (s) => s.replace('<meta name="robots" content="noindex, nofollow">', '<meta name="robots" content="index, follow">')));
   control("a sign-in page says only noindex", "S60", edit("auth-callback.html", (s) => s.replace('<meta name="robots" content="noindex, nofollow">', '<meta name="robots" content="noindex">')));
   control("the home page says index, follow while the flag is false", "S60", edit("index.html", (s) => s.replace('<meta name="robots" content="noindex, nofollow">', '<meta name="robots" content="index, follow">')));
   control("robots.txt allows crawling on stage", "S60", edit("robots.txt", (s) => s.replace("Disallow: /", "Allow: /")));

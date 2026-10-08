@@ -8,13 +8,13 @@ import { CONTEST_NOTICE, CONTEST_CONFIRM, CONTEST_ALREADY, CONTEST_CATEGORIES, c
 const BASE = "https://example.test", KEY = "sb_publishable_TESTKEY", uuid = "11111111-1111-4111-8111-111111111111", FILED = "2026-10-02T15:43:27.412+00:00";
 const OK = { ok: true, contest: { id: uuid, status: "open", filed_at: FILED } };
 const mk = (handler) => { const calls = []; const api = createApi({ baseUrl: BASE, key: KEY, getToken: async () => "TOKEN.abc.def", fetchImpl: async (url, init) => { calls.push({ url, init, body: init && init.body ? JSON.parse(init.body) : null }); const r = await handler(url); return { ok: r.status < 300, status: r.status, headers: { get: (k) => (r.headers && r.headers[k]) || null }, text: async () => JSON.stringify(r.body) }; } }); return { api, calls }; };
-const good = "The posting was filled in August and this comment describes a different team.";   // 77 characters
+const good = "The opening was filled in August and this comment describes a different team.";   // 77 characters
 
 test("the notice is the exact approved text, and the six reasons are the approved list with matching codes in the API", () => {
-  assert.equal(CONTEST_NOTICE, "This comment has been contested by the employer/poster and is under review. It may be removed after additional investigation, at the sole discretion of FightGhostJobs.com.");
+  assert.equal(CONTEST_NOTICE, "This comment has been contested by the employer and is under review. It may be removed after additional investigation, at the sole discretion of FightGhostJobs.com.");
   assert.deepEqual(CONTEST_CATEGORIES.map((c) => [c.code, c.label]), [
-    ["inaccurate", "Factually inaccurate about this posting"], ["closed_or_outdated", "Posting closed or comment outdated"], ["confidential_or_personal", "Contains confidential or personal information"],
-    ["not_about_posting", "Not about this posting"], ["abusive", "Abusive language"], ["other", "Other"]]);
+    ["inaccurate", "Factually inaccurate about this opening"], ["closed_or_outdated", "Opening closed or comment outdated"], ["confidential_or_personal", "Contains confidential or personal information"],
+    ["not_about_posting", "Not about this opening"], ["abusive", "Abusive language"], ["other", "Other"]]);
   assert.deepEqual(CONTEST_CATEGORY_CODES, CONTEST_CATEGORIES.map((c) => c.code));
   assert.equal(contestCategoryLabel("abusive"), "Abusive language"); assert.equal(contestCategoryLabel("Abusive"), null);
   assert.equal(CONTEST_ALREADY, "This comment has already been contested and cannot be contested again.");

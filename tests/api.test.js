@@ -148,7 +148,7 @@ test("row actions send exactly the documented bodies (never an identity), and re
     { fn: "close-posting", body: { posting_id: uuid, closed_reason: "withdrawn", closed_detail: "budget freeze" } }]);
   assert.equal((await mk(ok({ status: "live" })).api.pausePosting(uuid)).ok, true);                    // an answer without the wrapper is fine too
   for (const bad of [{}, { posting: {} }, { status: 5 }, null]) assert.equal((await mk(ok(bad)).api.pausePosting(uuid)).ok, false);
-  const refused = await mk(() => ({ status: 409, body: { error: "posting cannot be bumped: its current status is 'paused'", code: "request_refused" } })).api.bumpPosting(uuid, 3, "x");
+  const refused = await mk(() => ({ status: 409, body: { error: "opening cannot be bumped: its current status is 'paused'", code: "request_refused" } })).api.bumpPosting(uuid, 3, "x");
   assert.equal(refused.ok, false); assert.match(refused.error.message, /cannot be bumped/);
 });
 
@@ -168,7 +168,7 @@ test("search answers: every row carries masked_req (masked or null); a FULL req 
   for (const m of ["FGJ****45", "R****0", "REQ****51", "****7", "****"]) assert.equal(ok(Object.assign({}, searchRow, { masked_req: m })), true, m);
 });
 
-test("setDestinationLinks sends the posting id and the full link set to set-destination-links; a 403 plan_required is an error the page can name", async () => {
+test("setDestinationLinks sends the opening id and the full link set to set-destination-links; a 403 plan_required is an error the page can name", async () => {
   const links = [{ url: "https://careers.example.com/apply?job=1", label: "Careers site" }, { url: "https://jobs.example.org/x" }];
   const ok = mk(() => ({ status: 200, body: { posting_id: uuid, changed: true, active_links: 2, links: [{ position: 1, label: "Careers site", shown_as: "Employer's own site", check_status: "ok", check_http: 200 }, { position: 2, label: null, shown_as: "Employer-provided link — not verified by us", check_status: "failed", check_http: null }] } }));
   const r = await ok.api.setDestinationLinks(uuid, links);
@@ -189,7 +189,7 @@ test("pass C: setRecruiterFirms sends kind recruiter with the firms; the shapes 
   assert.equal(r.ok, true); assert.deepEqual(ok.calls[0].body, { posting_id: uuid, kind: "recruiter", links: firms }); assert.equal(r.data.links[1].shown_as, "LinkedIn");
   const noName = await mk(() => ({ status: 200, body: { posting_id: uuid, changed: true, active_links: 1, links: [{ position: 1, kind: "recruiter", firm: null, label: null }] } })).api.setRecruiterFirms(uuid, firms);
   assert.equal(noName.ok, false); assert.equal(noName.error.code, "bad_response");
-  const off = await mk(() => ({ status: 409, body: { error: "Recruiter firms can be named only while the posting says a third-party recruiter is involved.", code: "recruiter_off" } })).api.setRecruiterFirms(uuid, firms);
+  const off = await mk(() => ({ status: 409, body: { error: "Recruiter firms can be named only while the opening says a third-party recruiter is involved.", code: "recruiter_off" } })).api.setRecruiterFirms(uuid, firms);
   assert.equal(off.ok, false); assert.equal(off.status, 409); assert.equal(off.error.code, "recruiter_off");
   const thirteen = Array.from({ length: 10 }, (_, i) => ({ position: i + 1, kind: "apply", firm: null, label: null })).concat([1, 2, 3].map((p) => ({ position: p, kind: "recruiter", firm: "F" + p, label: null })));
   assert.equal((await mk(() => ({ status: 200, body: { posting: searchRow, links: thirteen } })).api.candidateDetail(ref)).ok, true);

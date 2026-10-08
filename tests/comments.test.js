@@ -8,7 +8,7 @@ const BASE = "https://example.test", KEY = "sb_publishable_TESTKEY", ref = "0123
 const mk = (handler) => { const calls = []; const api = createApi({ baseUrl: BASE, key: KEY, getToken: async () => "TOKEN.abc.def", fetchImpl: async (url, init) => { calls.push({ url, body: init && init.body ? JSON.parse(init.body) : null }); const r = await handler(url); return { ok: r.status < 300, status: r.status, headers: { get: () => null }, text: async () => JSON.stringify(r.body) }; } }); return { api, calls }; };
 
 test("a comment is checked before it is sent: trimmed, line breaks normalised, 10 to 2,000 characters, plain text", () => {
-  assert.deepEqual(checkComment("  This posting has been up for months.\r\n No reply.  "), { text: "This posting has been up for months.\n No reply.", problem: null });
+  assert.deepEqual(checkComment("  This opening has been up for months.\r\n No reply.  "), { text: "This opening has been up for months.\n No reply.", problem: null });
   assert.match(checkComment("").problem, /Write your comment/); assert.match(checkComment("too short").problem, /at least 10/);
   assert.match(checkComment("x".repeat(MAX_COMMENT + 1)).problem, /2,000 characters \(2,001 now\)/);
   assert.equal(checkComment("x".repeat(MAX_COMMENT)).problem, null);
@@ -17,7 +17,7 @@ test("a comment is checked before it is sent: trimmed, line breaks normalised, 1
 });
 
 test("the server's refusals read in words, and the two new reasons point the right way", () => {
-  assert.match(refusalText({ reason: "link" }), /Report a wrong link/); assert.match(refusalText({ reason: "source" }), /where you found this posting/); assert.match(refusalText({ reason: "civility" }), /not allowed here/);
+  assert.match(refusalText({ reason: "link" }), /Report a wrong link/); assert.match(refusalText({ reason: "source" }), /where you found this job ad/); assert.match(refusalText({ reason: "civility" }), /not allowed here/);
   assert.match(refusalText({ reason: "short" }), /at least 10/); assert.equal(refusalText({ message: "custom" }), "custom"); assert.equal(refusalText(null), "The comment was not accepted.");
   assert.match(COMMENT_RULES, /Comments are public and anonymous; anyone can report one\./); assert.match(COMMENT_RULES, /unless this page already shows that platform/);
 });
@@ -34,7 +34,7 @@ test("relative times, anonymous", () => {
   assert.equal(ago("2026-07-01T09:00:00Z", now), "on Jul 1, 2026"); assert.equal(ago("nope", now), "");
 });
 
-test("the wrong-link choices come from the posting's links, with a 'something else' choice; a choice parses back to kind + position", () => {
+test("the wrong-link choices come from the opening's links, with a 'something else' choice; a choice parses back to kind + position", () => {
   const links = [{ position: 1, kind: "apply", label: "LinkedIn" }, { position: 2, kind: "apply", label: null }, { position: 1, kind: "recruiter", firm: "Acme Staffing", label: null }];
   assert.deepEqual(linkChoices(links).map((c) => c.value), ["apply:1", "apply:2", "recruiter:1", ""]);
   assert.equal(linkChoices(links)[1].text, "Link 2: Application link 2"); assert.equal(linkChoices(links)[2].text, "Recruiter firm: Acme Staffing");
@@ -53,7 +53,7 @@ test("the not-open page branch leaves the link list empty, so the picker is hidd
   const answer = { ok: false, status: 409, data: { code: "posting_not_open", status: "paused", closed_reason: null } };   // no links field at all
   const links = detailLinks(answer);                                                                                      // what renderRecap leaves in state.links on this branch
   assert.deepEqual(links, []); assert.deepEqual(detailLinks({ ok: true, data: { posting: {}, links: [{ position: 1, kind: "apply", label: "A" }] } }).length, 1); assert.deepEqual(detailLinks({ ok: true, data: { links: [] } }), []); assert.deepEqual(detailLinks(undefined), []);
-  assert.equal(showLinkPicker(links), false); assert.equal(notOpenRecap(answer.data.status, answer.data.closed_reason).title, "This posting is paused");
+  assert.equal(showLinkPicker(links), false); assert.equal(notOpenRecap(answer.data.status, answer.data.closed_reason).title, "This opening is paused");
   assert.deepEqual(parseLinkChoice(linkChoices(links)[0].value), { kind: null, position: null });
 });
 
