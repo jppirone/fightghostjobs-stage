@@ -49,7 +49,9 @@ export function earlyRules(orig, v, dirty) {
 export const UNSAVED = {
   HEAD: "You have unsaved changes",
   FORM_DETAIL: "They take effect only when you press Save changes.",
-  LINKS_DETAIL: "Save changes does not save them. Press Save destination links in that section, or press Discard.",   // the bar when the destination links are the only section not saved (the button in that section says Save destination links)
+  LINKS_DETAIL: "Save changes does not save them. Press Save destination links in that section, or press Discard.",   // the bar when the destination links are the only section not saved and typed new rows are among them (the button in that section says Save destination links)
+  LINKS_EDIT_DETAIL: "Press Save or Discard on the link you are editing, or press Discard.",   // the bar when the only thing not saved is the open Edit of a stored link (its own Save is inside that link)
+  LINKS_FORM_DETAIL: "Save changes does not save the destination links. Press Save destination links in that section, or press Discard.",   // the bar when the main form and typed new link rows are both not saved
   SAVE: "Save changes", DISCARD: "Discard",
   CONFIRM_DISCARD: "Discard your unsaved changes? The saved values will be put back.",
   DISCARDED: "Your unsaved changes were discarded. The saved values are back.",
@@ -78,7 +80,10 @@ export function summarize(m) {
   if (!any) return out;
   const named = joinNames(panels), status = m.status || "live";
   const itThem = n === 1 ? "it" : "them", section = n === 1 ? "that section" : "each section";
-  const panelsLine = cap(named) + " not saved yet. Save changes does not save " + itThem + ": use the button in " + section + ".";
+  // which kind of unsaved links work it is (js/pages/edit.js passes both flags): typed NEW link rows, or the open Edit of a STORED link. A caller that passes neither is read as typed rows.
+  const linksOnly = n === 1 && panels[0] === PANEL.LINKS, rowsTyped = m.linkRows !== false, editOpen = m.linkEdit === true;
+  const linksEditOnly = linksOnly && editOpen && !rowsTyped, linksRowsOnly = linksOnly && rowsTyped && !editOpen;
+  const panelsLine = linksRowsOnly && form ? UNSAVED.LINKS_FORM_DETAIL : cap(named) + " not saved yet. Save changes does not save " + itThem + ": use the button in " + section + ".";
   if (form) {
     out.headline = UNSAVED.HEAD;
     out.detail = [n ? panelsLine : UNSAVED.FORM_DETAIL, m.noteMissing ? UNSAVED.noteAdd(status) : ""].filter(Boolean).join(" ");
@@ -88,7 +93,7 @@ export function summarize(m) {
       : "If you leave this page now, your changes to this posting are lost.";
   } else {
     out.headline = cap(named) + " not saved yet";
-    out.detail = n === 1 && panels[0] === PANEL.LINKS ? UNSAVED.LINKS_DETAIL : "Save changes does not save " + itThem + ". Use the button in " + section + ", or press Discard.";
+    out.detail = linksEditOnly ? UNSAVED.LINKS_EDIT_DETAIL : linksOnly ? UNSAVED.LINKS_DETAIL : "Save changes does not save " + itThem + ". Use the button in " + section + ", or press Discard.";
     out.liveText = out.headline + ". " + out.detail;
     out.dialogTitle = out.headline;
     out.dialogText = "If you leave this page now, what you typed in the " + named + (n === 1 ? " section" : " sections") + " is lost. " + (n === 1 ? "It is" : "They are") + " saved with " + (n === 1 ? "its own button" : "their own buttons") + ", not with Save changes.";

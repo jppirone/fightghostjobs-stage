@@ -112,7 +112,7 @@ test("the words: the bar says what is unsaved, never claims Save changes covers 
   assert.equal(summarize({ form: false, panels: [PANEL.GOLIVE, PANEL.FIRMS, PANEL.LINKS] }).headline, "Destination links, recruiter firms and go-live time not saved yet");
   const mixed = summarize({ form: true, panels: [PANEL.LINKS], status: "paused", noteMissing: false, noteRequired: true });
   assert.equal(mixed.headline, "You have unsaved changes"); assert.equal(mixed.showSave, true);
-  assert.match(mixed.detail, /^Destination links not saved yet\. Save changes does not save it: use the button in that section\./);
+  assert.equal(mixed.detail, "Save changes does not save the destination links. Press Save destination links in that section, or press Discard.");
   assert.equal(mixed.leaveSaveLabel, "Save changes", "with a section still unsaved, saving the form does not by itself let the person leave");
   assert.equal(summarize({ form: true, panels: [] }).leaveSaveLabel, "Save and leave");
   assert.equal(summarize({ form: false, panels: [] }).any, false); assert.equal(summarize({ form: false, panels: [PANEL.LINKS] }).leaveCanSave, false);
@@ -158,7 +158,7 @@ const makeDom = () => {
 function makePage(o = {}) {
   const dom = makeDom(), p = o.posting || posting();
   const page = { dom, v: form(), baseline: baselineOf(p), panels: new Set(), status: p.stored_status, orig: p, saves: 0, saveOk: true, discarded: 0, went: [], confirm: true, rescued: 0 };
-  page.model = () => { const dirty = formDirty(page.baseline, page.v), r = earlyRules(p, page.v, dirty); return { form: dirty, panels: Array.from(page.panels), status: page.status, noteMissing: r.noteMissing, noteRequired: r.noteRequired }; };
+  page.model = () => { const dirty = formDirty(page.baseline, page.v), r = earlyRules(p, page.v, dirty); return { form: dirty, panels: Array.from(page.panels), linkRows: page.linkRows !== false, linkEdit: page.linkEdit === true, status: page.status, noteMissing: r.noteMissing, noteRequired: r.noteRequired }; };
   page.guard = mountUnsavedGuard({ win: dom.win, root: dom.root, bar: dom.bar, head: dom.head, detail: dom.detail, live: dom.live, saveBtn: dom.saveBtn, discardBtn: dom.discardBtn, skip: dom.skip, dlg: dom.dlg,
     getModel: page.model,
     save: async () => { page.saves++; if (page.gate) await page.gate; if (!page.saveOk) return false; page.baseline = snapshotOf(page.v); page.guard.refresh(); return true; },
@@ -213,7 +213,42 @@ test("the bar's Save button is reachable and never offered for work Save changes
   pg.panels.add(PANEL.LINKS); pg.guard.refresh();
   assert.equal(d.bar.hidden, false); assert.equal(d.head.textContent, "Destination links not saved yet"); assert.equal(d.saveBtn.hidden, true, "the main Save is not offered for the links");
   assert.match(d.detail.textContent, /^Save changes does not save them\. Press Save destination links in that section, or press Discard\.$/); assert.equal(d.win.count("beforeunload"), 1, "a pending section also warns on leave");
-  pg.edit({ title: "Y" }); assert.equal(d.saveBtn.hidden, false); assert.equal(d.head.textContent, "You have unsaved changes"); assert.match(d.detail.textContent, /Destination links not saved yet\. Save changes does not save it/);
+  pg.edit({ title: "Y" }); assert.equal(d.saveBtn.hidden, false); assert.equal(d.head.textContent, "You have unsaved changes"); assert.equal(d.detail.textContent, "Save changes does not save the destination links. Press Save destination links in that section, or press Discard. This posting is live, so add a note saying what changed and why.");
+});
+
+// the bar for the destination links, case by case (the two kinds of unsaved links work: typed NEW rows, and the open Edit of a STORED link, which has its own Save inside the link)
+test("the destination links bar names the right button: typed rows, an open Edit of a stored link, and the main form with typed rows", () => {
+  const ROWS = "Save changes does not save them. Press Save destination links in that section, or press Discard.";
+  const EDIT = "Press Save or Discard on the link you are editing, or press Discard.";
+  const FORM = "Save changes does not save the destination links. Press Save destination links in that section, or press Discard.";
+  // 1. typed rows only (the approved text, unchanged): with the flags set, and with a caller that passes none
+  for (const m of [{ form: false, panels: [PANEL.LINKS], linkRows: true, linkEdit: false }, { form: false, panels: [PANEL.LINKS] }]) { const s = summarize(m); assert.equal(s.headline, "Destination links not saved yet"); assert.equal(s.detail, ROWS); assert.equal(s.showSave, false); }
+  // 2. the open Edit of a stored link only: the bold lead stays, the text names the Save inside the link
+  const e = summarize({ form: false, panels: [PANEL.LINKS], linkRows: false, linkEdit: true });
+  assert.equal(e.headline, "Destination links not saved yet"); assert.equal(e.detail, EDIT); assert.equal(e.liveText, "Destination links not saved yet. " + EDIT); assert.equal(e.showSave, false);
+  // 3. the main form and typed rows: the lead is the form's, the text names the section button and says what Save changes does not save
+  const f = summarize({ form: true, panels: [PANEL.LINKS], linkRows: true, linkEdit: false, status: "live", noteMissing: false, noteRequired: false });
+  assert.equal(f.headline, "You have unsaved changes"); assert.equal(f.detail, FORM); assert.equal(f.liveText, "You have unsaved changes. " + FORM); assert.equal(f.showSave, true);
+  // the note sentence still follows when the posting needs one
+  assert.equal(summarize({ form: true, panels: [PANEL.LINKS], linkRows: true, linkEdit: false, status: "live", noteMissing: true, noteRequired: true }).detail, FORM + " This posting is live, so add a note saying what changed and why.");
+  // NOT covered by an approved string, so they keep the wording they had (reported, not guessed): the main form with an open Edit; typed rows and an open Edit together; the other sections
+  assert.equal(summarize({ form: true, panels: [PANEL.LINKS], linkRows: false, linkEdit: true }).detail, "Destination links not saved yet. Save changes does not save it: use the button in that section.");
+  assert.equal(summarize({ form: false, panels: [PANEL.LINKS], linkRows: true, linkEdit: true }).detail, ROWS);
+  assert.equal(summarize({ form: false, panels: [PANEL.FIRMS] }).detail, "Save changes does not save it. Use the button in that section, or press Discard.");
+  assert.equal(summarize({ form: false, panels: [PANEL.LINKS, PANEL.FIRMS], linkRows: false, linkEdit: true }).detail, "Save changes does not save them. Use the button in each section, or press Discard.");
+  assert.equal(summarize({ form: true, panels: [PANEL.LINKS, PANEL.FIRMS], linkRows: true, linkEdit: false }).detail, "Destination links and recruiter firms not saved yet. Save changes does not save them: use the button in each section.");
+});
+
+test("the bar on the page shows the Edit-of-a-stored-link text while an Edit is open, and the main form text once the form changes too", () => {
+  const pg = makePage(), d = pg.dom;
+  pg.panels.add(PANEL.LINKS); pg.linkRows = false; pg.linkEdit = true; pg.guard.refresh();
+  assert.equal(d.bar.hidden, false); assert.equal(d.head.textContent, "Destination links not saved yet");
+  assert.equal(d.detail.textContent, "Press Save or Discard on the link you are editing, or press Discard.");
+  pg.linkRows = true; pg.linkEdit = false; pg.guard.refresh();
+  assert.equal(d.detail.textContent, "Save changes does not save them. Press Save destination links in that section, or press Discard.");
+  pg.edit({ title: "Z" }); assert.equal(d.head.textContent, "You have unsaved changes");
+  const FORM = "Save changes does not save the destination links. Press Save destination links in that section, or press Discard.";
+  assert.ok(d.detail.textContent === FORM || d.detail.textContent === FORM + " This posting is " + pg.status + ", so add a note saying what changed and why.", "the form text, with the note sentence only when the posting needs a note: " + d.detail.textContent);
 });
 
 test("focus is never taken: the bar appearing or changing does not move focus", () => {

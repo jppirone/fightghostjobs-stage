@@ -350,7 +350,8 @@ function panelsUnsaved() {
 function unsavedModel() {
   if (!state.orig || state.loading) return { form: false, panels: [], status: "live", noteMissing: false, noteRequired: false, rules: { titleRule: false } };
   const dirty = formUnsaved(), rules = earlyRules(state.orig, collect(), dirty);
-  return { form: dirty, panels: panelsUnsaved(), status: state.orig.stored_status, noteMissing: rules.noteMissing, noteRequired: rules.noteRequired, rules };
+  // linkRows / linkEdit: which kind of destination links work is unsaved (typed new rows, or the open Edit of a stored link): the bar names the right button for each (js/dirty-state.js)
+  return { form: dirty, panels: panelsUnsaved(), linkRows: shown("#linksForm") && rowsTyped(links.values()), linkEdit: shown("#linksPanel") && linkPanel.hasPending(), status: state.orig.stored_status, noteMissing: rules.noteMissing, noteRequired: rules.noteRequired, rules };
 }
 function refreshUnsaved() {
   if (!guard) return;
