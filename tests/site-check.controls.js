@@ -818,6 +818,14 @@ control("the new test is not part of the full run", "S63", edit("tests/run-all.j
   control("the switch ships on", "S61", edit("js/config.js", (s) => s.replace("export const EMAIL_CODE_ENTRY = false;", "export const EMAIL_CODE_ENTRY = true;")));
 }
 }
+// S64: no database script in anything Pages serves (no .sql file anywhere, no top-level db folder)
+const put = (rel, text) => (dir) => { const p = path.join(dir, rel); fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, text); };
+control("a .sql file at the top of the repository", "S64", put("migration.sql", "select 1;\n"));
+control("a .sql file inside tests/", "S64", put("tests/probe.sql", "select 1;\n"));
+control("a .SQL file in a new folder", "S64", put("notes/RUN.SQL", "select 1;\n"));
+control("a top-level db folder with a text note", "S64", put("db/notes.txt", "a note\n"));
+control("a top-level DB folder (capitals)", "S64", put("DB/notes.txt", "a note\n"));
+
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");
 process.exit(missed ? 1 : 0);

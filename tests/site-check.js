@@ -47,6 +47,7 @@
 //   S57 candidate sign-in wording, the confirm family (Part E5): search card heading, paragraph, button, the flash after the link and the top bar word; employer side stays sign-in link
 //   S58 the one comments switch, js/config.js COMMENTS_VISIBLE, shipped true, read by every comment surface (Part E6)
 //   S59 no verify, verified or verification in candidate-facing text (Part E7): the word is confirm; exceptions are the destination link wording, data and class names, and privacy.html
+//   S64 no database script in the repository: no .sql file anywhere and no top-level db folder (the whole repository is served by Pages)
 //   S63 back from Comments or Report a wrong link: the Auth client is created WITHOUT its cross-tab channel (the channel evicts the search page from the browser's back/forward cache), no other script opens one, no unload handler, and the search page has the pageshow guard
 //   S62 the search page opened with the company and one other value in the URL fragment (extension hand-off): only c, p, r, t, the site's limits, plain text, refuse on doubt, fragment removed at once, never an automatic search
 //   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
@@ -1301,6 +1302,14 @@ export function checkSite(root) {
       const hit = t.split("\n").map((l) => l.replace(ALLOWED, "")).find((l) => WORD.test(l));
       if (hit) add("S59", f, "candidate-facing text must say confirm, not verify, verified or verification: " + hit.trim().slice(0, 100));
     }
+  }
+
+  // S64 (2026-10-08): the repository is what Pages serves, so no database script may live in it. No .sql file anywhere (tests/ is served too) and no top-level db folder. On October 8 the four email wording scripts were committed to db/ and were public for a day;
+  // database scripts live outside the repositories (C:\Users\jpiro\fightghostjobs, next to the census and cleanup scripts). The promote tool also refuses to copy them to alpha (alpha-setup\promote\lib\frontend.js).
+  {
+    const sql = files.filter((f) => /\.sql$/i.test(f));
+    for (const f of sql) add("S64", f, "no .sql file may be in this repository: the whole repository is served by Pages. Keep database scripts outside it.");
+    for (const e of fs.readdirSync(root, { withFileTypes: true })) if (e.isDirectory() && /^db$/i.test(e.name)) add("S64", path.join(root, e.name), "no top-level db folder: the whole repository is served by Pages. Keep database scripts outside it.");
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");
