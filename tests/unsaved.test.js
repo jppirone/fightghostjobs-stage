@@ -105,7 +105,7 @@ test("the words: the bar says what is unsaved, never claims Save changes covers 
   assert.equal(typed.detail, "They take effect only when you press Save changes."); assert.equal(typed.liveText, f.liveText, "typing the note does not change what a screen reader is told, so it is not read again");
   const l = summarize({ form: false, panels: [PANEL.LINKS], status: "live" });
   assert.equal(l.headline, "Destination links not saved yet"); assert.equal(l.showSave, false, "Save changes does not cover the links, so the bar does not offer it");
-  assert.equal(l.detail, "Save changes does not save it. Use the button in that section, or press Discard.");
+  assert.equal(l.detail, "Save changes does not save them. Press Save destination links in that section, or press Discard.");
   assert.equal(summarize({ form: false, panels: [PANEL.FIRMS] }).headline, "Recruiter firms not saved yet");
   assert.equal(summarize({ form: false, panels: [PANEL.GOLIVE] }).headline, "Go-live time not saved yet");
   assert.equal(summarize({ form: false, panels: [PANEL.FIRMS, PANEL.LINKS] }).headline, "Destination links and recruiter firms not saved yet");
@@ -212,7 +212,7 @@ test("the bar's Save button is reachable and never offered for work Save changes
   assert.equal(pg.discarded, 1); assert.equal(d.bar.hidden, true); assert.equal(pg.rescued, 1, "the bar closed under the focus: focus is moved somewhere sensible, not lost");
   pg.panels.add(PANEL.LINKS); pg.guard.refresh();
   assert.equal(d.bar.hidden, false); assert.equal(d.head.textContent, "Destination links not saved yet"); assert.equal(d.saveBtn.hidden, true, "the main Save is not offered for the links");
-  assert.match(d.detail.textContent, /Save changes does not save it/); assert.equal(d.win.count("beforeunload"), 1, "a pending section also warns on leave");
+  assert.match(d.detail.textContent, /^Save changes does not save them\. Press Save destination links in that section, or press Discard\.$/); assert.equal(d.win.count("beforeunload"), 1, "a pending section also warns on leave");
   pg.edit({ title: "Y" }); assert.equal(d.saveBtn.hidden, false); assert.equal(d.head.textContent, "You have unsaved changes"); assert.match(d.detail.textContent, /Destination links not saved yet\. Save changes does not save it/);
 });
 

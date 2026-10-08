@@ -49,6 +49,7 @@ export function earlyRules(orig, v, dirty) {
 export const UNSAVED = {
   HEAD: "You have unsaved changes",
   FORM_DETAIL: "They take effect only when you press Save changes.",
+  LINKS_DETAIL: "Save changes does not save them. Press Save destination links in that section, or press Discard.",   // the bar when the destination links are the only section not saved (the button in that section says Save destination links)
   SAVE: "Save changes", DISCARD: "Discard",
   CONFIRM_DISCARD: "Discard your unsaved changes? The saved values will be put back.",
   DISCARDED: "Your unsaved changes were discarded. The saved values are back.",
@@ -87,7 +88,7 @@ export function summarize(m) {
       : "If you leave this page now, your changes to this posting are lost.";
   } else {
     out.headline = cap(named) + " not saved yet";
-    out.detail = "Save changes does not save " + itThem + ". Use the button in " + section + ", or press Discard.";
+    out.detail = n === 1 && panels[0] === PANEL.LINKS ? UNSAVED.LINKS_DETAIL : "Save changes does not save " + itThem + ". Use the button in " + section + ", or press Discard.";
     out.liveText = out.headline + ". " + out.detail;
     out.dialogTitle = out.headline;
     out.dialogText = "If you leave this page now, what you typed in the " + named + (n === 1 ? " section" : " sections") + " is lost. " + (n === 1 ? "It is" : "They are") + " saved with " + (n === 1 ? "its own button" : "their own buttons") + ", not with Save changes.";
