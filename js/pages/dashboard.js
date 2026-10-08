@@ -54,7 +54,7 @@ function row(p, now) {
     h("td", { role: "cell", "data-label": "Opening ID", class: "mono", style: "color:var(--muted);white-space:nowrap;" }, groupCode(p.post_id)),
     h("td", { role: "cell", "data-label": "Status" }, h("span", { class: "status " + chip.cls }, chip.text)),
     h("td", { role: "cell", "data-label": "Actions", style: "white-space:nowrap;" }, actionCells(p, now)),          // right after the status: the actions must never be pushed off the edge of a narrow window
-    h("td", { role: "cell", "data-label": "Posted", style: "color:var(--muted);" }, postedCell(p)),
+    h("td", { role: "cell", "data-label": "Registered", style: "color:var(--muted);" }, postedCell(p)),
     h("td", { role: "cell", "data-label": "Closes", style: "color:var(--muted);" }, closesCell(p), p.bump_used ? h("div", { class: "row-note" }, "extended " + p.bump_days + (p.bump_days === 1 ? " day" : " days")) : null),
     h("td", { role: "cell", "data-label": "Applicant cap", style: "color:var(--muted);" }, capCell(p)),
     COMMENTS_VISIBLE ? h("td", { role: "cell", "data-label": "Comments", style: "white-space:nowrap;" }, h("a", { class: "row-action", href: "comments.html?id=" + encodeURIComponent(p.id), title: "Read the comments" }, "💬 " + p.comment_count)) : null);   // the one comments switch (js/config.js)

@@ -55,7 +55,7 @@ test("text filter: title, req number or Opening ID, ignoring case and punctuatio
   assert.equal(matchesText(row({ req_number: null }), "R-1"), false);
 });
 
-test("sorting by posted date: newest first by default, oldest first when asked, drafts always last", () => {
+test("sorting by registered date: newest first by default, oldest first when asked, drafts always last", () => {
   const a = row({ id: "a", posted_at: at(-1), created_at: at(-1) }), b = row({ id: "b", posted_at: at(-9), created_at: at(-9) }), d = row({ id: "d", status: "draft", posted_at: null, created_at: at(-3) }), d2 = row({ id: "d2", status: "draft", posted_at: null, created_at: at(-2) });
   assert.deepEqual(sortByPosted([b, d, a, d2], "desc").map((x) => x.id), ["a", "b", "d2", "d"]);
   assert.deepEqual(sortByPosted([b, d, a, d2], "asc").map((x) => x.id), ["b", "a", "d2", "d"]);
