@@ -16,7 +16,7 @@ export function collectFirms(rows, recruiterOn) {
   return Object.assign({ used: true }, checkFirms(list));
 }
 export function firmsOutcome(saved, problem) {
-  if (problem) return { kind: "error", text: (problem.general || "The recruiter firms were not accepted.") + " The posting itself is saved" + (problem.planRequired || problem.recruiterOff ? "" : "; see the messages under the firms") + ". You can name them from My postings (Edit)." };
+  if (problem) return { kind: "error", text: (problem.general || "The recruiter firms were not accepted.") + " The opening itself is saved" + (problem.planRequired || problem.recruiterOff ? "" : "; see the messages under the firms") + ". You can name them from My openings (Edit)." };
   if (saved === null || saved === undefined) return null;
   return { kind: "ok", text: saved === 1 ? "1 recruiter firm is named on it." : saved + " recruiter firms are named on it." };
 }
@@ -33,7 +33,7 @@ export function collectLinks(rows) {
 // What the result panel says about the links once the posting itself exists. saved: how many are stored (null when none were sent); problem: the mapped refusal (mapLinksErrors), or null;
 // warning: what the liveness check found (checkWarnings), or null
 export function linksOutcome(saved, problem, warning) {
-  if (problem) return { kind: "error", text: (problem.general || "The destination links were not accepted.") + " The posting itself is saved" + (problem.planRequired ? "" : "; see the messages under the addresses") + ". You can add links from My postings (Edit)." };
+  if (problem) return { kind: "error", text: (problem.general || "The destination links were not accepted.") + " The opening itself is saved" + (problem.planRequired ? "" : "; see the messages under the addresses") + ". You can add links from My openings (Edit)." };
   if (saved === null || saved === undefined) return null;
   const text = saved === 1 ? "1 destination link is stored with it." : saved + " destination links are stored with it.";
   return warning ? { kind: "notice", text: text + " " + warning } : { kind: "ok", text };
@@ -57,7 +57,7 @@ export function validateForm(v) {
   const e = {};
   const need = (id, text, what) => { if (String(text || "").trim() === "") e[id] = "Enter " + what + "."; };
   need("jtitle", v.title, "the job title");
-  need("closeout", v.closeout, "what ends this posting");
+  need("closeout", v.closeout, "what ends this opening");
   need("req", v.req, "your req number");
   need("desc", v.desc, "the job description");
   if (v.dupAsked === true) {

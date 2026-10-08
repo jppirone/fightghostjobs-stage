@@ -19,7 +19,7 @@ async function sessionEnded() { await signOut(); rememberNext("dashboard.html", 
 
 function failureText(err) {
   if (err.code === "rate_limited") return "Too many requests just now. Try again in " + waitText(err.retryAfter || 30) + ".";
-  return describeError(err, { what: "Your postings" });
+  return describeError(err, { what: "Your openings" });
 }
 
 async function loadAll() {
@@ -42,7 +42,7 @@ function renderFilters() {
 function actionCells(p, now) {
   // Edit is a page of its own (a link); the others are one-click dialogs
   const out = actionsFor(p, now).map((k) => k === "edit" ? h("a", { class: "row-action", href: "edit.html?id=" + encodeURIComponent(p.id) }, ACTION_LABEL[k]) : h("button", { type: "button", class: "row-action", onclick: () => runAction(k, p, deps) }, ACTION_LABEL[k]));
-  if (publishWindowEnded(p, now)) out.push(h("span", { class: "row-note" }, "Publish window ended: a draft can be published for 14 days after it was saved. To use it, "), h("a", { class: "row-action", href: "register.html" }, "register it again"), h("span", { class: "row-note" }, " as a new posting."));
+  if (publishWindowEnded(p, now)) out.push(h("span", { class: "row-note" }, "Publish window ended: a draft can be published for 14 days after it was saved. To use it, "), h("a", { class: "row-action", href: "register.html" }, "register it again"), h("span", { class: "row-note" }, " as a new opening."));
   return out;
 }
 
@@ -51,7 +51,7 @@ function row(p, now) {
   return h("tr", { role: "row" },
     h("td", { role: "cell", "data-label": "Title", style: "font-weight:600;" }, p.title, h("div", { style: "font-size:12px;font-weight:400;color:var(--muted);margin-top:3px;" }, locationLine(p.is_remote, p.locations))),
     h("td", { role: "cell", "data-label": "Req #", style: "color:var(--muted);" }, reqCell(p)),
-    h("td", { role: "cell", "data-label": "postID", class: "mono", style: "color:var(--muted);white-space:nowrap;" }, groupCode(p.post_id)),
+    h("td", { role: "cell", "data-label": "Opening ID", class: "mono", style: "color:var(--muted);white-space:nowrap;" }, groupCode(p.post_id)),
     h("td", { role: "cell", "data-label": "Status" }, h("span", { class: "status " + chip.cls }, chip.text)),
     h("td", { role: "cell", "data-label": "Actions", style: "white-space:nowrap;" }, actionCells(p, now)),          // right after the status: the actions must never be pushed off the edge of a narrow window
     h("td", { role: "cell", "data-label": "Posted", style: "color:var(--muted);" }, postedCell(p)),
@@ -69,11 +69,11 @@ function render() {
   for (const p of shown) body.append(row(p, now));
   const note = $("#tableNote");
   if (state.loaded && state.rows.length === 0) {
-    note.hidden = false; clear(note); note.append("You haven't registered a posting yet. ", h("a", { href: "register.html", style: "font-weight:600;" }, "Register your first posting →"));
+    note.hidden = false; clear(note); note.append("You haven't registered an opening yet. ", h("a", { href: "register.html", style: "font-weight:600;" }, "Register your first opening →"));
   } else if (state.loaded && shown.length === 0) {
-    note.hidden = false; clear(note); note.append("No postings match this filter.");
+    note.hidden = false; clear(note); note.append("No openings match this filter.");
   } else note.hidden = true;
-  $("#loadNote").textContent = state.loaded ? (state.total > state.rows.length ? "Showing the newest " + state.rows.length + " of " + state.total + " postings." : shown.length + " of " + state.rows.length + (state.rows.length === 1 ? " posting" : " postings")) : "";
+  $("#loadNote").textContent = state.loaded ? (state.total > state.rows.length ? "Showing the newest " + state.rows.length + " of " + state.total + " openings." : shown.length + " of " + state.rows.length + (state.rows.length === 1 ? " opening" : " openings")) : "";
 }
 
 // what the row actions need: the API, what to do after one worked, and what to do when the session has ended
@@ -85,7 +85,7 @@ const deps = {
 
 async function refresh() {
   const box = $("#pageAlert"); box.hidden = true; clear(box);
-  $("#loadNote").textContent = "Loading your postings…";
+  $("#loadNote").textContent = "Loading your openings…";
   const r = await loadAll();
   if (!r.ok) {
     if (isAuthFailure(r.error)) return sessionEnded();

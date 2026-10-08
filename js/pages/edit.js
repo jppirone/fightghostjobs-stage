@@ -69,7 +69,7 @@ async function entriesFor(p) {
 }
 
 function noteLabel(isDraft) {
-  $("#noteLabel").textContent = isDraft && !state.needNote ? "What changed, and why? (optional on a draft; kept with the posting)." : "What changed, and why? (required; kept with the posting).";
+  $("#noteLabel").textContent = isDraft && !state.needNote ? "What changed, and why? (optional on a draft; kept with the opening)." : "What changed, and why? (required; kept with the opening).";
   $("#note").setAttribute("aria-required", isDraft && !state.needNote ? "false" : "true");
 }
 
@@ -173,7 +173,7 @@ function renderFirms(doc, editable) {
   $("#firmsForm").hidden = !(notice.state === "active" && savedOn && state.recruiter);
   if (notice.state === "lapsed") { note.hidden = false; note.append(alertBox("notice", "Your destination links tier ended. " + (stored.length ? "The " + stored.length + " firm" + (stored.length === 1 ? "" : "s") + " you named " + (stored.length === 1 ? "is" : "are") + " kept but hidden from candidates until it is renewed." : "Naming a recruiter firm is paused until it is renewed."))); }
   else if (notice.state === "active" && !state.recruiter && stored.length) { note.hidden = false; note.append(alertBox("notice", "The toggle is off: " + (stored.length === 1 ? "the firm you named is" : "the " + stored.length + " firms you named are") + " kept but hidden from candidates. Turn it on and save to show them again.")); }
-  else if (notice.state === "active" && state.recruiter && !savedOn) { note.hidden = false; note.append(alertBox("notice", "Naming a firm is optional. To name one here, first save this posting with the recruiter toggle on (Save changes, above); then come back to this section.")); }
+  else if (notice.state === "active" && state.recruiter && !savedOn) { note.hidden = false; note.append(alertBox("notice", "Naming a firm is optional. To name one here, first save this opening with the recruiter toggle on (Save changes, above); then come back to this section.")); }
   if (!$("#firmsForm").hidden) {
     const box = $("#firmsStored"); clear(box);
     box.append(stored.length === 0 ? "No recruiter firm is named yet." : h("span", {}, h("strong", {}, stored.length === 1 ? "1 firm is named" : stored.length + " firms are named"), ": ", stored.map(storedLinkText).join("; "), "."));
@@ -201,11 +201,11 @@ async function submitFirms(clearAll) {
     const reload = await api.getMyPosting(postingId);
     if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.FIRMS });
     const warn = clearAll ? null : checkWarnings(r.data.links);
-    say($("#firmsAlert"), warn ? "notice" : "ok", (r.data.changed === false ? (clearAll ? "No firm was named, so nothing was changed." : "These are the firms already named, so nothing was changed.") : clearAll ? "Removed. No recruiter firm is named on this posting." : "Saved. " + (r.data.active_links === 1 ? "1 recruiter firm is" : r.data.active_links + " recruiter firms are") + " now named.") + (warn ? " " + warn : ""));
+    say($("#firmsAlert"), warn ? "notice" : "ok", (r.data.changed === false ? (clearAll ? "No firm was named, so nothing was changed." : "These are the firms already named, so nothing was changed.") : clearAll ? "Removed. No recruiter firm is named on this opening." : "Saved. " + (r.data.active_links === 1 ? "1 recruiter firm is" : r.data.active_links + " recruiter firms are") + " now named.") + (warn ? " " + warn : ""));
   } finally { state.firmsBusy = false; $("#saveFirmsBtn").disabled = false; }
 }
 $("#saveFirmsBtn").addEventListener("click", () => submitFirms(false));
-$("#clearFirmsBtn").addEventListener("click", () => { if (window.confirm("Remove every recruiter firm from this posting? You can name them again at any time.")) submitFirms(true); });
+$("#clearFirmsBtn").addEventListener("click", () => { if (window.confirm("Remove every recruiter firm from this opening? You can name them again at any time.")) submitFirms(true); });
 
 // opts: keepForm: the main form's unsaved edits stay (another part of the page was just saved, so the posting is read again, but what was typed in the form is not thrown away);
 //       saved: the section that was just saved ("*" = all of them, a discard): the other sections keep what was typed in them and not saved yet
@@ -242,10 +242,10 @@ async function populate(doc, opts) {
   renderSchedule(p, editable);
   const ro = $("#readonlyNote"); ro.hidden = editable; clear(ro);
   if (!editable) {
-    const why = p.stored_status === "flagged" ? "This posting is held for review, so it cannot be edited right now."
-      : p.status === "expired" ? "This posting has expired. An expired or closed posting is the public record of what was advertised, so it cannot be edited."
-      : "This posting is " + p.status + ". An expired or closed posting is the public record of what was advertised, so it cannot be edited.";
-    ro.append(h("p", { style: "font-size:15px;line-height:1.6;" }, why), h("div", { style: "margin-top:16px;" }, h("a", { class: "btn btn-outline btn-sm", href: "dashboard.html" }, "Back to My postings")));
+    const why = p.stored_status === "flagged" ? "This opening is held for review, so it cannot be edited right now."
+      : p.status === "expired" ? "This opening has expired. An expired or closed opening is the public record of what was advertised, so it cannot be edited."
+      : "This opening is " + p.status + ". An expired or closed opening is the public record of what was advertised, so it cannot be edited.";
+    ro.append(h("p", { style: "font-size:15px;line-height:1.6;" }, why), h("div", { style: "margin-top:16px;" }, h("a", { class: "btn btn-outline btn-sm", href: "dashboard.html" }, "Back to My openings")));
   }
   } finally { state.loading = false; state.keepPanels = new Set(); }
   refreshUnsaved();
@@ -253,11 +253,11 @@ async function populate(doc, opts) {
 
 async function load() {
   say(pageAlert, "error", "");
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(postingId)) { say(pageAlert, "error", "This page needs a posting: open it from My postings."); return false; }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(postingId)) { say(pageAlert, "error", "This page needs an opening: open it from My openings."); return false; }
   const r = await api.getMyPosting(postingId);
   if (!r.ok) {
     if (isAuthFailure(r.error)) { await sessionEnded(); return false; }
-    if (r.error.code === "not_found") { say(pageAlert, "error", "That posting was not found. The link may be wrong, or the posting may belong to a colleague."); return false; }
+    if (r.error.code === "not_found") { say(pageAlert, "error", "That opening was not found. The link may be wrong, or the opening may belong to a colleague."); return false; }
     say(pageAlert, "error", failureText(r.error) + " Reload the page to try again."); return false;
   }
   await populate(r.data); return true;
@@ -284,7 +284,7 @@ async function submit() {
       if (m.needNote) { state.needNote = true; noteLabel(state.orig.stored_status === "draft"); }
       showErrors(m.byField);
       say(formAlert, "error", m.general || (Object.keys(m.byField).length ? "Nothing was saved. See the message under the field." : failureText(r.error)));
-      if (m.newPosting) formAlert.append(h("div", { style: "margin-top:10px;" }, h("a", { class: "btn btn-outline btn-sm", href: "register.html" }, "Register a new posting →")));
+      if (m.newPosting) formAlert.append(h("div", { style: "margin-top:10px;" }, h("a", { class: "btn btn-outline btn-sm", href: "register.html" }, "Register a new opening →")));
       const firstId = Object.keys(m.byField)[0]; if (firstId) { if (firstId === "locpicker" || firstId === "attest") picker.focusFor(firstId); else $("#" + firstId).focus(); }
       return false;
     }
@@ -327,11 +327,11 @@ async function submitLinks(clearAll) {
     const reload = await api.getMyPosting(postingId);
     if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.LINKS });
     const warn = clearAll ? null : checkWarnings(r.data.links);
-    say($("#linksAlert"), warn ? "notice" : "ok", (r.data.changed === false ? (clearAll ? "There were no links stored, so nothing was changed." : "These are the links already stored, so nothing was changed.") : clearAll ? "Removed. No destination links are stored; candidates will see no apply link for this posting." : "Saved. " + (r.data.active_links === 1 ? "1 destination link is" : r.data.active_links + " destination links are") + " now stored.") + (warn ? " " + warn : ""));
+    say($("#linksAlert"), warn ? "notice" : "ok", (r.data.changed === false ? (clearAll ? "There were no links stored, so nothing was changed." : "These are the links already stored, so nothing was changed.") : clearAll ? "Removed. No destination links are stored; candidates will see no apply link for this opening." : "Saved. " + (r.data.active_links === 1 ? "1 destination link is" : r.data.active_links + " destination links are") + " now stored.") + (warn ? " " + warn : ""));
   } finally { state.linksBusy = false; $("#saveLinksBtn").disabled = false; }
 }
 $("#linksForm").addEventListener("submit", (ev) => { ev.preventDefault(); submitLinks(false); });
-$("#clearLinksBtn").addEventListener("click", () => { if (window.confirm("Remove all destination links from this posting? Candidates will then see no apply link. You can add links again at any time.")) submitLinks(true); });
+$("#clearLinksBtn").addEventListener("click", () => { if (window.confirm("Remove all destination links from this opening? Candidates will then see no apply link. You can add links again at any time.")) submitLinks(true); });
 form.addEventListener("submit", (ev) => { ev.preventDefault(); submit(); });
 
 // ---- unsaved work (js/dirty-state.js decides what counts; js/unsaved-guard.js shows the bar, asks before the page is left, and holds the dialog)

@@ -19,7 +19,7 @@
   <nav class="nav-links" aria-label="Main">
     <a href="index.html#candidates">For Candidates</a>
     <a href="index.html#employers">For Employers</a>
-    <a href="search.html">Search Postings</a>
+    <a href="search.html">Search Openings</a>
   </nav>
   <div id="navAccount" style="display:flex;align-items:center;"></div>
 </header>
@@ -56,7 +56,7 @@
 
   <div id="threadWrap" hidden style="display:flex;flex-direction:column;gap:14px;">
     <h2 id="threadHead" style="font-size:20px;font-weight:700;margin:0;">Comments</h2>
-    <p id="threadIntro" style="font-size:14px;color:var(--muted);line-height:1.6;margin:0;">Written by candidates who confirmed their email, newest first, anonymous. A comment is about the posting, never about a person. Anyone can report a comment; we read every report.</p>
+    <p id="threadIntro" style="font-size:14px;color:var(--muted);line-height:1.6;margin:0;">Written by candidates who confirmed their email, newest first, anonymous. A comment is about the opening, never about a person. Anyone can report a comment; we read every report.</p>
     <div id="thread" style="display:flex;flex-direction:column;gap:12px;"></div>
     <div id="threadEmpty" class="empty-note" hidden>No comments yet.</div>
     <div><button type="button" id="loadMore" class="btn btn-outline btn-sm" hidden>Load older comments</button></div>
@@ -66,7 +66,7 @@
     <h2 style="font-size:16px;font-weight:700;margin:0 0 6px 0;">Add a comment</h2>
     <p id="composeRules" class="field-hint" style="margin:0 0 12px 0;"></p>
     <form id="composeForm" novalidate style="display:flex;flex-direction:column;gap:10px;">
-      <textarea id="commentText" rows="4" maxlength="2000" aria-label="Your comment" placeholder="What should other candidates know about this posting?"></textarea>
+      <textarea id="commentText" rows="4" maxlength="2000" aria-label="Your comment" placeholder="What should other candidates know about this opening?"></textarea>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
         <div id="commentCount" class="field-hint" style="margin:0;">0 / 2,000</div>
         <button type="submit" id="commentSend" class="btn btn-dark btn-sm">Post comment</button>
@@ -78,7 +78,7 @@
 
   <div id="reportWrap" class="card" hidden>
     <h2 style="font-size:16px;font-weight:700;margin:0 0 6px 0;">Report a wrong link</h2>
-    <p class="field-hint" style="margin:0 0 12px 0;">Did a link on this posting not lead to this job's own page or application? Tell us here, privately: this goes to us, not to the thread, so you can say exactly where it took you (an address is fine here).</p>
+    <p class="field-hint" style="margin:0 0 12px 0;">Did a link on this opening not lead to this job's own page or application? Tell us here, privately: this goes to us, not to the thread, so you can say exactly where it took you (an address is fine here).</p>
     <form id="reportForm" novalidate style="display:flex;flex-direction:column;gap:10px;">
       <label id="reportLinkLabel" for="reportLink" style="font-size:13px;color:var(--muted);">Which link?</label>
       <select id="reportLink" aria-label="Which link"></select>
@@ -92,7 +92,7 @@
     </form>
   </div>
 
-  <div id="employerNote" hidden style="font-size:13px;color:var(--muted);line-height:1.6;">Comments are written by candidates who confirmed their email and are anonymous to everyone, you included. This page shows the comments on this one posting. <a href="dashboard.html">Back to My postings</a></div>
+  <div id="employerNote" hidden style="font-size:13px;color:var(--muted);line-height:1.6;">Comments are written by candidates who confirmed their email and are anonymous to everyone, you included. This page shows the comments on this one opening. <a href="dashboard.html">Back to My openings</a></div>
 </div>
 
 </main>

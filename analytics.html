@@ -19,7 +19,7 @@
   <nav class="nav-links" aria-label="Main">
     <a href="index.html#candidates">For Candidates</a>
     <a href="index.html#employers">For Employers</a>
-    <a href="search.html">Search Postings</a>
+    <a href="search.html">Search Openings</a>
   </nav>
   <div id="navAccount" style="display:flex;align-items:center;"></div>
 </header>
@@ -31,8 +31,8 @@
     <div>
       <div class="eyebrow">Analytics</div>
       <div id="orgName" style="font-size:13px;font-weight:700;color:var(--faint);margin-top:2px;">&nbsp;</div>
-      <h1 style="font-size:30px;font-weight:700;margin-top:6px;">Your postings, at a glance.</h1>
-      <p style="font-size:14px;color:var(--muted);margin:8px 0 0 0;max-width:600px;">How candidates are finding your postings, how many open the details, and how many click through, across everything your organization has registered.</p>
+      <h1 style="font-size:30px;font-weight:700;margin-top:6px;">Your openings, at a glance.</h1>
+      <p style="font-size:14px;color:var(--muted);margin:8px 0 0 0;max-width:600px;">How candidates are finding your openings, how many open the details, and how many click through, across everything your organization has registered.</p>
     </div>
     <div style="display:flex;gap:10px;align-items:center;">
       <label for="rangeSelect" style="font-size:13px;font-weight:600;margin:0;">Date range</label>
@@ -53,11 +53,11 @@
 
   <!-- TRAFFIC BY POSTING -->
   <div style="margin-top:40px;">
-    <h2 style="font-size:19px;font-weight:700;">Traffic by posting</h2>
-    <p style="font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6;">Searches that matched a posting, how many opened its detail view, and how many clicked a destination link.</p>
-    <div class="card flush" data-scroll-area="Traffic by posting table" style="margin-top:14px;padding:0;overflow-x:auto;">
+    <h2 style="font-size:19px;font-weight:700;">Traffic by opening</h2>
+    <p style="font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6;">Searches that matched an opening, how many opened its detail view, and how many clicked a destination link.</p>
+    <div class="card flush" data-scroll-area="Traffic by opening table" style="margin-top:14px;padding:0;overflow-x:auto;">
       <table id="postingTable" class="rtable" role="table">
-        <thead role="rowgroup"><tr role="row"><th role="columnheader">Posting</th><th role="columnheader">Searches</th><th role="columnheader">Detail views</th><th role="columnheader">Link clicks</th><th role="columnheader">Click-through</th></tr></thead>
+        <thead role="rowgroup"><tr role="row"><th role="columnheader">Opening</th><th role="columnheader">Searches</th><th role="columnheader">Detail views</th><th role="columnheader">Link clicks</th><th role="columnheader">Click-through</th></tr></thead>
         <tbody id="postingRows" role="rowgroup"></tbody>
       </table>
       <div id="postingEmpty" class="empty-note" style="margin:0;border-radius:0;" hidden></div>
@@ -68,7 +68,7 @@
   <div class="grid2" style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:24px;">
     <div>
       <h2 style="font-size:19px;font-weight:700;">How candidates found you</h2>
-      <p style="font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6;">What candidates searched that matched one of your postings.</p>
+      <p style="font-size:13px;color:var(--muted);margin-top:4px;line-height:1.6;">What candidates searched that matched one of your openings.</p>
       <div class="card" id="modeCard" style="margin-top:14px;padding:20px;display:flex;flex-direction:column;gap:14px;"></div>
       <div id="modeEmpty" class="empty-note" hidden></div>
     </div>

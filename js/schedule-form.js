@@ -6,7 +6,7 @@
 export const MIN_LEAD_MS = 3600000, MAX_DAYS = 90, SLACK_MS = 120000, DAY_MS = 86400000;
 
 // the approved copy: shown under the control on the register form and on the edit page, word for word (tests/site-check.js S21)
-export const GO_LIVE_HINT = "Choose a time between 1 hour and 90 days from now. Your posting goes live within 15 minutes after that time, and its closing date is counted from the moment it actually goes live, not from now. Until then it is a scheduled draft that candidates cannot see; you can change the time, remove it or publish it now from My postings.";
+export const GO_LIVE_HINT = "Choose a time between 1 hour and 90 days from now. Your opening goes live within 15 minutes after that time, and its closing date is counted from the moment it actually goes live, not from now. Until then it is a scheduled draft that candidates cannot see; you can change the time, remove it or publish it now from My openings.";
 
 // text: the value of <input type="datetime-local"> ("2026-10-05T14:00": the browser's own time zone). createdMs: when the draft was saved (omit for a posting that is being registered right now).
 // -> { ok: true, iso } (a UTC instant, the form the backend takes) | { ok: false, error }
@@ -15,7 +15,7 @@ export function checkGoLive(text, nowMs, createdMs) {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(t)) return { ok: false, error: "Choose a date and time." };
   const ms = new Date(t).getTime();
   if (!Number.isFinite(ms)) return { ok: false, error: "That is not a real date and time." };
-  if (ms < nowMs + MIN_LEAD_MS + SLACK_MS) return { ok: false, error: "Choose a time at least 1 hour from now. For sooner, publish the posting instead." };
+  if (ms < nowMs + MIN_LEAD_MS + SLACK_MS) return { ok: false, error: "Choose a time at least 1 hour from now. For sooner, publish the opening instead." };
   const base = typeof createdMs === "number" && Number.isFinite(createdMs) ? createdMs : nowMs;
   if (ms > base + MAX_DAYS * DAY_MS - SLACK_MS) return { ok: false, error: typeof createdMs === "number" ? "Choose a time no more than 90 days after this draft was saved." : "Choose a time no more than 90 days from now." };
   return { ok: true, iso: new Date(ms).toISOString() };
@@ -31,9 +31,9 @@ export function toLocalInput(iso) {
 // A refusal from schedule-posting -> the words to show. `where`: "gldate" when it is about the time itself.
 export function mapScheduleError(err) {
   if (!err) return { where: null, message: "Something went wrong." };
-  if (err.code === "go_live_too_soon") return { where: "gldate", message: "That time is less than an hour away. Choose a later time, or publish the posting instead." };
+  if (err.code === "go_live_too_soon") return { where: "gldate", message: "That time is less than an hour away. Choose a later time, or publish the opening instead." };
   if (err.code === "go_live_too_late") return { where: "gldate", message: "That time is more than 90 days after this draft was saved. Choose an earlier time." };
-  if (err.field === "status") return { where: null, message: "This posting is not a draft any more, so it cannot be scheduled." };
+  if (err.field === "status") return { where: null, message: "This opening is not a draft any more, so it cannot be scheduled." };
   if (err.field === "go_live_at") return { where: "gldate", message: err.message || "That time was not accepted." };
   return { where: null, message: null };
 }

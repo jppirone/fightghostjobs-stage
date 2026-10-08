@@ -7,7 +7,7 @@
 <meta name="referrer" content="same-origin">
 <meta name="robots" content="noindex, nofollow">
 <script src="js/stage-gate.js"></script>
-<title>FightGhostJobs | Register a Posting</title>
+<title>FightGhostJobs | Register an Opening</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="app.css">
 </head>
@@ -19,7 +19,7 @@
   <nav class="nav-links" aria-label="Main">
     <a href="index.html#candidates">For Candidates</a>
     <a href="index.html#employers">For Employers</a>
-    <a href="search.html">Search Postings</a>
+    <a href="search.html">Search Openings</a>
   </nav>
   <div id="navAccount" style="display:flex;align-items:center;"></div>
 </header>
@@ -31,7 +31,7 @@
   <div style="flex:2;display:flex;flex-direction:column;gap:28px;max-width:720px;">
     <div>
       <div id="orgName" style="font-size:13px;font-weight:700;color:var(--faint);">&nbsp;</div>
-      <h1 style="font-size:32px;font-weight:700;margin-top:6px;letter-spacing:-.01em;">Register a posting</h1>
+      <h1 style="font-size:32px;font-weight:700;margin-top:6px;letter-spacing:-.01em;">Register an opening</h1>
     </div>
 
     <div id="pageAlert" hidden></div>
@@ -39,8 +39,8 @@
     <form id="form" class="card" style="display:flex;flex-direction:column;gap:22px;" novalidate>
       <div class="grid2" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;">
         <div><label for="jtitle">Job title</label><input id="jtitle" type="text" maxlength="200" autocomplete="off"><div class="field-error" data-error-for="jtitle" hidden></div></div>
-        <div><label for="req">Req number</label><input id="req" type="text" maxlength="100" autocomplete="off"><div class="field-error" data-error-for="req" hidden></div><div class="field-hint">Required. Your own reference, such as your ATS number. Once the posting is live, candidates can find it by company name plus this number. They see it masked (for example FGJ****45), and these lookups are rate-limited. You always see the full number in My postings.</div></div>
-        <div><div style="font-size:13px;font-weight:600;margin-bottom:6px;">Company</div><div id="companyShown" style="padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:15px;min-height:20px;"></div><div class="field-hint">This is your organization's name. It is the company name candidates see on the posting, and it cannot be changed here.</div></div>
+        <div><label for="req">Req number</label><input id="req" type="text" maxlength="100" autocomplete="off"><div class="field-error" data-error-for="req" hidden></div><div class="field-hint">Required. Your own reference, such as your ATS number. Once the opening is live, candidates can find it by company name plus this number. They see it masked (for example FGJ****45), and these lookups are rate-limited. You always see the full number in My openings.</div></div>
+        <div><div style="font-size:13px;font-weight:600;margin-bottom:6px;">Company</div><div id="companyShown" style="padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:15px;min-height:20px;"></div><div class="field-hint">This is your organization's name. It is the company name candidates see on the opening, and it cannot be changed here.</div></div>
         <div><label for="appcap">Applicant cap (optional)</label><input id="appcap" type="text" inputmode="numeric" autocomplete="off"><div class="field-error" data-error-for="appcap" hidden></div></div>
         <div style="grid-column:1/-1;"><label class="check-row" for="remote"><input id="remote" type="checkbox"> Remote role</label></div>
         <div id="locpicker" style="grid-column:1/-1;">
@@ -62,18 +62,18 @@
         <div><label for="livedays">Keep it live for (days)</label><input id="livedays" type="text" inputmode="numeric" maxlength="3" value="45" autocomplete="off"><div class="field-error" data-error-for="livedays" hidden></div><div class="field-hint">14 to 45 days. Never longer than 45.</div></div>
       </div>
       <div id="dupPrompt" class="alert alert-notice" role="group" aria-labelledby="dupTitle" hidden>
-        <strong id="dupTitle" style="color:var(--ink);">This company already has a posting with this req number.</strong>
-        Reusing a req number is allowed. Add one line saying why (for example, the role was reopened or reposted); it is recorded with the posting. Nothing is judged and nothing is blocked.
+        <strong id="dupTitle" style="color:var(--ink);">This company already has an opening with this req number.</strong>
+        Reusing a req number is allowed. Add one line saying why (for example, the role was reopened or its job ad was put up again); it is recorded with the opening. Nothing is judged and nothing is blocked.
         <label for="dupnote" style="margin-top:12px;">Why is this req number being reused?</label>
         <input id="dupnote" type="text" maxlength="300" autocomplete="off" aria-describedby="dupHint">
         <div class="field-error" data-error-for="dupnote" hidden></div>
-        <div id="dupHint" class="field-hint">One line, 300 characters at most. Then press Register posting again.</div>
+        <div id="dupHint" class="field-hint">One line, 300 characters at most. Then press Register opening again.</div>
         <button type="button" id="dupChange" class="btn btn-outline btn-sm" style="margin-top:10px;">Change the req number</button>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-top:-10px;">If set, the cap is shown to candidates too. Reaching it doesn't auto-close the posting. You need to come back and pause or close it yourself. Pausing never resets this cap or the close date.</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:-10px;">If set, the cap is shown to candidates too. Reaching it doesn't auto-close the opening. You need to come back and pause or close it yourself. Pausing never resets this cap or the close date.</div>
       <div class="alert alert-notice" id="windowNote" role="note">
         <strong style="color:var(--ink);">How long it stays live: you choose, 14 to 45 days.</strong>
-        Your posting goes live the moment you register it (unless you choose a go-live time below) and closes automatically after the number of days you set above (45 unless you change it, and never more than 45). The days start when it goes live, not when you fill in this form, so a saved draft does not start the clock until you publish it.
+        Your opening goes live the moment you register it (unless you choose a go-live time below) and closes automatically after the number of days you set above (45 unless you change it, and never more than 45). The days start when it goes live, not when you fill in this form, so a saved draft does not start the clock until you publish it.
         The close date is shown to candidates; you will see the exact date and time, with your time zone, as soon as it is registered. It can be extended once, by up to 15 days.
       </div>
 
@@ -85,22 +85,22 @@
           <label for="gldate">Go-live date and time (your own time zone)</label>
           <input id="gldate" type="datetime-local" autocomplete="off">
           <div class="field-error" data-error-for="gldate" hidden></div>
-          <div id="goLiveHint" class="field-hint">Choose a time between 1 hour and 90 days from now. Your posting goes live within 15 minutes after that time, and its closing date is counted from the moment it actually goes live, not from now. Until then it is a scheduled draft that candidates cannot see; you can change the time, remove it or publish it now from My postings.</div>
+          <div id="goLiveHint" class="field-hint">Choose a time between 1 hour and 90 days from now. Your opening goes live within 15 minutes after that time, and its closing date is counted from the moment it actually goes live, not from now. Until then it is a scheduled draft that candidates cannot see; you can change the time, remove it or publish it now from My openings.</div>
         </div>
       </fieldset>
 
       <div>
-        <label for="closeout">What ends this posting?</label>
+        <label for="closeout">What ends this opening?</label>
         <input id="closeout" type="text" maxlength="300" autocomplete="off" placeholder="Closes when the role is filled">
         <div class="field-error" data-error-for="closeout" hidden></div>
-        <div class="field-hint">The condition you commit to now, in your own words. It is recorded with the posting.</div>
+        <div class="field-hint">The condition you commit to now, in your own words. It is recorded with the opening.</div>
       </div>
       <div>
         <label for="desc">Job description</label>
         <textarea id="desc" rows="5" maxlength="20000"></textarea>
         <div class="field-error" data-error-for="desc" hidden></div>
-        <div class="field-hint">Never shown to candidates. Paste the description as you post it elsewhere.</div>
-        <div id="reqTextHint" class="field-hint">This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to register it as a new posting with its own req number, so candidates can tell which role they're looking at. Each change is saved with a short note.</div>
+        <div class="field-hint">Never shown to candidates. Paste the description as it appears in your job ad elsewhere.</div>
+        <div id="reqTextHint" class="field-hint">This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to register it as a new opening with its own req number, so candidates can tell which role they're looking at. Each change is saved with a short note.</div>
       </div>
 
       <div style="height:1px;background:var(--line);"></div>
@@ -147,7 +147,7 @@
           <span style="font-size:13px;color:var(--muted);">Naming the firm is part of the destination links tier. <a href="mailto:sales@fightghostjobs.com?subject=Destination%20links%20tier" style="font-weight:600;">Write to sales@fightghostjobs.com →</a></span>
         </div>
         <div id="firmsForm" hidden style="display:flex;flex-direction:column;gap:12px;">
-          <div class="field-hint" style="margin-top:0;">Optional, up to 3. Candidates see the name as "Recruiter firm: …". The address is optional and, like a destination link, is never shown to them: they see where it goes. Saved right after the posting is registered; you can change the firms from My postings (Edit).</div>
+          <div class="field-hint" style="margin-top:0;">Optional, up to 3. Candidates see the name as "Recruiter firm: …". The address is optional and, like a destination link, is never shown to them: they see where it goes. Saved right after the opening is registered; you can change the firms from My openings (Edit).</div>
           <div id="firmRows" style="display:flex;flex-direction:column;gap:12px;"></div>
           <div><button type="button" id="addFirmBtn" class="btn btn-outline btn-sm">Add another firm</button></div>
           <div id="firmsAlert" hidden></div>
@@ -158,7 +158,7 @@
       <div id="linksSection" style="display:flex;flex-direction:column;gap:14px;">
         <div style="font-size:14px;font-weight:700;">Destination links</div>
         <div id="linksLocked" hidden>
-          <p style="font-size:14px;line-height:1.6;margin:0;">Destination links let a candidate who chooses to apply be sent from the posting to your own application page. They are part of the destination links tier.</p>
+          <p style="font-size:14px;line-height:1.6;margin:0;">Destination links let a candidate who chooses to apply be sent from the opening to your own application page. They are part of the destination links tier.</p>
           <div style="display:flex;align-items:center;gap:10px;margin-top:10px;background:var(--panel);border:1px dashed #C9C1B4;border-radius:10px;padding:14px 18px;">
             <span style="color:var(--faint);">🔒</span>
             <span style="font-size:13px;color:var(--muted);">Upgrade to add destination links. <a href="mailto:sales@fightghostjobs.com?subject=Destination%20links%20tier" style="font-weight:600;">Write to sales@fightghostjobs.com →</a></span>
@@ -166,7 +166,7 @@
         </div><!-- /linksLocked -->
         <div id="linksPlan" hidden></div>
         <div id="linksForm" hidden style="display:flex;flex-direction:column;gap:12px;">
-          <div class="field-hint" style="margin-top:0;">Optional. Candidates never see these addresses. When a candidate chooses to apply, they are sent through a one-time link to the address you enter here (position 1 first). For safety the addresses are not shown back to you afterwards; from My postings (Edit) you can replace the set at any time. Up to 10. The label is a note for you only: candidates see where a link goes (LinkedIn, an application system, your own site) or "employer-provided link, not verified by us"; a link shortener or redirect is not accepted. When you save, we try each address once and tell you if it did not answer.</div>
+          <div class="field-hint" style="margin-top:0;">Optional. Candidates never see these addresses. When a candidate chooses to apply, they are sent through a one-time link to the address you enter here (position 1 first). For safety the addresses are not shown back to you afterwards; from My openings (Edit) you can replace the set at any time. Up to 10. The label is a note for you only: candidates see where a link goes (LinkedIn, an application system, your own site) or "employer-provided link, not verified by us"; a link shortener or redirect is not accepted. When you save, we try each address once and tell you if it did not answer.</div>
           <div id="linkRows" style="display:flex;flex-direction:column;gap:12px;"></div>
           <div><button type="button" id="addLinkBtn" class="btn btn-outline btn-sm">Add another link</button></div>
           <div id="linksAlert" hidden></div>
@@ -176,7 +176,7 @@
       <div style="height:1px;background:var(--line);"></div>
       <div id="formAlert" hidden></div>
       <div style="display:flex;gap:12px;">
-        <button type="submit" id="registerBtn" class="btn btn-dark" style="flex:1;justify-content:center;">Register posting</button>
+        <button type="submit" id="registerBtn" class="btn btn-dark" style="flex:1;justify-content:center;">Register opening</button>
         <button type="button" id="draftBtn" class="btn btn-ghost">Save draft</button>
       </div>
     </form>
@@ -188,7 +188,7 @@
     <div style="background:var(--ink);color:var(--bone);border-radius:16px;padding:26px;">
       <div style="font-size:13px;font-weight:700;color:#F2A98C;text-transform:uppercase;letter-spacing:.06em;">Free on every tier</div>
       <ul style="margin:14px 0 0 0;padding-left:18px;font-size:14px;line-height:1.9;color:#E9E4DB;">
-        <li>Title, location, dates, postID</li>
+        <li>Title, location, dates, Opening ID</li>
         <li>AI-use disclosure, with filtering and interviewing shown separately</li>
         <li>Recruiter involved, yes or no</li>
         <li>A go-live time you schedule, and a dashboard to manage it all</li>

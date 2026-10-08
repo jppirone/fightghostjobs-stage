@@ -35,7 +35,7 @@ export function barWidthPct(value, max) {
   return Math.max(2, Math.min(100, Math.round((100 * value) / max)));      // a sliver (2%) stays visible for a real but tiny value, instead of rendering as nothing
 }
 
-const VIA_LABEL = { phrase: "Company name + job title", code: "Company name + postID (from a job ad)", req: "Company name + req number" };
+const VIA_LABEL = { phrase: "Company name + job title", code: "Company name + Opening ID (from a job ad)", req: "Company name + req number" };
 const VIA_ORDER = ["phrase", "code", "req"];
 
 // by_search_mode ({via: count}) -> [{ key, label, count, pct }], sorted by count desc (ties keep VIA_ORDER), pct of the sum of all three modes (0 when nothing searched this range)

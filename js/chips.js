@@ -30,7 +30,7 @@ export function statusChips(p, tz) {
 
 // Every chip of a search result / posting header, in the designed order.
 export function postingChips(p, tz) {
-  const chips = [{ text: "Posted " + fmtDateTz(p.posted_at, tz) }];
+  const chips = [{ text: "Registered " + fmtDateTz(p.posted_at, tz) }];
   chips.push(...statusChips(p, tz));
   chips.push(aiFilteringChip(p.ai_filtering), aiInterviewChip(p.ai_interview_other));
   chips.push({ text: p.third_party_recruiter === true ? "Third-party recruiter involved" : "No recruiter" });
@@ -41,20 +41,20 @@ export function postingChips(p, tz) {
 
 // What the detail dialog says when a posting is not live (candidate-posting-detail answers 409 posting_not_open).
 export function notOpenMessage(status, closedReason) {
-  if (status === "paused") return "This posting is paused. The employer has paused it, so it is not accepting applicants right now.";
-  if (status === "expired") return "This posting has expired" + (closedReason === "expired_no_action" ? " with no action taken by the employer." : ".");
-  if (status === "closed") return closedReason === "filled" ? "This posting is closed: the employer reports the role was filled." : closedReason === "withdrawn" ? "This posting is closed: the employer withdrew it." : "This posting is closed.";
-  return "This posting is not open.";
+  if (status === "paused") return "This opening is paused. The employer has paused it, so it is not accepting applicants right now.";
+  if (status === "expired") return "This opening has expired" + (closedReason === "expired_no_action" ? " with no action taken by the employer." : ".");
+  if (status === "closed") return closedReason === "filled" ? "This opening is closed: the employer reports the role was filled." : closedReason === "withdrawn" ? "This opening is closed: the employer withdrew it." : "This opening is closed.";
+  return "This opening is not open.";
 }
 
 // The comments page for a posting that is not open (candidate-posting-detail answers 409 posting_not_open): the small line, the heading and the note under it.
 // A PAUSED posting is expected to return, so it gets its own heading and the short sentence; closed, expired and every other status keep the long sentence.
 export function notOpenHeading(status) {
-  return status === "paused" ? "This posting is paused" : "This posting is no longer open";
+  return status === "paused" ? "This opening is paused" : "This opening is no longer open";
 }
 export function notOpenComments(status) {
   return status === "paused" ? "Comments stay open." : "Comments stay open: what happened after it closed is exactly what other candidates want to know.";
 }
 export function notOpenRecap(status, closedReason, withComments = true) {   // withComments false: the comments switch is off, so the line about comments staying open is left out
-  return { company: "Posting", title: notOpenHeading(status), note: notOpenMessage(status, closedReason || null) + (withComments ? " " + notOpenComments(status) : "") };
+  return { company: "Opening", title: notOpenHeading(status), note: notOpenMessage(status, closedReason || null) + (withComments ? " " + notOpenComments(status) : "") };
 }

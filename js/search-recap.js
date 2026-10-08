@@ -8,7 +8,7 @@ export const RECAP = {
   LEAD: "You searched for: company ",
   TAIL: " Your results are below.",
   REQ: "a req number was entered",
-  CODE: "a postID was entered",
+  CODE: "an Opening ID was entered",
 };
 
 const oneLine = (t) => String(t == null ? "" : t).replace(/\s+/g, " ").trim();

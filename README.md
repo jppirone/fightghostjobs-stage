@@ -10,21 +10,21 @@ Plain HTML, CSS and ES modules. **No build step, no framework, no CDN**: what is
 | Page | Who | What it does |
 |---|---|---|
 | `index.html` | everyone | landing page |
-| `dashboard.html` | signed-in employers | "My postings": the postings you own (drafts included), status, dates, postID, req number, comment count; read-only in this first slice |
-| `search.html` | verified candidates | company + job title (or postID) lookup, posting details, destination links; sign-in by emailed link |
+| `dashboard.html` | signed-in employers | "My openings": the openings you own (drafts included), status, dates, Opening ID, req number, comment count; read-only in this first slice |
+| `search.html` | verified candidates | company + job title (or Opening ID) lookup, opening details, destination links; sign-in by emailed link |
 | `employer-signin.html` | employers | "invitation only" copy and the emailed sign-in link request (roster-gated on the server) |
-| `register.html` | employers (signed in) | register a posting: create, then publish (standard tier) |
+| `register.html` | employers (signed in) | register an opening: create, then publish (standard tier) |
 | `auth-callback.html` | both | where the emailed link lands; sorts out which kind of session it got |
 | `404.html` | | not found |
 
-Pages still to come, in this order: employer "My postings" + edit, close a posting, candidate comments, team (roster), import.
+Pages still to come, in this order: employer "My openings" + edit, close an opening, candidate comments, team (roster), import.
 
 ## How it is put together
 
 * `js/config.js` – the only place the browser learns where the backend is. The publishable key in it is **public by design**; it holds no secret and must never be replaced by one.
 * `js/api.js` – every call to the backend, in one place. Checks each answer against the exact shape the pages rely on and **fails closed** (an unexpected answer is reported, never rendered). Runs unchanged in Node, which is how it is tested.
 * `js/session.js` – the sign-in session (Supabase Auth, emailed one-time link, no passwords). Employer sessions carry `poster_id`, candidate sessions `candidate_identity_id`; the server checks the token again on every call.
-* `js/dom.js` – the only way text reaches the page (`textContent`); there is **no `innerHTML` anywhere**, because posting titles and comments are written by strangers.
+* `js/dom.js` – the only way text reaches the page (`textContent`); there is **no `innerHTML` anywhere**, because opening titles and comments are written by strangers.
 * `vendor/` – the Auth client, bundled from the audited npm package (see `vendor/README.md`); `tests/vendor-hash.txt` pins its hash.
 * `styles.css` is the reference design's stylesheet (plus self-hosted fonts); `app.css` holds only what the reference did not have.
 

@@ -59,9 +59,9 @@ export const UNSAVED = {
   DISCARDED: "Your unsaved changes were discarded. The saved values are back.",
   // told to a screen reader (not shown) once, when the bar goes away because nothing is unsaved any more (saved, or changed back by hand); a discard says DISCARDED instead
   CLEARED: "No unsaved changes.",
-  noteRequired: (status) => "This posting is " + status + ", so a change to it needs a note. Say what changed and why.",
-  noteAdd: (status) => "This posting is " + status + ", so add a note saying what changed and why.",
-  titleRule: (status) => "On a " + status + " posting, a new title must keep at least 60% of the wording of the current one. A bigger change needs a new posting.",
+  noteRequired: (status) => "This opening is " + status + ", so a change to it needs a note. Say what changed and why.",
+  noteAdd: (status) => "This opening is " + status + ", so add a note saying what changed and why.",
+  titleRule: (status) => "On a " + status + " opening, a new title must keep at least 60% of the wording of the current one. A bigger change needs a new opening.",
   // the leave prompt
   LEAVE_SAVE_AND_LEAVE: "Save and leave", LEAVE_SAVE: "Save changes", LEAVE_DISCARD: "Discard and leave", LEAVE_STAY: "Stay on this page",
 };
@@ -91,8 +91,8 @@ export function summarize(m) {
     out.detail = [n ? panelsLine : UNSAVED.FORM_DETAIL, m.noteMissing ? UNSAVED.noteAdd(status) : ""].filter(Boolean).join(" ");
     out.liveText = [UNSAVED.HEAD + ".", n ? panelsLine : UNSAVED.FORM_DETAIL, m.noteRequired ? UNSAVED.noteRequired(status) : ""].filter(Boolean).join(" ");
     out.dialogTitle = UNSAVED.HEAD;
-    out.dialogText = n ? "If you leave this page now, your changes to this posting and what you typed in the " + named + (n === 1 ? " section" : " sections") + " are lost. Save changes saves the posting only."
-      : "If you leave this page now, your changes to this posting are lost.";
+    out.dialogText = n ? "If you leave this page now, your changes to this opening and what you typed in the " + named + (n === 1 ? " section" : " sections") + " are lost. Save changes saves the opening only."
+      : "If you leave this page now, your changes to this opening are lost.";
   } else {
     out.headline = cap(named) + " not saved yet";
     out.detail = linksEditOnly ? UNSAVED.LINKS_EDIT_DETAIL : linksBoth ? UNSAVED.LINKS_BOTH_DETAIL : linksOnly ? UNSAVED.LINKS_DETAIL : "Save changes does not save " + itThem + ". Use the button in " + section + ", or press Discard.";

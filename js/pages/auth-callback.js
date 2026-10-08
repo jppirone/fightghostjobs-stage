@@ -36,7 +36,7 @@ const button = (text, fn, cls = "btn btn-ghost") => h("button", { type: "button"
 
   const session = await currentSession();
   if (!session) {
-    say("Nothing to complete here", "This page finishes an email sign-in. Request a sign-in link first.", [link("Employer sign-in", "employer-signin.html"), link("Search postings", "search.html", "btn btn-outline")]);
+    say("Nothing to complete here", "This page finishes an email sign-in. Request a sign-in link first.", [link("Employer sign-in", "employer-signin.html"), link("Search openings", "search.html", "btn btn-outline")]);
     return;
   }
 

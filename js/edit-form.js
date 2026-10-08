@@ -77,7 +77,7 @@ export function checkEdit(orig, v) {
   const keys = Object.keys(changed);
   if (keys.length === 0) { e.form = "Nothing has changed."; return { errors: e, changed }; }
   if (!isDraft) {
-    if (note === "" && !e.note) e.note = "Say what changed and why. The note is required and is kept with the posting.";
+    if (note === "" && !e.note) e.note = "Say what changed and why. The note is required and is kept with the opening.";
     if (keys.some((k) => LOCATION_GROUP.includes(k))) {
       if (!("req_number" in changed) || reqKey(changed.req_number) === reqKey(orig.req_number)) e.req = "Changing the location, the remote flag or the one-opening statement needs a new req number. Enter one and say what changed in the note.";
     }
@@ -97,7 +97,7 @@ export function mapEditErrors(err) {
   if (code === "text_changed_too_much" || code === "text_drifted_too_far") { byField.desc = err.message || "This edit changes most of the requirements."; newPosting = true; }
   else if (code === "title_changed_too_much") { byField.jtitle = err.message || "This edit changes most of the title."; newPosting = true; }
   else if (code === "location_change_needs_new_req") byField.req = err.message || "Changing the location needs a new req number.";
-  else if (code === "duplicate_req") { byField.note = err.message || "This company already has a posting with this req number. Add a short note saying why it is being reused, then save again."; needNote = true; }
+  else if (code === "duplicate_req") { byField.note = err.message || "This company already has an opening with this req number. Add a short note saying why it is being reused, then save again."; needNote = true; }
   else {
     const list = Array.isArray(err.errors) && err.errors.length ? err.errors : err.field ? [{ field: err.field, message: err.message || "Not accepted." }] : [];
     for (const x of list) { const id = FIELD_OF_SERVER_NAME[x.field]; if (id) { if (!byField[id]) byField[id] = x.message; } else if (!general) general = x.message; }
@@ -177,7 +177,7 @@ export function mapLinksErrors(err, rowOf) {
   const rows = {}; let general = null;
   if (!err) return { rows, general: "Something went wrong.", planRequired: false, recruiterOff: false };
   if (err.code === "plan_required") return { rows, general: err.message || "Destination links are part of the destination links tier. Your organization is not on it (or the tier has ended), so nothing was changed.", planRequired: true, recruiterOff: false };
-  if (err.code === "recruiter_off") return { rows, general: err.message || "Recruiter firms can be named only while the posting says a third-party recruiter is involved. Turn that on and save the posting first.", planRequired: false, recruiterOff: true };
+  if (err.code === "recruiter_off") return { rows, general: err.message || "Recruiter firms can be named only while the opening says a third-party recruiter is involved. Turn that on and save the opening first.", planRequired: false, recruiterOff: true };
   const list = Array.isArray(err.errors) && err.errors.length ? err.errors : err.field ? [{ field: err.field, message: err.message || "Not accepted." }] : [];
   for (const x of list) {
     const m = /^links\[(\d+)\]\.(url|label|name)/.exec(x.field);

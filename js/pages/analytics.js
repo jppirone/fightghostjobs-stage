@@ -32,9 +32,9 @@ const LINK_CLICK_CAVEAT = "Reflects activity on the link shown here, not a compl
 function renderKpis(d) {
   const box = $("#kpiRow"); clear(box);
   box.append(
-    kpiCard("Live postings", String(d.live_postings)),
+    kpiCard("Live openings", String(d.live_postings)),
     kpiCard("Searches that found you", String(d.searches)),
-    kpiCard("Posting detail views", String(d.detail_views)),
+    kpiCard("Opening detail views", String(d.detail_views)),
     kpiCard("Destination link clicks", String(d.link_clicks), clickThroughLabel(d.detail_views, d.link_clicks) === "n/a" ? null : clickThroughLabel(d.detail_views, d.link_clicks) + " of viewers clicked through", LINK_CLICK_CAVEAT),
     kpiCard("Share of registry traffic", sharePctLabel(d.share_of_registry_pct), "Of all searches + detail views on the registry"),
   );
@@ -45,7 +45,7 @@ function postingRow(p) {
   const ct = clickThroughLabel(p.detail_views, p.link_clicks);
   const w = clickThroughPct(p.detail_views, p.link_clicks) || 0;
   return h("tr", { role: "row" },
-    h("td", { role: "cell", "data-label": "Posting", style: "font-weight:600;" }, p.title, h("div", { style: "font-size:12px;font-weight:400;color:var(--muted);margin-top:3px;" }, h("span", { class: "status " + chip.cls, style: "padding:2px 8px;font-size:11px;" }, chip.text))),
+    h("td", { role: "cell", "data-label": "Opening", style: "font-weight:600;" }, p.title, h("div", { style: "font-size:12px;font-weight:400;color:var(--muted);margin-top:3px;" }, h("span", { class: "status " + chip.cls, style: "padding:2px 8px;font-size:11px;" }, chip.text))),
     h("td", { role: "cell", "data-label": "Searches" }, String(p.searches)),
     h("td", { role: "cell", "data-label": "Detail views" }, String(p.detail_views)),
     h("td", { role: "cell", "data-label": "Link clicks" }, String(p.link_clicks)),
@@ -59,7 +59,7 @@ function renderPostingTable(byPosting) {
   const body = $("#postingRows"); clear(body);
   const empty = $("#postingEmpty");
   if (byPosting.length === 0) {
-    empty.hidden = false; clear(empty); empty.append("No postings recorded any activity in this date range.");
+    empty.hidden = false; clear(empty); empty.append("No openings recorded any activity in this date range.");
     $("#postingTable").hidden = true;
     return;
   }
@@ -77,7 +77,7 @@ function renderSearchModes(byMode) {
   const rows = searchModeBreakdown(byMode);
   const card = $("#modeCard"), empty = $("#modeEmpty");
   clear(card);
-  if (rows.length === 0) { card.hidden = true; empty.hidden = false; clear(empty); empty.append("No searches matched one of your postings in this date range."); return; }
+  if (rows.length === 0) { card.hidden = true; empty.hidden = false; clear(empty); empty.append("No searches matched one of your openings in this date range."); return; }
   card.hidden = false; empty.hidden = true;
   for (const r of rows) card.append(breakdownRow(r.label, r.pct + "%", r.pct, false));
 }

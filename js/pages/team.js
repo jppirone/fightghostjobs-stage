@@ -72,15 +72,15 @@ function act(kind, p) {
   const who = "“" + p.full_name + "”";
   if (kind === "promote") return openDialog({ title: "Make this person an admin?", confirmLabel: "Make admin", content: [para(who + " will be able to add and remove people on this roster and make other admins.")],
     onSubmit: async () => finish(await api.rosterSetAdmin(p.poster_id, true), who + " is now an admin.") });
-  if (kind === "demote") return openDialog({ title: "Remove admin rights?", confirmLabel: "Remove admin", content: [para(who + " keeps their postings and their access; they can no longer manage this roster.")],
+  if (kind === "demote") return openDialog({ title: "Remove admin rights?", confirmLabel: "Remove admin", content: [para(who + " keeps their openings and their access; they can no longer manage this roster.")],
     onSubmit: async () => finish(await api.rosterSetAdmin(p.poster_id, false), who + " is no longer an admin.") });
   if (kind === "remove") {
     const others = successorChoices(state.roster, p.poster_id);
-    const sel = h("select", { id: "successor", style: "width:100%;" }, h("option", { value: "" }, "Nobody (only possible when they own no postings)"), others.map((o) => h("option", { value: o.poster_id }, o.full_name + " (" + o.email + ")")));
+    const sel = h("select", { id: "successor", style: "width:100%;" }, h("option", { value: "" }, "Nobody (only possible when they own no openings)"), others.map((o) => h("option", { value: o.poster_id }, o.full_name + " (" + o.email + ")")));
     return openDialog({ title: "Remove this person?", confirmLabel: "Remove",
-      content: [para(who + " loses access immediately; a sign-in link they already hold stops working. If they own postings, choose who takes those over: the postings stay live under the new owner."),
-        h("label", { for: "successor", style: "display:block;margin-top:12px;" }, "Their postings go to"), sel],
-      onSubmit: async () => finish(await api.rosterRemove(p.poster_id, sel.value || null), (d) => who + " was removed" + (d && d.transferred ? " and " + d.transferred + (d.transferred === 1 ? " posting was" : " postings were") + " handed over." : ".")) });
+      content: [para(who + " loses access immediately; a sign-in link they already hold stops working. If they own openings, choose who takes those over: the openings stay live under the new owner."),
+        h("label", { for: "successor", style: "display:block;margin-top:12px;" }, "Their openings go to"), sel],
+      onSubmit: async () => finish(await api.rosterRemove(p.poster_id, sel.value || null), (d) => who + " was removed" + (d && d.transferred ? " and " + d.transferred + (d.transferred === 1 ? " opening was" : " openings were") + " handed over." : ".")) });
   }
 }
 

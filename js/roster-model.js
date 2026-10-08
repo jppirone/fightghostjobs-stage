@@ -34,9 +34,9 @@ export function mapRosterError(err) {
   if (!err) return "Something went wrong.";
   switch (err.code) {
     case "cannot_add": return "That address cannot be added: it already belongs to a roster (here or at another organization).";
-    case "roster_full": return "Your organization has reached the maximum of " + MAX_ROSTER + " active posters.";
+    case "roster_full": return "Your organization has reached the maximum of " + MAX_ROSTER + " active employers.";
     case "last_admin": return "An organization must keep at least one admin. Make someone else an admin first.";
-    case "successor_required": return "This person owns postings. Choose who takes them over, then remove them.";
+    case "successor_required": return "This person owns openings. Choose who takes them over, then remove them.";
     case "forbidden": return "Only an admin of your organization can manage the roster.";
     case "not_found": return "That person is not on your roster any more. Reload the page.";
     case "rate_limited": return "Too many requests just now. Try again in a moment.";

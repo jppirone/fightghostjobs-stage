@@ -69,7 +69,7 @@ async function loadThread(offset) {
   if (!r.ok) {
     if (isAuthFailure(r.error)) return sessionEnded();
     if (r.error.code === "rate_limited") { say(pageAlert, "notice", "You are reading too fast. Try again in " + waitText(r.error.retryAfter || 30) + "."); return; }
-    if (r.error.code === "not_found") { say(pageAlert, "error", "This posting was not found."); return; }
+    if (r.error.code === "not_found") { say(pageAlert, "error", "This opening was not found."); return; }
     say(pageAlert, "error", describeError(r.error)); return;
   }
   renderPage(r.data, offset > 0);
@@ -100,11 +100,11 @@ function renderRecap(d) {
   if (d.ok) {
     const p = d.data.posting;
     $("#recapCompany").textContent = p.company_name; $("#recapTitle").textContent = p.title;
-    $("#recapMeta").textContent = locationLine(p.is_remote, p.locations) + " · postID " + p.masked_code + (p.masked_req ? " · Req " + p.masked_req : "");
+    $("#recapMeta").textContent = locationLine(p.is_remote, p.locations) + " · Opening ID " + p.masked_code + (p.masked_req ? " · Req " + p.masked_req : "");
     const chips = $("#recapChips"); clear(chips); for (const c of postingChips(p)) chips.append(chip(c));
     const notes = $("#recapNotes"); clear(notes);
     for (const n of aiNotes(p)) notes.append(h("div", { style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text));
-    $("#recapNote").textContent = d.data.links.length ? "The employer's links (" + d.data.links.length + ") are on the posting's details in Search. If one of them led you somewhere wrong, use “Report a wrong link” at the bottom of this page." : "This employer has not provided a link to where you can apply.";
+    $("#recapNote").textContent = d.data.links.length ? "The employer's links (" + d.data.links.length + ") are on the opening's details in Search. If one of them led you somewhere wrong, use “Report a wrong link” at the bottom of this page." : "This employer has not provided a link to where you can apply.";
   } else if (d.status === 409 && d.data && d.data.code === "posting_not_open") {
     const nr = notOpenRecap(d.data.status, d.data.closed_reason || null, COMMENTS_VISIBLE);
     $("#recapCompany").textContent = nr.company; $("#recapTitle").textContent = nr.title; $("#recapMeta").textContent = ""; $("#recapNote").textContent = nr.note;
@@ -120,7 +120,7 @@ async function candidateMode() {
   if (!state.session || !state.session.isCandidate) {
     if (state.session && state.session.isPoster) {
       const n = $("#roleNotice"); n.hidden = false; clear(n);
-      n.append(alertBox("notice", "You are signed in as an employer. Reading and posting comments here needs a candidate sign-in: sign out, then confirm a candidate email address. (Your own postings' comments are in My postings.)"),
+      n.append(alertBox("notice", "You are signed in as an employer. Reading and posting comments here needs a candidate sign-in: sign out, then confirm a candidate email address. (Your own openings' comments are in My openings.)"),
         h("div", { style: "margin-top:12px;" }, h("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: async () => { await signOut(); go("comments.html?ref=" + encodeURIComponent(ref)); } }, "Sign out")));
       return;
     }
@@ -128,8 +128,8 @@ async function candidateMode() {
   }
   const d = await api.candidateDetail(ref);
   if (!d.ok && isAuthFailure(d.error)) return sessionEnded();
-  if (!d.ok && d.error && d.error.code === "not_found") { say(pageAlert, "error", "This posting was not found. Open it from Search."); return; }
-  if (!d.ok && d.error && d.error.code === "rate_limited") { say(pageAlert, "notice", "You are opening postings too fast. Try again in " + waitText(d.error.retryAfter || 30) + "."); return; }
+  if (!d.ok && d.error && d.error.code === "not_found") { say(pageAlert, "error", "This opening was not found. Open it from Search."); return; }
+  if (!d.ok && d.error && d.error.code === "rate_limited") { say(pageAlert, "notice", "You are viewing openings too fast. Try again in " + waitText(d.error.retryAfter || 30) + "."); return; }
   renderRecap(d);
   if (COMMENTS_VISIBLE) { $("#threadWrap").hidden = false; $("#composeWrap").hidden = false; $("#composeRules").textContent = COMMENT_RULES; }
   const sel = $("#reportLink"); clear(sel); for (const c of linkChoices(state.links)) sel.append(h("option", { value: c.value }, c.text));
@@ -151,9 +151,9 @@ $("#composeForm").addEventListener("submit", async (ev) => {
     const r = await api.candidatePostComment(ref, c.text);
     if (r.ok) { $("#commentText").value = ""; $("#commentCount").textContent = "0 / 2,000"; say(box, "ok", "Posted. Every candidate who has confirmed their email can see it now."); await loadThread(0); return; }
     if (isAuthFailure(r.error)) return sessionEnded();
-    if (r.error.code === "rate_limited") { cooldown = r.error.retryAfter || 60; err.hidden = false; err.textContent = "You are commenting too fast (at most a few an hour, and two on the same posting in six hours). Try again in " + waitText(cooldown) + "."; return; }
+    if (r.error.code === "rate_limited") { cooldown = r.error.retryAfter || 60; err.hidden = false; err.textContent = "You are commenting too fast (at most a few an hour, and two on the same opening in six hours). Try again in " + waitText(cooldown) + "."; return; }
     if (r.status === 400) { err.hidden = false; err.textContent = refusalText(r.error); return; }
-    if (r.error.code === "not_found") { say(box, "error", "This posting was not found."); return; }
+    if (r.error.code === "not_found") { say(box, "error", "This opening was not found."); return; }
     say(box, "error", describeError(r.error));
   } finally { state.busy = false; if (cooldown) startCooldown(send, cooldown, label); else { send.disabled = false; send.textContent = label; } }
 });
@@ -181,18 +181,18 @@ async function employerMode() {
   const g = await api.getMyPosting(pid);
   if (!g.ok) {
     if (isAuthFailure(g.error)) { await signOut(); go("employer-signin.html?reason=expired"); return; }
-    say(pageAlert, "error", g.error.code === "not_found" ? "That posting was not found. Open it from My postings." : describeError(g.error)); return;
+    say(pageAlert, "error", g.error.code === "not_found" ? "That opening was not found. Open it from My openings." : describeError(g.error)); return;
   }
   const p = g.data.posting; const recap = $("#recap"); recap.hidden = false;
   $("#recapCompany").textContent = p.company_name; $("#recapTitle").textContent = p.title;
-  $("#recapMeta").textContent = "postID " + groupCode(p.post_id) + " · " + p.status;
+  $("#recapMeta").textContent = "Opening ID " + groupCode(p.post_id) + " · " + p.status;
   if (!COMMENTS_VISIBLE) return;   // comments are switched off: the employer sees the posting's identity and nothing else here
-  $("#recapNote").textContent = "What candidates wrote about this posting. You are told by email when there is something new (at most once every six hours).";
-  $("#threadIntro").textContent = "Written by candidates, newest first, anonymous to everyone. A comment is about the posting, never about a person. You can contest a comment on this posting once; it stays visible, with a notice, while it is under review.";
+  $("#recapNote").textContent = "What candidates wrote about this opening. You are told by email when there is something new (at most once every six hours).";
+  $("#threadIntro").textContent = "Written by candidates, newest first, anonymous to everyone. A comment is about the opening, never about a person. You can contest a comment on this opening once; it stays visible, with a notice, while it is under review.";
   $("#threadWrap").hidden = false; $("#employerNote").hidden = false;
   await loadThread(0);
 }
 
 if (state.mode === "candidate") candidateMode();
 else if (state.mode === "employer") employerMode();
-else { say(pageAlert, "error", "This page needs a posting: open the comments from a posting's details in Search, or from My postings."); }
+else { say(pageAlert, "error", "This page needs an opening: open the comments from an opening's details in Search, or from My openings."); }

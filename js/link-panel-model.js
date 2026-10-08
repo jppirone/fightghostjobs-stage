@@ -26,7 +26,7 @@ export const LP = {
   removed: (n) => "Link " + n + " was removed.",
   SAME_ADDRESS: "That is the address already stored, so nothing was changed.",
   // the page's existing sentences, reused
-  EMPTY: "No destination links are stored for this posting yet.",                       // js/pages/edit.js (the old stored-links sentence)
+  EMPTY: "No destination links are stored for this opening yet.",                       // js/pages/edit.js (the old stored-links sentence)
   NOTHING_CHANGED: "Nothing was changed.",                                              // js/pages/edit.js
   ADDRESS_PLACEHOLDER: "Address, starting with https://",                              // js/link-rows.js
   LABEL_PLACEHOLDER: "Label (optional, for you only)",                                  // js/link-rows.js
@@ -34,7 +34,7 @@ export const LP = {
   labelAria: (n) => "Label for link " + n + " (optional)",                              // js/link-rows.js
   CONTINUE: "Continue", CANCEL: "Cancel", GO_BACK: "Go back",                           // js/contest-ui.js
   PLAN_REQUIRED: "Destination links are part of the destination links tier. Your organization is not on it (or the tier has ended), so nothing was changed.",   // js/edit-form.js mapLinksErrors
-  POSTING_NOT_FOUND: "That posting was not found. The link may be wrong, or the posting may belong to a colleague.",     // js/pages/edit.js
+  POSTING_NOT_FOUND: "That opening was not found. The link may be wrong, or the opening may belong to a colleague.",     // js/pages/edit.js
   rateLimited: (seconds) => "Too many requests just now. Try again in " + waitText(seconds || 30) + ".",               // js/pages/edit.js failureText
   // NEW (not in the plan): listed for the owner in NOTES-frontend.md
   SAVE: "Save",

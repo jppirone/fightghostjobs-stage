@@ -7,7 +7,7 @@
 <meta name="referrer" content="same-origin">
 <meta name="robots" content="noindex, nofollow">
 <script src="js/stage-gate.js"></script>
-<title>FightGhostJobs | My Postings</title>
+<title>FightGhostJobs | My Openings</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="app.css">
 </head>
@@ -19,7 +19,7 @@
   <nav class="nav-links" aria-label="Main">
     <a href="index.html#candidates">For Candidates</a>
     <a href="index.html#employers">For Employers</a>
-    <a href="search.html">Search Postings</a>
+    <a href="search.html">Search Openings</a>
   </nav>
   <div id="navAccount" style="display:flex;align-items:center;"></div>
 </header>
@@ -30,10 +30,10 @@
   <div class="wrapflex" style="display:flex;justify-content:space-between;align-items:center;">
     <div>
       <div id="orgName" style="font-size:13px;font-weight:700;color:var(--faint);">&nbsp;</div>
-      <h1 style="font-size:28px;font-weight:700;margin-top:4px;">My postings</h1>
+      <h1 style="font-size:28px;font-weight:700;margin-top:4px;">My openings</h1>
       <p style="font-size:14px;color:var(--muted);margin:4px 0 0 0;">Everything you've personally registered.</p>
     </div>
-    <a class="btn btn-primary btn-sm" href="register.html">+ New posting</a>
+    <a class="btn btn-primary btn-sm" href="register.html">+ New opening</a>
   </div>
 
   <div id="pageAlert" hidden></div>
@@ -42,14 +42,14 @@
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
     <div id="filters" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
     <div style="flex:1;"></div>
-    <input id="textFilter" type="text" placeholder="Filter by title, req # or postID" aria-label="Filter by title, req number or postID" class="fill" style="width:280px;" autocomplete="off">
+    <input id="textFilter" type="text" placeholder="Filter by title, req # or Opening ID" aria-label="Filter by title, req number or Opening ID" class="fill" style="width:280px;" autocomplete="off">
   </div>
 
-  <div class="card flush" data-scroll-area="My postings table" style="padding:0;overflow-x:auto;">
+  <div class="card flush" data-scroll-area="My openings table" style="padding:0;overflow-x:auto;">
     <table class="dash-table rtable" role="table">
       <thead role="rowgroup">
         <tr role="row">
-          <th role="columnheader">Title</th><th role="columnheader">Req #</th><th role="columnheader">postID</th><th role="columnheader">Status</th><th role="columnheader">Actions</th>
+          <th role="columnheader">Title</th><th role="columnheader">Req #</th><th role="columnheader">Opening ID</th><th role="columnheader">Status</th><th role="columnheader">Actions</th>
           <th id="sortHead" class="sortable" tabindex="0" role="button" aria-label="Sort by posted date">Posted <span id="sortArrow">↓</span></th>
           <th role="columnheader">Closes</th><th role="columnheader">Applicant cap</th><th role="columnheader" data-col="comments">Comments</th>
         </tr>
@@ -58,7 +58,7 @@
     </table>
     <div id="tableNote" class="empty-note" style="margin:0;border-radius:0;" hidden></div>
   </div>
-  <div id="postIdNote" class="field-hint">You may place a posting's postID on your own site: it lets candidates find the posting exactly.</div>
+  <div id="postIdNote" class="field-hint">You may place an opening's Opening ID on your own site: it lets candidates find the opening exactly.</div>
   <div id="loadNote" class="field-hint" role="status"></div>
 </div>
 

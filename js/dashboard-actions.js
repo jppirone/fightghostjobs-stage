@@ -54,7 +54,7 @@ export function runAction(kind, p, deps) {
     if (r.ok) { deps.done(okText(r.data)); return undefined; }
     if (isAuthFailure(r.error)) { deps.sessionEnded(); return { error: "Please sign in again." }; }
     if (r.error.code === "rate_limited") return { error: "Too many requests just now. Try again in a moment." };
-    return { error: describeError(r.error, { what: "That posting" }) };
+    return { error: describeError(r.error, { what: "That opening" }) };
   };
   const posting = (d) => (d && d.posting && typeof d.posting === "object" ? d.posting : d);
   const title = "“" + p.title + "”";
@@ -63,29 +63,29 @@ export function runAction(kind, p, deps) {
     const aged = Date.parse(p.created_at) + 14 * DAY_MS <= Date.now();
     return openDialog({ title: "Remove the scheduled go-live?", confirmLabel: "Remove schedule",
       content: [para(title + " goes back to a plain draft: nothing is published on " + fmtClose(p.go_live_at) + ". Nothing else about it changes."),
-        para(aged ? "This draft was saved more than 14 days ago, and a plain draft can only be published for 14 days after it was saved. Once the schedule is removed it can no longer be published: keep the schedule (or publish it now) instead, or register a new posting." : "A plain draft can be published for 14 days after it was saved, so publish it before then or schedule it again.")],
+        para(aged ? "This draft was saved more than 14 days ago, and a plain draft can only be published for 14 days after it was saved. Once the schedule is removed it can no longer be published: keep the schedule (or publish it now) instead, or register a new opening." : "A plain draft can be published for 14 days after it was saved, so publish it before then or schedule it again.")],
       onSubmit: async () => finish(await api.schedulePosting(p.id, null), () => "The schedule for " + title + " is removed. It is a draft again.") });
   }
   if (kind === "publish") {
-    return openDialog({ title: "Publish this posting?", confirmLabel: "Publish now",
+    return openDialog({ title: "Publish this opening?", confirmLabel: "Publish now",
       content: [para(title + " goes live for candidates right away, and its " + p.window_days + "-day window starts now. The exact close date and time are shown once it is live." + (p.status === "scheduled" ? " It was set to go live on " + fmtClose(p.go_live_at) + "; publishing now replaces that." : ""))],
       onSubmit: async () => finish(await api.publishPosting(p.id), (d) => title + " is live. It closes " + fmtClose(posting(d).expiration_date) + ".") });
   }
   if (kind === "pause") {
-    return openDialog({ title: "Pause this posting?", confirmLabel: "Pause",
+    return openDialog({ title: "Pause this opening?", confirmLabel: "Pause",
       content: [para("Candidates will see " + title + " as paused. The close date does not move: the clock keeps running while it is paused. You can resume it at any time.")],
       onSubmit: async () => finish(await api.pausePosting(p.id), () => title + " is paused.") });
   }
   if (kind === "resume") {
-    return openDialog({ title: "Resume this posting?", confirmLabel: "Resume",
+    return openDialog({ title: "Resume this opening?", confirmLabel: "Resume",
       content: [para(title + " goes back to live. The close date does not change.")],
       onSubmit: async () => finish(await api.resumePosting(p.id), () => title + " is live again.") });
   }
   if (kind === "extend") {
     const days = h("input", { id: "bumpDays", type: "text", inputmode: "numeric", maxlength: "2", autocomplete: "off", placeholder: "1 to " + MAX_BUMP_DAYS, "aria-describedby": "err-bumpDays" });
     const reason = h("input", { id: "bumpReason", type: "text", maxlength: String(MAX_REASON), autocomplete: "off", "aria-describedby": "err-bumpReason" });
-    return openDialog({ title: "Extend this posting", confirmLabel: "Extend",
-      content: [para("Every posting can be extended once, by 1 to " + MAX_BUMP_DAYS + " days, added to its current close date. This cannot be undone, and the reason is recorded."), label("Days to add", "bumpDays"), days, fieldError("bumpDays"), label("Reason", "bumpReason"), reason, fieldError("bumpReason")],
+    return openDialog({ title: "Extend this opening", confirmLabel: "Extend",
+      content: [para("Every opening can be extended once, by 1 to " + MAX_BUMP_DAYS + " days, added to its current close date. This cannot be undone, and the reason is recorded."), label("Days to add", "bumpDays"), days, fieldError("bumpDays"), label("Reason", "bumpReason"), reason, fieldError("bumpReason")],
       onSubmit: async () => {
         const c = checkBump(days.value, reason.value); showFieldErrors(c.errors, ["bumpDays", "bumpReason"]);
         if (!c.ok) return { error: "Fix the highlighted field and try again." };
@@ -100,8 +100,8 @@ export function runAction(kind, p, deps) {
     const chosen = () => (withdrawn.querySelector("input").checked ? "withdrawn" : "filled");
     const sync = () => { detailBox.hidden = chosen() !== "withdrawn"; };
     filled.addEventListener("change", sync); withdrawn.addEventListener("change", sync);
-    return openDialog({ title: "Close this posting?", confirmLabel: "Close posting",
-      content: [para("Closing is permanent: a closed posting cannot be reopened. Candidates will see " + title + " as closed, with the reason you choose."), filled, withdrawn, detailBox],
+    return openDialog({ title: "Close this opening?", confirmLabel: "Close opening",
+      content: [para("Closing is permanent: a closed opening cannot be reopened. Candidates will see " + title + " as closed, with the reason you choose."), filled, withdrawn, detailBox],
       onSubmit: async () => {
         const c = checkClose(chosen(), detail.value); showFieldErrors(c.errors, ["closeDetail"]);
         if (!c.ok) return { error: "Fix the highlighted field and try again." };

@@ -6,7 +6,7 @@ import { waitText } from "./format.js";
 
 export const MIN_COMMENT = 10, MAX_COMMENT = 2000, MAX_REASON = 300, MAX_LINK_REPORT = 500, PAGE_SIZE = 25;
 
-export const COMMENT_RULES = "10 to 2,000 characters of plain text. No web addresses. Never say where you found this posting (a job board, an application system, a social site) unless this page already shows that platform on one of its links. Comments are public and anonymous; anyone can report one.";
+export const COMMENT_RULES = "10 to 2,000 characters of plain text. No web addresses. Never say where you found this job ad (a job board, an application system, a social site) unless this page already shows that platform on one of its links. Comments are public and anonymous; anyone can report one.";
 
 // control and invisible characters, built by code point so the file holds none: C0 controls except tab, line feed and carriage return; C1; soft hyphen; zero-width and bidi characters; the byte-order mark
 const cc = (n) => String.fromCharCode(n);
@@ -28,9 +28,9 @@ export const REFUSAL_TEXT = {
   chars: "Plain text only, please (no control or invisible characters).",
   short: "Say a little more: at least " + MIN_COMMENT + " characters.",
   long: "Keep it to " + MAX_COMMENT.toLocaleString("en-US") + " characters.",
-  link: "No web addresses in a comment. If a link on this posting is wrong, use “Report a wrong link” below instead.",
+  link: "No web addresses in a comment. If a link on this opening is wrong, use “Report a wrong link” below instead.",
   civility: "That wording is not allowed here. Say it plainly and it will post.",
-  source: "Comments can’t say where you found this posting: a job board, an application system, a social site, or “found it on …”. Take that out and it will post.",
+  source: "Comments can’t say where you found this job ad: a job board, an application system, a social site, or “found it on …”. Take that out and it will post.",
 };
 export const refusalText = (err) => (err && REFUSAL_TEXT[err.reason]) || (err && err.message) || "The comment was not accepted.";
 
@@ -69,7 +69,7 @@ export function linkChoices(links) {
     const text = kind === "recruiter" ? "Recruiter firm: " + (l.firm || "?") + (l.label ? " (" + l.label + ")" : "") : "Link " + l.position + ": " + (l.label || "Application link " + l.position);
     return { value: kind + ":" + l.position, text };
   });
-  out.push({ value: "", text: "Something else about this posting’s links" });
+  out.push({ value: "", text: "Something else about this opening’s links" });
   return out;
 }
 // the "Which link?" label and dropdown are shown only when the posting has links to choose from (none for a paused, closed or expired posting, for an organization without the destination links tier, or when the employer gave none); the report can still be sent with no specific link
@@ -87,7 +87,7 @@ export function parseLinkChoice(value) {
 // The server (the contest-comment function and the database) is the authority for every rule below; these checks spare a round trip and a rate-limit token, and the numbers the server answers with replace the defaults.
 
 // THE notice: shown on a contested comment to candidates AND to the employer. Defined here and nowhere else (tests/site-check.js S36 pins the text and that both views use this constant).
-export const CONTEST_NOTICE = "This comment has been contested by the employer/poster and is under review. It may be removed after additional investigation, at the sole discretion of FightGhostJobs.com.";
+export const CONTEST_NOTICE = "This comment has been contested by the employer and is under review. It may be removed after additional investigation, at the sole discretion of FightGhostJobs.com.";
 
 // what the employer reads before the contest is filed (the confirm step)
 export const CONTEST_CONFIRM = "The comment stays visible to everyone, with a notice that it is under review, while FightGhostJobs.com reviews it. A comment can be contested only once.";
@@ -97,10 +97,10 @@ export const CONTEST_ALREADY = "This comment has already been contested and cann
 
 // the six reasons: the code is what is sent, the label is what is shown (the dropdown is built from this list and from nothing else)
 export const CONTEST_CATEGORIES = [
-  { code: "inaccurate", label: "Factually inaccurate about this posting" },
-  { code: "closed_or_outdated", label: "Posting closed or comment outdated" },
+  { code: "inaccurate", label: "Factually inaccurate about this opening" },
+  { code: "closed_or_outdated", label: "Opening closed or comment outdated" },
   { code: "confidential_or_personal", label: "Contains confidential or personal information" },
-  { code: "not_about_posting", label: "Not about this posting" },
+  { code: "not_about_posting", label: "Not about this opening" },
   { code: "abusive", label: "Abusive language" },
   { code: "other", label: "Other" },
 ];

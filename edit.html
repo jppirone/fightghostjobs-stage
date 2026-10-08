@@ -7,7 +7,7 @@
 <meta name="referrer" content="same-origin">
 <meta name="robots" content="noindex, nofollow">
 <script src="js/stage-gate.js"></script>
-<title>FightGhostJobs | Edit a Posting</title>
+<title>FightGhostJobs | Edit an Opening</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="app.css">
 </head>
@@ -20,7 +20,7 @@
   <nav class="nav-links" aria-label="Main">
     <a href="index.html#candidates">For Candidates</a>
     <a href="index.html#employers">For Employers</a>
-    <a href="search.html">Search Postings</a>
+    <a href="search.html">Search Openings</a>
   </nav>
   <div id="navAccount" style="display:flex;align-items:center;"></div>
 </header>
@@ -32,8 +32,8 @@
   <div style="flex:2;display:flex;flex-direction:column;gap:28px;max-width:720px;">
     <div>
       <div id="orgName" style="font-size:13px;font-weight:700;color:var(--faint);">&nbsp;</div>
-      <h1 id="editHeading" tabindex="-1" style="font-size:32px;font-weight:700;margin-top:6px;letter-spacing:-.01em;">Edit a posting</h1>
-      <div id="postIdLine" style="font-size:14px;color:var(--muted);margin-top:8px;" hidden>postID <span class="mono" id="postId"></span></div>
+      <h1 id="editHeading" tabindex="-1" style="font-size:32px;font-weight:700;margin-top:6px;letter-spacing:-.01em;">Edit an opening</h1>
+      <div id="postIdLine" style="font-size:14px;color:var(--muted);margin-top:8px;" hidden>Opening ID <span class="mono" id="postId"></span></div>
       <div id="statusLine" style="font-size:14px;color:var(--muted);margin-top:8px;" hidden></div>
     </div>
 
@@ -42,8 +42,8 @@
     <form id="form" class="card" style="display:flex;flex-direction:column;gap:22px;" novalidate hidden>
       <div class="grid2" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;">
         <div><label for="jtitle">Job title</label><input id="jtitle" type="text" maxlength="200" autocomplete="off" aria-describedby="titleRule"><div class="field-error" data-error-for="jtitle" hidden></div><div id="titleRule" class="field-hint" hidden></div></div>
-        <div><label for="req">Req number</label><input id="req" type="text" maxlength="100" autocomplete="off"><div class="field-error" data-error-for="req" hidden></div><div class="field-hint">Your own reference. Candidates find a posting by company name plus this number, so changing it changes how they find this posting. They see it masked (for example FGJ****45).</div></div>
-        <div><label>Company</label><div id="companyShown" style="padding:10px 0;font-size:15px;"></div><div class="field-hint">The company name is fixed once a posting is registered.</div></div>
+        <div><label for="req">Req number</label><input id="req" type="text" maxlength="100" autocomplete="off"><div class="field-error" data-error-for="req" hidden></div><div class="field-hint">Your own reference. Candidates find an opening by company name plus this number, so changing it changes how they find this opening. They see it masked (for example FGJ****45).</div></div>
+        <div><label>Company</label><div id="companyShown" style="padding:10px 0;font-size:15px;"></div><div class="field-hint">The company name is fixed once an opening is registered.</div></div>
         <div><label for="appcap">Applicant cap (optional)</label><input id="appcap" type="text" inputmode="numeric" autocomplete="off"><div class="field-error" data-error-for="appcap" hidden></div></div>
         <div style="grid-column:1/-1;"><label class="check-row" for="remote"><input id="remote" type="checkbox"> Remote role</label></div>
         <div id="locpicker" style="grid-column:1/-1;">
@@ -55,7 +55,7 @@
           </div>
           <div class="field-error" data-error-for="locpicker" hidden></div>
           <div id="locStatus" class="field-hint" role="status"></div>
-          <div id="lochint" class="field-hint">Choose from the list; it is not free text. Up to 3 cities or metro areas. For a remote role you can also choose up to 10 states, or "United States (nationwide)". Once a posting is live, changing where the job is located needs a new req number.</div>
+          <div id="lochint" class="field-hint">Choose from the list; it is not free text. Up to 3 cities or metro areas. For a remote role you can also choose up to 10 states, or "United States (nationwide)". Once an opening is live, changing where the job is located needs a new req number.</div>
           <div id="locAttribution" class="field-hint">Place names: GeoNames (geonames.org), licensed CC BY 4.0. Metro and micro areas: U.S. Census Bureau, 2023 delineations.</div>
           <div id="attestRow" hidden style="margin-top:12px;">
             <label class="check-row" for="attest" style="align-items:flex-start;"><input id="attest" type="checkbox" style="margin-top:3px;"><span>This is one opening that can be filled from any of these locations, not separate openings.</span></label>
@@ -63,14 +63,14 @@
           </div>
         </div>
       </div>
-      <div style="font-size:12px;color:var(--muted);margin-top:-10px;">If set, the cap is shown to candidates too. Reaching it doesn't auto-close the posting. You need to come back and pause or close it yourself.</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:-10px;">If set, the cap is shown to candidates too. Reaching it doesn't auto-close the opening. You need to come back and pause or close it yourself.</div>
 
       <div>
         <label for="desc">Job description</label>
         <textarea id="desc" rows="8" maxlength="20000"></textarea>
         <div class="field-error" data-error-for="desc" hidden></div>
         <div class="field-hint">Never shown to candidates. Up to 20,000 characters.</div>
-        <div id="reqTextHint" class="field-hint">This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to register it as a new posting with its own req number, so candidates can tell which role they're looking at. Each change is saved with a short note.</div>
+        <div id="reqTextHint" class="field-hint">This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to register it as a new opening with its own req number, so candidates can tell which role they're looking at. Each change is saved with a short note.</div>
       </div>
 
       <div style="height:1px;background:var(--line);"></div>
@@ -112,17 +112,17 @@
 
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div>
-          <div style="font-size:14px;font-weight:600;">Let candidates search for your postings by req number</div>
-          <div style="font-size:13px;color:var(--muted);margin-top:2px;">On by default. Turning it off does not hide this posting: candidates can still find it by company name plus title. The req number stays required either way.</div>
+          <div style="font-size:14px;font-weight:600;">Let candidates search for your openings by req number</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px;">On by default. Turning it off does not hide this opening: candidates can still find it by company name plus title. The req number stays required either way.</div>
         </div>
-        <button type="button" id="reqSearchToggle" class="toggle" role="switch" aria-checked="true" aria-label="Let candidates search for your postings by req number"><span class="toggle-knob"></span></button>
+        <button type="button" id="reqSearchToggle" class="toggle" role="switch" aria-checked="true" aria-label="Let candidates search for your openings by req number"><span class="toggle-knob"></span></button>
       </div>
 
       <div id="exclusiveRow" hidden>
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div>
             <div style="font-size:14px;font-weight:600;">Applications only through the destination links</div>
-            <div style="font-size:13px;color:var(--muted);margin-top:2px;">A plain statement from you that the links below are the only way to apply. It is recorded with the posting; we do not check it.</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:2px;">A plain statement from you that the links below are the only way to apply. It is recorded with the opening; we do not check it.</div>
           </div>
           <button type="button" id="exclusiveToggle" class="toggle" role="switch" aria-checked="false" aria-label="Applications only through the destination links"><span class="toggle-knob"></span></button>
         </div>
@@ -130,7 +130,7 @@
 
       <div style="height:1px;background:var(--line);"></div>
       <div>
-        <label for="note" id="noteLabel">What changed, and why? (required; kept with the posting).</label>
+        <label for="note" id="noteLabel">What changed, and why? (required; kept with the opening).</label>
         <input id="note" type="text" maxlength="500" autocomplete="off" aria-describedby="noteNeeded">
         <div id="noteNeeded" class="field-hint" hidden></div>
         <div class="field-error" data-error-for="note" hidden></div>
@@ -139,7 +139,7 @@
       <div id="formAlert" hidden></div>
       <div style="display:flex;gap:12px;">
         <button type="submit" id="saveBtn" class="btn btn-dark" style="flex:1;justify-content:center;">Save changes</button>
-        <a href="dashboard.html" class="btn btn-ghost">Back to My postings</a>
+        <a href="dashboard.html" class="btn btn-ghost">Back to My openings</a>
       </div>
     </form>
 
@@ -151,7 +151,7 @@
           <label for="gldate">Go-live date and time (your own time zone)</label>
           <input id="gldate" type="datetime-local" autocomplete="off">
           <div class="field-error" data-error-for="gldate" hidden></div>
-          <div id="goLiveHint" class="field-hint">Choose a time between 1 hour and 90 days from now. Your posting goes live within 15 minutes after that time, and its closing date is counted from the moment it actually goes live, not from now. Until then it is a scheduled draft that candidates cannot see; you can change the time, remove it or publish it now from My postings.</div>
+          <div id="goLiveHint" class="field-hint">Choose a time between 1 hour and 90 days from now. Your opening goes live within 15 minutes after that time, and its closing date is counted from the moment it actually goes live, not from now. Until then it is a scheduled draft that candidates cannot see; you can change the time, remove it or publish it now from My openings.</div>
         </div>
         <div id="scheduleAlert" hidden></div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;">
@@ -165,7 +165,7 @@
       <div style="font-size:14px;font-weight:700;">Destination links</div>
       <div id="linksPlan" hidden></div>
       <div id="linksLocked" hidden>
-        <p style="font-size:14px;line-height:1.6;margin:0;">Destination links let a candidate who chooses to apply be sent from the posting to your own application page. They are part of the destination links tier.</p>
+        <p style="font-size:14px;line-height:1.6;margin:0;">Destination links let a candidate who chooses to apply be sent from the opening to your own application page. They are part of the destination links tier.</p>
         <p style="font-size:14px;line-height:1.6;margin:10px 0 0 0;">Your organization is not on the destination links tier. <a href="mailto:sales@fightghostjobs.com?subject=Destination%20links%20tier" style="font-weight:600;">Write to sales@fightghostjobs.com →</a></p>
       </div>
       <div id="linksPanel" hidden style="display:flex;flex-direction:column;gap:12px;">
@@ -186,7 +186,7 @@
         <div id="firmsNote" hidden></div>
         <div id="firmsForm" hidden style="display:flex;flex-direction:column;gap:12px;">
           <div id="firmsStored" style="font-size:13px;line-height:1.6;color:#4A453F;"></div>
-          <div class="field-hint" style="margin-top:0;">Up to 3 firms. Candidates see the name as "Recruiter firm: …". The address is optional and, like a destination link, is never shown to them: they see where it goes. What you save replaces what is stored. The firms stay with the posting; while the recruiter toggle above is off they are hidden from candidates, not deleted.</div>
+          <div class="field-hint" style="margin-top:0;">Up to 3 firms. Candidates see the name as "Recruiter firm: …". The address is optional and, like a destination link, is never shown to them: they see where it goes. What you save replaces what is stored. The firms stay with the opening; while the recruiter toggle above is off they are hidden from candidates, not deleted.</div>
           <div id="firmRows" style="display:flex;flex-direction:column;gap:12px;"></div>
           <div><button type="button" id="addFirmBtn" class="btn btn-outline btn-sm">Add another firm</button></div>
           <div id="firmsAlert" hidden></div>
@@ -212,7 +212,7 @@
         <li>Destination links, and the "only through these links" statement (destination links tier)</li>
         <li>For a draft: the go-live time</li>
       </ul>
-      <p style="font-size:13px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;">Dates are changed with Extend on My postings. Expired and closed postings are the public record and cannot be edited.</p>
+      <p style="font-size:13px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;">Dates are changed with Extend on My openings. Expired and closed openings are the public record and cannot be edited.</p>
     </div>
   </div>
 

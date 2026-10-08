@@ -199,6 +199,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   .account-pop{top:50px;right:12px;max-width:calc(100vw - 24px)}
 }
 @media (max-width:360px){.nav{padding:6px 8px}.nav-links a{font-size:13px}}
+/* the narrowest phones (320): "Search Openings" is a little wider than the old link text, so the gap between the three links is trimmed to keep them on one row */
+@media (max-width:340px){.nav-links{gap:0 2px}}
 
 /* the search fields (October 4, 2026): white on a white card with no border, they looked locked once filled in. Each of the three now has a bottom line at rest (#8A8379 on white: 3.7 to 1, above the 3 to 1 rule for interface
    boundaries) and a heavier ember line plus the focus ring when focused. The page sets border:none inline, hence !important. The layout, labels, placeholders and the one white card are unchanged. */

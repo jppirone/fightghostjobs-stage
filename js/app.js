@@ -91,7 +91,7 @@ export async function mountAccount(container, { cta = true } = {}) {
     const account = buildAccount(h, initials, name, org);
     container.classList.add("nav-acct-area");
     container.append(
-      h("a", { class: "btn btn-outline btn-sm", href: "dashboard.html" }, "My postings"),
+      h("a", { class: "btn btn-outline btn-sm", href: "dashboard.html" }, "My openings"),
       h("a", { class: "btn btn-outline btn-sm", href: "analytics.html" }, "Analytics"),
       r.ok && r.data.poster.is_org_admin ? h("a", { class: "btn btn-outline btn-sm", href: "team.html" }, "Team") : null,
       account.root,
@@ -110,7 +110,7 @@ export async function mountAccount(container, { cta = true } = {}) {
     orderHeader(document, window);
     return session;
   }
-  if (cta) container.append(h("a", { class: "btn btn-primary btn-sm", href: "register.html" }, "Register a Posting →"));
+  if (cta) container.append(h("a", { class: "btn btn-primary btn-sm", href: "register.html" }, "Register an Opening →"));
   orderHeader(document, window);
   return session;
 }
