@@ -47,8 +47,14 @@ export const hasPending = (store, now = Date.now()) => { try { const o = JSON.pa
 
 // only a plain same-site page name is ever followed (the same pattern session.js takeNext applies)
 export const SAFE_PAGE = /^[a-z0-9-]+\.html(\?[a-z0-9=&._%-]*)?$/i;
-export function saveLanding(store, page, now = Date.now()) { return typeof page === "string" && SAFE_PAGE.test(page) ? write(store, LANDING_PAGE_KEY, page, now) : false; }
-export function takeLanding(store, now = Date.now()) { const v = take(store, LANDING_PAGE_KEY, now); return typeof v === "string" && SAFE_PAGE.test(v) ? v : null; }
+// The staff view's address parameter (October 9, 2026) may ride along in the kept landing page, and in exactly one form: scope=all, once. A page with any other scope value, an empty one or a repeated one is not followed at all (the
+// person lands on the default page, which is the live-only view). Staff status itself is still decided by the database, never by this parameter.
+export function scopeParamOk(page) {
+  try { const q = String(page).split("?")[1]; if (q === undefined) return true; const all = new URLSearchParams(q).getAll("scope"); return all.length === 0 || (all.length === 1 && all[0] === "all"); } catch { return false; }
+}
+export const isSafePage = (page) => typeof page === "string" && SAFE_PAGE.test(page) && scopeParamOk(page);
+export function saveLanding(store, page, now = Date.now()) { return isSafePage(page) ? write(store, LANDING_PAGE_KEY, page, now) : false; }
+export function takeLanding(store, now = Date.now()) { const v = take(store, LANDING_PAGE_KEY, now); return isSafePage(v) ? v : null; }
 
 export function clearHandoff(store) { drop(store, PENDING_SEARCH_KEY); drop(store, LANDING_PAGE_KEY); }
 

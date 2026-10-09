@@ -1,7 +1,7 @@
 // signin-handoff.test.js - the pure parts of the sign-in hand-off between tabs (js/signin-handoff.js, js/landing-notice.js). The real two-tab behavior is proven in tests/signin-tabs.test.js.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { HANDOFF_TTL_MS, PENDING_SEARCH_KEY, LANDING_PAGE_KEY, savePending, takePending, hasPending, saveLanding, takeLanding, clearHandoff, watchSignIn } from "../js/signin-handoff.js";
+import { HANDOFF_TTL_MS, PENDING_SEARCH_KEY, LANDING_PAGE_KEY, savePending, takePending, hasPending, saveLanding, takeLanding, clearHandoff, watchSignIn, scopeParamOk, isSafePage } from "../js/signin-handoff.js";
 import { LANDING_NOTICE_ENABLED, LANDING_TEXT, BOTH_ROLES_TEXT, markLanded, takeLanded, landingText, roleNoteKind, landingKindForPage } from "../js/landing-notice.js";
 
 const memory = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), _m: m }; };
@@ -44,6 +44,18 @@ test("the landing page is only a plain same-site page name, used once, expiring 
   assert.equal(takeLanding(s, NOW + 1000), null);
   saveLanding(s, "search.html", NOW); assert.equal(takeLanding(s, NOW + HANDOFF_TTL_MS + 1), null);
   s.setItem(LANDING_PAGE_KEY, JSON.stringify({ v: "https://evil.example/", exp: NOW + 5000 })); assert.equal(takeLanding(s, NOW), null, "a tampered stored value is refused");
+});
+test("the staff view's parameter rides in the landing page only as exactly one scope=all; any other form drops the page (the person lands on the default, live-only page)", () => {
+  const s = memory();
+  assert.equal(saveLanding(s, "search.html?scope=all", NOW), true);
+  assert.equal(takeLanding(s, NOW + 1000), "search.html?scope=all");
+  for (const bad of ["search.html?scope=ALL", "search.html?scope=", "search.html?scope=live", "search.html?scope=all&scope=all", "search.html?scope=all&scope=x", "search.html?scope=%20all", "search.html?scope", "search.html?scope[]=all"]) {
+    assert.equal(saveLanding(s, bad, NOW), false, "refused when saved: " + bad);
+    s.setItem(LANDING_PAGE_KEY, JSON.stringify({ v: bad, exp: NOW + 5000 })); assert.equal(takeLanding(s, NOW), null, "refused when read: " + bad);
+    assert.equal(isSafePage(bad), false, bad);
+  }
+  assert.equal(scopeParamOk("search.html"), true); assert.equal(scopeParamOk("comments.html?ref=abc123"), true); assert.equal(scopeParamOk("search.html?scope=all"), true);
+  assert.equal(isSafePage("search.html?scope=all"), true); assert.equal(isSafePage("https://evil.example/?scope=all"), false); assert.equal(isSafePage(null), false);
 });
 test("clearHandoff (sign out) removes both", () => {
   const s = memory(); savePending(s, { company: "a", q: "b", r: "" }, NOW); saveLanding(s, "search.html", NOW);

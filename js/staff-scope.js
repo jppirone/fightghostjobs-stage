@@ -10,6 +10,8 @@ import { fmtDateTz, fmtClose } from "./format.js";
 import { aiFilteringChip, aiInterviewChip, CLOSED_REASON_LABEL } from "./chips.js";
 
 export const STAFF_BANNER = "Staff view: showing all openings, including ones that are not live.";
+// the line under the search boxes (#titleNote). For everyone else it says a title search will not show openings that are not live; in the staff view that is the opposite of true, so it says what the staff search does.
+export const STAFF_TITLE_NOTE = "Staff view: this search also finds openings that are not live (draft, scheduled, held for review, paused, closed and expired). A title search will not list all of a company's openings.";
 export const STAFF_STATUS_LABEL = { draft: "Draft", scheduled: "Scheduled", flagged: "Held for review", paused: "Paused", live: "Live", closed: "Closed", expired: "Expired" };
 
 // true ONLY for exactly one scope parameter whose value is exactly "all" (no other value, no repeat, no case change)
@@ -23,17 +25,18 @@ export function staffStatusLabel(row) {
   return (row && STAFF_STATUS_LABEL[row.status]) || "Status unknown";
 }
 
-// the chips of a staff card, in the order they are drawn: the status first, then the dates that apply to it, then the disclosures
+// the chips of a staff card, in the order they are drawn: the dates that apply to the status, then the disclosures. The status word itself is NOT a chip: the card shows it once, in the pill at the top right (October 9, 2026: it
+// was drawn twice, "Draft" in the pill and again as the first chip).
 export function staffChips(row, tz) {
-  const chips = [{ text: staffStatusLabel(row), bold: true }];
+  const chips = [];
   if (row.status !== row.stored_status) chips.push({ text: "Stored as " + row.stored_status });
   switch (row.status) {
     case "draft": chips.push({ text: row.go_live_at ? "Goes live " + fmtDateTz(row.go_live_at, tz) : "Not live yet" }); break;
-    case "flagged": chips.push({ text: "Held for review: candidates do not see it" }); break;
+    case "flagged": chips.push({ text: "Candidates do not see it" }); break;
     case "live": chips.push({ text: "Went live " + fmtDateTz(row.posted_at, tz) }, { text: "Closes " + fmtClose(row.closes_at, tz) }); break;
-    case "paused": chips.push({ text: "Went live " + fmtDateTz(row.posted_at, tz) }, { text: "Paused; the close date " + fmtClose(row.closes_at, tz) + " still runs" }); break;
+    case "paused": chips.push({ text: "Went live " + fmtDateTz(row.posted_at, tz) }, { text: "The close date " + fmtClose(row.closes_at, tz) + " still runs" }); break;
     case "expired": chips.push({ text: "Went live " + fmtDateTz(row.posted_at, tz) }, { text: "Was set to close " + fmtClose(row.closes_at, tz) }); break;
-    case "closed": chips.push({ text: "Closed: " + (CLOSED_REASON_LABEL[row.closed_reason] || "reason not recorded") }); break;
+    case "closed": chips.push({ text: "Reason: " + (CLOSED_REASON_LABEL[row.closed_reason] || "not recorded") }); break;
     default: break;
   }
   chips.push(aiFilteringChip(row.ai_filtering), aiInterviewChip(row.ai_interview_other));

@@ -8,7 +8,7 @@
 
 import { GoTrueClient } from "../vendor/auth-js.min.mjs";
 import { SUPABASE_URL, PUBLISHABLE_KEY, STORAGE_KEY, NEXT_KEY, KIND_KEY } from "./config.js";
-import { saveLanding, takeLanding, clearHandoff, watchSignIn, SAFE_PAGE } from "./signin-handoff.js";
+import { saveLanding, takeLanding, clearHandoff, watchSignIn, isSafePage } from "./signin-handoff.js";
 
 let client = null;
 // The client is created WITHOUT the library's cross-tab channel. The library opens a BroadcastChannel on every page and posts every sign-in event on it; a page the browser has kept for Back (its back/forward cache)
@@ -88,10 +88,10 @@ export function takeNext(defaultPage) {
   let fromOtherTab = null; try { fromOtherTab = takeLanding(localStorage); } catch { /* ignore */ }
   if (!next) next = fromOtherTab || "";
   // only a plain same-site page name is ever followed
-  return { next: SAFE_PAGE.test(next) ? next : defaultPage, kind };
+  return { next: isSafePage(next) ? next : defaultPage, kind };
 }
 // the page remembered by rememberNext (a page that sent the person to sign in), or "" when there is none; nothing is consumed
-export function rememberedNext() { try { const n = sessionStorage.getItem(NEXT_KEY) || ""; return SAFE_PAGE.test(n) ? n : ""; } catch { return ""; } }
+export function rememberedNext() { try { const n = sessionStorage.getItem(NEXT_KEY) || ""; return isSafePage(n) ? n : ""; } catch { return ""; } }
 export function rememberNext(next, kind) { try { sessionStorage.setItem(NEXT_KEY, next); sessionStorage.setItem(KIND_KEY, kind); } catch { /* ignore */ } }
 
 export function onSessionChange(cb) { return authClient().onAuthStateChange((event) => cb(event)); }

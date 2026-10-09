@@ -24,14 +24,20 @@ test("every status has its one plain word; a draft with a go-live time reads Sch
 const BASE = { company_name: "Acme", organization_name: "Acme Org", title: "Analyst", locations: ["Austin, TX"], is_remote: false, status: "live", stored_status: "live", closed_reason: null, posted_at: "2026-09-02T14:00:00Z", closes_at: "2026-11-06T17:02:00Z",
   go_live_at: null, applicant_cap: null, ai_filtering: false, ai_interview_other: true, third_party_recruiter: true, opening_id: "D21M-48YB-ZQBF", req_number: "4471" };
 
-test("a staff card says the status first, then the dates that apply, then the disclosures; nothing a candidate could act on", () => {
+test("a staff card's chips are the dates that apply, then the disclosures; the status word is not a chip (the card shows it once, in its pill); nothing a candidate could act on", () => {
   const words = (row) => staffChips(row).map((c) => c.text);
-  assert.equal(words(BASE)[0], "Live"); assert.ok(words(BASE).some((x) => /^Went live /.test(x)) && words(BASE).some((x) => /^Closes /.test(x)));
-  assert.deepEqual(words({ ...BASE, status: "draft", stored_status: "draft", posted_at: null, closes_at: null }).slice(0, 2), ["Draft", "Not live yet"]);
-  assert.match(words({ ...BASE, status: "draft", stored_status: "draft", posted_at: null, closes_at: null, go_live_at: "2026-10-12T14:00:00Z" })[1], /^Goes live /);
-  assert.deepEqual(words({ ...BASE, status: "flagged", stored_status: "flagged" }).slice(0, 2), ["Held for review", "Held for review: candidates do not see it"]);
+  assert.ok(words(BASE).some((x) => /^Went live /.test(x)) && words(BASE).some((x) => /^Closes /.test(x)));
+  assert.equal(words({ ...BASE, status: "draft", stored_status: "draft", posted_at: null, closes_at: null })[0], "Not live yet");
+  assert.match(words({ ...BASE, status: "draft", stored_status: "draft", posted_at: null, closes_at: null, go_live_at: "2026-10-12T14:00:00Z" })[0], /^Goes live /);
+  assert.equal(words({ ...BASE, status: "flagged", stored_status: "flagged" })[0], "Candidates do not see it");
   assert.ok(words({ ...BASE, status: "expired", stored_status: "live", closed_reason: "expired_no_action" }).includes("Stored as live"), "an expired row that is stored as live says so");
-  assert.ok(words({ ...BASE, status: "closed", stored_status: "closed", closed_reason: "filled" }).includes("Closed: Filled"));
+  assert.ok(words({ ...BASE, status: "closed", stored_status: "closed", closed_reason: "filled" }).includes("Reason: Filled"));
+  // the status word appears ONCE on a card (October 9, 2026: "Draft" was drawn in the pill and again as a chip): no chip of any status repeats the pill's word
+  for (const [status, extra] of [["draft", {}], ["draft", { go_live_at: "2026-10-12T14:00:00Z" }], ["flagged", {}], ["live", {}], ["paused", {}], ["closed", { closed_reason: "filled" }], ["expired", { stored_status: "live" }]]) {
+    const row = { ...BASE, status, stored_status: extra.stored_status || status, ...extra }, label = staffStatusLabel(row);
+    const repeats = staffChips(row).filter((c) => new RegExp("\\b" + label + "\\b").test(c.text));
+    assert.deepEqual(repeats, [], status + ": a chip repeats the status word " + label);
+  }
   assert.ok(words(BASE).includes("Third-party recruiter involved") && words(BASE).includes("No applicant cap set"));
   const all = [BASE, { ...BASE, status: "draft", stored_status: "draft" }, { ...BASE, status: "paused", stored_status: "paused" }].map((r) => staffChips(r).map((c) => c.text).join(" | ")).join(" ");
   for (const bad of [/\bcomment/i, /\bwatch/i, /\bapply\b/i, /tell the employer/i, /\bposting/i, /\blisting/i, /verif/i, /certif/i, /complian/i]) assert.doesNotMatch(all, bad, String(bad));

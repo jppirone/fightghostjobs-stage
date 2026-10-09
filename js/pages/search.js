@@ -17,7 +17,7 @@ import { postingChips, notOpenMessage } from "../chips.js";
 import { aiNotes } from "../ai-notes.js";
 import { COMMENTS_VISIBLE } from "../config.js";
 import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js";
-import { wantsStaffScope, STAFF_BANNER, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js";
+import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
@@ -27,7 +27,7 @@ const backdrop = $("#modalBackdrop"), status = makeAnnouncer($("#searchStatus"),
 let session = null, busy = false, cooldownTimer = null;
 // the staff scope (js/staff-scope.js): scope=all in the address only ASKS the database whether this signed-in person is staff; nothing on the page changes unless the database says yes
 const STAFF_REQUESTED = wantsStaffScope(location.search);
-let staffMode = false, staffRobotsBefore = null, staffRobotsAdded = false;
+let staffMode = false, staffRobotsBefore = null, staffRobotsAdded = false, staffTitleNoteBefore = null;
 
 // opened with the company and ONE other value in the URL fragment (the browser extension does this): the boxes are filled, the fragment is taken out of the address bar at once, and the person presses Search. Never an automatic search,
 // and a search saved before the sign-in link is dropped so it can not run over what was filled in (js/fragment-prefill.js has the rules for this untrusted input)
@@ -70,7 +70,7 @@ $("#signinForm").addEventListener("submit", async (ev) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 320) { err.hidden = false; err.textContent = "Enter your email address."; return; }
   send.disabled = true; const label = send.textContent; send.textContent = "Sending…";
   try {
-    const r = await requestLink(email, "candidate", "search.html");
+    const r = await requestLink(email, "candidate", STAFF_REQUESTED ? "search.html?scope=all" : "search.html");   // the staff view's parameter is kept on this device with the landing page, never put in the emailed link
     if (!r.ok) { err.hidden = false; err.textContent = r.status === 429 || /rate|seconds|after/i.test(r.message) ? "A link was just sent to this address, or too many were requested. Wait a minute and try again." : "We could not send the email. Please try again in a moment."; return; }
     $("#signinForm").hidden = true;
     const sent = $("#candSent"); sent.hidden = false; clear(sent);
@@ -155,11 +155,13 @@ function enterStaffMode() {
   else { const m = document.createElement("meta"); m.setAttribute("name", "robots"); m.setAttribute("content", "noindex, nofollow"); document.head.append(m); staffRobotsAdded = true; }
   const banner = h("div", { id: "staffBanner", class: "alert alert-notice", role: "note", style: "margin:16px 64px 0 64px;" }, STAFF_BANNER);
   $("#main").prepend(banner);
+  const note = $("#titleNote"); if (note) { staffTitleNoteBefore = note.textContent; note.textContent = STAFF_TITLE_NOTE; }   // the line under the boxes must not say that what is not live is hidden
   applySession();
 }
 function leaveStaffMode() {
   staffMode = false;
   const banner = $("#staffBanner"); if (banner) banner.remove();
+  const note = $("#titleNote"); if (note && staffTitleNoteBefore !== null) { note.textContent = staffTitleNoteBefore; staffTitleNoteBefore = null; }
   const robots = document.querySelector('meta[name="robots"]');
   if (robots && staffRobotsAdded) { robots.remove(); staffRobotsAdded = false; } else if (robots && staffRobotsBefore !== null) robots.setAttribute("content", staffRobotsBefore);
   clear(resultsEl); countEl.hidden = true; hideRecap();
