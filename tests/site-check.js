@@ -260,11 +260,13 @@ export function checkSite(root) {
     if (!fs.existsSync(ph)) add("S22", ph, "privacy.html is missing");
     else {
       const t = read(ph);
-      for (const need of ["If you look up openings", "If you register openings", "Cookies", "Who processes the data", "How long", "<code>__cf_bm</code>", "We set no cookies of our own", "privacy@fightghostjobs.com", "for as long as the registry exists", 'id="privacyEmails"', "five days and one day from closing", "at most one email in each six-hour period", "you confirm an email address", "the email-confirmed identity that asked", "until you sign out or your email confirmation expires", "Rate-limit counters are deleted within a day; the daily tally of refused requests is kept 30 days", "never its description, a comment's text or an apply link", "no unsubscribe for these operational messages yet"]) if (!t.includes(need)) add("S22", ph, "privacy.html must say: " + need);
+      for (const need of ["If you look up openings", "If you register openings", "Cookies", "Who processes the data", "How long", "<code>__cf_bm</code>", "We set no cookies of our own", "privacy@fightghostjobs.com", "for as long as FightGhostJobs exists", "FightGhostJobs is a place to check job openings that employers disclose", "FightGhostJobs runs on Supabase", 'id="privacyEmails"', "five days and one day from closing", "at most one email in each six-hour period", "you confirm an email address", "the email-confirmed identity that asked", "until you sign out or your email confirmation expires", "Rate-limit counters are deleted within a day; the daily tally of refused requests is kept 30 days", "never its description, a comment's text or an apply link", "no unsubscribe for these operational messages yet"]) if (!t.includes(need)) add("S22", ph, "privacy.html must say: " + need);
       // the contest email sentences (owner approved text) must sit INSIDE the emails paragraph, not elsewhere on the page
       const em = /<p class="privacy-p" id="privacyEmails">([\s\S]*?)<\/p>/.exec(t);
-      for (const need of ["When a contest on a comment is decided, we email the outcome to the account that filed it.", "When a contest is filed, we may email our own staff the organization, opening and reason category.", "That email does not include the comment or your explanation."]) if (!em || !em[1].includes(need)) add("S22", ph, "the privacyEmails paragraph must say: " + need);
+      for (const need of ["and when a comment you contested is decided (we email the outcome to the account that filed the contest).", "When a contest is filed, we may email our own staff the organization, opening and reason category.", "That email does not include the comment or your explanation."]) if (!em || !em[1].includes(need)) add("S22", ph, "the privacyEmails paragraph must say: " + need);
     }
+    // the contest-decided email is named ONCE on the page (October 9, 2026: it was said twice in the emails paragraph)
+    if (fs.existsSync(ph) && (read(ph).split("contested is decided").length - 1 !== 1 || read(ph).split("we email the outcome").length - 1 !== 1)) add("S22", ph, "the contest-decided email must be named exactly once on the privacy page");
     for (const f of html) { const t = read(f); if (!/<a href="privacy\.html">Privacy<\/a>/.test(t)) add("S22", f, "every page must link to privacy.html from its footer"); if (!t.includes('href="mailto:privacy@fightghostjobs.com"')) add("S22", f, "every page must carry the privacy contact"); }
     if (fs.existsSync(sh) && !/never shown to anyone\. <a href="privacy\.html">Privacy<\/a>\./.test(read(sh))) add("S22", sh, "the candidate email box must end with the privacy one-liner and link");
     const si = path.join(root, "employer-signin.html");
@@ -506,7 +508,7 @@ export function checkSite(root) {
     need("js/pages/search.js", '"\u2713 Registered"', "the badge on every search result must say Registered");
     need("js/pages/search.js", "This opening was registered through FightGhostJobs by a registered employer. The dates and disclosures are the employer's own. FightGhostJobs has not confirmed that the job exists, that the employer representative works for the company named, or that the employer will respond.", "the details dialog must carry the approved sentence, including what FightGhostJobs has not confirmed");
     need("index.html", '<div class="pill badge-verified">\u2713 Registered</div>', "the sample card badge must say Registered");
-    need("index.html", ">A registry of job openings disclosed by employers</div>", "the home pill must describe the registry as job openings disclosed by employers");
+    need("index.html", ">A place to check job openings that employers disclose</div>", "the home pill must describe the site as a place to check job openings that employers disclose (never a registry)");
     need("index.html", "The facts candidates see are free for employers to publish on every tier, and free for job seekers to search. The destination links tier adds destination links.", "the home page tier sentence must be the approved one (it matches the marketing site: the destination links tier adds the destination links)");
     need("register.html", ">Free on every tier</div>", "the register page price label must be Free on every tier");
     need("js/chips.js", "The employer has paused it, so it is not accepting applicants right now.", "the paused message must say the employer paused it");
@@ -1302,6 +1304,20 @@ export function checkSite(root) {
       const raw = read(f), t = f.endsWith(".html") ? raw.replace(/<!--[\s\S]*?-->/g, "").replace(/<style[\s\S]*?<\/style>/g, "") : stripJsComments(raw);
       const hit = t.split("\n").map((l) => l.replace(ALLOWED, "")).find((l) => WORD.test(l));
       if (hit) add("S59", f, "candidate-facing text must say confirm, not verify, verified or verification: " + hit.trim().slice(0, 100));
+    }
+  }
+
+  // S66 (2026-10-09, prompt AV): the words of the opening vocabulary. Anything a person reads (page text, titles, aria-label, alt, placeholder and other text attributes, and every string a script puts on screen) says "opening" for our record and "job ad" for what a board shows:
+  // never "posting", "listing" or "registry" (the site is not called a registry), never "certified" or "compliant", "listed" only inside "listed opening" (the unpaid status), and no em or en dash. Code names are not text a person reads and stay as they are: a word joined to a dot,
+  // dash or underscore, or inside a longer word (create-posting, posting_id, list-my-postings, share_of_registry_pct). "verified" is rule S59 and the one decided exception (the stored link label, "not verified by us") is listed there.
+  {
+    const BANNED = /(^|[^\w.\-])(listing|listings|posting|postings|registry|certified|certify|certification|compliant|compliance|complies|comply)(?![\w\-])|(^|[^\w.\-])listed(?! opening)(?![\w\-])|[\u2013\u2014]/i;
+    const strings = (code) => { const out = []; for (const m of code.matchAll(/"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g)) out.push(m[1] ?? m[2] ?? m[3] ?? ""); return out; };
+    const pageText = (raw) => raw.replace(/<!--[\s\S]*?-->/g, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<[^>]*>/g, (tag) => " " + [...tag.matchAll(/\b(?:aria-label|alt|title|placeholder|content|value)="([^"]*)"/g)].map((x) => x[1]).join(" | ") + " ");
+    for (const f of html.concat(js)) {
+      const raw = read(f), parts = f.endsWith(".html") ? [pageText(raw), ...[...raw.matchAll(/<title>([^<]*)<\/title>/g)].map((m) => m[1])] : strings(stripJsComments(raw));
+      for (const p of parts) { const hit = p.split("\n").find((l) => BANNED.test(l)); if (hit) { add("S66", f, "people read this: it uses a word or a dash the opening vocabulary does not allow: " + hit.trim().slice(0, 110)); break; } }
     }
   }
 

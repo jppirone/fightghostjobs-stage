@@ -48,7 +48,7 @@
     var msg = el("p"); msg.className = "gate-msg";
     var button = el("button", "Continue");
     form.appendChild(el("h1", "FightGhostJobs staging"));
-    form.appendChild(el("p", "This is the staging site. It holds sample and test data, not the registry. Enter the password to continue."));
+    form.appendChild(el("p", "This is the staging site. It holds sample and test data only. Enter the password to continue."));
     form.appendChild(label); form.appendChild(input); form.appendChild(button); form.appendChild(msg);
     form.addEventListener("submit", function (ev) {
       ev.preventDefault();

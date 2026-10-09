@@ -120,7 +120,7 @@ async function candidateMode() {
   if (!state.session || !state.session.isCandidate) {
     if (state.session && state.session.isPoster) {
       const n = $("#roleNotice"); n.hidden = false; clear(n);
-      n.append(alertBox("notice", "You are signed in as an employer. Reading and posting comments here needs a candidate sign-in: sign out, then confirm a candidate email address. (Your own openings' comments are in My openings.)"),
+      n.append(alertBox("notice", "You are signed in as an employer. Reading and leaving comments here needs a candidate sign-in: sign out, then confirm a candidate email address. (Your own openings' comments are in My openings.)"),
         h("div", { style: "margin-top:12px;" }, h("button", { type: "button", class: "btn btn-ghost btn-sm", onclick: async () => { await signOut(); go("comments.html?ref=" + encodeURIComponent(ref)); } }, "Sign out")));
       return;
     }
@@ -146,7 +146,7 @@ $("#composeForm").addEventListener("submit", async (ev) => {
   const err = $("#commentError"), box = $("#composeAlert"), send = $("#commentSend"); err.hidden = true; say(box, "ok", "");
   const c = checkComment($("#commentText").value);
   if (c.problem) { err.hidden = false; err.textContent = c.problem; $("#commentText").focus(); return; }
-  state.busy = true; send.disabled = true; const label = send.textContent; send.textContent = "Posting…"; let cooldown = 0;
+  state.busy = true; send.disabled = true; const label = send.textContent; send.textContent = "Sending…"; let cooldown = 0;
   try {
     const r = await api.candidatePostComment(ref, c.text);
     if (r.ok) { $("#commentText").value = ""; $("#commentCount").textContent = "0 / 2,000"; say(box, "ok", "Posted. Every candidate who has confirmed their email can see it now."); await loadThread(0); return; }

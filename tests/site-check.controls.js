@@ -100,10 +100,11 @@ control("the edit page no longer schedules through the API", "S21", edit("js/pag
 control("privacy.html loses the cookie sentence", "S22", edit("privacy.html", (s) => s.replace("We set no cookies of our own", "We set cookies")));
 control("privacy.html loses the email paragraph", "S22", edit("privacy.html", (s) => s.replace('id="privacyEmails"', 'id="privacyEmailsX"')));
 control("privacy.html stops saying what an email never carries", "S22", edit("privacy.html", (s) => s.replace("never its description, a comment's text or an apply link", "never much")));
-control("privacy.html loses the sentence about the contest outcome email", "S22", edit("privacy.html", (s) => s.replace("When a contest on a comment is decided, we email the outcome to the account that filed it.", "")));
+control("privacy.html loses the sentence about the contest outcome email", "S22", edit("privacy.html", (s) => s.replace(" (we email the outcome to the account that filed the contest)", "")));
 control("privacy.html loses the sentence about the staff email when a contest is filed", "S22", edit("privacy.html", (s) => s.replace("When a contest is filed, we may email our own staff the organization, opening and reason category.", "")));
 control("privacy.html loses the sentence that the contest email carries no comment or explanation", "S22", edit("privacy.html", (s) => s.replace("That email does not include the comment or your explanation.", "")));
-control("the contest outcome sentence moves out of the emails paragraph", "S22", edit("privacy.html", (s) => s.replace(" When a contest on a comment is decided, we email the outcome to the account that filed it.", "").replace('id="privacyContests">', 'id="privacyContests">When a contest on a comment is decided, we email the outcome to the account that filed it. ')));
+control("the contest outcome sentence moves out of the emails paragraph", "S22", edit("privacy.html", (s) => s.replace(" (we email the outcome to the account that filed the contest)", "").replace('id="privacyContests">', 'id="privacyContests">When a comment you contested is decided, we email the outcome to the account that filed the contest. ')));
+control("the contest-decided email is said twice again", "S22", edit("privacy.html", (s) => s.replace("When a contest is filed, we may", "When a contest on a comment is decided, we email the outcome to the account that filed it. When a contest is filed, we may")));
 control("a page loses its privacy footer link", "S22", edit("dashboard.html", (s) => s.replace('<a href="privacy.html">Privacy</a>', '<a href="index.html">Privacy</a>')));
 control("the candidate email box loses the privacy one-liner", "S22", edit("search.html", (s) => s.replace('never shown to anyone. <a href="privacy.html">Privacy</a>.', "never shown to anyone.")));
 control("the landing page promises a cross-posting count again", "S23", append("index.html", "<div>Posted in 2 places</div>"));
@@ -315,10 +316,10 @@ control("the search badge goes back to Verified", "S32", edit("js/pages/search.j
 control("the details dialog says the listing is verified again", "S32", edit("js/pages/search.js", (s) => s.replace("This opening was registered through FightGhostJobs by a registered employer.", "This listing is verified: a real employer registered it directly with FightGhostJobs.")));
 control("the details dialog loses what FightGhostJobs has not confirmed", "S32", edit("js/pages/search.js", (s) => s.replace(", that the employer representative works for the company named, or that the employer will respond.", ".")));
 control("the sample card badge says Verified again", "S32", edit("index.html", (s) => s.replace('<div class="pill badge-verified">\u2713 Registered</div>', '<div class="pill badge-verified">\u2713 Verified</div>')));
-control("the home pill says a free public registry again", "S32", edit("index.html", (s) => s.replace(">A registry of job openings disclosed by employers</div>", ">A free public registry</div>")));
+control("the home pill says a free public registry again", "S32", edit("index.html", (s) => s.replace(">A place to check job openings that employers disclose</div>", ">A free public registry</div>")));
 control("the home page promises free, always", "S32", edit("index.html", (s) => s.replace(">to register and disclose</div>", ">to register and disclose, always</div>")));
 control("the home page says permanently", "S32", edit("index.html", (s) => s.replace("Included on every tier.", "Free, on every tier, permanently.")));
-control("the home page says it costs nothing", "S32", edit("index.html", (s) => s.replace("Show candidates the facts about your listing. The core facts are free to publish.", "Prove your listing is real. It costs nothing to start.")));
+control("the home page says it costs nothing", "S32", edit("index.html", (s) => s.replace("Show candidates the facts about your opening. The core facts are free to publish.", "Prove your listing is real. It costs nothing to start.")));
 control("the home page says free, forever", "S32", edit("index.html", (s) => s.replace("The facts candidates see are free for employers to publish on every tier", "Every trust field is free, forever")));
 control("the register page label goes back to Free, always", "S32", edit("register.html", (s) => s.replace(">Free on every tier</div>", ">Free, always</div>")));
 control("the search page signup line says no cost again", "S32", edit("search.html", (s) => s.replace("No password, no account form. Free for job seekers.", "No password, no account form, no cost.")));
@@ -842,6 +843,21 @@ control("search.html mentions staff", "S65", append("search.html", "<!-- staff -
 control("another page script uses the staff check", "S65", append("js/pages/team.js", "api.isStaff();"));
 control("the rpc helper may cache", "S65", edit("js/api.js", (s) => s.replace('body: JSON.stringify(body === undefined ? {} : body), cache: "no-store" });\n      text = await res.text();\n    } catch {\n      return { ok: false, status: 0, error: { code: "network" } };\n    }\n    if (!res.ok) return { ok: false, status: res.status, error: { code: "refused" } };', 'body: JSON.stringify(body === undefined ? {} : body) });\n      text = await res.text();\n    } catch {\n      return { ok: false, status: 0, error: { code: "network" } };\n    }\n    if (!res.ok) return { ok: false, status: res.status, error: { code: "refused" } };')));
 control("a third database function is called directly", "S65", edit("js/api.js", (s) => s.replace("    isStaff: () => rpc(", '    anything: () => rpc("operator_list_postings", {}),\n    isStaff: () => rpc(')));
+
+// S66 (2026-10-09): the opening vocabulary in anything a person reads
+control("the home page says listing again", "S66", edit("index.html", (s) => s.replace("Every opening here is disclosed by the employer:", "Every listing here is disclosed by the employer:")));
+control("the home page says registry again", "S66", edit("index.html", (s) => s.replace(">A place to check job openings that employers disclose</div>", ">A registry of job openings disclosed by employers</div>")));
+control("the privacy page says registry again", "S66", edit("privacy.html", (s) => s.replace("FightGhostJobs runs on Supabase", "The registry runs on Supabase")));
+control("the privacy page title has an em dash again", "S66", edit("privacy.html", (s) => s.replace("<title>FightGhostJobs | Privacy</title>", "<title>FightGhostJobs \u2014 Privacy</title>")));
+control("a button says Posting again", "S66", edit("js/pages/comments.js", (s) => s.replace('send.textContent = "Sending\u2026"', 'send.textContent = "Posting\u2026"')));
+control("the employer notice says posting comments again", "S66", edit("js/pages/comments.js", (s) => s.replace("Reading and leaving comments here", "Reading and posting comments here")));
+control("the analytics page says registry again", "S66", edit("js/pages/analytics.js", (s) => s.replace("Of all searches + detail views on FightGhostJobs", "Of all searches + detail views on the registry")));
+control("the staging gate says registry again", "S66", edit("js/stage-gate.js", (s) => s.replace("sample and test data only.", "sample and test data, not the registry.")));
+control("a placeholder says a job board listing again", "S66", edit("comments.html", (s) => s.replace("opened a job ad for a different role.", "opened a job board listing for a different role.")));
+control("a screen reader label says certified", "S66", edit("search.html", (s) => s.replace('aria-label="What\'s the req number?', 'aria-label="Certified: what\'s the req number?')));
+control("a script string says compliant", "S66", edit("js/pages/search.js", (s) => s.replace('"Searching\u2026"', '"Compliant search\u2026"')));
+control("an opening is called listed without the word opening", "S66", edit("index.html", (s) => s.replace("Every opening here is disclosed by the employer:", "Every job here is listed by the employer:")));
+control("a text has an en dash", "S66", edit("search.html", (s) => s.replace("Search for one specific job you already know about.", "Search for one specific job \u2013 you already know about.")));
 
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");

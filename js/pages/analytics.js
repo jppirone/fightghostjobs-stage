@@ -36,7 +36,7 @@ function renderKpis(d) {
     kpiCard("Searches that found you", String(d.searches)),
     kpiCard("Opening detail views", String(d.detail_views)),
     kpiCard("Destination link clicks", String(d.link_clicks), clickThroughLabel(d.detail_views, d.link_clicks) === "n/a" ? null : clickThroughLabel(d.detail_views, d.link_clicks) + " of viewers clicked through", LINK_CLICK_CAVEAT),
-    kpiCard("Share of registry traffic", sharePctLabel(d.share_of_registry_pct), "Of all searches + detail views on the registry"),
+    kpiCard("Share of FightGhostJobs traffic", sharePctLabel(d.share_of_registry_pct), "Of all searches + detail views on FightGhostJobs"),
   );
 }
 
@@ -95,7 +95,7 @@ function renderThinData(d) {
   const note = $("#thinDataNote");
   if (isThinData(d.platform_activity_total)) {
     note.hidden = false; clear(note);
-    note.append(alertBox("notice", "Registry-wide activity is still limited in this date range, so the numbers above (especially share of registry traffic) may swing a lot from one period to the next. This will settle down as more candidates use the registry."));
+    note.append(alertBox("notice", "Activity across FightGhostJobs is still limited in this date range, so the numbers above (especially the share of FightGhostJobs traffic) may swing a lot from one period to the next. This will settle down as more candidates use FightGhostJobs."));
   } else note.hidden = true;
 }
 
