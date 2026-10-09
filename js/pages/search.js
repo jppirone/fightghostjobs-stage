@@ -17,6 +17,7 @@ import { postingChips, notOpenMessage } from "../chips.js";
 import { aiNotes } from "../ai-notes.js";
 import { COMMENTS_VISIBLE } from "../config.js";
 import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js";
+import { wantsStaffScope, STAFF_BANNER, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
@@ -24,6 +25,9 @@ const recapEl = $("#recap"), recapTextEl = $("#recapText"), recapEditBtn = $("#r
 let lastSearch = null;   // what was typed in the three boxes for the search that just ran: in memory only, never stored; "Edit this search" puts it back
 const backdrop = $("#modalBackdrop"), status = makeAnnouncer($("#searchStatus"), window);
 let session = null, busy = false, cooldownTimer = null;
+// the staff scope (js/staff-scope.js): scope=all in the address only ASKS the database whether this signed-in person is staff; nothing on the page changes unless the database says yes
+const STAFF_REQUESTED = wantsStaffScope(location.search);
+let staffMode = false, staffRobotsBefore = null, staffRobotsAdded = false;
 
 // opened with the company and ONE other value in the URL fragment (the browser extension does this): the boxes are filled, the fragment is taken out of the address bar at once, and the person presses Search. Never an automatic search,
 // and a search saved before the sign-in link is dropped so it can not run over what was filled in (js/fragment-prefill.js has the rules for this untrusted input)
@@ -45,6 +49,7 @@ function showSignIn(message) {
   if (message) { const b = $("#candEmailError"); b.hidden = false; b.textContent = message; }
 }
 function applySession() {
+  if (staffMode) { $("#signinWrap").hidden = true; const sn = $("#roleNotice"); clear(sn); sn.hidden = true; return; }   // a staff person searching: no sign-in card, no employer notice
   $("#signinWrap").hidden = !!(session && session.isCandidate);
   const notice = $("#roleNotice"); clear(notice); notice.hidden = true;
   // an address that is both a candidate and an employer: the top bar shows the employer buttons; say so, and that searching works as a candidate (no sign-in rule and no header behavior changes)
@@ -124,12 +129,72 @@ recapEditBtn.addEventListener("click", () => {
   lastSearch = null; hideRecap(); companyIn.focus();
 });
 
+// ---- the staff scope: everything below runs ONLY when the database has said yes to is_staff(); a refusal, an error or a missing function at any step puts the page back exactly as it is for everyone
+function renderStaffCard(row) {
+  return h("div", { class: "card staff-card", "data-staff-status": row.status },
+    h("div", { class: "res-head", style: "display:flex;justify-content:space-between;align-items:flex-start;gap:12px;" },
+      h("div", {},
+        h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
+        h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
+        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, locationLine(row.is_remote, row.locations) + " · " + staffIdLine(row))),
+      h("div", { class: "pill", style: "flex-shrink:0;" }, staffStatusLabel(row))),
+    h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, staffChips(row).map(chip)));
+}
+function showStaffResults(data) {
+  clear(resultsEl);
+  countEl.hidden = false;
+  countEl.textContent = staffCountText(data.results.length, data.truncated);
+  if (data.results.length === 0) { resultsEl.append(h("div", { class: "empty-note", style: "margin-top:0;" }, "Nothing matches that company and those words in any status.")); return; }
+  for (const row of data.results) resultsEl.append(renderStaffCard(row));
+}
+function enterStaffMode() {
+  staffMode = true;
+  const robots = document.querySelector('meta[name="robots"]');
+  staffRobotsBefore = robots ? robots.getAttribute("content") : null;
+  if (robots) robots.setAttribute("content", "noindex, nofollow");
+  else { const m = document.createElement("meta"); m.setAttribute("name", "robots"); m.setAttribute("content", "noindex, nofollow"); document.head.append(m); staffRobotsAdded = true; }
+  const banner = h("div", { id: "staffBanner", class: "alert alert-notice", role: "note", style: "margin:16px 64px 0 64px;" }, STAFF_BANNER);
+  $("#main").prepend(banner);
+  applySession();
+}
+function leaveStaffMode() {
+  staffMode = false;
+  const banner = $("#staffBanner"); if (banner) banner.remove();
+  const robots = document.querySelector('meta[name="robots"]');
+  if (robots && staffRobotsAdded) { robots.remove(); staffRobotsAdded = false; } else if (robots && staffRobotsBefore !== null) robots.setAttribute("content", staffRobotsBefore);
+  clear(resultsEl); countEl.hidden = true; hideRecap();
+  applySession();
+}
+async function detectStaff() {
+  if (!STAFF_REQUESTED || !session || staffMode) return;
+  const r = await api.isStaff();      // only a clear true from the database counts; false, an error, a missing function: nothing happens
+  if (r.ok && r.data === true) enterStaffMode();
+}
+// returns true when the staff search answered (the page is done); false when it did not (the page is back to the normal search and the caller carries on)
+async function runStaffSearch(c, q, typed, auto) {
+  busy = true; searchBtn.disabled = true; searchBtn.textContent = "Searching…";
+  status.clear();
+  try {
+    const key = q.kind === "req" ? { p_req: q.value } : q.kind === "code" ? { p_code: q.value } : { p_phrase: q.value };
+    let r = await api.staffSearch(Object.assign({ p_company: c.value }, key));
+    if (q.alsoTryCode && r.ok && r.data.results.length === 0) r = await api.staffSearch({ p_company: c.value, p_code: q.value });
+    if (r.ok) { showStaffResults(r.data); showRecap(typed, c.value, q, auto); return true; }
+    leaveStaffMode();
+    return false;
+  } finally {
+    busy = false; searchBtn.disabled = false; searchBtn.textContent = "Search";
+  }
+}
+// nothing staff-only stays in a page the browser keeps for Back
+window.addEventListener("pagehide", () => { if (staffMode) { clear(resultsEl); countEl.hidden = true; hideRecap(); lastSearch = null; } });
+
 async function runSearch(auto) {   // auto: the saved search replayed after the sign-in link (the person did nothing, so the landing note stays)
   if (busy) return;
   setFormError(""); hideRecap();
   const c = checkCompany(companyIn.value), q = resolveSearch(queryIn.value, reqIn.value);
   if (!c.ok) { setFormError(c.message); companyIn.focus(); return; }
   if (!q.ok) { setFormError(q.message); (q.focus === "req" ? reqIn : queryIn).focus(); return; }
+  if (staffMode && (await runStaffSearch(c, q, { company: companyIn.value, q: queryIn.value, r: reqIn.value }, auto))) return;   // staff scope: the staff answer, read only, nothing stored or counted
   if (!session || !session.isCandidate) {
     // kept in localStorage (all tabs of this browser, one hour, removed when used, never sent anywhere): the emailed link opens in a NEW tab (signin-handoff.js)
     savePending(localStorage, { company: companyIn.value, q: queryIn.value, r: reqIn.value });
@@ -290,6 +355,7 @@ async function becameSignedIn(s) {
   await mountAccount($("#navAccount"));
   applySession();
   const err = $("#candEmailError"); err.hidden = true; err.textContent = "";
+  if (STAFF_REQUESTED && session && !staffMode) await detectStaff();
   if (session && session.isCandidate) runWhenInFront();
 }
 
@@ -310,6 +376,7 @@ window.addEventListener("pageshow", async (ev) => {
 (async () => {
   session = await mountAccount($("#navAccount"));
   applySession();
+  if (STAFF_REQUESTED && session) await detectStaff();
   if (session && session.isCandidate) resumePending();
-  else ensureWatch();
+  else if (!staffMode) ensureWatch();
 })();

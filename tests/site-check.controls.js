@@ -826,6 +826,23 @@ control("a .SQL file in a new folder", "S64", put("notes/RUN.SQL", "select 1;\n"
 control("a top-level db folder with a text note", "S64", put("db/notes.txt", "a note\n"));
 control("a top-level DB folder (capitals)", "S64", put("DB/notes.txt", "a note\n"));
 
+// S65: the staff-only search scope
+control("the staff banner words are changed", "S65", edit("js/staff-scope.js", (s) => s.replace("including ones that are not live.", "including ones that are live.")));
+control("scope matches in any case or with repeats", "S65", edit("js/staff-scope.js", (s) => s.replace('all.length === 1 && all[0] === "all"', 'all.length >= 1 && all[0].toLowerCase() === "all"')));
+control("a posting word in the staff wording", "S65", edit("js/staff-scope.js", (s) => s.replace('draft: "Draft"', 'draft: "Draft posting"')));
+control("the page starts staff mode on the address alone", "S65", edit("js/pages/search.js", (s) => s.replace("if (r.ok && r.data === true) enterStaffMode();", "enterStaffMode();")));
+control("the page starts staff mode on any answer", "S65", edit("js/pages/search.js", (s) => s.replace("if (r.ok && r.data === true) enterStaffMode();", "if (r.ok) enterStaffMode();")));
+control("staff mode can start in a second place", "S65", edit("js/pages/search.js", (s) => s.replace("async function detectStaff() {", "async function detectStaff() { if (STAFF_REQUESTED && !session) enterStaffMode();")));
+control("the staff search saves the search in the browser", "S65", edit("js/pages/search.js", (s) => s.replace("let r = await api.staffSearch(Object.assign({ p_company: c.value }, key));", "savePending(localStorage, {}); let r = await api.staffSearch(Object.assign({ p_company: c.value }, key));")));
+control("the staff search calls the candidate search", "S65", edit("js/pages/search.js", (s) => s.replace("let r = await api.staffSearch(Object.assign({ p_company: c.value }, key));", "await api.candidateSearch({}); let r = await api.staffSearch(Object.assign({ p_company: c.value }, key));")));
+control("the staff page is not marked noindex", "S65", edit("js/pages/search.js", (s) => s.split('"noindex, nofollow"').join('"index, follow"')));
+control("staff results are kept when the page is left", "S65", edit("js/pages/search.js", (s) => s.replace('window.addEventListener("pagehide", () => { if (staffMode) {', 'window.addEventListener("pagehide", () => { if (false) {')));
+control("a staff card is built with innerHTML", "S65", edit("js/pages/search.js", (s) => s.replace("function renderStaffCard(row) {", "function renderStaffCard(row) { document.body.innerHTML = '';")));
+control("search.html mentions staff", "S65", append("search.html", "<!-- staff -->"));
+control("another page script uses the staff check", "S65", append("js/pages/team.js", "api.isStaff();"));
+control("the rpc helper may cache", "S65", edit("js/api.js", (s) => s.replace('body: JSON.stringify(body === undefined ? {} : body), cache: "no-store" });\n      text = await res.text();\n    } catch {\n      return { ok: false, status: 0, error: { code: "network" } };\n    }\n    if (!res.ok) return { ok: false, status: res.status, error: { code: "refused" } };', 'body: JSON.stringify(body === undefined ? {} : body) });\n      text = await res.text();\n    } catch {\n      return { ok: false, status: 0, error: { code: "network" } };\n    }\n    if (!res.ok) return { ok: false, status: res.status, error: { code: "refused" } };')));
+control("a third database function is called directly", "S65", edit("js/api.js", (s) => s.replace("    isStaff: () => rpc(", '    anything: () => rpc("operator_list_postings", {}),\n    isStaff: () => rpc(')));
+
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");
 process.exit(missed ? 1 : 0);

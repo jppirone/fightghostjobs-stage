@@ -20,6 +20,18 @@ const RESULTS = [
   posting("Meridian Health Systems of the Greater Region", "Senior Data Analyst, Population Health Reporting and Quality Improvement", "D21M48YBZQBF", { locations: ["Boston, MA", "Providence, RI", "Hartford, CT"], ai_filtering: true, ai_disclosure_shown: true, applicant_cap: 250 }),
   posting("Meridian Health Systems of the Greater Region", "Nurse Practitioner", "K7Q3W9ZT2XPM", { is_remote: true, locations: [], ai_interview_other: true, ai_disclosure_shown: true }),
 ];
+// the staff scope (October 8, 2026): what the two database functions would answer for a staff person. Every status; exactly the agreed keys.
+const staffRow = (title, status, extra) => Object.assign({ company_name: "Meridian Health Systems of the Greater Region", organization_name: "Meridian Health Systems", title, locations: ["Austin, TX"], is_remote: false, status, stored_status: status, closed_reason: null,
+  posted_at: inDays(-12), closes_at: inDays(33), go_live_at: null, applicant_cap: null, ai_filtering: false, ai_interview_other: false, third_party_recruiter: false, opening_id: "D21M-48YB-ZQBF", req_number: "4471" }, extra || {});
+export const STAFF_ROWS = [
+  staffRow("Senior Data Analyst, Population Health Reporting and Quality Improvement", "live"),
+  staffRow("Data Analyst Draft", "draft", { posted_at: null, closes_at: null, opening_id: "A1B2-C3D4-E5F6", req_number: "4210" }),
+  staffRow("Data Analyst Scheduled", "draft", { posted_at: null, closes_at: null, go_live_at: inDays(2), opening_id: "P4R9-T2V6-X8ZA", req_number: "4390" }),
+  staffRow("Data Analyst Held For Review", "flagged", { opening_id: "H7J8-K9M1-N2P3", req_number: null }),
+  staffRow("Data Analyst Paused", "paused", { opening_id: "K7Q3-W9ZT-2XPM", req_number: "R-2026-0451" }),
+  staffRow("Data Analyst Closed", "closed", { closed_reason: "filled", opening_id: "B2C3-D4E5-F6G7", req_number: "4118" }),
+  staffRow("Data Analyst Expired", "expired", { stored_status: "live", closed_reason: "expired_no_action", opening_id: "C3D4-E5F6-G7H8", req_number: "4001" }),
+];
 const MINE = [
   ["Senior Data Analyst", "4471", "D21M48YBZQBF", "live", 17, 138], ["Nurse Practitioner", "R-2026-0451", "K7Q3W9ZT2XPM", "paused", 9, 52], ["Analytics Team Lead", "4390", "P4R9T2V6X8ZA", "scheduled", null, 0],
   ["Junior BI Developer", "4210", "A1B2C3D4E5F6", "draft", null, 0], ["Data Governance Analyst", "4118", "H7J8K9M1N2P3", "expired", -15, 12],
@@ -44,6 +56,25 @@ export function startFakeSite(root, opts = {}) {
     const send = (status, body, extra) => { res.writeHead(status, Object.assign({ "Content-Type": "application/json", "Cache-Control": "no-store" }, extra || {})); res.end(typeof body === "string" ? body : JSON.stringify(body)); };
     const readBody = () => new Promise((ok) => { let s = ""; req.on("data", (c) => (s += c)); req.on("end", () => { try { ok(JSON.parse(s || "{}")); } catch { ok({}); } }); });
     const claimsOf = () => { try { return JSON.parse(Buffer.from(String(req.headers.authorization || "").replace(/^Bearer /, "").split(".")[1], "base64url").toString()); } catch { return null; } };
+    // the two database functions of the staff scope, called as PostgREST rpc with the person's own token (opts.noRpc: the functions do not exist, as before the SQL is run; opts.rpcFail: the database errors;
+    // opts.staffSearchFails: is_staff says yes but the search itself errors; opts.staffEmails: who is on the staff list, default staff@example.test)
+    if (url.pathname.startsWith("/rest/v1/rpc/")) {
+      const fn = url.pathname.slice(13), body = await readBody(), c = claimsOf();
+      calls.push({ name: "rpc:" + fn, body, auth: c ? { email: c.email || "", poster: typeof c.poster_id === "string", candidate: typeof c.candidate_identity_id === "string" } : null, cacheControl: req.headers["cache-control"] || null });
+      if (opts.noRpc) return send(404, { code: "PGRST202", message: "Could not find the function" });
+      if (opts.rpcFail) return send(500, { code: "XX000", message: "boom" });
+      if (!c) return send(401, { code: "PGRST301", message: "JWT required" });
+      const staff = (opts.staffEmails || ["staff@example.test"]).includes(String(c.email || "").toLowerCase());
+      if (fn === "is_staff") return send(200, staff ? "true" : "false");
+      if (fn === "staff_search_openings") {
+        if (!staff) return send(404, { code: "FG404", message: "not found" });
+        if (opts.staffSearchFails) return send(500, { code: "XX000", message: "boom" });
+        const co = String(body.p_company || "").toLowerCase(), ph = String(body.p_phrase || "").toLowerCase();
+        const rows = STAFF_ROWS.filter((r) => r.company_name.toLowerCase().includes(co) && (!ph || r.title.toLowerCase().includes(ph) || (body.p_code ? r.opening_id.replace(/-/g, "") === body.p_code.replace(/-/g, "") : false)));
+        return send(200, { mode: body.p_req ? "req" : body.p_code ? "code" : "phrase", truncated: false, results: rows });
+      }
+      return send(404, { code: "PGRST202", message: "Could not find the function" });
+    }
     if (url.pathname.startsWith("/functions/v1/")) {
       const name = url.pathname.slice(14), body = await readBody(), c = claimsOf();
       calls.push({ name, body, auth: c ? { poster: typeof c.poster_id === "string", candidate: typeof c.candidate_identity_id === "string" } : null });
@@ -96,7 +127,7 @@ export function startFakeSite(root, opts = {}) {
       const claims = {};
       if (kind === "poster" || kind === "both") claims.poster_id = crypto.randomUUID();
       if (kind === "candidate" || kind === "both") claims.candidate_identity_id = crypto.randomUUID();
-      const frag = new URLSearchParams({ access_token: fakeJwt({ ...claims, email: "" }), refresh_token: "refresh-" + kind, expires_in: "3600", token_type: "bearer", type: "magiclink" }).toString();
+      const frag = new URLSearchParams({ access_token: fakeJwt({ ...claims, email: url.searchParams.get("email") || "" }), refresh_token: "refresh-" + kind, expires_in: "3600", token_type: "bearer", type: "magiclink" }).toString();
       res.writeHead(302, { Location: "/auth-callback.html#" + frag }); return res.end();
     }
     let rel = decodeURIComponent(url.pathname); if (rel.endsWith("/")) rel += "index.html";

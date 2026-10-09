@@ -48,6 +48,7 @@
 //   S58 the one comments switch, js/config.js COMMENTS_VISIBLE, shipped true, read by every comment surface (Part E6)
 //   S59 no verify, verified or verification in candidate-facing text (Part E7): the word is confirm; exceptions are the destination link wording, data and class names, and privacy.html
 //   S64 no database script in the repository: no .sql file anywhere and no top-level db folder (the whole repository is served by Pages)
+//   S65 the staff-only search scope (scope=all): the database decides who is staff, the page starts staff mode only on a clear true, the staff branch calls no candidate function and stores nothing, noindex, never cached, nothing in search.html, only the search page uses the staff functions
 //   S63 back from Comments or Report a wrong link: the Auth client is created WITHOUT its cross-tab channel (the channel evicts the search page from the browser's back/forward cache), no other script opens one, no unload handler, and the search page has the pageshow guard
 //   S62 the search page opened with the company and one other value in the URL fragment (extension hand-off): only c, p, r, t, the site's limits, plain text, refuse on doubt, fragment removed at once, never an automatic search
 //   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
@@ -983,7 +984,7 @@ export function checkSite(root) {
     for (const [f, needles] of Object.entries(classes)) { const p = path.join(root, f); if (!fs.existsSync(p)) continue; const t = read(p); for (const n of needles) if (!t.includes(n)) add("S48", p, "the phone layout needs " + n + " on this page"); }
     const labels = { "dashboard.js": 9, "analytics.js": 5, "team.js": 5 };
     for (const [f, n] of Object.entries(labels)) { const p = path.join(root, "js", "pages", f); if (!fs.existsSync(p)) continue; const t = read(p); if ((t.match(/"data-label":/g) || []).length !== n || !t.includes('h("tr", { role: "row" }') || (t.match(/role: "cell"/g) || []).length !== n) add("S48", p, "each table row must carry role row, and each of its " + n + " cells role cell and a data-label (the visible label of the cell on a phone)"); }
-    const sp = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sp) && !read(sp).includes('class: "res-head"')) add("S48", sp, "a result card's heading row carries res-head");
+    const sp = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sp) && read(sp).split('class: "res-head"').length - 1 !== 2) add("S48", sp, "a result card's heading row carries res-head (the candidate card and the staff card: exactly two)");
     if (!fs.existsSync(testF)) add("S48", testF, "tests/phone-layout.test.js (the browser test of every page at phone widths) is missing");
     else { const t = read(testF); if (!t.includes("const WIDTHS = [320, 360, 375, 390, 414];")) add("S48", testF, "the phone layout test must cover 320, 360, 375, 390 and 414"); if (!t.includes("negative controls: each phone fix undone makes the layout rule fail")) add("S48", testF, "the phone layout test must keep its negative controls"); }
   }
@@ -1310,6 +1311,40 @@ export function checkSite(root) {
     const sql = files.filter((f) => /\.sql$/i.test(f));
     for (const f of sql) add("S64", f, "no .sql file may be in this repository: the whole repository is served by Pages. Keep database scripts outside it.");
     for (const e of fs.readdirSync(root, { withFileTypes: true })) if (e.isDirectory() && /^db$/i.test(e.name)) add("S64", path.join(root, e.name), "no top-level db folder: the whole repository is served by Pages. Keep database scripts outside it.");
+  }
+
+  // S65 (2026-10-08): the staff-only search scope (search.html?scope=all). The decision is the database's (is_staff), never the page's: the staff mode starts ONLY on a clear true from api.isStaff; the staff branch of the search page calls no candidate function
+  // (those count, record or email), stores nothing in the browser, and marks the page noindex; its API calls are never cached; nothing about it is in search.html (the shell is the same for everybody); only the search page may call the two staff functions.
+  {
+    const sj = path.join(root, "js", "pages", "search.js"), ss = path.join(root, "js", "staff-scope.js"), shF = path.join(root, "search.html"), apiF = path.join(root, "js", "api.js");
+    if (!fs.existsSync(ss)) add("S65", ss, "js/staff-scope.js must exist");
+    else {
+      const s = stripJsComments(read(ss));
+      if (!s.includes('export const STAFF_BANNER = "Staff view: showing all openings, including ones that are not live.";')) add("S65", ss, "the staff banner must be exactly: Staff view: showing all openings, including ones that are not live.");
+      if (!s.includes('all.length === 1 && all[0] === "all"')) add("S65", ss, "only exactly one scope parameter whose value is exactly all may ask for the staff scope");
+      if (/\b(posting|listing|verified|certified|complian)/i.test(s)) add("S65", ss, "staff scope wording: opening and job ad, never posting, listing, verified, certified or compliant");
+    }
+    if (fs.existsSync(sj)) {
+      const c = stripJsComments(read(sj));
+      if (!c.includes("if (r.ok && r.data === true) enterStaffMode();") || (c.match(/\benterStaffMode\(\)/g) || []).length !== 2) add("S65", sj, "the staff mode may start only on a clear true from the database (api.isStaff), in one place");
+      const a = c.indexOf("function renderStaffCard"), b = c.indexOf('window.addEventListener("pagehide"');
+      if (a < 0 || b < a) add("S65", sj, "the staff scope block (renderStaffCard to the pagehide handler) must exist");
+      else {
+        const region = c.slice(a, b);
+        if (/api\.candidate|savePending|takePending|localStorage|sessionStorage|\.setItem\(|innerHTML|document\.cookie/.test(region)) add("S65", sj, "the staff scope block must call no candidate function and store nothing in the browser");
+        if (!region.includes('"noindex, nofollow"')) add("S65", sj, "the staff page must be marked noindex, nofollow");
+        if (!/api\.staffSearch\(/.test(region) || !/api\.isStaff\(/.test(region)) add("S65", sj, "the staff scope block must use api.isStaff and api.staffSearch");
+      }
+      if (!c.includes('window.addEventListener("pagehide", () => { if (staffMode) {')) add("S65", sj, "staff results must be cleared when the page is left (pagehide)");
+    }
+    if (fs.existsSync(shF) && /staff/i.test(read(shF))) add("S65", shF, "search.html must not mention staff: the shell is the same for everybody");
+    for (const f of js) { const n = path.relative(root, f).replace(/\\/g, "/"); if (["js/pages/search.js", "js/api.js", "js/staff-scope.js"].includes(n)) continue; if (/\b(isStaff|staffSearch|staff_search_openings|is_staff)\b/.test(stripJsComments(read(f)))) add("S65", f, "only js/pages/search.js may use the staff functions"); }
+    if (fs.existsSync(apiF)) {
+      const c = read(apiF), i = c.indexOf("async function rpc("), j = c.indexOf("const postingAnswer");
+      if (i < 0 || j < i || !c.slice(i, j).includes('cache: "no-store"') || !c.slice(i, j).includes('"/rest/v1/rpc/"')) add("S65", apiF, 'the rpc helper must never cache (cache: "no-store") and must call /rest/v1/rpc/');
+      const names = [...c.matchAll(/\brpc\("([a-z_]+)"/g)].map((m) => m[1]).sort().join(",");
+      if (names !== "is_staff,staff_search_openings") add("S65", apiF, "the only database functions api.js may call directly are is_staff and staff_search_openings (found: " + names + ")");
+    }
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

@@ -17,6 +17,8 @@ const isBool = (v) => typeof v === "boolean";
 const isNullable = (v, t) => v === null || t(v);
 const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
+// the staff search scope (October 8, 2026): the only keys one row of the staff answer may carry. A row with any other key is refused whole (fail closed: no posting reference, no id, no description, no address can ride along).
+const STAFF_ROW_KEYS = ["ai_filtering", "ai_interview_other", "applicant_cap", "closed_reason", "closes_at", "company_name", "go_live_at", "is_remote", "locations", "opening_id", "organization_name", "posted_at", "req_number", "status", "stored_status", "third_party_recruiter", "title"];
 export const AUTH_FAILURE_CODES = ["unauthorized", "reverification_required", "no_candidate_identity", "not_a_candidate_session", "invalid_verification_time", "no_session"];
 export const isAuthFailure = (err) => !!err && AUTH_FAILURE_CODES.includes(err.code);
 
@@ -48,6 +50,13 @@ export const shapes = {
     && isNullable(r.applicant_cap, Number.isInteger) && isStr(r.status) && isNullable(r.closed_reason, isStr) && isNullable(r.ai_filtering, isBool) && isNullable(r.ai_interview_other, isBool) && isBool(r.ai_disclosure_shown)
     && shapes.aiNotes(r)
     && isBool(r.third_party_recruiter) && MASK_RE.test(r.masked_code) && isNullable(r.masked_req, (v) => isStr(v) && MASKED_REQ_RE.test(v)) && REF_RE.test(r.posting_ref) && isNullable(r.last_edited_at, isStr),
+  // one row of the staff-scope answer (staff_search_openings): every status, exact keys only
+  staffRow: (r) => isObj(r) && Object.keys(r).length === STAFF_ROW_KEYS.length && Object.keys(r).every((k) => STAFF_ROW_KEYS.includes(k))
+    && isStr(r.company_name) && isStr(r.organization_name) && isStr(r.title) && Array.isArray(r.locations) && r.locations.every(isStr) && isBool(r.is_remote)
+    && POSTING_STATUSES.includes(r.status) && POSTING_STATUSES.includes(r.stored_status) && isNullable(r.closed_reason, isStr) && isNullable(r.posted_at, isStr) && isNullable(r.closes_at, isStr) && isNullable(r.go_live_at, isStr)
+    && isNullable(r.applicant_cap, Number.isInteger) && isNullable(r.ai_filtering, isBool) && isNullable(r.ai_interview_other, isBool) && isBool(r.third_party_recruiter)
+    && isStr(r.opening_id) && /^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(r.opening_id) && isNullable(r.req_number, isStr),
+  staffSearch: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req") && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.staffRow) && Object.keys(d).length === 3,
   search: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req") && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.searchRow),
   detail: (d) => isObj(d) && isObj(d.posting) && shapes.searchRow(Object.assign({ }, d.posting)) && (d.comment_count === undefined || (Number.isInteger(d.comment_count) && d.comment_count >= 0)) && Array.isArray(d.links) && d.links.length <= 13
     && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && l.position >= 1 && l.position <= 10 && isNullable(l.label, isStr) && (l.kind === undefined || l.kind === "apply" || l.kind === "recruiter") && (l.firm === undefined || isNullable(l.firm, isStr)) && (l.kind !== "recruiter" || isStr(l.firm))),
@@ -145,6 +154,24 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     return { ok: false, status: res.status, data, error: { code, message: data && isStr(data.error) ? data.error : null, field: data && isStr(data.field) ? data.field : null, errors, retryAfter: Number.isFinite(ra) && ra > 0 ? ra : null } };
   }
 
+  // the staff scope calls go to the database directly (PostgREST rpc), with the signed-in person's own token: the database function decides who is staff. ANY refusal, missing function or odd answer is reported as a plain
+  // { ok:false }: the page then does exactly what it does for everyone else. Nothing is sent but the search words; nothing is stored; the request is never cached.
+  async function rpc(fn, body, { validate } = {}) {
+    const token = await getToken();
+    if (!token) return { ok: false, status: 401, error: { code: "no_session" } };
+    let res, text;
+    try {
+      res = await doFetch(baseUrl + "/rest/v1/rpc/" + fn, { method: "POST", headers: { "Content-Type": "application/json", apikey: key, Authorization: "Bearer " + token }, body: JSON.stringify(body === undefined ? {} : body), cache: "no-store" });
+      text = await res.text();
+    } catch {
+      return { ok: false, status: 0, error: { code: "network" } };
+    }
+    if (!res.ok) return { ok: false, status: res.status, error: { code: "refused" } };
+    let data; try { data = JSON.parse(text); } catch { return { ok: false, status: res.status, error: { code: "bad_response" } }; }
+    if (validate && !validate(data)) return { ok: false, status: res.status, error: { code: "bad_response" } };
+    return { ok: true, status: res.status, data };
+  }
+
   const postingAnswer = (d) => shapes.posting(d && isObj(d.posting) ? d.posting : d);
   const unwrap = (r) => (r.ok && isObj(r.data) && isObj(r.data.posting) && !r.data.id ? Object.assign({}, r, { data: r.data.posting }) : r);
 
@@ -196,6 +223,9 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     publishPosting: async (postingId) => unwrap(await call("publish-posting", { posting_id: postingId }, { validate: postingAnswer })),
     // ---- candidate side
     candidateSession: () => call("candidate-session", {}),
+    // ---- staff scope (only a signed-in staff person gets anything; the database decides)
+    isStaff: () => rpc("is_staff", {}, { validate: isBool }),
+    staffSearch: (q) => rpc("staff_search_openings", q, { validate: shapes.staffSearch }),
     candidateSearch: (q) => call("candidate-search", q, { validate: shapes.search }),
     candidateDetail: (postingRef) => call("candidate-posting-detail", { posting_ref: postingRef }, { validate: shapes.detail }),
     candidateLinkIssue: (postingRef) => call("candidate-link-issue", { posting_ref: postingRef }, { validate: shapes.linkIssue }),
