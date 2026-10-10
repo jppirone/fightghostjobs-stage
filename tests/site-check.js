@@ -1357,6 +1357,42 @@ export function checkSite(root) {
     }
   }
 
+  // S68 (2026-10-09, prompt AZ3): the display-only place text. An opening staged from the employer's own job board may carry source_location_text, shown ONLY while it has no catalog place, always with the note, never used to search.
+  // Only js/place.js reads the field (js/api.js only names it in the staff key list); no page names it; the note and the 200 character cap are pinned; the three places that show a place (the result card, the staff card and the details
+  // window) go through placeNodes and never through locationLine; nothing makes markup from it; and no script names a place of the employer boards (a place is never invented by the page).
+  {
+    const rel = (f) => path.relative(root, f).split(path.sep).join("/");
+    for (const f of js) {
+      const t = stripJsComments(read(f)), r = rel(f);
+      if (/source_location_text/.test(t) && r !== "js/place.js" && r !== "js/api.js") add("S68", f, "only js/place.js may read source_location_text");
+      if (r === "js/api.js") for (const l of t.split("\n")) if (/source_location_text/.test(l) && !/STAFF_ROW_OPTIONAL_KEYS/.test(l)) add("S68", f, "api.js may name source_location_text only in the staff optional key list: " + l.trim().slice(0, 80));
+    }
+    for (const f of html) if (/source_location_text/.test(read(f))) add("S68", f, "no page may name source_location_text");
+    const pl = path.join(root, "js", "place.js"), sj = path.join(root, "js", "pages", "search.js");
+    if (!fs.existsSync(pl)) add("S68", pl, "js/place.js must exist");
+    else {
+      const s = stripJsComments(read(pl));
+      if (!s.includes('export const PLACE_NOTE = "as given by the employer\'s job board";')) add("S68", pl, "the note must be exactly: as given by the employer's job board");
+      if (!s.includes("export const MAX_PLACE_CHARS = 200;") || !s.includes(".slice(0, MAX_PLACE_CHARS)")) add("S68", pl, "the place text is cut at 200 characters (MAX_PLACE_CHARS = 200 and .slice(0, MAX_PLACE_CHARS))");
+      if (!/replace\(\/\[\\u0000-\\u001f\\u007f-\\u009f\]\/g, ""\)/.test(s)) add("S68", pl, "control characters must be removed from the place text");
+      if (!s.includes('locs.length === 0 ? sourcePlaceText(row) : ""')) add("S68", pl, "the source text is used ONLY when the opening has no catalog place");
+      if (/innerHTML|insertAdjacentHTML|document\.write/.test(s)) add("S68", pl, "no markup is made from the place text");
+      if (/\b(listed|verified|registered|certified|compliant)\b/i.test(s.replace(/MAX_PLACE_CHARS/g, ""))) add("S68", pl, "the place wording must not say listed, verified, registered, certified or compliant");
+    }
+    if (fs.existsSync(sj)) {
+      const s = stripJsComments(read(sj));
+      if (/locationLine\(/.test(s)) add("S68", sj, "the search page shows a place only through placeNodes (js/place.js), never locationLine directly");
+      if (s.split("placeNodes(row)").length - 1 < 3) add("S68", sj, "the result card, the staff card and the details window must all show the place through placeNodes(row)");
+      if (/innerHTML|insertAdjacentHTML/.test(s)) add("S68", sj, "the search page makes no markup from data");
+    }
+    for (const f of html.concat(js)) {
+      if (rel(f).startsWith("js/data/")) continue;   // the catalog itself (the picker's list of US places) is data the employer CHOOSES from, not a place the page invents
+      const t = f.endsWith(".html") ? read(f).replace(/<!--[\s\S]*?-->/g, "") : stripJsComments(read(f));
+      const hit = /São Paulo|Sao Paulo|Tokyo|Berlin|Melbourne|Bengaluru|Bangalore|Cheltenham|Cape Town|Clearwater/.exec(t);
+      if (hit) add("S68", f, "no page or script may name a place of the employer boards (a place is never invented by the page): " + hit[0]);
+    }
+  }
+
   // S64 (2026-10-08): the repository is what Pages serves, so no database script may live in it. No .sql file anywhere (tests/ is served too) and no top-level db folder. On October 8 the four email wording scripts were committed to db/ and were public for a day;
   // database scripts live outside the repositories (C:\Users\jpiro\fightghostjobs, next to the census and cleanup scripts). The promote tool also refuses to copy them to alpha (alpha-setup\promote\lib\frontend.js).
   {

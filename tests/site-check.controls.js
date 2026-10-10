@@ -883,6 +883,20 @@ control("the privacy heading says register openings again", "S66", edit("privacy
 control("the staff note loses the private record sentence", "S65", edit("js/staff-scope.js", (s) => s.replace(" A private record is kept of who searched and when, never the words searched for.", "")));
 control("the staff note says read only again", "S65", edit("js/staff-scope.js", (s) => s.replace("A private record is kept of who searched and when, never the words searched for.", "This view is read only.")));
 
+// S68 (2026-10-09, prompt AZ3): the display-only place text
+control("the search input reads the source place text (matching)", "S68", edit("js/search-input.js", (s) => s + '\nexport const READS_PLACE = (row) => row.source_location_text;\n'));
+control("the chips read the source place text", "S68", edit("js/chips.js", (s) => s + '\nexport const READS_PLACE = (row) => row.source_location_text;\n'));
+control("the search page reads the source place text itself", "S68", edit("js/pages/search.js", (s) => s.replace("const p = placeParts(row);", "const p = placeParts(row); if (row.source_location_text) p.note = null;")));
+control("a page names the source place field", "S68", edit("search.html", (s) => s.replace('<div id="modalPlace"', '<div data-field="source_location_text" id="modalPlace"')));
+control("the place note wording changes", "S68", edit("js/place.js", (s) => s.replace('export const PLACE_NOTE = "as given by the employer\'s job board";', 'export const PLACE_NOTE = "from the employer\'s job board";')));
+control("the place cap is removed", "S68", edit("js/place.js", (s) => s.replace(".slice(0, MAX_PLACE_CHARS)", "")));
+control("control characters are no longer removed from the place text", "S68", edit("js/place.js", (s) => s.replace('.replace(/[\\u0000-\\u001f\\u007f-\\u009f]/g, "")', "")));
+control("the source text is used even when the opening has a catalog place", "S68", edit("js/place.js", (s) => s.replace('locs.length === 0 ? sourcePlaceText(row) : ""', "sourcePlaceText(row)")));
+control("the place text is made into markup", "S68", edit("js/place.js", (s) => s.replace("const remote =", "const x = document.createElement('div'); x.innerHTML = src; const remote =")));
+control("the search page shows the place with locationLine again", "S68", edit("js/pages/search.js", (s) => s.replace("placeNodes(row), \" \u00b7 \" + staffIdLine(row)", "locationLine(row.is_remote, row.locations) + \" \u00b7 \" + staffIdLine(row)")));
+control("the place line says registered", "S68", edit("js/place.js", (s) => s.replace("+ src, note: PLACE_NOTE };", "+ src + \" (registered)\", note: PLACE_NOTE };")));
+control("a script names a place of the employer boards", "S68", edit("js/pages/comments.js", (s) => s.replace("Reading and leaving comments here", "Tokyo: reading and leaving comments here")));
+
 // S67 (2026-10-09): the page never sees a plan; the check mark is one strict boolean read in one place
 control("the search page reads is_registered directly", "S67", edit("js/pages/search.js", (s) => s.replace('isRegistered(row) ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }', 'row.is_registered ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }')));
 control("the staff card draws the mark without the rule", "S67", edit("js/pages/search.js", (s) => s.replace('isRegistered(row) ? h("div", { class: "pill badge-verified" }, "✓ Registered") : null', 'h("div", { class: "pill badge-verified" }, "✓ Registered")')));
