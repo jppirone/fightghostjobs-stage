@@ -74,7 +74,8 @@ export function linkChoices(links) {
 }
 // the "Which link?" label and dropdown are shown only when the posting has links to choose from (none for a paused, closed or expired posting, for an organization without the destination links tier, or when the employer gave none); the report can still be sent with no specific link
 // the links a candidate detail answer carries: none on the not-open answer (409), none when the destination links tier does not apply
-export function detailLinks(d) { return d && d.ok && d.data && Array.isArray(d.data.links) ? d.data.links : []; }
+// prompt BA: the AI and hiring policy link (kind "policy") is not an application link and a wrong-link report does not take it (the server accepts apply and recruiter only), so it never reaches the picker
+export function detailLinks(d) { return d && d.ok && d.data && Array.isArray(d.data.links) ? d.data.links.filter((l) => !(l && l.kind === "policy")) : []; }
 export function showLinkPicker(links) { return Array.isArray(links) && links.length > 0; }
 // how long a rate-limited button stays disabled, in milliseconds: at least one second, never beyond what one timer can hold
 export function cooldownMs(seconds) { return Math.min(2147483647, Math.max(1, Math.ceil(Number(seconds) || 0)) * 1000); }

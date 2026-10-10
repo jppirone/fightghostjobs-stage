@@ -15,6 +15,7 @@ import { $, h, clear, alertBox, chip, safeHref } from "../dom.js";
 import { waitText } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
 import { aiNotes } from "../ai-notes.js";
+import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js";
 import { COMMENTS_VISIBLE } from "../config.js";
 import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js";
 import { isRegistered } from "../registered.js";
@@ -257,7 +258,7 @@ function openModal(row, opener) {
   const place = $("#modalPlace"); clear(place); const shown = placeParts(row).note !== null; place.hidden = !shown;
   if (shown) place.append(...placeNodes(row).filter((x) => x !== null));
   $("#modalIntro").textContent = "This opening was added through FightGhostJobs by the employer. The dates and disclosures are the employer's own. FightGhostJobs has not confirmed that the job exists, that the employer representative works for the company named, or that the employer will respond.";
-  clear($("#modalLinks")); const empty = $("#modalEmpty"); empty.hidden = true; empty.textContent = ""; $("#modalLinksNote").hidden = true; $("#modalMore").hidden = true; clear($("#modalMore"));
+  clear($("#modalLinks")); clear($("#modalPolicy")); $("#modalPolicy").hidden = true; const empty = $("#modalEmpty"); empty.hidden = true; empty.textContent = ""; $("#modalLinksNote").hidden = true; $("#modalMore").hidden = true; clear($("#modalMore"));
   backdrop.classList.add("open");
   if (!unlockScroll) unlockScroll = lockScroll(document, window);   // the page behind does not scroll while the window is open; undone exactly in closeModal
   // focus moves into the window, Tab stays inside it, the page behind is inert; closing returns focus to the button that opened it (js/dialog-focus.js)
@@ -285,14 +286,17 @@ async function openDetails(row, button) {
     const r = await api.candidateDetail(row.posting_ref);
     const m = openModal(row, button);
     if (r.ok) {
-      if (r.data.links.length === 0) {
+      // prompt BA: the AI and hiring policy link is one more employer link but never an application destination: it is its own line, and it never makes the opening look as if it had an apply link
+      const applyLinks = applicationLinks(r.data.links), policy = candidatePolicyLine(r.data.links);
+      if (applyLinks.length === 0) {
         m.empty.hidden = false;
         m.empty.textContent = "This employer has marked the opening live but hasn't provided a link to where you can apply. That's their choice to make.";
       } else {
-        for (const l of r.data.links) m.links.append(linkRow(row, l));
-        $("#modalLinksNote").hidden = false;   // why the links look odd, and what to do when one is wrong
+        for (const l of applyLinks) m.links.append(linkRow(row, l));
       }
-      moreLinks(row, r.data.comment_count, r.data.links.length > 0);
+      if (policy) { const pl = $("#modalPolicy"); pl.hidden = false; pl.append(linkRow(row, { position: policy.position, kind: "policy", firm: null, label: policy.where })); }
+      if (applyLinks.length > 0 || policy) $("#modalLinksNote").hidden = false;   // why the links look odd, and what to do when one is wrong (the note is hidden again each time the window opens)
+      moreLinks(row, r.data.comment_count, applyLinks.length > 0);
       return;
     }
     moreLinks(row, null, false);   // a closed or expired posting keeps its thread: what happened after it closed is what other candidates want to know
@@ -309,7 +313,8 @@ async function openDetails(row, button) {
 
 // One destination. Clicking asks the server for a fresh single-use link (valid 2 minutes) for THIS candidate and opens it in a new tab.
 // A named recruiter firm (pass C) reads "Recruiter firm: <name>"; when the employer gave no link for it there is nothing to click.
-const rowText = (link) => link.kind === "recruiter" ? "Recruiter firm: " + link.firm + (link.label ? " · " + link.label : "") : (link.label || "Application link " + link.position);
+// The AI and hiring policy link (prompt BA) reads "AI and hiring policy: <where it goes>": the same one-time link as the others, and never an application link.
+const rowText = (link) => link.kind === "recruiter" ? "Recruiter firm: " + link.firm + (link.label ? " · " + link.label : "") : link.kind === "policy" ? POLICY_LINE_LABEL + " " + link.label : (link.label || "Application link " + link.position);
 function linkRow(row, link) {
   if (link.kind === "recruiter" && link.label === null) return h("div", { class: "source-row", style: "cursor:default;" }, h("span", { class: "source-row-label" }, rowText(link)), h("span", { class: "go", style: "color:var(--faint);" }, "No link given"));
   const go_ = h("span", { class: "go" }, "Continue →");

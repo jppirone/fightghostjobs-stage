@@ -104,7 +104,7 @@ function renderRecap(d) {
     const chips = $("#recapChips"); clear(chips); for (const c of postingChips(p)) chips.append(chip(c));
     const notes = $("#recapNotes"); clear(notes);
     for (const n of aiNotes(p)) notes.append(h("div", { style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text));
-    $("#recapNote").textContent = d.data.links.length ? "The employer's links (" + d.data.links.length + ") are on the opening's details in Search. If one of them led you somewhere wrong, use “Report a wrong link” at the bottom of this page." : "This employer has not provided a link to where you can apply.";
+    $("#recapNote").textContent = state.links.length ? "The employer's links (" + state.links.length + ") are on the opening's details in Search. If one of them led you somewhere wrong, use “Report a wrong link” at the bottom of this page." : "This employer has not provided a link to where you can apply.";
   } else if (d.status === 409 && d.data && d.data.code === "posting_not_open") {
     const nr = notOpenRecap(d.data.status, d.data.closed_reason || null, COMMENTS_VISIBLE);
     $("#recapCompany").textContent = nr.company; $("#recapTitle").textContent = nr.title; $("#recapMeta").textContent = ""; $("#recapNote").textContent = nr.note;
