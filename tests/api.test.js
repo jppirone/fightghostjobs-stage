@@ -87,7 +87,7 @@ test("detail: live answer, and the 409 not-open answer keeps its reason", async 
   assert.equal((await mk(() => ({ status: 200, body: live })).api.candidateDetail(ref)).ok, true);
   const r = await mk(() => ({ status: 409, body: { error: "posting_not_open", code: "posting_not_open", status: "closed", closed_reason: "filled" } })).api.candidateDetail(ref);
   assert.equal(r.ok, false); assert.equal(r.status, 409); assert.equal(r.data.status, "closed"); assert.equal(r.data.closed_reason, "filled");
-  assert.equal((await mk(() => ({ status: 200, body: { posting: live.posting, links: Array.from({ length: 14 }, (_, i) => ({ position: 1, label: "x" })) } })).api.candidateDetail(ref)).ok, false);
+  assert.equal((await mk(() => ({ status: 200, body: { posting: live.posting, links: Array.from({ length: 15 }, (_, i) => ({ position: 1, label: "x" })) } })).api.candidateDetail(ref)).ok, false);
 });
 
 test("link issue: only https go-links are accepted", async () => {

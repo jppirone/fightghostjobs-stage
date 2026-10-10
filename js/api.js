@@ -16,6 +16,8 @@ const isStr = (v) => typeof v === "string";
 const isBool = (v) => typeof v === "boolean";
 const isNullable = (v, t) => v === null || t(v);
 const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+// how many entries of each kind a set of links may hold: ten application links (a row without a kind is one), three named recruiter firms and one AI and hiring policy link (prompt BA)
+const linkCountsOk = (links) => { const n = { apply: 0, recruiter: 0, policy: 0 }; for (const l of links) n[l && l.kind === "recruiter" ? "recruiter" : l && l.kind === "policy" ? "policy" : "apply"]++; return n.apply <= 10 && n.recruiter <= 3 && n.policy <= 1; };
 
 // the staff search scope (October 8, 2026): the only keys one row of the staff answer may carry. A row with any other key is refused whole (fail closed: no posting reference, no id, no description, no address can ride along).
 const STAFF_ROW_KEYS = ["ai_filtering", "ai_interview_other", "applicant_cap", "closed_reason", "closes_at", "company_name", "go_live_at", "is_remote", "locations", "opening_id", "organization_name", "posted_at", "req_number", "status", "stored_status", "third_party_recruiter", "title"];
@@ -61,9 +63,11 @@ export const shapes = {
     && isStr(r.opening_id) && /^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(r.opening_id) && isNullable(r.req_number, isStr),
   staffSearch: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req") && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.staffRow) && Object.keys(d).length === 3,
   search: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req") && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.searchRow),
-  detail: (d) => isObj(d) && isObj(d.posting) && shapes.searchRow(Object.assign({ }, d.posting)) && (d.comment_count === undefined || (Number.isInteger(d.comment_count) && d.comment_count >= 0)) && Array.isArray(d.links) && d.links.length <= 13
-    && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && l.position >= 1 && l.position <= 10 && isNullable(l.label, isStr) && (l.kind === undefined || l.kind === "apply" || l.kind === "recruiter") && (l.firm === undefined || isNullable(l.firm, isStr)) && (l.kind !== "recruiter" || isStr(l.firm))),
-  linkIssue: (d) => isObj(d) && isStr(d.expires_at) && Array.isArray(d.links) && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && isNullable(l.label, isStr) && isStr(l.go_url) && /^https:\/\//.test(l.go_url) && (l.kind === undefined || l.kind === "apply" || l.kind === "recruiter")),
+  // prompt BA (October 10, 2026): up to ten application links, three named recruiter firms and ONE entry of kind "policy" (the employer's AI and hiring policy link: position 1, a label saying where it goes, never a firm)
+  detail: (d) => isObj(d) && isObj(d.posting) && shapes.searchRow(Object.assign({ }, d.posting)) && (d.comment_count === undefined || (Number.isInteger(d.comment_count) && d.comment_count >= 0)) && Array.isArray(d.links) && d.links.length <= 14 && linkCountsOk(d.links)
+    && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && l.position >= 1 && l.position <= 10 && isNullable(l.label, isStr) && (l.kind === undefined || l.kind === "apply" || l.kind === "recruiter" || l.kind === "policy") && (l.firm === undefined || isNullable(l.firm, isStr)) && (l.kind !== "recruiter" || isStr(l.firm))
+      && (l.kind !== "policy" || (l.position === 1 && isStr(l.label) && (l.firm === undefined || l.firm === null)))),
+  linkIssue: (d) => isObj(d) && isStr(d.expires_at) && Array.isArray(d.links) && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && isNullable(l.label, isStr) && isStr(l.go_url) && /^https:\/\//.test(l.go_url) && (l.kind === undefined || l.kind === "apply" || l.kind === "recruiter" || l.kind === "policy")),
   // a comment as a candidate or the owner reads it: an id (to report it), the text, the time, whether a contest on it is open; never an author. A page is at most 25, newest first.
   // the contest keys are always present (item A): contested (boolean), contest_state ('none' | 'open' | 'left' | 'removed') and contest_filed_at (an ISO timestamp string once any contest exists on the comment, else null).
   // 'none' exactly when filed_at is null; contested exactly when the state is 'open'. A missing, mistyped, unknown or inconsistent value is a broken answer, never "no contest" (fail closed: a contested comment must never be shown without its notice).
@@ -90,9 +94,12 @@ export const shapes = {
   // pass B: a stored link may also say what candidates see for it (shown_as: derived from where it goes, never from the label; null for a firm without a link) and how the liveness check went when it was saved.
   // pass C: kind 'apply' (an application link, up to 10) or 'recruiter' (a named recruiter firm, up to 3; firm = its name, a link optional)
   linkExtras: (x) => (x.shown_as === undefined || isNullable(x.shown_as, isStr)) && (x.check_status === undefined || x.check_status === null || ["ok", "failed", "skipped"].includes(x.check_status)) && (x.check_http === undefined || x.check_http === null || Number.isInteger(x.check_http))
-    && (x.kind === undefined || x.kind === "apply" || x.kind === "recruiter") && (x.firm === undefined || isNullable(x.firm, isStr)) && (x.kind !== "recruiter" || isStr(x.firm)),
-  storedLinks: (l) => Array.isArray(l) && l.length <= 13 && l.every((x) => isObj(x) && Number.isInteger(x.position) && x.position >= 1 && x.position <= 10 && isNullable(x.label, isStr) && shapes.linkExtras(x)),
+    && (x.kind === undefined || x.kind === "apply" || x.kind === "recruiter" || x.kind === "policy") && (x.firm === undefined || isNullable(x.firm, isStr)) && (x.kind !== "recruiter" || isStr(x.firm))
+    && (x.kind !== "policy" || (x.position === 1 && (x.firm === undefined || x.firm === null))),   // prompt BA: kind "policy" (the AI and hiring policy link): always position 1, never a firm
+  storedLinks: (l) => Array.isArray(l) && l.length <= 14 && l.every((x) => isObj(x) && Number.isInteger(x.position) && x.position >= 1 && x.position <= 10 && isNullable(x.label, isStr) && shapes.linkExtras(x)) && linkCountsOk(l),
   linksAnswer: (d) => isObj(d) && Number.isInteger(d.active_links) && shapes.storedLinks(d.links),
+  // the answer of saving or removing the policy link (kind "policy"): zero or one stored entry, of that kind, at position 1
+  policyAnswer: (d) => shapes.linksAnswer(d) && d.kind === "policy" && typeof d.changed === "boolean" && d.active_links === d.links.length && d.links.length <= 1 && d.links.every((x) => x.kind === "policy" && x.position === 1),
   // item 4 (Destination links panel). Check link: EXACTLY { go_url, expires_at }: go_url is an opaque one-time https ticket link (no credentials in it), never an address; any other key makes it a broken answer.
   checkIssue: (d) => isObj(d) && Object.keys(d).length === 2 && isStr(d.go_url) && isHttpsTicket(d.go_url) && isStr(d.expires_at) && Number.isFinite(Date.parse(d.expires_at)),
   // item 4: the answer of an edit or a remove of ONE link: the stored links after the change, by their STORED positions (ascending, gaps allowed), each with only the five fields the panel reads; an unknown key anywhere
@@ -197,6 +204,8 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     setDestinationLinks: (postingId, links) => call("set-destination-links", { posting_id: postingId, links }, { validate: shapes.linksAnswer }),
     // replaces the posting's whole set of named recruiter firms (verified plan, and only while the posting says a recruiter is involved): [{ name, url? }], 0 to 3; [] removes them all
     setRecruiterFirms: (postingId, firms) => call("set-destination-links", { posting_id: postingId, kind: "recruiter", links: firms }, { validate: shapes.linksAnswer }),
+    // the AI and hiring policy link (prompt BA, October 10, 2026): ONE address, or null to remove it. Verified plan only (the server decides). It is stored like a destination link (write-only, checked when saved) and is never an application destination.
+    setPolicyLink: (postingId, url) => call("set-destination-links", { posting_id: postingId, kind: "policy", links: url === null ? [] : [{ url }] }, { validate: shapes.policyAnswer }),
     // item 4, the rows panel. All three work on ONE application link, named by its stored position (1 to 10); the poster comes from the session only, never from here; no address is ever sent back.
     // check: asks for a one-time ticket link (60 seconds, single use) the page opens in a new tab: { go_url, expires_at }
     checkDestinationLink: async (postingId, position) => {
