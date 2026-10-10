@@ -15,16 +15,16 @@ export const NOLINKS_REF = "m".repeat(20), CLOSED_REF = "c".repeat(20);   // a p
 export const LONG_NAME = "Bartholomew Featherstonehaugh-Wolverhampton", LONG_ORG = "Meridian Health Systems of the Greater Providence and Boston Region";
 const day = 864e5, inDays = (d) => new Date(Date.now() + d * day).toISOString();
 const code = (c) => "****-****-" + c.slice(-4);
-const posting = (company, title, pcode, extra) => Object.assign({ company_name: company, title, locations: ["Austin, TX"], is_remote: false, posted_at: inDays(-12), closes_at: inDays(33), applicant_cap: null, status: "live", closed_reason: null, ai_filtering: false, ai_interview_other: false, ai_disclosure_shown: false, third_party_recruiter: false, masked_req: "4****71", masked_code: code(pcode), posting_ref: pcode.toLowerCase().padEnd(20, "x"), last_edited_at: null }, extra || {});
+const posting = (company, title, pcode, extra) => Object.assign({ company_name: company, title, locations: ["Austin, TX"], is_remote: false, posted_at: inDays(-12), closes_at: inDays(33), applicant_cap: null, status: "live", closed_reason: null, ai_filtering: false, ai_interview_other: false, ai_disclosure_shown: false, third_party_recruiter: false, masked_req: "4****71", masked_code: code(pcode), posting_ref: pcode.toLowerCase().padEnd(20, "x"), last_edited_at: null, is_registered: false }, extra || {});
 const RESULTS = [
-  posting("Meridian Health Systems of the Greater Region", "Senior Data Analyst, Population Health Reporting and Quality Improvement", "D21M48YBZQBF", { locations: ["Boston, MA", "Providence, RI", "Hartford, CT"], ai_filtering: true, ai_disclosure_shown: true, applicant_cap: 250 }),
+  posting("Meridian Health Systems of the Greater Region", "Senior Data Analyst, Population Health Reporting and Quality Improvement", "D21M48YBZQBF", { locations: ["Boston, MA", "Providence, RI", "Hartford, CT"], ai_filtering: true, ai_disclosure_shown: true, applicant_cap: 250, is_registered: true }),   // October 9, 2026: the first result is a registered opening (an active paid plan), the second is not
   posting("Meridian Health Systems of the Greater Region", "Nurse Practitioner", "K7Q3W9ZT2XPM", { is_remote: true, locations: [], ai_interview_other: true, ai_disclosure_shown: true }),
 ];
 // the staff scope (October 8, 2026): what the two database functions would answer for a staff person. Every status; exactly the agreed keys.
 const staffRow = (title, status, extra) => Object.assign({ company_name: "Meridian Health Systems of the Greater Region", organization_name: "Meridian Health Systems", title, locations: ["Austin, TX"], is_remote: false, status, stored_status: status, closed_reason: null,
-  posted_at: inDays(-12), closes_at: inDays(33), go_live_at: null, applicant_cap: null, ai_filtering: false, ai_interview_other: false, third_party_recruiter: false, opening_id: "D21M-48YB-ZQBF", req_number: "4471" }, extra || {});
+  posted_at: inDays(-12), closes_at: inDays(33), go_live_at: null, applicant_cap: null, ai_filtering: false, ai_interview_other: false, third_party_recruiter: false, opening_id: "D21M-48YB-ZQBF", req_number: "4471", is_registered: false }, extra || {});
 export const STAFF_ROWS = [
-  staffRow("Senior Data Analyst, Population Health Reporting and Quality Improvement", "live"),
+  staffRow("Senior Data Analyst, Population Health Reporting and Quality Improvement", "live", { is_registered: true }),
   staffRow("Data Analyst Draft", "draft", { posted_at: null, closes_at: null, opening_id: "A1B2-C3D4-E5F6", req_number: "4210" }),
   staffRow("Data Analyst Scheduled", "draft", { posted_at: null, closes_at: null, go_live_at: inDays(2), opening_id: "P4R9-T2V6-X8ZA", req_number: "4390" }),
   staffRow("Data Analyst Held For Review", "flagged", { opening_id: "H7J8-K9M1-N2P3", req_number: null }),
@@ -71,7 +71,8 @@ export function startFakeSite(root, opts = {}) {
         if (opts.staffSearchFails) return send(500, { code: "XX000", message: "boom" });
         const co = String(body.p_company || "").toLowerCase(), ph = String(body.p_phrase || "").toLowerCase();
         const rows = STAFF_ROWS.filter((r) => r.company_name.toLowerCase().includes(co) && (!ph || r.title.toLowerCase().includes(ph) || (body.p_code ? r.opening_id.replace(/-/g, "") === body.p_code.replace(/-/g, "") : false)));
-        return send(200, { mode: body.p_req ? "req" : body.p_code ? "code" : "phrase", truncated: false, results: rows });
+        const out = opts.staffOmitRegistered ? rows.map((r) => { const q = { ...r }; delete q.is_registered; return q; }) : rows;   // opts.staffOmitRegistered: the staff function before the registered-check migration (no is_registered key)
+        return send(200, { mode: body.p_req ? "req" : body.p_code ? "code" : "phrase", truncated: false, results: out });
       }
       return send(404, { code: "PGRST202", message: "Could not find the function" });
     }
@@ -96,7 +97,9 @@ export function startFakeSite(root, opts = {}) {
       if (!cand) return send(401, { error: "unauthorized", code: poster ? "not_a_candidate_session" : "unauthorized" });
       if (name === "candidate-search") {
         const co = String(body.company || "").toLowerCase();
-        const rows = RESULTS.filter((p) => p.company_name.toLowerCase().includes(co));
+        // opts.registeredValues: what is_registered carries on each result in order (true, false, "true", 1, null, or the word omit to leave the key out), for the tests of the check mark rule
+        const vals = opts.registeredValues;
+        const rows = RESULTS.filter((p) => p.company_name.toLowerCase().includes(co)).map((p, i) => { const q = { ...p }; if (vals && i < vals.length) { if (vals[i] === "omit") delete q.is_registered; else q.is_registered = vals[i]; } return q; });
         return send(200, { mode: body.req ? "req" : body.code ? "code" : "phrase", truncated: false, results: rows });
       }
       if (name === "candidate-posting-detail" && body.posting_ref === NOLINKS_REF) return send(200, { posting: { ...RESULTS[0], posting_ref: NOLINKS_REF }, links: [], comment_count: 1 });

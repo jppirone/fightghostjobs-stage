@@ -17,6 +17,7 @@ import { postingChips, notOpenMessage } from "../chips.js";
 import { aiNotes } from "../ai-notes.js";
 import { COMMENTS_VISIBLE } from "../config.js";
 import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js";
+import { isRegistered } from "../registered.js";
 import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
@@ -89,7 +90,8 @@ function renderCard(row) {
         h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
         h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
         h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, locationLine(row.is_remote, row.locations) + " · Opening ID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : ""))),
-      h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }, "✓ Registered")),
+      // the check mark only for an opening the DATABASE says is registered (an active paid plan): one plain true in the row, nothing else about the plan (js/registered.js)
+      isRegistered(row) ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }, "✓ Registered") : null),
     h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, chips),
     // the employer's own words about their AI use (pass D): shown verbatim, plainly attributed, only under a toggle that is on
     ...aiNotes(row).map((n) => h("div", { class: "ai-note", style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text)),
@@ -137,7 +139,9 @@ function renderStaffCard(row) {
         h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
         h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
         h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, locationLine(row.is_remote, row.locations) + " · " + staffIdLine(row))),
-      h("div", { class: "pill", style: "flex-shrink:0;" }, staffStatusLabel(row))),
+      h("div", { style: "flex-shrink:0;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;" },
+        h("div", { class: "pill" }, staffStatusLabel(row)),
+        isRegistered(row) ? h("div", { class: "pill badge-verified" }, "✓ Registered") : null)),   // the same rule as the public view
     h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, staffChips(row).map(chip)));
 }
 function showStaffResults(data) {

@@ -1321,6 +1321,30 @@ export function checkSite(root) {
     }
   }
 
+  // S67 (2026-10-09, prompt AZ): the page never sees a plan. The "Registered" check mark is ONE boolean per result row from the database (is_registered, an active paid plan); the search page, the staff wording, the chips and the search.html shell never name a plan,
+  // a plan source, an expiry or an organization table, and no script or page string names the stored plan values (plan_source, plan_expires_at, promotional). The only reader of is_registered is js/registered.js, and it accepts a real boolean true only.
+  {
+    const rel = (p) => path.join(root, p);
+    const NAMES = /\b(plan|plan_source|plan_expires_at|promotional|pilot|paid|org_is_registered|organizations?)\b/i;
+    for (const p of ["js/pages/search.js", "js/staff-scope.js", "js/registered.js", "js/chips.js", "js/search-input.js", "search.html"]) {
+      if (!fs.existsSync(rel(p))) { add("S67", rel(p), p + " must exist"); continue; }
+      const t = p.endsWith(".html") ? read(rel(p)).replace(/<!--[\s\S]*?-->/g, "") : stripJsComments(read(rel(p)));
+      const hit = t.split("\n").find((l) => NAMES.test(l));
+      if (hit) add("S67", rel(p), "the page must not name a plan, a plan source, an expiry or the organizations table: " + hit.trim().slice(0, 100));
+    }
+    for (const f of html.concat(js)) {
+      const t = f.endsWith(".html") ? read(f).replace(/<!--[\s\S]*?-->/g, "") : stripJsComments(read(f));
+      if (/plan_source|plan_expires_at|\bpromotional\b/i.test(t)) add("S67", f, "no page or script may name the stored plan source or expiry (plan_source, plan_expires_at, promotional)");
+    }
+    const rf = rel("js/registered.js"), sf = rel("js/pages/search.js");
+    if (fs.existsSync(rf) && !stripJsComments(read(rf)).includes("row.is_registered === true")) add("S67", rf, "the check mark rule must be a strict boolean true: row.is_registered === true");
+    if (fs.existsSync(sf)) {
+      const s = stripJsComments(read(sf));
+      if (/\.is_registered\b/.test(s)) add("S67", sf, "the search page must read is_registered only through isRegistered (js/registered.js)");
+      if (s.split("isRegistered(row) ?").length - 1 !== 2) add("S67", sf, "both the public card and the staff card must draw the check mark only through isRegistered(row)");
+    }
+  }
+
   // S64 (2026-10-08): the repository is what Pages serves, so no database script may live in it. No .sql file anywhere (tests/ is served too) and no top-level db folder. On October 8 the four email wording scripts were committed to db/ and were public for a day;
   // database scripts live outside the repositories (C:\Users\jpiro\fightghostjobs, next to the census and cleanup scripts). The promote tool also refuses to copy them to alpha (alpha-setup\promote\lib\frontend.js).
   {

@@ -859,6 +859,16 @@ control("a script string says compliant", "S66", edit("js/pages/search.js", (s) 
 control("an opening is called listed without the word opening", "S66", edit("index.html", (s) => s.replace("Every opening here is disclosed by the employer:", "Every job here is listed by the employer:")));
 control("a text has an en dash", "S66", edit("search.html", (s) => s.replace("Search for one specific job you already know about.", "Search for one specific job \u2013 you already know about.")));
 
+
+// S67 (2026-10-09): the page never sees a plan; the check mark is one strict boolean read in one place
+control("the search page reads is_registered directly", "S67", edit("js/pages/search.js", (s) => s.replace('isRegistered(row) ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }', 'row.is_registered ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }')));
+control("the staff card draws the mark without the rule", "S67", edit("js/pages/search.js", (s) => s.replace('isRegistered(row) ? h("div", { class: "pill badge-verified" }, "✓ Registered") : null', 'h("div", { class: "pill badge-verified" }, "✓ Registered")')));
+control("the rule accepts any truthy value", "S67", edit("js/registered.js", (s) => s.replace("row.is_registered === true", "!!row.is_registered")));
+control("the search page names the plan", "S67", edit("js/pages/search.js", (s) => 'const plan = "verified";\n' + s));
+control("the search page names a paid source", "S67", edit("js/pages/search.js", (s) => 'const source = "paid";\n' + s));
+control("a script names the stored plan source column", "S67", edit("js/chips.js", (s) => s + '\nexport const SOURCE_COLUMN = "plan_source";\n'));
+control("a page string says promotional", "S67", edit("js/pages/analytics.js", (s) => s.replace("Share of FightGhostJobs traffic", "Share of promotional traffic")));
+
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");
 process.exit(missed ? 1 : 0);
