@@ -14,11 +14,10 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
-import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { launchBrowser } from "./cdp-tabs.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REAL = "https://tpmvkjuhbbwftqoodzcn.supabase.co";
@@ -61,40 +60,12 @@ function startServer() {
   });
 }
 
-// ---- a headless browser over the DevTools protocol (no dependencies; Node's built-in WebSocket) --------------------------------------------------------------------------------------
-const CANDIDATES = [process.env.FGJ_BROWSER, "C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Microsoft/Edge/Application/msedge.exe", "/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"].filter(Boolean);
+// ---- the browser: the shared launcher (tests/cdp-tabs.js, one browser with one tab); close() closes the whole browser, bounded, and removes its profile folder (October 10, 2026, prompt BB2) --------------------------------
 async function openBrowser() {
-  const exe = CANDIDATES.find((p) => fs.existsSync(p));
-  if (!exe) throw new Error("no Chrome or Edge found (set FGJ_BROWSER to the browser executable): a missing browser is a failed check, never a skipped one");
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fgj-hdr-"));
-  const proc = spawn(exe, ["--headless=new", "--remote-debugging-port=0", "--user-data-dir=" + dir, "--no-first-run", "--no-default-browser-check", "--disable-gpu", "--disable-extensions", "--window-size=1200,900", "about:blank"], { stdio: "ignore" });
-  const portFile = path.join(dir, "DevToolsActivePort");
-  let port = null;
-  for (let i = 0; i < 150 && !port; i++) { await new Promise((r) => setTimeout(r, 100)); try { if (fs.existsSync(portFile)) port = fs.readFileSync(portFile, "utf8").split(/\r?\n/)[0] || null; } catch { /* still being written */ } }
-  if (!port) { proc.kill(); throw new Error("the browser did not start"); }
-  const page = (await (await fetch("http://127.0.0.1:" + port + "/json")).json()).find((t) => t.type === "page");
-  const ws = new WebSocket(page.webSocketDebuggerUrl);
-  await new Promise((res, rej) => { ws.onopen = res; ws.onerror = () => rej(new Error("DevTools socket failed")); });
-  let seq = 0; const pending = new Map(); const loads = [];
-  ws.onmessage = (m) => { const j = JSON.parse(m.data); if (j.id && pending.has(j.id)) { pending.get(j.id)(j); pending.delete(j.id); return; } if (j.method === "Page.loadEventFired") for (const r of loads.splice(0)) r(); };
-  const send = (method, params) => new Promise((res, rej) => { const id = ++seq; pending.set(id, (j) => (j.error ? rej(new Error(method + ": " + j.error.message)) : res(j.result))); ws.send(JSON.stringify({ id, method, params: params || {} })); });
-  await send("Page.enable"); await send("Runtime.enable");
-  const evalOn = async (expression) => {
-    const r = await send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true });
-    if (r.exceptionDetails) throw new Error("page expression failed: " + String(r.exceptionDetails.exception && r.exceptionDetails.exception.description || r.exceptionDetails.text).slice(0, 300));
-    return r.result ? r.result.value : undefined;
-  };
-  return {
-    // phone: touch, mobile viewport, device pixel ratio 2 (what the device toolbar does); wide: an ordinary window
-    async viewport(width, phone) {
-      await send("Emulation.setDeviceMetricsOverride", phone ? { width, height: 667, deviceScaleFactor: 2, mobile: true, screenWidth: width, screenHeight: 667 } : { width, height: 800, deviceScaleFactor: 1, mobile: false });
-      await send("Emulation.setTouchEmulationEnabled", { enabled: !!phone });
-    },
-    async goto(url, timeoutMs) { const loaded = new Promise((r) => loads.push(r)); await send("Page.navigate", { url }); await Promise.race([loaded, new Promise((r) => setTimeout(r, timeoutMs || 15000))]); },
-    eval: evalOn,
-    async waitFor(expr, ms) { const until = Date.now() + (ms || 8000); while (Date.now() < until) { let v = false; try { v = await evalOn(expr); } catch { v = false; } if (v) return v; await new Promise((r) => setTimeout(r, 150)); } return false; },
-    async close() { try { ws.close(); } catch { /* ignore */ } try { proc.kill(); } catch { /* ignore */ } await new Promise((r) => setTimeout(r, 400)); try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* ignore */ } },
-  };
+  const b = await launchBrowser();
+  const tab = await b.newTab();
+  // phone: touch, mobile viewport, device pixel ratio 2 (what the device toolbar does); wide: an ordinary window
+  return { viewport: (width, phone) => tab.viewport(width, phone), goto: (url, timeoutMs) => tab.goto(url, timeoutMs), eval: (expression) => tab.eval(expression), waitFor: (expr, ms) => tab.waitFor(expr, ms), close: () => b.close() };
 }
 
 // ---- what is measured in the page ------------------------------------------------------------------------------------------------------------------------------------------------------------------
