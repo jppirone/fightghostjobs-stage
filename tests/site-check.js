@@ -1333,7 +1333,7 @@ export function checkSite(root) {
     }
   }
 
-  // S67 (2026-10-09, prompt AZ): the page never sees a plan. The "Registered" check mark is ONE boolean per result row from the database (is_registered, an active paid plan); the search page, the staff wording, the chips and the search.html shell never name a plan,
+  // S67 (2026-10-09, prompt AZ): the page never sees a plan. The "Registered" check mark is ONE boolean per result row from the database (is_registered, an active paid plan or a pilot plan with an expiry date); the search page, the staff wording, the chips and the search.html shell never name a plan,
   // a plan source, an expiry or an organization table, and no script or page string names the stored plan values (plan_source, plan_expires_at, promotional). The only reader of is_registered is js/registered.js, and it accepts a real boolean true only.
   {
     const rel = (p) => path.join(root, p);

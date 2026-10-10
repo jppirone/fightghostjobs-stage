@@ -1,5 +1,5 @@
 // registered.unit.test.js - the page side of the "Registered" check mark rule (October 9, 2026, prompt AZ): js/registered.js and the one new key of the staff answer in js/api.js.
-// The RULE itself (an active paid plan: plan verified, plan_source paid, not expired; no part of it is destination links) lives in the database and is proven there: registered-check-migration\registered-check-test.sql and
+// The RULE itself (plan verified, not expired, and plan_source paid, or pilot WITH an expiry date; no part of it is destination links) lives in the database and is proven there: registered-check-migration\registered-check-test.sql and
 // registered-check-migration\localdb-proof.mjs (outside this repository, because Pages serves everything in it). No network, no database here.
 import { test } from "node:test";
 import assert from "node:assert/strict";

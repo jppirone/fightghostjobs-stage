@@ -90,7 +90,7 @@ function renderCard(row) {
         h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
         h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
         h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, locationLine(row.is_remote, row.locations) + " · Opening ID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : ""))),
-      // the check mark only for an opening the DATABASE says is registered (an active paid plan): one plain true in the row, nothing else about the plan (js/registered.js)
+      // the check mark only for an opening the DATABASE says is registered (an active paid plan, or a pilot plan with an expiry date): one plain true in the row, nothing else about the plan (js/registered.js)
       isRegistered(row) ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }, "✓ Registered") : null),
     h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, chips),
     // the employer's own words about their AI use (pass D): shown verbatim, plainly attributed, only under a toggle that is on

@@ -1,6 +1,6 @@
 // registered.test.js - the "Registered" check mark in a real browser (October 9, 2026). The repo's own files and a fake backend (tests/fake-site.js; no real project, no key, no network).
 //
-// THE RULE the page follows: the DATABASE says, per result row, is_registered true or false (an active paid plan). The page draws the check mark ONLY for a real boolean true: false, a missing value, the string "true", a number, null are all "no mark".
+// THE RULE the page follows: the DATABASE says, per result row, is_registered true or false (an active paid plan, or a pilot plan with an expiry date). The page draws the check mark ONLY for a real boolean true: false, a missing value, the string "true", a number, null are all "no mark".
 // The staff view uses the same rule. The page never sees a plan name, a source or an expiry (the fake carries none, and a static rule keeps those words out of the scripts).
 // Then negative controls: one defect at a time in the page code (the mark always drawn, any truthy value drawn, the staff card ignoring the rule, the helper using Boolean()); each must make a scenario fail.
 // A missing browser FAILS the test (set FGJ_BROWSER). Run: node --test tests/registered.test.js
