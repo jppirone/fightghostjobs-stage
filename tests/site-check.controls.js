@@ -928,6 +928,23 @@ control("the leak check no longer fails", "S69", edit("tests/leak-check.js", (s)
 control("the leak check's own test is gone from the suite", "S69", edit("tests/run-all.js", (s) => s.replace('path.join(here, "leak-check.test.js")], true],', 'path.join(here, "unit.test.js")], true],')));
 control("the negative control that leaves a browser open is gone", "S69", edit("tests/leak-check.test.js", (s) => s.replace("negative controls: a browser the test does not close makes the leak check fire", "a browser the test does not close")));
 
+// S70 (2026-10-10, prompt BA): the employer's AI and hiring policy link
+control("the box label changes", "S70", edit("js/policy-link.js", (s) => s.replace('"Link to your AI and hiring policy (optional)"', '"Link to your policy (optional)"')));
+control("the candidate's line label changes", "S70", edit("js/policy-link.js", (s) => s.replace('export const POLICY_LINE_LABEL = "AI and hiring policy:";', 'export const POLICY_LINE_LABEL = "Policy:";')));
+control("the policy words claim the page is approved", "S70", edit("js/policy-link.js", (s) => s.replace("it does not read or judge what the page says.", "the page has been approved.")));
+control("the policy words promise a summary", "S70", edit("js/policy-link.js", (s) => s.replace("it does not read or judge what the page says.", "we summarize what the page says.")));
+control("a banned word is in the policy words (the opening vocabulary, rule S66)", "S66", edit("js/policy-link.js", (s) => s.replace("Shown to candidates as a link to your own page.", "Shown to candidates as a link to your own posting page.")));
+control("the box is moved out of the Disclosures area", "S70", edit("edit.html", (s) => s.replace('id="policyRow"', 'id="policyRowX"')));
+control("the not-on-the-tier notice loses the sales address", "S70", edit("edit.html", (s) => s.replace('<a href="mailto:sales@fightghostjobs.com?subject=Destination%20links%20tier" style="font-weight:600;">Write to sales@fightghostjobs.com →</a></div>\n        <div id="policyNote"', '</div>\n        <div id="policyNote"')));
+control("another script saves the policy link", "S70", append("js/pages/dashboard.js", "export const SNEAK = (api) => api.setPolicyLink(null, null);"));
+control("the details window takes its apply rows from the raw links list", "S70", edit("js/pages/search.js", (s) => s.replace("applicationLinks(r.data.links)", "r.data.links")));
+control("the application links panel takes the policy link", "S70", edit("js/edit-form.js", (s) => s.replace('filter((x) => x.kind === undefined || x.kind === "apply")', 'filter((x) => x.kind !== "recruiter")')));
+control("the wrong-link report's links include the policy link", "S70", edit("js/comments-model.js", (s) => s.replace('d.data.links.filter((l) => !(l && l.kind === "policy"))', "d.data.links")));
+control("the policy save changes its request shape", "S70", edit("js/api.js", (s) => s.replace('kind: "policy", links: url === null ? [] : [{ url }]', 'kind: "policy", links: url === null ? [] : [{ url, label: "policy" }]')));
+control("Enter in the policy box is no longer its own save", "S70", edit("js/pages/edit.js", (s) => s.replace('$("#policyUrl").addEventListener("keydown"', '$("#policyUrl").addEventListener("keyup"')));
+control("the policy link's browser test is not run", "S70", edit("tests/run-all.js", (s) => s.replace('path.join(here, "policy-link.test.js")', 'path.join(here, "place.test.js")')));
+control("the policy link's unit test is not run", "S70", edit("tests/run-all.js", (s) => s.replace('path.join(here, "policy-link.unit.test.js")', 'path.join(here, "place.unit.test.js")')));
+
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");
 process.exit(missed ? 1 : 0);

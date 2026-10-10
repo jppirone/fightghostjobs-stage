@@ -48,6 +48,7 @@
 //   S58 the one comments switch, js/config.js COMMENTS_VISIBLE, shipped true, read by every comment surface (Part E6)
 //   S59 no verify, verified or verification in candidate-facing text (Part E7): the word is confirm; exceptions are the destination link wording, data and class names, and privacy.html
 //   S64 no database script in the repository: no .sql file anywhere and no top-level db folder (the whole repository is served by Pages)
+//   S70 the employer's AI and hiring policy link (prompt BA): one box in the Disclosures area of the editor under the two AI toggles, behind the destination links tier, its own save, never an application link, one line for candidates only when the server sent it, words that claim nothing about the page
 //   S69 test browsers: one launcher (tests/cdp-tabs.js) that records the pid at spawn, marks its profile folder, closes on a bound, removes the folder and prints when it cannot; a time limit per suite step; the leak check is the last step and fails with LEAK: <count>; the negative control that leaves a browser open
 //   S65 the staff-only search scope (scope=all): the database decides who is staff, the page starts staff mode only on a clear true, the staff branch calls no candidate function and stores nothing, noindex, never cached, nothing in search.html, only the search page uses the staff functions
 //   S63 back from Comments or Report a wrong link: the Auth client is created WITHOUT its cross-tab channel (the channel evicts the search page from the browser's back/forward cache), no other script opens one, no unload handler, and the search page has the pageshow guard
@@ -1446,6 +1447,52 @@ export function checkSite(root) {
     if (hl && (!hl.includes('from "./cdp-tabs.js"') || !hl.includes("await launchBrowser()") || /\bspawn\(/.test(hl))) add("S69", path.join(root, "tests", "header-layout.test.js"), "the header test uses the shared launcher (cdp-tabs.js), not its own");
     const lt = need("tests/leak-check.test.js", "proves the leak check fires");
     if (lt !== null && !lt.includes("negative controls: a browser the test does not close makes the leak check fire")) add("S69", path.join(root, "tests", "leak-check.test.js"), "the negative control that leaves a browser open must exist");
+  }
+
+  // S70 (2026-10-10, prompt BA): the employer's AI and hiring policy link. One more destination link, in the Disclosures area of the opening editor, directly under the two AI toggles and their notes; its words are in js/policy-link.js and
+  // are the opening vocabulary (rule S66 scans them like every other string) and make no claim about the page (never verified, approved, compliant or summarized). It is NOT an application link: only the editor writes it (api.setPolicyLink),
+  // the application panel and the candidate's apply rows, the empty note and the wrong-link report never take it, and candidates are shown it only as the entry the server sent. The tests that prove it run in the suite.
+  {
+    const rel = (f) => path.relative(root, f).split(path.sep).join("/");
+    const P = (...p) => path.join(root, ...p);
+    const polF = P("js", "policy-link.js"), editF = P("js", "pages", "edit.js"), srchF = P("js", "pages", "search.js"), formF = P("js", "edit-form.js"), cmF = P("js", "comments-model.js"), apiF = P("js", "api.js"), htmlF = P("edit.html"), runF = P("tests", "run-all.js");
+    if (!fs.existsSync(polF)) add("S70", polF, "js/policy-link.js must exist");
+    else {
+      const s = stripJsComments(read(polF));
+      if (!s.includes('export const POLICY_LABEL = "Link to your AI and hiring policy (optional)";')) add("S70", polF, 'the box label must be exactly: Link to your AI and hiring policy (optional)');
+      if (!s.includes('export const POLICY_LINE_LABEL = "AI and hiring policy:";')) add("S70", polF, "the candidate's line must start exactly: AI and hiring policy:");
+      for (const m of s.matchAll(/"((?:[^"\\\n]|\\.)*)"/g)) if (/\b(verified|verify|approved|approval|complian\w*|certif\w*|endors\w*|guarantee\w*|summar\w*|vouch\w*)\b/i.test(m[1])) { add("S70", polF, "the policy link's words make no claim about the page (never verified, approved, compliant, certified or summarized): " + m[1].slice(0, 80)); break; }
+      if (!s.includes('if (!l || typeof l.label !== "string" || l.label === "") return null;')) add("S70", polF, "a candidate is shown the policy line only for an entry the server sent, with a place");
+      if (!s.includes('filter((x) => x && x.kind !== "policy")')) add("S70", polF, "applicationLinks must leave the policy link out");
+      if (/innerHTML|insertAdjacentHTML|document\.write/.test(s)) add("S70", polF, "no markup is made from the policy link's words");
+    }
+    if (fs.existsSync(htmlF)) {
+      const h = read(htmlF), i = h.indexOf('id="policyRow"'), a = h.indexOf('id="aiInterviewNoteRow"'), r2 = h.indexOf('id="recruiterToggle"');
+      if (i < 0 || !(a >= 0 && a < i && r2 > i)) add("S70", htmlF, "the AI and hiring policy box must sit directly under the two AI toggles and their notes (after aiInterviewNoteRow, before the recruiter toggle)");
+      if (!h.includes('<label for="policyUrl" id="policyLabel"') || !h.includes(">Link to your AI and hiring policy (optional)</label>")) add("S70", htmlF, "the box needs its visible label, tied to the input");
+      if (!h.includes('id="policyLocked"') || !/id="policyLocked"[^>]*>[^<]*destination links tier[^<]*<a href="mailto:sales@fightghostjobs\.com/.test(h)) add("S70", htmlF, "the not-on-the-tier notice must name the destination links tier and carry the sales address");
+      for (const id of ["policyUrl", "savePolicyBtn", "removePolicyBtn", "policyHint", "policyStored"]) if (!h.includes('id="' + id + '"')) add("S70", htmlF, "edit.html must keep #" + id);
+    }
+    // who may write it: only the editor calls the save; no other script names the policy link's save or its kind in a request
+    for (const f of js) {
+      const r = rel(f), t = stripJsComments(read(f));
+      if (/setPolicyLink/.test(t) && r !== "js/api.js" && r !== "js/pages/edit.js") add("S70", f, "only the editor (js/pages/edit.js) may save the AI and hiring policy link");
+      if (/kind:\s*"policy"/.test(t) && !["js/api.js", "js/pages/search.js"].includes(r)) add("S70", f, "only js/api.js (the save) and js/pages/search.js (the candidate's line) name the policy kind in a request or a row");
+    }
+    if (fs.existsSync(editF) && !stripJsComments(read(editF)).includes('$("#policyUrl").addEventListener("keydown"')) add("S70", editF, "Enter in the policy box must save the policy link, never the whole opening");
+    if (fs.existsSync(srchF)) {
+      const s = stripJsComments(read(srchF));
+      if (!s.includes("applicationLinks(r.data.links)") || !s.includes("candidatePolicyLine(r.data.links)")) add("S70", srchF, "the details window takes its apply rows from applicationLinks and its policy line from candidatePolicyLine");
+      if (/r\.data\.links\.(length|map|forEach)|for \(const l of r\.data\.links\)/.test(s)) add("S70", srchF, "the details window must not use the raw links list for the apply rows, the empty note or the report link");
+    }
+    if (fs.existsSync(formF) && !stripJsComments(read(formF)).includes('filter((x) => x.kind === undefined || x.kind === "apply")')) add("S70", formF, "the application links panel takes only application links (applyLinks must leave the policy link and the firms out)");
+    if (fs.existsSync(cmF) && !stripJsComments(read(cmF)).includes('filter((l) => !(l && l.kind === "policy"))')) add("S70", cmF, "the wrong-link report's links must leave the policy link out (detailLinks)");
+    if (fs.existsSync(apiF)) {
+      const a = stripJsComments(read(apiF));
+      if (!a.includes('kind: "policy", links: url === null ? [] : [{ url }]')) add("S70", apiF, "the policy link is saved as exactly { posting_id, kind policy, links: [] or [{ url }] }");
+    }
+    for (const need of ['path.join(here, "policy-link.unit.test.js")', 'path.join(here, "policy-link.test.js")']) if (fs.existsSync(runF) && !read(runF).includes(need)) add("S70", runF, "the policy link's tests must run in the suite: " + need);
+    for (const t of ["policy-link.unit.test.js", "policy-link.test.js"]) if (!fs.existsSync(P("tests", t))) add("S70", P("tests", t), "the policy link's test must exist");
   }
 
   // S64 (2026-10-08): the repository is what Pages serves, so no database script may live in it. No .sql file anywhere (tests/ is served too) and no top-level db folder. On October 8 the four email wording scripts were committed to db/ and were public for a day;
