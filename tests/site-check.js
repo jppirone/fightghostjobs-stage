@@ -49,6 +49,7 @@
 //   S59 no verify, verified or verification in candidate-facing text (Part E7): the word is confirm; exceptions are the destination link wording, data and class names, and privacy.html
 //   S64 no database script in the repository: no .sql file anywhere and no top-level db folder (the whole repository is served by Pages)
 //   S70 the employer's AI and hiring policy link (prompt BA): one box in the Disclosures area of the editor under the two AI toggles, behind the destination links tier, its own save, never an application link, one line for candidates only when the server sent it, words that claim nothing about the page
+//   S71 the stage SQL and edge function tools (prompt BF; they live in C:\Users\jpiro\fightghostjobs\tools, outside this repository): no token, key or password written anywhere, the stage ref only as one constant, the only host api.supabase.com
 //   S69 test browsers: one launcher (tests/cdp-tabs.js) that records the pid at spawn, marks its profile folder, closes on a bound, removes the folder and prints when it cannot; a time limit per suite step; the leak check is the last step and fails with LEAK: <count>; the negative control that leaves a browser open
 //   S65 the staff-only search scope (scope=all): the database decides who is staff, the page starts staff mode only on a clear true, the staff branch calls no candidate function and stores nothing, noindex, never cached, nothing in search.html, only the search page uses the staff functions
 //   S63 back from Comments or Report a wrong link: the Auth client is created WITHOUT its cross-tab channel (the channel evicts the search page from the browser's back/forward cache), no other script opens one, no unload handler, and the search page has the pageshow guard
@@ -79,7 +80,8 @@ const walk = (dir, out = []) => {
 };
 const stripJsComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/(^|[^:"'`\\])\/\/.*$/, "$1")).join("\n");
 
-export function checkSite(root) {
+// opts.toolsDir / opts.reportsDir: where rule S71 looks for the stage tools and the files they write (default: the main folder next to this repository)
+export function checkSite(root, opts = {}) {
   const findings = []; const add = (rule, file, msg) => findings.push({ rule, file: path.relative(root, file).replace(/\\/g, "/"), msg });
   const files = walk(root);
   const html = files.filter((f) => f.endsWith(".html")), js = files.filter((f) => f.endsWith(".js") && !f.includes(path.sep + "tests" + path.sep) && !f.includes(path.sep + "vendor" + path.sep)), css = files.filter((f) => f.endsWith(".css"));
@@ -1493,6 +1495,49 @@ export function checkSite(root) {
     }
     for (const need of ['path.join(here, "policy-link.unit.test.js")', 'path.join(here, "policy-link.test.js")']) if (fs.existsSync(runF) && !read(runF).includes(need)) add("S70", runF, "the policy link's tests must run in the suite: " + need);
     for (const t of ["policy-link.unit.test.js", "policy-link.test.js"]) if (!fs.existsSync(P("tests", t))) add("S70", P("tests", t), "the policy link's test must exist");
+  }
+
+  // S71 (2026-10-10, prompt BF): the stage SQL and edge function tools (run-sql.js, deploy-edge.js). They live in C:\Users\jpiro\fightghostjobs\tools, outside this repository (it is served by Pages), so the rule reads that folder next to this
+  // repository and says nothing where it does not exist (another machine). It fails when: a token, secret key, JWT, database URL with a password or bearer value, or the VALUE of the credential variable FGJ_STAGE_ACCESS_TOKEN of this process,
+  // is written in the tools or in the ledger and logs they wrote (reports\sql-run-*, reports\edge-deploy-*); when the stage project ref is written anywhere in the tools but in its one constant in lib/stage.js, or another project-ref shaped word is
+  // written; when that constant is not the stage ref as a plain literal; or when a host other than api.supabase.com is written.
+  {
+    const toolsDir = opts.toolsDir || path.resolve(root, "..", "fightghostjobs", "tools");
+    const mainDir2 = path.dirname(toolsDir);
+    if (opts.toolsDir || fs.existsSync(mainDir2)) {
+      const STAGE = "tpmvkjuhbbwftqoodzcn";
+      const stageF = path.join(toolsDir, "lib", "stage.js");
+      for (const need of ["run-sql.js", "deploy-edge.js"]) if (!fs.existsSync(path.join(toolsDir, need))) add("S71", path.join(toolsDir, need), need + " must exist in the tools folder");
+      if (!fs.existsSync(stageF)) add("S71", stageF, "lib/stage.js (the one place that names the project and reads the credential) must exist");
+      const toolFiles = fs.existsSync(toolsDir) ? walk(toolsDir).filter((f) => /\.(js|mjs|json|md|txt)$/.test(f)) : [];
+      const repDir = opts.reportsDir || path.join(mainDir2, "reports");
+      const written = fs.existsSync(repDir) ? fs.readdirSync(repDir).filter((n) => /^(sql-run-|edge-deploy-).*\.(txt|json)$/.test(n)).map((n) => path.join(repDir, n)) : [];
+      const cred = process.env.FGJ_STAGE_ACCESS_TOKEN || "";
+      const secretLooking = [
+        [/sbp_[A-Za-z0-9]{16,}/, "a personal access token"], [/sb_secret_[A-Za-z0-9_-]{12,}/, "a secret key"], [/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\./, "a JWT"],
+        [/postgres(?:ql)?:\/\/[^\s:@/]+:[^\s@/]+@/, "a database URL with a password"], [/Bearer\s+[A-Za-z0-9._~+/-]{20,}/, "a bearer value"],
+      ];
+      for (const f of [...toolFiles, ...written]) {
+        const t = read(f);
+        for (const [re, what] of secretLooking) if (re.test(t)) add("S71", f, what + " is written here: the credential is read from the environment variable and never written anywhere");
+        if (cred.length >= 8 && t.includes(cred)) add("S71", f, "the value of FGJ_STAGE_ACCESS_TOKEN of this process is written here");
+      }
+      for (const f of toolFiles) {
+        if (!/\.(js|mjs)$/.test(f)) continue;
+        const t = read(f), r = path.relative(toolsDir, f).replace(/\\/g, "/");
+        if (r !== "lib/stage.js" && t.includes(STAGE)) add("S71", f, "the stage project ref is written outside lib/stage.js: import STAGE_REF from there");
+        for (const m of t.matchAll(/\b[a-z]{20}\b/g)) if (m[0] !== STAGE) add("S71", f, "a word shaped like a project ref (20 lowercase letters) is written here; the only project ref in the tools is the stage constant");
+        for (const m of t.matchAll(/https?:\/\/([A-Za-z0-9.-]+)/g)) if (m[1] !== "api.supabase.com") add("S71", f, "a host other than api.supabase.com is written here: " + m[1]);
+        if (/\.supabase\.co\b/.test(t)) add("S71", f, "a project address (.supabase.co) is written here; the tools talk to api.supabase.com only");
+      }
+      if (fs.existsSync(stageF)) {
+        const t = read(stageF);
+        const ls = t.split("\n").filter((l) => /^export const STAGE_REF\b/.test(l));
+        if (ls.length !== 1 || ls[0] !== 'export const STAGE_REF = "' + STAGE + '";') add("S71", stageF, "the constant must be exactly: export const STAGE_REF = \"<the stage ref>\"; a plain literal, read from nothing");
+        if (!t.includes('export const TOKEN_ENV = "FGJ_STAGE_ACCESS_TOKEN";')) add("S71", stageF, "the credential variable must be exactly FGJ_STAGE_ACCESS_TOKEN");
+        if (/process\.(env|argv)/.test(t)) add("S71", stageF, "lib/stage.js must not read process.env or process.argv: the environment is passed in by the two command files");
+      }
+    }
   }
 
   // S64 (2026-10-08): the repository is what Pages serves, so no database script may live in it. No .sql file anywhere (tests/ is served too) and no top-level db folder. On October 8 the four email wording scripts were committed to db/ and were public for a day;

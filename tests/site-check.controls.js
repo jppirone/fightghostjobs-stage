@@ -945,6 +945,58 @@ control("Enter in the policy box is no longer its own save", "S70", edit("js/pag
 control("the policy link's browser test is not run", "S70", edit("tests/run-all.js", (s) => s.replace('path.join(here, "policy-link.test.js")', 'path.join(here, "place.test.js")')));
 control("the policy link's unit test is not run", "S70", edit("tests/run-all.js", (s) => s.replace('path.join(here, "policy-link.unit.test.js")', 'path.join(here, "place.unit.test.js")')));
 
+// S71 (2026-10-10, prompt BF): the stage SQL and edge function tools live outside this repository (C:\Users\jpiro\fightghostjobs\tools, next to it). Each control works on a COPY of that folder; the repository copy is only the host of the call.
+{
+  const TOOLS_SRC = path.resolve(ROOT, "..", "fightghostjobs", "tools");
+  if (!fs.existsSync(TOOLS_SRC)) console.log("S71 controls skipped: no tools folder next to this repository");
+  else {
+    const cleanRepo = path.join(tmpBase, "clean");
+    const prep = () => {
+      const d = path.join(tmpBase, "tools" + ++n);
+      fs.cpSync(TOOLS_SRC, path.join(d, "tools"), { recursive: true, filter: (s) => !/[\\/]node_modules([\\/]|$)/.test(s) });
+      fs.mkdirSync(path.join(d, "reports"), { recursive: true });
+      return d;
+    };
+    const check = (d) => checkSite(cleanRepo, { toolsDir: path.join(d, "tools"), reportsDir: path.join(d, "reports") }).filter((f) => f.rule === "S71");
+    const toolControl = (label, mutate) => {
+      const d = prep();
+      mutate(path.join(d, "tools"), path.join(d, "reports"));
+      const ok = check(d).length > 0;
+      if (!ok) missed++;
+      console.log((ok ? "caught  " : "MISSED  ") + "S71  " + label);
+    };
+    const tedit = (rel, fn) => (tools) => { const p = path.join(tools, ...rel.split("/")); const before = fs.readFileSync(p, "utf8"), after = fn(before); if (after === before) throw new Error("control mutation changed nothing in tools/" + rel); fs.writeFileSync(p, after); };
+    const tappend = (rel, text) => tedit(rel, (s) => s + "\n" + text + "\n");
+    {
+      const f = check(prep());
+      console.log((f.length === 0 ? "clean   " : "DIRTY   ") + "the unmodified copy of the tools has " + f.length + " S71 findings");
+      if (f.length) missed++;
+    }
+    toolControl("a personal access token is written in a tool", tappend("lib/sqlrun.js", "// sbp_0123456789abcdef0123456789abcdef"));
+    toolControl("a secret key is written in a tool", tappend("lib/answer.js", "// sb_secret_ABCDEFGHIJKLMNOPQRSTUV"));
+    toolControl("a JWT is written in a tool", tappend("lib/ledger.js", "// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijklmnop"));
+    toolControl("a database URL with a password is written in a tool", tappend("lib/diff.js", "// postgresql://postgres:hunter2@db.example.com:5432/postgres"));
+    toolControl("a bearer value is written in a tool", tappend("lib/diff.js", "// Authorization: Bearer abcdefghijklmnopqrstuvwxyz0123456789"));
+    toolControl("a token is in the ledger", (tools, reports) => fs.writeFileSync(path.join(reports, "sql-run-ledger.json"), '{"entries":[],"note":"sbp_0123456789abcdef0123456789abcdef"}'));
+    toolControl("a token is in a run log", (tools, reports) => fs.writeFileSync(path.join(reports, "sql-run-sample-20261010-120000.txt"), "token sbp_0123456789abcdef0123456789abcdef"));
+    {
+      const had = process.env.FGJ_STAGE_ACCESS_TOKEN;
+      process.env.FGJ_STAGE_ACCESS_TOKEN = "control-value-of-the-credential-variable";
+      try { toolControl("the value of the credential variable is written in a tool", tappend("lib/edgerun.js", "// control-value-of-the-credential-variable")); }
+      finally { if (had === undefined) delete process.env.FGJ_STAGE_ACCESS_TOKEN; else process.env.FGJ_STAGE_ACCESS_TOKEN = had; }
+    }
+    toolControl("the stage ref is written outside lib/stage.js", tappend("lib/sqlrun.js", 'const REF = "tpmvkjuhbbwftqoodzcn";'));
+    toolControl("another project ref shaped word (alpha) is written", tappend("lib/sqlrun.js", 'const OTHER = "qgnqoihamhziaqikupaw";'));
+    toolControl("the stage ref constant reads from the environment", tedit("lib/stage.js", (s) => s.replace('export const STAGE_REF = "tpmvkjuhbbwftqoodzcn";', 'export const STAGE_REF = (typeof process !== "undefined" && process.env.REF) || "tpmvkjuhbbwftqoodzcn";')));
+    toolControl("the stage ref constant is another project", tedit("lib/stage.js", (s) => s.replace('export const STAGE_REF = "tpmvkjuhbbwftqoodzcn";', 'export const STAGE_REF = "abcdefghijklmnopqrst";')));
+    toolControl("the credential variable has another name", tedit("lib/stage.js", (s) => s.replace('export const TOKEN_ENV = "FGJ_STAGE_ACCESS_TOKEN";', 'export const TOKEN_ENV = "SUPABASE_ACCESS_TOKEN";')));
+    toolControl("another host is written", tappend("lib/stage.js", "// fetch('https://example.com/collect')"));
+    toolControl("a project address is written", tappend("lib/sqlrun.js", "const U = 'https://abc.supabase.co/rest/v1';"));
+    toolControl("lib/stage.js reads the environment itself", tappend("lib/stage.js", "export const HOME_DIR = process.env.USERPROFILE;"));
+    toolControl("run-sql.js is missing", (tools) => fs.rmSync(path.join(tools, "run-sql.js")));
+  }
+}
+
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");
 process.exit(missed ? 1 : 0);
