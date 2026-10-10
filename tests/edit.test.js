@@ -189,7 +189,7 @@ test("pass B: the liveness warning names the links that did not answer, and a st
   assert.equal(checkWarnings([{ position: 2, check_status: "failed", check_http: 404 }]), "When we checked, link 2 answered HTTP 404. It is saved anyway. Make sure it is right.");
   assert.equal(checkWarnings([{ position: 1, check_status: "failed", check_http: null }, { position: 3, check_status: "failed", check_http: 999 }]), "When we checked, link 1 could not be reached; link 3 answered HTTP 999. They are saved anyway. Make sure they are right.");
   assert.equal(storedLinkText({ position: 1, label: "Careers", shown_as: "LinkedIn", check_status: "ok", check_http: 200 }), "1. Careers, candidates see “LinkedIn”");
-  assert.equal(storedLinkText({ position: 2, label: null, shown_as: "Employer-provided link — not verified by us", check_status: "failed", check_http: 503 }), "2. candidates see “Employer-provided link — not verified by us” (did not answer when we checked: HTTP 503)");
+  assert.equal(storedLinkText({ position: 2, label: null, shown_as: "Employer-provided link, not checked by us", check_status: "failed", check_http: 503 }), "2. candidates see “Employer-provided link, not checked by us” (did not answer when we checked: HTTP 503)");
   assert.equal(storedLinkText({ position: 3, label: null }), "3. candidates see “Application link 3”");            // an answer from before pass B
 });
 

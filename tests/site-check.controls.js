@@ -859,6 +859,25 @@ control("a script string says compliant", "S66", edit("js/pages/search.js", (s) 
 control("an opening is called listed without the word opening", "S66", edit("index.html", (s) => s.replace("Every opening here is disclosed by the employer:", "Every job here is listed by the employer:")));
 control("a text has an en dash", "S66", edit("search.html", (s) => s.replace("Search for one specific job you already know about.", "Search for one specific job \u2013 you already know about.")));
 
+// S59 / S59b (2026-10-09): the link label words
+control("the employer page says not verified by us again", "S59", edit("edit.html", (s) => s.replace('"employer-provided link, not checked by us"', '"employer-provided link, not verified by us"')));
+control("the register page says not verified by us again", "S59", edit("register.html", (s) => s.replace('"employer-provided link, not checked by us"', '"employer-provided link, not verified by us"')));
+control("the details window says we could not verify it again", "S59", edit("search.html", (s) => s.replace("we could not check it", "we could not verify it")));
+control("the employer page loses the pinned label sentence", "S59", edit("edit.html", (s) => s.replace('"employer-provided link, not checked by us"', '"an employer-provided link"')));
+control("the stored label fixture goes back to the old label", "S59", edit("tests/edit.test.js", (s) => s.split("Employer-provided link, not checked by us").join("Employer-provided link, not verified by us")));
+control("the stored label fixture drifts", "S59", edit("tests/api.test.js", (s) => s.replace("Employer-provided link, not checked by us", "Employer-provided link, unchecked")));
+
+// S66 (2026-10-09, prompt AZ): "Registered" is the paid status word only; the free action is "Add an opening"
+control("the home page button says Register an Opening again", "S66", edit("index.html", (s) => s.replace("Add an Opening \u2192", "Register an Opening \u2192")));
+control("the register page heading says Register an opening again", "S66", edit("register.html", (s) => s.replace(">Add an opening</h1>", ">Register an opening</h1>")));
+control("the register page title says Register an Opening again", "S66", edit("register.html", (s) => s.replace("<title>FightGhostJobs | Add an Opening</title>", "<title>FightGhostJobs | Register an Opening</title>")));
+control("the register button says Register opening again", "S66", edit("js/pages/register.js", (s) => s.replace('"Add and schedule" : "Add opening"', '"Register and schedule" : "Register opening"')));
+control("the success heading says Registered again", "S66", edit("js/pages/register.js", (s) => s.replace('"Added. It is live now."', '"Registered. It is live now."')));
+control("the details window says registered through again", "S66", edit("js/pages/search.js", (s) => s.replace("This opening was added through FightGhostJobs by the employer.", "This opening was registered through FightGhostJobs by an employer.")));
+control("the My openings column says Registered again", "S66", edit("dashboard.html", (s) => s.replace('aria-label="Sort by date added">Added <span', 'aria-label="Sort by date added">Registered <span')));
+control("the team page says who can register openings", "S66", edit("team.html", (s) => s.replace("who can add openings for your organization.", "who can register openings for your organization.")));
+control("a search result chip says Registered with a date again", "S66", edit("js/chips.js", (s) => s.replace('text: "Added " + fmtDateTz(p.posted_at, tz)', 'text: "Registered " + fmtDateTz(p.posted_at, tz)')));
+control("the privacy heading says register openings again", "S66", edit("privacy.html", (s) => s.replace("If you add openings", "If you register openings")));
 
 // S67 (2026-10-09): the page never sees a plan; the check mark is one strict boolean read in one place
 control("the search page reads is_registered directly", "S67", edit("js/pages/search.js", (s) => s.replace('isRegistered(row) ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }', 'row.is_registered ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }')));

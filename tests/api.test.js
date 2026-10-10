@@ -170,7 +170,7 @@ test("search answers: every row carries masked_req (masked or null); a FULL req 
 
 test("setDestinationLinks sends the opening id and the full link set to set-destination-links; a 403 plan_required is an error the page can name", async () => {
   const links = [{ url: "https://careers.example.com/apply?job=1", label: "Careers site" }, { url: "https://jobs.example.org/x" }];
-  const ok = mk(() => ({ status: 200, body: { posting_id: uuid, changed: true, active_links: 2, links: [{ position: 1, label: "Careers site", shown_as: "Employer's own site", check_status: "ok", check_http: 200 }, { position: 2, label: null, shown_as: "Employer-provided link — not verified by us", check_status: "failed", check_http: null }] } }));
+  const ok = mk(() => ({ status: 200, body: { posting_id: uuid, changed: true, active_links: 2, links: [{ position: 1, label: "Careers site", shown_as: "Employer's own site", check_status: "ok", check_http: 200 }, { position: 2, label: null, shown_as: "Employer-provided link, not checked by us", check_status: "failed", check_http: null }] } }));
   const r = await ok.api.setDestinationLinks(uuid, links);
   assert.equal(r.ok, true); assert.equal(ok.calls[0].url, BASE + "/functions/v1/set-destination-links"); assert.deepEqual(ok.calls[0].body, { posting_id: uuid, links });
   assert.equal(r.data.links[1].check_status, "failed");

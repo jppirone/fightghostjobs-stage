@@ -301,7 +301,7 @@ export function checkSite(root) {
   // wrong; search.js shows that note whenever links are listed; the employer pages say the label is theirs only and that shorteners are refused; api.js accepts shown_as and the check result.
   {
     const sh2 = path.join(root, "search.html");
-    if (fs.existsSync(sh2)) { const t = read(sh2); if (!t.includes('id="modalLinksNote"')) add("S26", sh2, "search.html is missing #modalLinksNote"); for (const need of ["look unusual on purpose", "one-time link through FightGhostJobs", "protected from scraping", "wherever the employer told us to send you", "we could not verify it", "If a link does not lead to this job", "Report a wrong link"]) if (!t.includes(need)) add("S26", sh2, "the links note must say: " + need); }
+    if (fs.existsSync(sh2)) { const t = read(sh2); if (!t.includes('id="modalLinksNote"')) add("S26", sh2, "search.html is missing #modalLinksNote"); for (const need of ["look unusual on purpose", "one-time link through FightGhostJobs", "protected from scraping", "wherever the employer told us to send you", "we could not check it", "If a link does not lead to this job", "Report a wrong link"]) if (!t.includes(need)) add("S26", sh2, "the links note must say: " + need); }
     const sj = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj) && !read(sj).includes('$("#modalLinksNote").hidden = false')) add("S26", sj, "search.js must show the links note when links are listed");
     for (const name of ["register.html", "edit.html"]) { const p = path.join(root, name); if (fs.existsSync(p)) { const t = read(p); if (!t.includes("The label is a note for you only")) add("S26", p, name + " must say the label is the employer's note only"); if (!t.includes("a link shortener or redirect is not accepted")) add("S26", p, name + " must say shorteners are refused"); } }
     const aj = path.join(root, "js", "api.js"); if (fs.existsSync(aj) && !/linkExtras: \(x\) => \(x\.shown_as === undefined \|\| isNullable\(x\.shown_as, isStr\)\)/.test(read(aj))) add("S26", aj, "api.js must accept shown_as on a stored link");
@@ -1294,11 +1294,11 @@ export function checkSite(root) {
     else if (fs.existsSync(raF) && !read(raF).includes("back-restore.test.js")) add("S63", raF, "tests/run-all.js must run back-restore.test.js");
   }
 
-  // S59 (2026-10-05, E7): candidate-facing text says "confirm", never "verify", "verified" or "verification" (about a candidate, an email or a comment). EXCEPTIONS ONLY: the destination link wording ("not verified by us", "we could not verify it"),
-  // data field and class names (verified_at, plan.verified, badge-verified, --verified, reverification_required: a word joined to a dot, dash, underscore or colon, or inside a longer word), and privacy.html (its wording waits for John).
+  // S59 (2026-10-05, E7): candidate-facing text says "confirm", never "verify", "verified" or "verification" (about a candidate, an email or a comment). NO EXCEPTION FOR LINK WORDING ANY MORE (October 9, 2026: the stored label is "Employer-provided link, not checked by us", and the page sentences say "not checked by us" and "we could not check it"; rule S59b below pins them).
+  // The only exceptions: data field and class names (verified_at, plan.verified, badge-verified, --verified, reverification_required: a word joined to a dot, dash, underscore or colon, or inside a longer word), and privacy.html (its wording waits for John).
   // The rule reads every page and script of the site, with comments and styles removed. The email template text is not in the repository (it lives in the Supabase dashboard), so it is not scanned here.
   {
-    const WORD = /(^|[^\w.\-])(verify|verifies|verified|verifying|verification)(?![\w:\-])/i, ALLOWED = /not verified by us|could not verify it/gi;
+    const WORD = /(^|[^\w.\-])(verify|verifies|verified|verifying|verification)(?![\w:\-])/i, ALLOWED = /$^/g;   // nothing is allowed any more
     for (const f of html.concat(js)) {
       if (path.basename(f) === "privacy.html") continue;
       const raw = read(f), t = f.endsWith(".html") ? raw.replace(/<!--[\s\S]*?-->/g, "").replace(/<style[\s\S]*?<\/style>/g, "") : stripJsComments(raw);
@@ -1307,9 +1307,17 @@ export function checkSite(root) {
     }
   }
 
+  // S59b (2026-10-09, prompt AZ): the destination link wording. The label a candidate sees for a link we have not recognised is "Employer-provided link, not checked by us" (public.dl_public_label, link-label-migration); the employer pages quote it in lower case
+  // and the details window says "we could not check it". The new words are PINNED (so they cannot drift), the old ones are refused everywhere a person reads, and the two test fixtures that stand for the stored label carry the new exact label.
+  {
+    const must = [["edit.html", '"employer-provided link, not checked by us"'], ["register.html", '"employer-provided link, not checked by us"'], ["search.html", "we could not check it"]];
+    for (const [rel, str] of must) { const p = path.join(root, rel); if (!fs.existsSync(p) || !read(p).includes(str)) add("S59", p, "the link wording must say: " + str); }
+    for (const rel of ["tests/api.test.js", "tests/edit.test.js"]) { const p = path.join(root, rel); if (fs.existsSync(p)) { const s = read(p); if (!s.includes("Employer-provided link, not checked by us")) add("S59", p, "the stored label fixture must be exactly: Employer-provided link, not checked by us"); if (/not verified by us/.test(s)) add("S59", p, "the old stored label (not verified by us) must not be used any more"); } }
+  }
+
   // S66 (2026-10-09, prompt AV): the words of the opening vocabulary. Anything a person reads (page text, titles, aria-label, alt, placeholder and other text attributes, and every string a script puts on screen) says "opening" for our record and "job ad" for what a board shows:
   // never "posting", "listing" or "registry" (the site is not called a registry), never "certified" or "compliant", "listed" only inside "listed opening" (the unpaid status), and no em or en dash. Code names are not text a person reads and stay as they are: a word joined to a dot,
-  // dash or underscore, or inside a longer word (create-posting, posting_id, list-my-postings, share_of_registry_pct). "verified" is rule S59 and the one decided exception (the stored link label, "not verified by us") is listed there.
+  // dash or underscore, or inside a longer word (create-posting, posting_id, list-my-postings, share_of_registry_pct). "verified" is rule S59 (no exception any more; the link label says "not checked by us").
   {
     const BANNED = /(^|[^\w.\-])(listing|listings|posting|postings|registry|certified|certify|certification|compliant|compliance|complies|comply)(?![\w\-])|(^|[^\w.\-])listed(?! opening)(?![\w\-])|[\u2013\u2014]/i;
     const strings = (code) => { const out = []; for (const m of code.matchAll(/"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g)) out.push(m[1] ?? m[2] ?? m[3] ?? ""); return out; };
