@@ -12,7 +12,7 @@ export const LANDING_TEXT = {
   candidate: "You are signed in. You can close this tab and go back to the one you started from, or keep searching here.",
   poster: "You are signed in. You can close this tab and go back to the one you started from, or keep working here.",
 };
-export const BOTH_ROLES_TEXT = "This address is also registered as an employer, so the employer buttons show above. Searching here works as a candidate.";
+export const BOTH_ROLES_TEXT = "This address is also an employer address, so the employer buttons show above. Searching here works as a candidate.";
 export const LANDED_KEY = "fgj-landed";
 
 export function markLanded(store, kind) { try { store.setItem(LANDED_KEY, kind === "poster" ? "poster" : "candidate"); } catch { /* ignore */ } }

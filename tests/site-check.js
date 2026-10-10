@@ -221,7 +221,7 @@ export function checkSite(root) {
   // S19: the approved requirements-text hint and the change-note label (slice C)
   const eh = path.join(root, "edit.html");
   if (fs.existsSync(rh) && fs.existsSync(eh)) {
-    const REQ_TEXT_HINT = "This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to register it as a new opening with its own req number, so candidates can tell which role they're looking at. Each change is saved with a short note.";
+    const REQ_TEXT_HINT = "This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to add it as a new opening with its own req number, so candidates can tell which role they're looking at. Each change is saved with a short note.";
     for (const f of [rh, eh]) if (!read(f).includes('<div id="reqTextHint" class="field-hint">' + REQ_TEXT_HINT + "</div>")) add("S19", f, "the requirements-text hint (#reqTextHint) must carry the approved wording, word for word");
     if (!read(eh).includes("What changed, and why? (required; kept with the opening).")) add("S19", eh, "the change-note label must be the approved wording");
     if (!/<input id="note" type="text" maxlength="500"/.test(read(eh))) add("S19", eh, "the change note input (id=note, at most 500 characters) is missing");
@@ -260,7 +260,7 @@ export function checkSite(root) {
     if (!fs.existsSync(ph)) add("S22", ph, "privacy.html is missing");
     else {
       const t = read(ph);
-      for (const need of ["If you look up openings", "If you register openings", "Cookies", "Who processes the data", "How long", "<code>__cf_bm</code>", "We set no cookies of our own", "privacy@fightghostjobs.com", "for as long as FightGhostJobs exists", "FightGhostJobs is a place to check job openings that employers disclose", "FightGhostJobs runs on Supabase", 'id="privacyEmails"', "five days and one day from closing", "at most one email in each six-hour period", "you confirm an email address", "the email-confirmed identity that asked", "until you sign out or your email confirmation expires", "Rate-limit counters are deleted within a day; the daily tally of refused requests is kept 30 days", "never its description, a comment's text or an apply link", "no unsubscribe for these operational messages yet"]) if (!t.includes(need)) add("S22", ph, "privacy.html must say: " + need);
+      for (const need of ["If you look up openings", "If you add openings", "Cookies", "Who processes the data", "How long", "<code>__cf_bm</code>", "We set no cookies of our own", "privacy@fightghostjobs.com", "for as long as FightGhostJobs exists", "FightGhostJobs is a place to check job openings that employers disclose", "FightGhostJobs runs on Supabase", 'id="privacyEmails"', "five days and one day from closing", "at most one email in each six-hour period", "you confirm an email address", "the email-confirmed identity that asked", "until you sign out or your email confirmation expires", "Rate-limit counters are deleted within a day; the daily tally of refused requests is kept 30 days", "never its description, a comment's text or an apply link", "no unsubscribe for these operational messages yet"]) if (!t.includes(need)) add("S22", ph, "privacy.html must say: " + need);
       // the contest email sentences (owner approved text) must sit INSIDE the emails paragraph, not elsewhere on the page
       const em = /<p class="privacy-p" id="privacyEmails">([\s\S]*?)<\/p>/.exec(t);
       for (const need of ["and when a comment you contested is decided (we email the outcome to the account that filed the contest).", "When a contest is filed, we may email our own staff the organization, opening and reason category.", "That email does not include the comment or your explanation."]) if (!em || !em[1].includes(need)) add("S22", ph, "the privacyEmails paragraph must say: " + need);
@@ -491,7 +491,7 @@ export function checkSite(root) {
       [/any less real/i, "no text may talk about an opening being real or less real"],
       [/Prove your listing/i, "no text may promise to prove a listing is real"],
       [/free public registry/i, "the registry is described as a registry of job openings disclosed by employers, not a free public registry"],
-      [/Free, always|register and disclose, always|always free/i, "no always-free promise"],
+      [/Free, always|(register|add) and disclose, always|always free/i, "no always-free promise"],
       [/tier, permanently|free, forever|free forever|never pay for anything|ever paywalled/i, "no forever or permanent price promise"],
       [/costs? nothing|no cost/i, "no cost promise (say Free for job seekers where it is decided)"],
       [/Company and title always works/i, "no always promise about search"],
@@ -506,13 +506,13 @@ export function checkSite(root) {
     }
     const need = (rel, str, why) => { const p = path.join(root, rel); if (!fs.existsSync(p) || !read(p).includes(str)) add("S32", p, why); };
     need("js/pages/search.js", '"\u2713 Registered"', "the badge on every search result must say Registered");
-    need("js/pages/search.js", "This opening was registered through FightGhostJobs by a registered employer. The dates and disclosures are the employer's own. FightGhostJobs has not confirmed that the job exists, that the employer representative works for the company named, or that the employer will respond.", "the details dialog must carry the approved sentence, including what FightGhostJobs has not confirmed");
+    need("js/pages/search.js", "This opening was added through FightGhostJobs by the employer. The dates and disclosures are the employer's own. FightGhostJobs has not confirmed that the job exists, that the employer representative works for the company named, or that the employer will respond.", "the details dialog must carry the approved sentence, including what FightGhostJobs has not confirmed");
     need("index.html", '<div class="pill badge-verified">\u2713 Registered</div>', "the sample card badge must say Registered");
     need("index.html", ">A place to check job openings that employers disclose</div>", "the home pill must describe the site as a place to check job openings that employers disclose (never a registry)");
     need("index.html", "The facts candidates see are free for employers to publish on every tier, and free for job seekers to search. The destination links tier adds destination links.", "the home page tier sentence must be the approved one (it matches the marketing site: the destination links tier adds the destination links)");
     need("register.html", ">Free on every tier</div>", "the register page price label must be Free on every tier");
     need("js/chips.js", "The employer has paused it, so it is not accepting applicants right now.", "the paused message must say the employer paused it");
-    need("js/search-input.js", "A missing opening may simply not be registered; it says nothing about whether the job exists.", "the empty-search note must say a missing opening says nothing about whether the job exists");
+    need("js/search-input.js", "A missing opening may simply not be added; it says nothing about whether the job exists.", "the empty-search note must say a missing opening says nothing about whether the job exists");
   }
 
   // S35 (TEMPORARY, John 2026-09-30): employer analytics and reporting are a destination links tier feature that the code does not gate yet, so no user-facing text may say they are free, paid, included, or part of a tier or plan.
@@ -1019,7 +1019,7 @@ export function checkSite(root) {
     if (fs.existsSync(lF)) {
       const l = read(lF);
       if (!l.includes("export const LANDING_NOTICE_ENABLED = true;") || !l.includes("WORDING APPROVED by John on October 4, 2026")) add("S49", lF, "the landing note is switched on and carries its approval marker");
-      for (const t of ["You are signed in. You can close this tab and go back to the one you started from, or keep searching here.", "You are signed in. You can close this tab and go back to the one you started from, or keep working here.", "This address is also registered as an employer, so the employer buttons show above. Searching here works as a candidate."]) if (!l.includes('"' + t + '"')) add("S49", lF, "the landing and both-roles notes carry the approved wording exactly: " + t.slice(0, 40));
+      for (const t of ["You are signed in. You can close this tab and go back to the one you started from, or keep searching here.", "You are signed in. You can close this tab and go back to the one you started from, or keep working here.", "This address is also an employer address, so the employer buttons show above. Searching here works as a candidate."]) if (!l.includes('"' + t + '"')) add("S49", lF, "the landing and both-roles notes carry the approved wording exactly: " + t.slice(0, 40));
       if (!l.includes('if (session.isPoster && session.isCandidate) return "both";') || !l.includes('if (session.isPoster) return "employer";')) add("S49", lF, "the both-roles note is chosen for a session with BOTH claims only (not candidate-only, not employer-only)");
       if (l.includes("\u2014")) add("S49", lF, "no em dash in the landing note");
     }
@@ -1320,12 +1320,16 @@ export function checkSite(root) {
   // dash or underscore, or inside a longer word (create-posting, posting_id, list-my-postings, share_of_registry_pct). "verified" is rule S59 (no exception any more; the link label says "not checked by us").
   {
     const BANNED = /(^|[^\w.\-])(listing|listings|posting|postings|registry|certified|certify|certification|compliant|compliance|complies|comply)(?![\w\-])|(^|[^\w.\-])listed(?! opening)(?![\w\-])|[\u2013\u2014]/i;
+    const REG = /(^|[^\w.\-])regist(er|ers|ered|ering|ration)(?![\w\-]|\.html)/i;
     const strings = (code) => { const out = []; for (const m of code.matchAll(/"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g)) out.push(m[1] ?? m[2] ?? m[3] ?? ""); return out; };
     const pageText = (raw) => raw.replace(/<!--[\s\S]*?-->/g, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<script[\s\S]*?<\/script>/gi, " ")
       .replace(/<[^>]*>/g, (tag) => " " + [...tag.matchAll(/\b(?:aria-label|alt|title|placeholder|content|value)="([^"]*)"/g)].map((x) => x[1]).join(" | ") + " ");
     for (const f of html.concat(js)) {
       const raw = read(f), parts = f.endsWith(".html") ? [pageText(raw), ...[...raw.matchAll(/<title>([^<]*)<\/title>/g)].map((m) => m[1])] : strings(stripJsComments(raw));
       for (const p of parts) { const hit = p.split("\n").find((l) => BANNED.test(l)); if (hit) { add("S66", f, "people read this: it uses a word or a dash the opening vocabulary does not allow: " + hit.trim().slice(0, 110)); break; } }
+      // "Registered" is the PAID status word (the check mark): the free employer action is "Add an opening" (prompt AZ, October 9, 2026). The register family is refused in anything a person reads, except the check mark's own label and a page file name (register.html).
+      for (const p of parts) { const hit = p.replace(/✓ Registered/g, "").split("\n").find((l) => REG.test(l) && !/^[a-z0-9_\-./]+$/.test(l.trim())); if (hit) {   // a lower case single token with no space is a code name or a path (submit("register"), "../registered.js"), not text
+ add("S66", f, "people read this: register, registered or registration is the paid status word only (the check mark); the free action is Add an opening: " + hit.trim().slice(0, 110)); break; } }
     }
   }
 

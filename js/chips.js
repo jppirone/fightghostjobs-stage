@@ -30,7 +30,7 @@ export function statusChips(p, tz) {
 
 // Every chip of a search result / posting header, in the designed order.
 export function postingChips(p, tz) {
-  const chips = [{ text: "Registered " + fmtDateTz(p.posted_at, tz) }];
+  const chips = [{ text: "Added " + fmtDateTz(p.posted_at, tz) }];
   chips.push(...statusChips(p, tz));
   chips.push(aiFilteringChip(p.ai_filtering), aiInterviewChip(p.ai_interview_other));
   chips.push({ text: p.third_party_recruiter === true ? "Third-party recruiter involved" : "No recruiter" });

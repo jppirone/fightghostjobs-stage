@@ -40,7 +40,7 @@ wireToggle("#recruiterToggle", "recruiter");
 const val = (id) => $(id).value;
 // "when should it go live": as soon as it is registered (the default) or at a time the employer chooses
 const goLater = () => $("#glLater").checked;
-function syncGoLive() { $("#glWhen").hidden = !goLater(); registerBtn.textContent = goLater() ? "Register and schedule" : "Register opening"; }
+function syncGoLive() { $("#glWhen").hidden = !goLater(); registerBtn.textContent = goLater() ? "Add and schedule" : "Add opening"; }
 $("#glNow").addEventListener("change", syncGoLive); $("#glLater").addEventListener("change", syncGoLive);
 const collect = () => ({ title: val("#jtitle"), req: val("#req"), locEntries: picker.get().entries, attested: picker.get().attested, remote: $("#remote").checked, appcap: val("#appcap"), win: val("#livedays"), closeout: val("#closeout"), desc: val("#desc"),
   aiFilter: state.aiFilter, aiInterview: state.aiInterview, aiFilterNote: val("#aiFilterNote"), aiInterviewNote: val("#aiInterviewNote"), recruiter: state.recruiter, dupAsked: state.dupAsked, dupNote: val("#dupnote"), goLater: goLater(), goLive: val("#gldate") });
@@ -142,7 +142,7 @@ function setupLinkRows(notice) {
   $("#linksLocked").hidden = notice.state !== "locked";
   $("#linksForm").hidden = notice.state !== "active";
   const box = $("#linksPlan"); clear(box); box.hidden = true;
-  if (notice.state === "lapsed") { box.hidden = false; box.append(alertBox("notice", "Your destination links tier ended" + (notice.endsAt ? " on " + planDay(notice.endsAt) : "") + ". Destination links are paused until it is renewed; the opening can still be registered without them. To renew, write to sales@fightghostjobs.com.")); }
+  if (notice.state === "lapsed") { box.hidden = false; box.append(alertBox("notice", "Your destination links tier ended" + (notice.endsAt ? " on " + planDay(notice.endsAt) : "") + ". Destination links are paused until it is renewed; the opening can still be added without them. To renew, write to sales@fightghostjobs.com.")); }
   else if (notice.state === "active" && notice.endsSoon) { box.hidden = false; box.append(alertBox("notice", "Your destination links tier ends on " + planDay(notice.endsAt) + ". After that, destination links are paused (kept, but candidates do not see them) until it is renewed.")); }
   if (notice.state === "active") state.links = mountLinkRowsById();
 }
@@ -175,7 +175,7 @@ function unlockForm() { for (const el of $$("input, textarea", form)) el.disable
 
 function showResult(p, kind, problem, goLiveAt) {
   result.hidden = false; clear(result);
-  const heading = kind === "live" ? "Registered. It is live now." : kind === "draft" ? "Saved as a draft" : kind === "scheduled" ? "Registered. It is scheduled." : kind === "schedule-failed" ? "Saved as a draft. The go-live time was not set." : kind === "publish-failed" ? "Saved as a draft. Publishing did not finish." : "Registered";
+  const heading = kind === "live" ? "Added. It is live now." : kind === "draft" ? "Saved as a draft" : kind === "scheduled" ? "Added. It is scheduled." : kind === "schedule-failed" ? "Saved as a draft. The go-live time was not set." : kind === "publish-failed" ? "Saved as a draft. Publishing did not finish." : "Added";
   result.append(h("h2", { style: "font-size:22px;font-weight:700;" }, heading));
   if (kind === "publish-failed") {
     result.append(h("div", { style: "margin-top:12px;" }, alertBox("error", problem + " Your opening is saved as a draft; nothing is visible to candidates yet.")),
@@ -204,7 +204,7 @@ function showResult(p, kind, problem, goLiveAt) {
   const actions = h("div", { style: "margin-top:22px;display:flex;gap:12px;flex-wrap:wrap;" });
   if (kind === "live") actions.append(h("a", { class: "btn btn-dark btn-sm", href: "search.html" }, "Look it up as a candidate →"));
   actions.append(h("a", { class: "btn btn-outline btn-sm", href: "dashboard.html" }, "View my openings"));
-  actions.append(h("button", { type: "button", class: "btn btn-outline btn-sm", onclick: registerAnother }, "Register another opening"));
+  actions.append(h("button", { type: "button", class: "btn btn-outline btn-sm", onclick: registerAnother }, "Add another opening"));
   result.append(actions);
   result.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }

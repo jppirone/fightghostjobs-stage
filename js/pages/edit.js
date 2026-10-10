@@ -284,7 +284,7 @@ async function submit() {
       if (m.needNote) { state.needNote = true; noteLabel(state.orig.stored_status === "draft"); }
       showErrors(m.byField);
       say(formAlert, "error", m.general || (Object.keys(m.byField).length ? "Nothing was saved. See the message under the field." : failureText(r.error)));
-      if (m.newPosting) formAlert.append(h("div", { style: "margin-top:10px;" }, h("a", { class: "btn btn-outline btn-sm", href: "register.html" }, "Register a new opening →")));
+      if (m.newPosting) formAlert.append(h("div", { style: "margin-top:10px;" }, h("a", { class: "btn btn-outline btn-sm", href: "register.html" }, "Add a new opening →")));
       const firstId = Object.keys(m.byField)[0]; if (firstId) { if (firstId === "locpicker" || firstId === "attest") picker.focusFor(firstId); else $("#" + firstId).focus(); }
       return false;
     }

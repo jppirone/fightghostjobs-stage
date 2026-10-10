@@ -31,7 +31,7 @@ export const MESSAGES = {
   N: "\"United States (nationwide)\" cannot be combined with individual states: choose one or the other.",
   M: "States and \"United States (nationwide)\" can only be chosen for a remote role. Tick \"Remote role\", or remove them.",
   C: "You can choose at most " + CAPS.states + " states. For more than that, choose \"United States (nationwide)\" instead.",
-  A: "You can choose at most " + CAPS.areas + " cities or metro areas. One opening is one position: register separate positions separately.",
+  A: "You can choose at most " + CAPS.areas + " cities or metro areas. One opening is one position: add separate positions separately.",
   S: "Confirm that this is one opening that can be filled from any of these locations.",
 };
 

@@ -64,7 +64,7 @@ const base = { company_name: "Meridian", title: "Senior Data Analyst", locations
 
 test("a live opening's chips, in the designed order", () => {
   const t = postingChips(base, "UTC").map((c) => c.text);
-  assert.deepEqual(t, ["Registered Sep 2 (UTC)", "Closes Oct 17, 12:00 PM UTC", "No AI filtering", "No AI interview/other", "No recruiter", "Capped at 250 applicants"]);
+  assert.deepEqual(t, ["Added Sep 2 (UTC)", "Closes Oct 17, 12:00 PM UTC", "No AI filtering", "No AI interview/other", "No recruiter", "Capped at 250 applicants"]);
   assert.equal(postingChips(base, "UTC")[1].bold, true);
 });
 
@@ -166,7 +166,7 @@ test("the local messages for the lookup boxes name what to enter, and nothing sa
 
 test("the empty-result message echoes exactly what was searched, then says closed or expired openings appear only by Opening ID", () => {
   assert.ok(NO_MATCH_NOTE.endsWith("A title search finds only openings that are live: closed or expired openings are found only by Opening ID or req number."));
-  assert.ok(NO_MATCH_NOTE.includes("A missing opening may simply not be registered; it says nothing about whether the job exists."));
+  assert.ok(NO_MATCH_NOTE.includes("A missing opening may simply not be added; it says nothing about whether the job exists."));
   assert.ok(NO_MATCH_NOTE.includes("check the ID exactly as it is printed in the job ad") && NO_MATCH_NOTE.includes("try a different part of the title"));
   const m = noMatchMessage("Fight Ghost Jobs", "Senior Product Manager", "phrase");
   assert.ok(m.startsWith("No openings found for \"Fight Ghost Jobs\" + \"Senior Product Manager\". "), m);

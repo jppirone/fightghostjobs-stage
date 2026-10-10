@@ -42,7 +42,7 @@ function renderFilters() {
 function actionCells(p, now) {
   // Edit is a page of its own (a link); the others are one-click dialogs
   const out = actionsFor(p, now).map((k) => k === "edit" ? h("a", { class: "row-action", href: "edit.html?id=" + encodeURIComponent(p.id) }, ACTION_LABEL[k]) : h("button", { type: "button", class: "row-action", onclick: () => runAction(k, p, deps) }, ACTION_LABEL[k]));
-  if (publishWindowEnded(p, now)) out.push(h("span", { class: "row-note" }, "Publish window ended: a draft can be published for 14 days after it was saved. To use it, "), h("a", { class: "row-action", href: "register.html" }, "register it again"), h("span", { class: "row-note" }, " as a new opening."));
+  if (publishWindowEnded(p, now)) out.push(h("span", { class: "row-note" }, "Publish window ended: a draft can be published for 14 days after it was saved. To use it, "), h("a", { class: "row-action", href: "register.html" }, "add it again"), h("span", { class: "row-note" }, " as a new opening."));
   return out;
 }
 
@@ -54,7 +54,7 @@ function row(p, now) {
     h("td", { role: "cell", "data-label": "Opening ID", class: "mono", style: "color:var(--muted);white-space:nowrap;" }, groupCode(p.post_id)),
     h("td", { role: "cell", "data-label": "Status" }, h("span", { class: "status " + chip.cls }, chip.text)),
     h("td", { role: "cell", "data-label": "Actions", style: "white-space:nowrap;" }, actionCells(p, now)),          // right after the status: the actions must never be pushed off the edge of a narrow window
-    h("td", { role: "cell", "data-label": "Registered", style: "color:var(--muted);" }, postedCell(p)),
+    h("td", { role: "cell", "data-label": "Added", style: "color:var(--muted);" }, postedCell(p)),
     h("td", { role: "cell", "data-label": "Closes", style: "color:var(--muted);" }, closesCell(p), p.bump_used ? h("div", { class: "row-note" }, "extended " + p.bump_days + (p.bump_days === 1 ? " day" : " days")) : null),
     h("td", { role: "cell", "data-label": "Applicant cap", style: "color:var(--muted);" }, capCell(p)),
     COMMENTS_VISIBLE ? h("td", { role: "cell", "data-label": "Comments", style: "white-space:nowrap;" }, h("a", { class: "row-action", href: "comments.html?id=" + encodeURIComponent(p.id), title: "Read the comments" }, "💬 " + p.comment_count)) : null);   // the one comments switch (js/config.js)
@@ -69,7 +69,7 @@ function render() {
   for (const p of shown) body.append(row(p, now));
   const note = $("#tableNote");
   if (state.loaded && state.rows.length === 0) {
-    note.hidden = false; clear(note); note.append("You haven't registered an opening yet. ", h("a", { href: "register.html", style: "font-weight:600;" }, "Register your first opening →"));
+    note.hidden = false; clear(note); note.append("You haven't added an opening yet. ", h("a", { href: "register.html", style: "font-weight:600;" }, "Add your first opening →"));
   } else if (state.loaded && shown.length === 0) {
     note.hidden = false; clear(note); note.append("No openings match this filter.");
   } else note.hidden = true;

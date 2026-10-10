@@ -110,7 +110,7 @@ export async function mountAccount(container, { cta = true } = {}) {
     orderHeader(document, window);
     return session;
   }
-  if (cta) container.append(h("a", { class: "btn btn-primary btn-sm", href: "register.html" }, "Register an Opening →"));
+  if (cta) container.append(h("a", { class: "btn btn-primary btn-sm", href: "register.html" }, "Add an Opening →"));
   orderHeader(document, window);
   return session;
 }

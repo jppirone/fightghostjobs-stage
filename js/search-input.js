@@ -12,7 +12,7 @@ const CODE_RE = /^[0-9A-HJKMNP-TV-Z]{12}$/;
 // What the page says when a search finds nothing: an echo of exactly what was searched, then the note. The last sentence of the note is deliberate: a title search lists only live or
 // paused postings (candidate_search_postings_v2), so a posting that has closed or expired is found only by its postID, and without that sentence "no match" would read as "never registered".
 // The echo lets a person see at a glance that they typed "Acme" where the employer registered "Acme Inc" (the company must match the registered name; it is not a prefix search).
-export const NO_MATCH_NOTE = "An opening appears here only if an employer has registered it with FightGhostJobs. A missing opening may simply not be registered; it says nothing about whether the job exists. Check the company name, and check the ID exactly as it is printed in the job ad. If you searched by title, try a different part of the title. A title search finds only openings that are live: closed or expired openings are found only by Opening ID or req number.";
+export const NO_MATCH_NOTE = "An opening appears here only if an employer has added it to FightGhostJobs. A missing opening may simply not be added; it says nothing about whether the job exists. Check the company name, and check the ID exactly as it is printed in the job ad. If you searched by title, try a different part of the title. A title search finds only openings that are live: closed or expired openings are found only by Opening ID or req number.";
 
 const clip = (s, n) => { const t = String(s == null ? "" : s).replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1) + "…" : t; };
 
@@ -24,7 +24,7 @@ export function noMatchMessage(company, query, kind) {
 }
 
 // The wording when a req-number lookup finds nothing: the req is never echoed (it was typed into a masked box).
-export const NO_MATCH_NOTE_REQ = "Check the company name exactly as the employer registered it, and the req number exactly as printed in the job ad. If the job ad shows an Opening ID, try that instead. An opening appears here only if an employer has registered it with FightGhostJobs; a missing opening may simply not be registered.";
+export const NO_MATCH_NOTE_REQ = "Check the company name exactly as the employer entered it, and the req number exactly as printed in the job ad. If the job ad shows an Opening ID, try that instead. An opening appears here only if an employer has added it to FightGhostJobs; a missing opening may simply not be added.";
 
 export function normalizeCode(text) {
   return String(text).toUpperCase().replace(/[ -]+/g, "").replace(/[IL]/g, "1").replace(/O/g, "0");

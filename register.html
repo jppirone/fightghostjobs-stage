@@ -7,7 +7,7 @@
 <meta name="referrer" content="same-origin">
 <meta name="robots" content="noindex, nofollow">
 <script src="js/stage-gate.js"></script>
-<title>FightGhostJobs | Register an Opening</title>
+<title>FightGhostJobs | Add an Opening</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="app.css">
 </head>
@@ -31,7 +31,7 @@
   <div style="flex:2;display:flex;flex-direction:column;gap:28px;max-width:720px;">
     <div>
       <div id="orgName" style="font-size:13px;font-weight:700;color:var(--faint);">&nbsp;</div>
-      <h1 style="font-size:32px;font-weight:700;margin-top:6px;letter-spacing:-.01em;">Register an opening</h1>
+      <h1 style="font-size:32px;font-weight:700;margin-top:6px;letter-spacing:-.01em;">Add an opening</h1>
     </div>
 
     <div id="pageAlert" hidden></div>
@@ -67,19 +67,19 @@
         <label for="dupnote" style="margin-top:12px;">Why is this req number being reused?</label>
         <input id="dupnote" type="text" maxlength="300" autocomplete="off" aria-describedby="dupHint">
         <div class="field-error" data-error-for="dupnote" hidden></div>
-        <div id="dupHint" class="field-hint">One line, 300 characters at most. Then press Register opening again.</div>
+        <div id="dupHint" class="field-hint">One line, 300 characters at most. Then press Add opening again.</div>
         <button type="button" id="dupChange" class="btn btn-outline btn-sm" style="margin-top:10px;">Change the req number</button>
       </div>
       <div style="font-size:12px;color:var(--muted);margin-top:-10px;">If set, the cap is shown to candidates too. Reaching it doesn't auto-close the opening. You need to come back and pause or close it yourself. Pausing never resets this cap or the close date.</div>
       <div class="alert alert-notice" id="windowNote" role="note">
         <strong style="color:var(--ink);">How long it stays live: you choose, 14 to 45 days.</strong>
-        Your opening goes live the moment you register it (unless you choose a go-live time below) and closes automatically after the number of days you set above (45 unless you change it, and never more than 45). The days start when it goes live, not when you fill in this form, so a saved draft does not start the clock until you publish it.
-        The close date is shown to candidates; you will see the exact date and time, with your time zone, as soon as it is registered. It can be extended once, by up to 15 days.
+        Your opening goes live the moment you add it (unless you choose a go-live time below) and closes automatically after the number of days you set above (45 unless you change it, and never more than 45). The days start when it goes live, not when you fill in this form, so a saved draft does not start the clock until you publish it.
+        The close date is shown to candidates; you will see the exact date and time, with your time zone, as soon as it is added. It can be extended once, by up to 15 days.
       </div>
 
       <fieldset id="goLive" style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">
         <legend style="font-size:14px;font-weight:700;padding:0;margin-bottom:6px;">When should it go live?</legend>
-        <label class="check-row" for="glNow"><input id="glNow" type="radio" name="goLiveWhen" value="now" checked> As soon as I register it</label>
+        <label class="check-row" for="glNow"><input id="glNow" type="radio" name="goLiveWhen" value="now" checked> As soon as I add it</label>
         <label class="check-row" for="glLater"><input id="glLater" type="radio" name="goLiveWhen" value="later"> On a date and time I choose</label>
         <div id="glWhen" hidden>
           <label for="gldate">Go-live date and time (your own time zone)</label>
@@ -100,7 +100,7 @@
         <textarea id="desc" rows="5" maxlength="20000"></textarea>
         <div class="field-error" data-error-for="desc" hidden></div>
         <div class="field-hint">Never shown to candidates. Paste the description as it appears in your job ad elsewhere.</div>
-        <div id="reqTextHint" class="field-hint">This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to register it as a new opening with its own req number, so candidates can tell which role they're looking at. Each change is saved with a short note.</div>
+        <div id="reqTextHint" class="field-hint">This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to add it as a new opening with its own req number, so candidates can tell which role they're looking at. Each change is saved with a short note.</div>
       </div>
 
       <div style="height:1px;background:var(--line);"></div>
@@ -147,7 +147,7 @@
           <span style="font-size:13px;color:var(--muted);">Naming the firm is part of the destination links tier. <a href="mailto:sales@fightghostjobs.com?subject=Destination%20links%20tier" style="font-weight:600;">Write to sales@fightghostjobs.com →</a></span>
         </div>
         <div id="firmsForm" hidden style="display:flex;flex-direction:column;gap:12px;">
-          <div class="field-hint" style="margin-top:0;">Optional, up to 3. Candidates see the name as "Recruiter firm: …". The address is optional and, like a destination link, is never shown to them: they see where it goes. Saved right after the opening is registered; you can change the firms from My openings (Edit).</div>
+          <div class="field-hint" style="margin-top:0;">Optional, up to 3. Candidates see the name as "Recruiter firm: …". The address is optional and, like a destination link, is never shown to them: they see where it goes. Saved right after the opening is added; you can change the firms from My openings (Edit).</div>
           <div id="firmRows" style="display:flex;flex-direction:column;gap:12px;"></div>
           <div><button type="button" id="addFirmBtn" class="btn btn-outline btn-sm">Add another firm</button></div>
           <div id="firmsAlert" hidden></div>
@@ -176,7 +176,7 @@
       <div style="height:1px;background:var(--line);"></div>
       <div id="formAlert" hidden></div>
       <div style="display:flex;gap:12px;">
-        <button type="submit" id="registerBtn" class="btn btn-dark" style="flex:1;justify-content:center;">Register opening</button>
+        <button type="submit" id="registerBtn" class="btn btn-dark" style="flex:1;justify-content:center;">Add opening</button>
         <button type="button" id="draftBtn" class="btn btn-ghost">Save draft</button>
       </div>
     </form>

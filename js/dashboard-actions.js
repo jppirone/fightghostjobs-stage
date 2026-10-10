@@ -63,7 +63,7 @@ export function runAction(kind, p, deps) {
     const aged = Date.parse(p.created_at) + 14 * DAY_MS <= Date.now();
     return openDialog({ title: "Remove the scheduled go-live?", confirmLabel: "Remove schedule",
       content: [para(title + " goes back to a plain draft: nothing is published on " + fmtClose(p.go_live_at) + ". Nothing else about it changes."),
-        para(aged ? "This draft was saved more than 14 days ago, and a plain draft can only be published for 14 days after it was saved. Once the schedule is removed it can no longer be published: keep the schedule (or publish it now) instead, or register a new opening." : "A plain draft can be published for 14 days after it was saved, so publish it before then or schedule it again.")],
+        para(aged ? "This draft was saved more than 14 days ago, and a plain draft can only be published for 14 days after it was saved. Once the schedule is removed it can no longer be published: keep the schedule (or publish it now) instead, or add a new opening." : "A plain draft can be published for 14 days after it was saved, so publish it before then or schedule it again.")],
       onSubmit: async () => finish(await api.schedulePosting(p.id, null), () => "The schedule for " + title + " is removed. It is a draft again.") });
   }
   if (kind === "publish") {

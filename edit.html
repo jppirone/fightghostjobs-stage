@@ -43,7 +43,7 @@
       <div class="grid2" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;">
         <div><label for="jtitle">Job title</label><input id="jtitle" type="text" maxlength="200" autocomplete="off" aria-describedby="titleRule"><div class="field-error" data-error-for="jtitle" hidden></div><div id="titleRule" class="field-hint" hidden></div></div>
         <div><label for="req">Req number</label><input id="req" type="text" maxlength="100" autocomplete="off"><div class="field-error" data-error-for="req" hidden></div><div class="field-hint">Your own reference. Candidates find an opening by company name plus this number, so changing it changes how they find this opening. They see it masked (for example FGJ****45).</div></div>
-        <div><label>Company</label><div id="companyShown" style="padding:10px 0;font-size:15px;"></div><div class="field-hint">The company name is fixed once an opening is registered.</div></div>
+        <div><label>Company</label><div id="companyShown" style="padding:10px 0;font-size:15px;"></div><div class="field-hint">The company name is fixed once an opening is added.</div></div>
         <div><label for="appcap">Applicant cap (optional)</label><input id="appcap" type="text" inputmode="numeric" autocomplete="off"><div class="field-error" data-error-for="appcap" hidden></div></div>
         <div style="grid-column:1/-1;"><label class="check-row" for="remote"><input id="remote" type="checkbox"> Remote role</label></div>
         <div id="locpicker" style="grid-column:1/-1;">
@@ -70,7 +70,7 @@
         <textarea id="desc" rows="8" maxlength="20000"></textarea>
         <div class="field-error" data-error-for="desc" hidden></div>
         <div class="field-hint">Never shown to candidates. Up to 20,000 characters.</div>
-        <div id="reqTextHint" class="field-hint">This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to register it as a new opening with its own req number, so candidates can tell which role they're looking at. Each change is saved with a short note.</div>
+        <div id="reqTextHint" class="field-hint">This text is compared with any later changes to it. Small corrections (a typo, a tightened sentence, a dropped line) save straight away and are never flagged or held up. If a change would rewrite most of it, we'll ask you to add it as a new opening with its own req number, so candidates can tell which role they're looking at. Each change is saved with a short note.</div>
       </div>
 
       <div style="height:1px;background:var(--line);"></div>

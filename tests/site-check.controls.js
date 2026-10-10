@@ -85,7 +85,7 @@ control("the dashboard table is wrapped in an element that clips it", "S17", edi
 control("the candidate req box is a plain visible text box", "S18", edit("search.html", (s) => s.replace('id="reqq" class="srch-input" type="password"', 'id="reqq" class="srch-input" type="text"')));
 control("the show/hide toggle for the req box is gone", "S18", edit("search.html", (s) => s.replace('id="reqToggle"', 'id="reqTogglX"')));
 control("the register form loses the requirements-text hint wording", "S19", edit("register.html", (s) => s.replace("Small corrections (a typo, a tightened sentence, a dropped line) save straight away", "Corrections save")));
-control("the edit page loses the requirements-text hint wording", "S19", edit("edit.html", (s) => s.replace("we'll ask you to register it as a new opening with its own req number", "we'll ask you")));
+control("the edit page loses the requirements-text hint wording", "S19", edit("edit.html", (s) => s.replace("we'll ask you to add it as a new opening with its own req number", "we'll ask you")));
 control("the edit page's note label is changed", "S19", edit("edit.html", (s) => s.replace("(required; kept with the opening).", "(optional).")));
 control("the edit page loses its destination-links form", "S20", edit("edit.html", (s) => s.replace('id="linksForm"', 'id="linksFormX"')));
 control("the locked section no longer points to sales", "S20", edit("edit.html", (s) => s.split("Write to sales@fightghostjobs.com →").join("Ask around")));
@@ -313,11 +313,11 @@ control("a script says an employer can reply to a comment", "S36", append("js/pa
 control("the dashboard offers to contest a comment", "S36", append("js/pages/dashboard.js", 'const _ct = "Contest a comment on this opening";'));
 // S32: public wording (2026-09-30)
 control("the search badge goes back to Verified", "S32", edit("js/pages/search.js", (s) => s.replace('"\u2713 Registered"', '"\u2713 Verified"')));
-control("the details dialog says the listing is verified again", "S32", edit("js/pages/search.js", (s) => s.replace("This opening was registered through FightGhostJobs by a registered employer.", "This listing is verified: a real employer registered it directly with FightGhostJobs.")));
+control("the details dialog says the listing is verified again", "S32", edit("js/pages/search.js", (s) => s.replace("This opening was added through FightGhostJobs by the employer.", "This listing is verified: a real employer registered it directly with FightGhostJobs.")));
 control("the details dialog loses what FightGhostJobs has not confirmed", "S32", edit("js/pages/search.js", (s) => s.replace(", that the employer representative works for the company named, or that the employer will respond.", ".")));
 control("the sample card badge says Verified again", "S32", edit("index.html", (s) => s.replace('<div class="pill badge-verified">\u2713 Registered</div>', '<div class="pill badge-verified">\u2713 Verified</div>')));
 control("the home pill says a free public registry again", "S32", edit("index.html", (s) => s.replace(">A place to check job openings that employers disclose</div>", ">A free public registry</div>")));
-control("the home page promises free, always", "S32", edit("index.html", (s) => s.replace(">to register and disclose</div>", ">to register and disclose, always</div>")));
+control("the home page promises free, always", "S32", edit("index.html", (s) => s.replace(">to add and disclose</div>", ">to add and disclose, always</div>")));
 control("the home page says permanently", "S32", edit("index.html", (s) => s.replace("Included on every tier.", "Free, on every tier, permanently.")));
 control("the home page says it costs nothing", "S32", edit("index.html", (s) => s.replace("Show candidates the facts about your opening. The core facts are free to publish.", "Prove your listing is real. It costs nothing to start.")));
 control("the home page says free, forever", "S32", edit("index.html", (s) => s.replace("The facts candidates see are free for employers to publish on every tier", "Every trust field is free, forever")));
@@ -325,7 +325,7 @@ control("the register page label goes back to Free, always", "S32", edit("regist
 control("the search page signup line says no cost again", "S32", edit("search.html", (s) => s.replace("No password, no account form. Free for job seekers.", "No password, no account form, no cost.")));
 control("the search page says company and title always works", "S32", edit("search.html", (s) => s.replace("<li>The most exact way to search:", "<li>Company and title always works:")));
 control("the Opening ID help says verified opening again", "S32", edit("search.html", (s) => s.replace("this specific opening", "this specific verified opening")));
-control("the no-match note says a missing opening is worth knowing", "S32", edit("js/search-input.js", (s) => s.replace("A missing opening may simply not be registered; it says nothing about whether the job exists.", "A real employer registers it, so a missing opening is itself worth knowing.")));
+control("the no-match note says a missing opening is worth knowing", "S32", edit("js/search-input.js", (s) => s.replace("A missing opening may simply not be added; it says nothing about whether the job exists.", "A real employer registers it, so a missing opening is itself worth knowing.")));
 control("the paused message says the employer confirmed it", "S32", edit("js/chips.js", (s) => s.replace("The employer has paused it, so it is not accepting", "The employer has confirmed it, but it is not accepting")));
 control("the no-link message says not any less real", "S32", edit("js/pages/search.js", (s) => s.replace("That's their choice to make.\"", "That's their choice to make, not a sign the opening is any less real.\"")));
 control("a real employer sentence is appended to a page", "S32", append("comments.html", "<p>Disclosed by a real employer</p>"));

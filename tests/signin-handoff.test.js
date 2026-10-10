@@ -112,7 +112,7 @@ test("the landing note is ON with the wording John approved (October 4, 2026), a
 });
 
 test("the both-roles note: exact wording, and it is chosen for a session with BOTH claims only", () => {
-  assert.equal(BOTH_ROLES_TEXT, "This address is also registered as an employer, so the employer buttons show above. Searching here works as a candidate.");
+  assert.equal(BOTH_ROLES_TEXT, "This address is also an employer address, so the employer buttons show above. Searching here works as a candidate.");
   assert.ok(!/[\u2014]/.test(BOTH_ROLES_TEXT), "no em dash");
   assert.equal(roleNoteKind({ isPoster: true, isCandidate: true }), "both");
   assert.equal(roleNoteKind({ isPoster: true, isCandidate: false }), "employer", "an employer-only session keeps its own notice");
