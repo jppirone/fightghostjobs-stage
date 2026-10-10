@@ -61,10 +61,15 @@ export async function removeFolder(dir, { ms = 8000, step = 250 } = {}) {
   for (;;) { err = attempt(dir); if (!err) return null; if (Date.now() >= until) return err; await new Promise((r) => setTimeout(r, step)); }
 }
 
-// What is left: marker processes and marker folders that belong to a test process that is gone (its pid is not alive), or that were made since `since` (ms).
-// With since = Infinity (the default) only what a dead test process left is reported.
-export function findLeaks({ since = Infinity, list, deadOwners = true } = {}) {
-  const inScope = (name) => { const m = parseMarker(name); return !!m && (m.stamp >= since || (deadOwners && !pidAlive(m.pid))); };
+// What is left: marker processes and marker folders whose test process is gone (its pid is not alive; all of them when deadOwners, else only those made since `since` ms), plus
+// those made since `since` by a test process that is still alive and is listed in includeOwners. With since = Infinity (the default) only what a dead test process left is reported.
+export function findLeaks({ since = Infinity, list, deadOwners = true, includeOwners = [] } = {}) {
+  const inScope = (name) => {
+    const m = parseMarker(name); if (!m) return false;
+    const gone = !pidAlive(m.pid);
+    if (gone && (deadOwners || m.stamp >= since)) return true;   // its test process is gone: nothing can close it any more
+    return m.stamp >= since && includeOwners.includes(m.pid);       // a test process that is still alive is only ever included on request (never another session's browser)
+  };
   const processes = markerProcesses(list).filter((p) => inScope(p.folder));
   const folders = listMarkerFolders().filter(inScope);
   return { processes, folders };

@@ -5,7 +5,8 @@
 //                                                            node tests/run-all.js --quick <name> ...    and also the named test file(s), main tests only (its negative controls are skipped), e.g. --quick search-recap
 // A quick run does NOT run the negative controls (static or browser) and does NOT run the browser tests unless one is named. Its first and last line say so.
 // BROWSERS (prompt BB2, October 10, 2026): every step has a time limit (limitMin below); a step that exceeds it is stopped together with the test files and browsers below it and is reported as FAILED with the reason. Before the first
-// step, a sweep stops browsers of test processes that no longer exist and removes marker profile folders older than a day that no process uses.
+// step, a sweep stops browsers of test processes that no longer exist and removes marker profile folders older than a day that no process uses. The LAST step is the leak check (tests/leak-check.js): it counts the browser processes
+// and profile folders that carry the test marker after everything else has closed what it opened, prints LEAK: <count> with their ids and names, and fails.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,17 +35,21 @@ const steps = [
   ["the Registered check mark: drawn only for a real true from the database, public view and staff view alike (real browser)", [path.join(here, "registered.test.js")], true],
   ["the display-only place text: shown only while the opening has no catalog place, with its note, as plain text, never used to search (real browser)", [path.join(here, "place.test.js")], true],
   ["back from Comments or Report a wrong link: the search page comes back as it was, signed out meanwhile clears it, nothing new is stored (real browser)", [path.join(here, "back-restore.test.js")], true],
+  ["browser helper: closes its browser and removes its folder, a failed start leaves nothing, a hung close is stopped; a browser left open makes the leak check fire, a step that never ends is stopped by its time limit (real browser)", [path.join(here, "leak-check.test.js")], true],
   ["search engines: every page and robots.txt keep them out on stage, and the tool that switches production on (no browser)", [path.join(here, "indexing.test.js")], true],
   ["static site rules", [path.join(here, "site-check.js")], false],
   ["static rules: negative controls", [path.join(here, "site-check.controls.js")], false],
+  ["browser leak check: no browser process and no profile folder carries the test marker (starts no browser)", [path.join(here, "leak-check.js")], false],
 ];
 // The time limit of one step, in minutes. Chosen from the measured times (reports\browser-cleanup-report.txt): the slowest healthy browser step takes about 10 minutes and the static controls about 18; the longest test
 // timeout inside a browser file is 58 minutes, so a browser step gets 60 and the test's own timeout still fires first. FGJ_STEP_LIMIT_SCALE multiplies every limit; FGJ_STEP_LIMIT_MIN sets one limit for every step.
 function limitMin(files) {
   if (process.env.FGJ_STEP_LIMIT_MIN) return Number(process.env.FGJ_STEP_LIMIT_MIN);
   const base = path.basename(files[0]);
-  const byFile = { "unit.test.js": 15, "indexing.test.js": 15, "site-check.js": 5, "site-check.controls.js": 45 };
-  return (byFile[base] || 60) * (Number(process.env.FGJ_STEP_LIMIT_SCALE) || 1);
+  // the first prefix of the file name that matches (most specific first); every other file is a browser step
+  const byPrefix = [["site-check.controls", 45], ["site-check", 5], ["leak-check.test", 15], ["leak-check", 5], ["unit.test", 15], ["indexing", 15]];
+  const hit = byPrefix.find(([p]) => base.startsWith(p));
+  return (hit ? hit[1] : 60) * (Number(process.env.FGJ_STEP_LIMIT_SCALE) || 1);
 }
 const QUICK_BANNER = "QUICK RUN, NOT A FULL RUN, NOT EVIDENCE FOR A PUSH";
 const args = process.argv.slice(2), quick = args[0] === "--quick";
@@ -58,6 +63,7 @@ if (quick) {
     if (!fs.existsSync(file)) { console.log("quick mode: no test file tests/" + base + ".test.js"); console.log(QUICK_BANNER); process.exit(2); }
     list.push(["quick: " + base + " (main tests only; its negative controls skipped)", [file], true, true]);
   }
+  if (args.length > 1) list.push(steps.find((x) => path.basename(x[1][0]) === "leak-check.js"));
 }
 const fmt = (ms) => { const s = ms / 1000; return s < 120 ? s.toFixed(1) + " s" : Math.floor(s / 60) + " min " + String(Math.round(s % 60)).padStart(2, "0") + " s"; };
 const t00 = Date.now(), slow = [];

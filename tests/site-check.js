@@ -48,6 +48,7 @@
 //   S58 the one comments switch, js/config.js COMMENTS_VISIBLE, shipped true, read by every comment surface (Part E6)
 //   S59 no verify, verified or verification in candidate-facing text (Part E7): the word is confirm; exceptions are the destination link wording, data and class names, and privacy.html
 //   S64 no database script in the repository: no .sql file anywhere and no top-level db folder (the whole repository is served by Pages)
+//   S69 test browsers: one launcher (tests/cdp-tabs.js) that records the pid at spawn, marks its profile folder, closes on a bound, removes the folder and prints when it cannot; a time limit per suite step; the leak check is the last step and fails with LEAK: <count>; the negative control that leaves a browser open
 //   S65 the staff-only search scope (scope=all): the database decides who is staff, the page starts staff mode only on a clear true, the staff branch calls no candidate function and stores nothing, noindex, never cached, nothing in search.html, only the search page uses the staff functions
 //   S63 back from Comments or Report a wrong link: the Auth client is created WITHOUT its cross-tab channel (the channel evicts the search page from the browser's back/forward cache), no other script opens one, no unload handler, and the search page has the pageshow guard
 //   S62 the search page opened with the company and one other value in the URL fragment (extension hand-off): only c, p, r, t, the site's limits, plain text, refuse on doubt, fragment removed at once, never an automatic search
@@ -1391,6 +1392,59 @@ export function checkSite(root) {
       const hit = /São Paulo|Sao Paulo|Tokyo|Berlin|Melbourne|Bengaluru|Bangalore|Cheltenham|Cape Town|Clearwater/.exec(t);
       if (hit) add("S68", f, "no page or script may name a place of the employer boards (a place is never invented by the page): " + hit[0]);
     }
+  }
+
+  // S69 (2026-10-10, prompt BB2): every browser a test starts goes through ONE launcher that cleans up after itself. tests/cdp-tabs.js is the only file that starts a browser (no other test file names a browser flag or program); it records the
+  // pid the moment the browser is spawned, names the profile folder with the test marker, closes on a bound (ask, then stop the recorded pid and its children, never by program name), waits for the exit, removes the folder with retries and
+  // prints a line when it cannot; it has an exit handler and Ctrl+C / terminate handlers. tests/run-all.js gives every step a time limit (tests/step-runner.js stops the step and its browsers), sweeps stale marker folders first and ends with
+  // the leak check (tests/leak-check.js), which prints LEAK: <count> and fails when a marker process or folder is left; tests/leak-check.test.js proves the check fires on a browser that is left open.
+  {
+    const rel = (f) => path.relative(root, f).split(path.sep).join("/");
+    const tf = files.filter((f) => /^tests\/[^/]+\.js$/.test(rel(f)));
+    const ALLOWED = ["tests/cdp-tabs.js", "tests/browser-clean.js", "tests/site-check.js", "tests/site-check.controls.js"];
+    for (const f of tf) {
+      const r = rel(f);
+      if (ALLOWED.includes(r)) continue;
+      const t = read(f);
+      const hit = /--remote-debugging|--user-data-dir|--load-extension|--headless|chrome\.exe|msedge\.exe/.exec(t);
+      if (hit) add("S69", f, "only tests/cdp-tabs.js may start a browser (found " + hit[0] + "); every test goes through launchBrowser");
+    }
+    const need = (r, msg) => { const f = path.join(root, r); if (!fs.existsSync(f)) { add("S69", f, r + " must exist: " + msg); return null; } return stripJsComments(read(f)); };
+    const cd = need("tests/cdp-tabs.js", "the one launcher");
+    if (cd !== null) {
+      if (!cd.includes("fs.mkdtempSync(path.join(os.tmpdir(), markerPrefix()))")) add("S69", path.join(root, "tests", "cdp-tabs.js"), "the profile folder name must carry the test marker (markerPrefix())");
+      const a = cd.indexOf("r.pid = proc.pid;"), b = cd.indexOf("const portFile");
+      if (a < 0 || b < a) add("S69", path.join(root, "tests", "cdp-tabs.js"), "the process id must be recorded the moment the browser is spawned, before anything else can fail (r.pid = proc.pid; before the port wait)");
+      if (!cd.includes('method: "Browser.close"')) add("S69", path.join(root, "tests", "cdp-tabs.js"), "close() must first ask the browser to close (Browser.close)");
+      if (!cd.includes("stopPidTree(r.pid)")) add("S69", path.join(root, "tests", "cdp-tabs.js"), "a browser that does not close is stopped by its recorded pid and its children (stopPidTree(r.pid))");
+      if (/\.kill\(/.test(cd)) add("S69", path.join(root, "tests", "cdp-tabs.js"), "no plain .kill(): only the recorded pid and its children are stopped, by stopPidTree");
+      if (!cd.includes('console.error("browser cleanup: could not remove ')) add("S69", path.join(root, "tests", "cdp-tabs.js"), "a profile folder that cannot be removed must be printed, never swallowed");
+      if (!cd.includes('process.on("exit", cleanAllSync)') || !cd.includes('"SIGINT"')) add("S69", path.join(root, "tests", "cdp-tabs.js"), "an exit handler and a Ctrl+C handler must clean up an open browser");
+      if (!cd.includes("await closeAllBrowsers();")) add("S69", path.join(root, "tests", "cdp-tabs.js"), "a top level after hook must close any browser a test file left open");
+    }
+    const bc = need("tests/browser-clean.js", "the clean up helper");
+    if (bc !== null) {
+      if (/["']\/IM["']/i.test(bc)) add("S69", path.join(root, "tests", "browser-clean.js"), "never stop a process by program name (no taskkill /IM)");
+      if (!bc.includes('["/PID", String(pid), "/T", "/F"]')) add("S69", path.join(root, "tests", "browser-clean.js"), "a process is stopped only by pid with its children (taskkill /PID <pid> /T /F)");
+      if (!bc.includes("const NAME_RE = /^fgj-test-(\\d+)-(\\d+)-[A-Za-z0-9]+$/;")) add("S69", path.join(root, "tests", "browser-clean.js"), "only folders that match the marker pattern may be removed");
+    }
+    const sr = need("tests/step-runner.js", "the step time limit");
+    if (sr !== null && (!sr.includes("stopPidTree(child.pid)") || !sr.includes("reapOrphans("))) add("S69", path.join(root, "tests", "step-runner.js"), "a step that exceeds its limit is stopped with the processes below it, and leftover test browsers are reaped");
+    const lc = need("tests/leak-check.js", "the leak check");
+    if (lc !== null && (!lc.includes("formatLeak(") || !lc.includes("process.exit(1);"))) add("S69", path.join(root, "tests", "leak-check.js"), "the leak check prints LEAK: <count> and fails");
+    const ra = need("tests/run-all.js", "the suite");
+    if (ra !== null) {
+      if (/spawnSync/.test(ra)) add("S69", path.join(root, "tests", "run-all.js"), "every step runs through runStep with a time limit, never spawnSync without one");
+      if (!ra.includes("limitMs: lim * 60000")) add("S69", path.join(root, "tests", "run-all.js"), "every step has a time limit (limitMs: lim * 60000)");
+      if (!ra.includes("sweepStale()")) add("S69", path.join(root, "tests", "run-all.js"), "the suite starts with a sweep of stale marker folders");
+      const k = ra.indexOf('path.join(here, "leak-check.js")'), e = ra.indexOf("];", k);
+      if (k < 0 || ra.indexOf('path.join(here, "', k + 10) >= 0 && ra.indexOf('path.join(here, "', k + 10) < e) add("S69", path.join(root, "tests", "run-all.js"), "the leak check must be the LAST step");
+      if (!ra.includes('path.join(here, "leak-check.test.js")')) add("S69", path.join(root, "tests", "run-all.js"), "the leak check's own test (tests/leak-check.test.js) must run in the suite");
+    }
+    const hl = fs.existsSync(path.join(root, "tests", "header-layout.test.js")) ? stripJsComments(read(path.join(root, "tests", "header-layout.test.js"))) : "";
+    if (hl && (!hl.includes('from "./cdp-tabs.js"') || !hl.includes("await launchBrowser()") || /\bspawn\(/.test(hl))) add("S69", path.join(root, "tests", "header-layout.test.js"), "the header test uses the shared launcher (cdp-tabs.js), not its own");
+    const lt = need("tests/leak-check.test.js", "proves the leak check fires");
+    if (lt !== null && !lt.includes("negative controls: a browser the test does not close makes the leak check fire")) add("S69", path.join(root, "tests", "leak-check.test.js"), "the negative control that leaves a browser open must exist");
   }
 
   // S64 (2026-10-08): the repository is what Pages serves, so no database script may live in it. No .sql file anywhere (tests/ is served too) and no top-level db folder. On October 8 the four email wording scripts were committed to db/ and were public for a day;

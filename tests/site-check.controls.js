@@ -906,6 +906,27 @@ control("the search page names a paid source", "S67", edit("js/pages/search.js",
 control("a script names the stored plan source column", "S67", edit("js/chips.js", (s) => s + '\nexport const SOURCE_COLUMN = "plan_source";\n'));
 control("a page string says promotional", "S67", edit("js/pages/analytics.js", (s) => s.replace("Share of FightGhostJobs traffic", "Share of promotional traffic")));
 
+// S69 (2026-10-10, prompt BB2): one browser launcher that cleans up after itself, a time limit per step, the leak check last
+control("a test file starts its own browser", "S69", append("tests/place.test.js", 'const OWN_BROWSER = ["--remote-debugging-port=0"];'));
+control("the header test has its own launcher again", "S69", append("tests/header-layout.test.js", 'const OWN_PROFILE = "--user-data-dir=" + process.cwd();'));
+control("the launcher stops the browser with a plain kill", "S69", edit("tests/cdp-tabs.js", (s) => s.replace("stopPidTree(r.pid); await Promise.race([r.exitedP, delay(STOP_MS)]);", "r.proc.kill(); await Promise.race([r.exitedP, delay(STOP_MS)]);")));
+control("the launcher no longer records the pid when it spawns", "S69", edit("tests/cdp-tabs.js", (s) => s.replace("r.pid = proc.pid;", "void 0;")));
+control("the profile folder has no marker", "S69", edit("tests/cdp-tabs.js", (s) => s.replace("path.join(os.tmpdir(), markerPrefix())", 'path.join(os.tmpdir(), "fgj-tabs-")')));
+control("close() no longer asks the browser to close", "S69", edit("tests/cdp-tabs.js", (s) => s.replace('method: "Browser.close"', 'method: "Browser.getVersion"')));
+control("a folder that cannot be removed is swallowed", "S69", edit("tests/cdp-tabs.js", (s) => s.replaceAll('console.error("browser cleanup: could not remove " + r.dir + " (" + err + ")");', "")));
+control("no exit handler cleans up an open browser", "S69", edit("tests/cdp-tabs.js", (s) => s.replace('process.on("exit", cleanAllSync);', "")));
+control("no after hook closes a browser a test file left open", "S69", edit("tests/cdp-tabs.js", (s) => s.replace("await closeAllBrowsers();", "void 0;")));
+control("a process is stopped by program name", "S69", edit("tests/browser-clean.js", (s) => s.replace('["/PID", String(pid), "/T", "/F"]', '["/IM", "chrome.exe", "/F"]')));
+control("any folder in temp may be removed, not only marker folders", "S69", edit("tests/browser-clean.js", (s) => s.replace("const NAME_RE = /^fgj-test-(\\d+)-(\\d+)-[A-Za-z0-9]+$/;", "const NAME_RE = /^fgj-/;")));
+control("the step runner no longer stops the processes below a step", "S69", edit("tests/step-runner.js", (s) => s.replace("stopPidTree(child.pid)", "child.kill()")));
+control("the suite steps have no time limit", "S69", edit("tests/run-all.js", (s) => s.replace("limitMs: lim * 60000", "limitMs: 0")));
+control("the suite no longer ends with the leak check", "S69", edit("tests/run-all.js", (s) => s.replace('[path.join(here, "leak-check.js")], false],', '[path.join(here, "site-check.js")], false],')));
+control("a step is added after the leak check", "S69", edit("tests/run-all.js", (s) => s.replace("];\n// The time limit of one step", '  ["late step", [path.join(here, "unit.test.js")], true],\n];\n// The time limit of one step')));
+control("the suite no longer sweeps stale folders first", "S69", edit("tests/run-all.js", (s) => s.replace("const s = sweepStale();", "const s = { stopped: [], removed: [], kept: [], notRemoved: [] };")));
+control("the leak check no longer fails", "S69", edit("tests/leak-check.js", (s) => s.replace("process.exit(1);", "process.exit(0);")));
+control("the leak check's own test is gone from the suite", "S69", edit("tests/run-all.js", (s) => s.replace('path.join(here, "leak-check.test.js")], true],', 'path.join(here, "unit.test.js")], true],')));
+control("the negative control that leaves a browser open is gone", "S69", edit("tests/leak-check.test.js", (s) => s.replace("negative controls: a browser the test does not close makes the leak check fire", "a browser the test does not close")));
+
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed");
 process.exit(missed ? 1 : 0);
