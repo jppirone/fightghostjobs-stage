@@ -4,19 +4,24 @@
 import { spawn } from "node:child_process";
 import { stopPidTree, reapOrphans } from "./browser-clean.js";
 
+let running = null;   // the step process that is running now (one at a time)
+// Stops the running step and the processes below it. Synchronous, so it can be used from a Ctrl+C or terminate handler.
+export function stopCurrentStep() { return running && running.pid ? stopPidTree(running.pid) : false; }
+
 // args: the arguments for node. Resolves { status, timedOut, out, ms, reaped } (status is null when the limit stopped it). Never rejects.
 export function runStep(args, { limitMs = 0, env = {}, cwd = process.cwd() } = {}) {
   return new Promise((resolve) => {
     const t0 = Date.now();
     let out = "", timedOut = false, timer = null, settled = false;
     const finish = (status, why) => {
-      if (settled) return; settled = true; clearTimeout(timer);
+      if (settled) return; settled = true; clearTimeout(timer); running = null;
       // a step that failed or was stopped may have left a browser behind whose test process is gone
       const reaped = status === 0 && !timedOut ? null : reapOrphans({ since: t0 - 1000 });
       resolve({ status, timedOut, out: out + (why || ""), ms: Date.now() - t0, reaped });
     };
     let child;
     try { child = spawn(process.execPath, args, { env: { ...process.env, ...env }, cwd, stdio: ["ignore", "pipe", "pipe"], windowsHide: true }); } catch (e) { finish(1, "could not start the step: " + e.message); return; }
+    running = child;
     child.stdout.setEncoding("utf8"); child.stderr.setEncoding("utf8");
     child.stdout.on("data", (d) => { out += d; }); child.stderr.on("data", (d) => { out += d; });
     if (limitMs > 0) timer = setTimeout(() => { timedOut = true; stopPidTree(child.pid); }, limitMs);

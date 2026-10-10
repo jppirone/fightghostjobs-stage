@@ -10,8 +10,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { runStep } from "./step-runner.js";
-import { sweepStale } from "./browser-clean.js";
+import { runStep, stopCurrentStep } from "./step-runner.js";
+import { sweepStale, reapOrphans } from "./browser-clean.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const steps = [
@@ -71,6 +71,17 @@ console.log("started " + new Date(t00).toLocaleTimeString());
 {
   const s = sweepStale();
   console.log("start of suite sweep: stopped " + s.stopped.length + " browser(s) of test processes that are gone, removed " + s.removed.length + " marker folder(s) older than a day, left " + s.kept.length + " younger marker folder(s)" + (s.notRemoved.length ? "; could not remove: " + s.notRemoved.join(", ") : ""));
+}
+// Ctrl+C or a terminate request: stop the step that is running (with the test files and browsers below it), remove the folders it left, and end. Nothing is stopped by program name.
+for (const sig of ["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"]) {
+  try {
+    process.on(sig, () => {
+      stopCurrentStep();
+      const r = reapOrphans({ since: t00 - 1000 });
+      console.log("interrupted (" + sig + "): the running step was stopped; " + r.stopped.length + " leftover browser process(es) stopped, " + r.removed.length + " profile folder(s) removed" + (r.notRemoved.length ? "; could not remove: " + r.notRemoved.join(", ") : ""));
+      process.exit(130);
+    });
+  } catch { /* this signal does not exist here */ }
 }
 let failed = 0;
 (async () => {

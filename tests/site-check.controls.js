@@ -922,6 +922,7 @@ control("the step runner no longer stops the processes below a step", "S69", edi
 control("the suite steps have no time limit", "S69", edit("tests/run-all.js", (s) => s.replace("limitMs: lim * 60000", "limitMs: 0")));
 control("the suite no longer ends with the leak check", "S69", edit("tests/run-all.js", (s) => s.replace('[path.join(here, "leak-check.js")], false],', '[path.join(here, "site-check.js")], false],')));
 control("a step is added after the leak check", "S69", edit("tests/run-all.js", (s) => s.replace("];\n// The time limit of one step", '  ["late step", [path.join(here, "unit.test.js")], true],\n];\n// The time limit of one step')));
+control("Ctrl+C no longer stops the running step", "S69", edit("tests/run-all.js", (s) => s.replace("stopCurrentStep();", "")));
 control("the suite no longer sweeps stale folders first", "S69", edit("tests/run-all.js", (s) => s.replace("const s = sweepStale();", "const s = { stopped: [], removed: [], kept: [], notRemoved: [] };")));
 control("the leak check no longer fails", "S69", edit("tests/leak-check.js", (s) => s.replace("process.exit(1);", "process.exit(0);")));
 control("the leak check's own test is gone from the suite", "S69", edit("tests/run-all.js", (s) => s.replace('path.join(here, "leak-check.test.js")], true],', 'path.join(here, "unit.test.js")], true],')));

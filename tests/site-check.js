@@ -1437,6 +1437,7 @@ export function checkSite(root) {
       if (/spawnSync/.test(ra)) add("S69", path.join(root, "tests", "run-all.js"), "every step runs through runStep with a time limit, never spawnSync without one");
       if (!ra.includes("limitMs: lim * 60000")) add("S69", path.join(root, "tests", "run-all.js"), "every step has a time limit (limitMs: lim * 60000)");
       if (!ra.includes("sweepStale()")) add("S69", path.join(root, "tests", "run-all.js"), "the suite starts with a sweep of stale marker folders");
+      if (!ra.includes("stopCurrentStep();") || !ra.includes('"SIGINT"')) add("S69", path.join(root, "tests", "run-all.js"), "Ctrl+C must stop the running step and remove what it left (stopCurrentStep and a SIGINT handler)");
       const k = ra.indexOf('path.join(here, "leak-check.js")'), e = ra.indexOf("];", k);
       if (k < 0 || ra.indexOf('path.join(here, "', k + 10) >= 0 && ra.indexOf('path.join(here, "', k + 10) < e) add("S69", path.join(root, "tests", "run-all.js"), "the leak check must be the LAST step");
       if (!ra.includes('path.join(here, "leak-check.test.js")')) add("S69", path.join(root, "tests", "run-all.js"), "the leak check's own test (tests/leak-check.test.js) must run in the suite");
