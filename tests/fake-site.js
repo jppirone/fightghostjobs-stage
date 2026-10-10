@@ -72,7 +72,9 @@ export function startFakeSite(root, opts = {}) {
         const co = String(body.p_company || "").toLowerCase(), ph = String(body.p_phrase || "").toLowerCase();
         const rows = STAFF_ROWS.filter((r) => r.company_name.toLowerCase().includes(co) && (!ph || r.title.toLowerCase().includes(ph) || (body.p_code ? r.opening_id.replace(/-/g, "") === body.p_code.replace(/-/g, "") : false)));
         const out = opts.staffOmitRegistered ? rows.map((r) => { const q = { ...r }; delete q.is_registered; return q; }) : rows;   // opts.staffOmitRegistered: the staff function before the registered-check migration (no is_registered key)
-        return send(200, { mode: body.p_req ? "req" : body.p_code ? "code" : "phrase", truncated: false, results: out });
+        // opts.staffPlaceOverrides: for each staff result in order an object merged into the row (locations, source_location_text), for the tests of the display-only place text (AZ3)
+        const outPlaced = opts.staffPlaceOverrides ? out.map((r, i) => Object.assign({}, r, (opts.staffPlaceOverrides[i] || {}))) : out;
+        return send(200, { mode: body.p_req ? "req" : body.p_code ? "code" : "phrase", truncated: false, results: outPlaced });
       }
       return send(404, { code: "PGRST202", message: "Could not find the function" });
     }
@@ -100,7 +102,9 @@ export function startFakeSite(root, opts = {}) {
         // opts.registeredValues: what is_registered carries on each result in order (true, false, "true", 1, null, or the word omit to leave the key out), for the tests of the check mark rule
         const vals = opts.registeredValues;
         const rows = RESULTS.filter((p) => p.company_name.toLowerCase().includes(co)).map((p, i) => { const q = { ...p }; if (vals && i < vals.length) { if (vals[i] === "omit") delete q.is_registered; else q.is_registered = vals[i]; } return q; });
-        return send(200, { mode: body.req ? "req" : body.code ? "code" : "phrase", truncated: false, results: rows });
+        // opts.placeOverrides: for each result in order an object merged into the row (locations, is_remote, source_location_text), for the tests of the display-only place text (AZ3)
+        const placed = opts.placeOverrides ? rows.map((r, i) => Object.assign({}, r, (opts.placeOverrides[i] || {}))) : rows;
+        return send(200, { mode: body.req ? "req" : body.code ? "code" : "phrase", truncated: false, results: placed });
       }
       if (name === "candidate-posting-detail" && body.posting_ref === NOLINKS_REF) return send(200, { posting: { ...RESULTS[0], posting_ref: NOLINKS_REF }, links: [], comment_count: 1 });
       if (name === "candidate-posting-detail" && body.posting_ref === CLOSED_REF) return send(409, { error: "posting_not_open", code: "posting_not_open", status: "closed", closed_reason: "filled" });

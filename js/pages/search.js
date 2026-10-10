@@ -12,12 +12,13 @@ import { trapFocus } from "../dialog-focus.js";
 import { makeAnnouncer } from "../search-status.js";
 import { recapSentence } from "../search-recap.js";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js";
-import { locationLine, waitText } from "../format.js";
+import { waitText } from "../format.js";
 import { postingChips, notOpenMessage } from "../chips.js";
 import { aiNotes } from "../ai-notes.js";
 import { COMMENTS_VISIBLE } from "../config.js";
 import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js";
 import { isRegistered } from "../registered.js";
+import { placeParts } from "../place.js";
 import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
@@ -81,6 +82,13 @@ $("#signinForm").addEventListener("submit", async (ev) => {
   } finally { send.disabled = false; send.textContent = label; }
 });
 
+// the place of an opening: the catalog places (or Remote, or "Location not stated"), or, only while it has none, the place as the employer's job board gave it followed by the small note (js/place.js).
+// Built as text nodes only (h() never makes markup), so a "<script>" in the board's text is shown as the characters it is.
+function placeNodes(row) {
+  const p = placeParts(row);
+  return [p.text, p.note ? " " : null, p.note ? h("span", { class: "place-note", style: "font-size:12px;color:var(--faint);" }, p.note) : null];
+}
+
 // ---- search
 function renderCard(row) {
   const chips = postingChips(row).map(chip);
@@ -89,7 +97,7 @@ function renderCard(row) {
       h("div", {},
         h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
         h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
-        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, locationLine(row.is_remote, row.locations) + " · Opening ID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : ""))),
+        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, placeNodes(row), " · Opening ID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : ""))),
       // the check mark only for an opening the DATABASE says is registered (an active paid plan, or a pilot plan with an expiry date): one plain true in the row, nothing else about the plan (js/registered.js)
       isRegistered(row) ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }, "✓ Registered") : null),
     h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, chips),
@@ -138,7 +146,7 @@ function renderStaffCard(row) {
       h("div", {},
         h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
         h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
-        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, locationLine(row.is_remote, row.locations) + " · " + staffIdLine(row))),
+        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, placeNodes(row), " · " + staffIdLine(row))),
       h("div", { style: "flex-shrink:0;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;" },
         h("div", { class: "pill" }, staffStatusLabel(row)),
         isRegistered(row) ? h("div", { class: "pill badge-verified" }, "✓ Registered") : null)),   // the same rule as the public view
@@ -245,6 +253,9 @@ function openModal(row, opener) {
   $("#modalCompany").textContent = row.company_name;
   $("#modalTitle").textContent = row.title;
   $("#modalRefs").textContent = "Opening ID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : "");
+  // the place as the employer's job board gave it (only for an opening with no catalog place), with its small note; hidden for every other opening
+  const place = $("#modalPlace"); clear(place); const shown = placeParts(row).note !== null; place.hidden = !shown;
+  if (shown) place.append(...placeNodes(row).filter((x) => x !== null));
   $("#modalIntro").textContent = "This opening was added through FightGhostJobs by the employer. The dates and disclosures are the employer's own. FightGhostJobs has not confirmed that the job exists, that the employer representative works for the company named, or that the employer will respond.";
   clear($("#modalLinks")); const empty = $("#modalEmpty"); empty.hidden = true; empty.textContent = ""; $("#modalLinksNote").hidden = true; $("#modalMore").hidden = true; clear($("#modalMore"));
   backdrop.classList.add("open");

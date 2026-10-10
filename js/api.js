@@ -20,7 +20,8 @@ const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 // the staff search scope (October 8, 2026): the only keys one row of the staff answer may carry. A row with any other key is refused whole (fail closed: no posting reference, no id, no description, no address can ride along).
 const STAFF_ROW_KEYS = ["ai_filtering", "ai_interview_other", "applicant_cap", "closed_reason", "closes_at", "company_name", "go_live_at", "is_remote", "locations", "opening_id", "organization_name", "posted_at", "req_number", "status", "stored_status", "third_party_recruiter", "title"];
 // October 9, 2026: an 18th key, is_registered (a plain boolean, the database's answer to "does this organization have an active paid plan, or a pilot plan with an expiry date"), is allowed and nothing else. A row without it (an answer from before the database change) is still accepted.
-const STAFF_ROW_OPTIONAL_KEYS = ["is_registered"];
+// October 9, 2026 (prompt AZ3): a 19th key, source_location_text, the place as the employer's job board gave it (or null). Display only, read ONLY by js/place.js; a row from before the database change has neither optional key.
+const STAFF_ROW_OPTIONAL_KEYS = ["is_registered", "source_location_text"];
 export const AUTH_FAILURE_CODES = ["unauthorized", "reverification_required", "no_candidate_identity", "not_a_candidate_session", "invalid_verification_time", "no_session"];
 export const isAuthFailure = (err) => !!err && AUTH_FAILURE_CODES.includes(err.code);
 
