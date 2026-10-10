@@ -4,10 +4,13 @@
 // QUICK MODE, for building only (never evidence for a push): node tests/run-all.js --quick              the unit and API tests plus the static site rules
 //                                                            node tests/run-all.js --quick <name> ...    and also the named test file(s), main tests only (its negative controls are skipped), e.g. --quick search-recap
 // A quick run does NOT run the negative controls (static or browser) and does NOT run the browser tests unless one is named. Its first and last line say so.
-import { spawnSync } from "node:child_process";
+// BROWSERS (prompt BB2, October 10, 2026): every step has a time limit (limitMin below); a step that exceeds it is stopped together with the test files and browsers below it and is reported as FAILED with the reason. Before the first
+// step, a sweep stops browsers of test processes that no longer exist and removes marker profile folders older than a day that no process uses.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { runStep } from "./step-runner.js";
+import { sweepStale } from "./browser-clean.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const steps = [
@@ -35,6 +38,14 @@ const steps = [
   ["static site rules", [path.join(here, "site-check.js")], false],
   ["static rules: negative controls", [path.join(here, "site-check.controls.js")], false],
 ];
+// The time limit of one step, in minutes. Chosen from the measured times (reports\browser-cleanup-report.txt): the slowest healthy browser step takes about 10 minutes and the static controls about 18; the longest test
+// timeout inside a browser file is 58 minutes, so a browser step gets 60 and the test's own timeout still fires first. FGJ_STEP_LIMIT_SCALE multiplies every limit; FGJ_STEP_LIMIT_MIN sets one limit for every step.
+function limitMin(files) {
+  if (process.env.FGJ_STEP_LIMIT_MIN) return Number(process.env.FGJ_STEP_LIMIT_MIN);
+  const base = path.basename(files[0]);
+  const byFile = { "unit.test.js": 15, "indexing.test.js": 15, "site-check.js": 5, "site-check.controls.js": 45 };
+  return (byFile[base] || 60) * (Number(process.env.FGJ_STEP_LIMIT_SCALE) || 1);
+}
 const QUICK_BANNER = "QUICK RUN, NOT A FULL RUN, NOT EVIDENCE FOR A PUSH";
 const args = process.argv.slice(2), quick = args[0] === "--quick";
 let list = steps;
@@ -51,25 +62,32 @@ if (quick) {
 const fmt = (ms) => { const s = ms / 1000; return s < 120 ? s.toFixed(1) + " s" : Math.floor(s / 60) + " min " + String(Math.round(s % 60)).padStart(2, "0") + " s"; };
 const t00 = Date.now(), slow = [];
 console.log("started " + new Date(t00).toLocaleTimeString());
-let failed = 0;
-for (const [name, files, isTest, skipControls] of list) {
-  const t0 = Date.now();
-  const r = spawnSync(process.execPath, isTest ? ["--test", ...(skipControls ? ["--test-skip-pattern=negative controls"] : []), ...files] : files, { encoding: "utf8" });
-  const took = Date.now() - t0;
-  const out = (r.stdout || "") + (r.stderr || "");
-  for (const m of out.matchAll(/^[\u2714\u2716] (.+?) \((\d+(?:\.\d+)?)ms\)$/gm)) slow.push([Number(m[2]), name, m[1]]);
-  const tail = out.trim().split("\n").filter((l) => /^(\u2139 (tests|pass|fail|cancelled)|site-check|caught|MISSED|DIRTY|clean|FINDING)/.test(l)).slice(-60);
-  console.log("== " + name + ": " + (r.status === 0 ? "PASS" : "FAIL") + " (" + fmt(took) + ")");
-  if (r.status !== 0 || process.env.VERBOSE) console.log(tail.join("\n"));
-  else console.log(tail.filter((l) => /^(\u2139 (tests|pass|fail|cancelled)|site-check)/.test(l)).join("\n"));
-  // a failed step also prints what failed (the failing test names and the first assertion or error lines), so the exact message is in the log
-  if (r.status !== 0) console.log(out.split("\n").filter((l) => /^\s*(\u2716 |AssertionError|Error|TypeError|ReferenceError|SyntaxError)/.test(l)).slice(0, 30).join("\n"));
-  if (r.status !== 0) failed++;
+{
+  const s = sweepStale();
+  console.log("start of suite sweep: stopped " + s.stopped.length + " browser(s) of test processes that are gone, removed " + s.removed.length + " marker folder(s) older than a day, left " + s.kept.length + " younger marker folder(s)" + (s.notRemoved.length ? "; could not remove: " + s.notRemoved.join(", ") : ""));
 }
-const total = Date.now() - t00;
-slow.sort((a, b) => b[0] - a[0]);
-console.log("TOTAL " + fmt(total) + " (" + (failed ? failed + " step(s) FAILED" : "every step passed") + "); finished " + new Date().toLocaleTimeString());
-console.log("TEN SLOWEST TESTS (a time per test; the step name shows the file):");
-for (const [ms, step, test] of slow.slice(0, 10)) console.log("  " + fmt(ms).padStart(10) + "  " + test.slice(0, 90) + "  [" + step.slice(0, 50) + "]");
-if (quick) console.log(QUICK_BANNER);
-process.exit(failed ? 1 : 0);
+let failed = 0;
+(async () => {
+  for (const [name, files, isTest, skipControls] of list) {
+    const lim = limitMin(files);
+    const r = await runStep(isTest ? ["--test", ...(skipControls ? ["--test-skip-pattern=negative controls"] : []), ...files] : files, { limitMs: lim * 60000, env: { FGJ_SUITE_START: String(t00) } });
+    const out = r.out;
+    for (const m of out.matchAll(/^[✔✖] (.+?) \((\d+(?:\.\d+)?)ms\)$/gm)) slow.push([Number(m[2]), name, m[1]]);
+    const tail = out.trim().split("\n").filter((l) => /^(ℹ (tests|pass|fail|cancelled)|site-check|caught|MISSED|DIRTY|clean|FINDING|LEAK|browser leak check|browser cleanup)/.test(l)).slice(-60);
+    const ok = r.status === 0;
+    console.log("== " + name + ": " + (ok ? "PASS" : "FAIL") + " (" + fmt(r.ms) + ")");
+    if (r.timedOut) console.log("   STOPPED BY THE STEP TIME LIMIT of " + lim + " min: the step and the test files and browsers below it were stopped" + (r.reaped ? " (" + r.reaped.found + " leftover browser process(es) and folder(s) found, " + r.reaped.stopped.length + " stopped, " + r.reaped.removed.length + " folder(s) removed)" : ""));
+    if (!ok || process.env.VERBOSE) console.log(tail.join("\n"));
+    else console.log(tail.filter((l) => /^(ℹ (tests|pass|fail|cancelled)|site-check|browser leak check)/.test(l)).join("\n"));
+    // a failed step also prints what failed (the failing test names and the first assertion or error lines), so the exact message is in the log
+    if (!ok) console.log(out.split("\n").filter((l) => /^\s*(✖ |AssertionError|Error|TypeError|ReferenceError|SyntaxError)/.test(l)).slice(0, 30).join("\n"));
+    if (!ok) failed++;
+  }
+  const total = Date.now() - t00;
+  slow.sort((a, b) => b[0] - a[0]);
+  console.log("TOTAL " + fmt(total) + " (" + (failed ? failed + " step(s) FAILED" : "every step passed") + "); finished " + new Date().toLocaleTimeString());
+  console.log("TEN SLOWEST TESTS (a time per test; the step name shows the file):");
+  for (const [ms, step, test] of slow.slice(0, 10)) console.log("  " + fmt(ms).padStart(10) + "  " + test.slice(0, 90) + "  [" + step.slice(0, 50) + "]");
+  if (quick) console.log(QUICK_BANNER);
+  process.exit(failed ? 1 : 0);
+})();
