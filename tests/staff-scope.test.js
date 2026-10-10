@@ -2,7 +2,7 @@
 //
 // WHAT IS PROVEN: (1) a signed-out visitor and a signed-in person who is NOT staff get exactly the same page and the same results with scope=all as without it (the same markup, the same candidate search, no banner, no staff word, the same robots tag);
 // any other value of scope (ALL, empty, live, repeated) does not even ask the database; (2) a staff person with scope=all sees the banner, gets every status with its label and nothing to act on (no details window, no comment, no report, no apply link),
-// the page is marked noindex, the request is never cached, nothing is written to the browser's storage and NO candidate function is called (so nothing is counted, recorded or emailed); (3) with the database functions missing, erroring, or the staff search failing
+// the page is marked noindex, the request is never cached, nothing is written to the browser's storage and NO candidate function is called (so nothing is counted, recorded or emailed for candidates; the staff view's own private who-and-when record is the database's, proven in staff-audit-log-migration); (3) with the database functions missing, erroring, or the staff search failing
 // the page falls back to exactly the normal live-only search; (4) a page kept for Back holds no staff results.
 // Then negative controls: one defect at a time in the page code (it trusts the address, no noindex, the banner stays after a fallback, results kept for Back, the wrong banner); each must make a scenario fail.
 // A missing browser FAILS the test (set FGJ_BROWSER). Run: node --test tests/staff-scope.test.js
@@ -78,7 +78,7 @@ const SCENARIOS = {
       if (o.banner || names(site, s0).some((x) => x.startsWith("rpc:"))) bad.push(q + ": the staff scope was asked for or shown (" + names(site, s0) + ")");
     }
     return bad; })); },
-  // a staff person: the banner, every status, nothing to act on, nothing written, nothing counted
+  // a staff person: the banner, every status, nothing to act on, nothing written to the browser, no candidate function called
   async staff(root, who = "cand") { return withSite(root, {}, (site) => withTab(async (tab) => { const bad = [];
     const s0 = await openSearch(tab, site, who, STAFF, "?scope=all"); await tab.waitFor("!!document.querySelector('#staffBanner')", 6000);
     const pre = await tab.eval(SNAP);
@@ -197,7 +197,7 @@ SCENARIOS.robots = async (root) => { const dir = robotsCopy(root); try { return 
   await openSearch(tab, site, "cand", STAFF, "?scope=all"); await tab.waitFor("!!document.querySelector('#staffBanner')", 6000); const b = await tab.eval(SNAP); if (b.robots !== "noindex, nofollow") bad.push("the staff page does not say noindex, nofollow (" + b.robots + ")");
   return bad; })); } finally { fs.rmSync(dir, { recursive: true, force: true }); } };
 
-test("the staff search scope: nothing changes for anyone who is not staff; staff get every status read only, uncounted, uncached and noindex; any failure falls back to the normal search", { timeout: 600000 }, async () => {
+test("the staff search scope: nothing changes for anyone who is not staff; staff get every status with nothing to act on, no candidate count, uncached and noindex; any failure falls back to the normal search", { timeout: 600000 }, async () => {
   const problems = [];
   for (const n of Object.keys(SCENARIOS)) for (const p of await SCENARIOS[n](ROOT)) problems.push(n + ": " + p);
   assert.deepEqual(problems, [], "staff scope problems:\n" + problems.join("\n"));

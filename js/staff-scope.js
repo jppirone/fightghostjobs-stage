@@ -1,7 +1,8 @@
 // staff-scope.js - the staff-only search scope (October 8, 2026). Pure (no DOM, no network): tested in Node by tests/staff-scope.unit.test.js.
 //
 // WHAT IT IS: the search page opened with the address parameter scope=all (the staff build of the browser extension adds it) shows EVERY opening that matches, not only the ones a candidate may see: drafts, scheduled drafts, openings held for
-// review, paused, live, closed and expired ones, each with its status. It is read only.
+// review, paused, live, closed and expired ones, each with its status. It changes nothing and counts nothing for candidates (no impression, no detail view, no email), but each staff search is recorded privately by the database:
+// who searched, when and how many results, never the words searched for (October 9, 2026, staff_search_log).
 // WHO GETS IT: only a signed-in staff person, and the DECISION IS THE DATABASE'S: js/pages/search.js asks public.is_staff() and calls public.staff_search_openings with the person's own token. Anything that is not a clear "yes" from the database
 // (no session, not staff, the functions missing, an error, an odd answer) leaves the page exactly as it is for everyone. This file never decides who is staff; it only reads the address and words what is on screen.
 // THE CONTRACT WITH THE EXTENSION: the address carries scope=all in its query string, nothing else is new. Absent, empty, repeated or any other value means "live only", exactly as before.
@@ -11,7 +12,7 @@ import { aiFilteringChip, aiInterviewChip, CLOSED_REASON_LABEL } from "./chips.j
 
 export const STAFF_BANNER = "Staff view: showing all openings, including ones that are not live.";
 // the line under the search boxes (#titleNote). For everyone else it says a title search will not show openings that are not live; in the staff view that is the opposite of true, so it says what the staff search does.
-export const STAFF_TITLE_NOTE = "Staff view: this search also finds openings that are not live (draft, scheduled, held for review, paused, closed and expired). A title search will not list all of a company's openings.";
+export const STAFF_TITLE_NOTE = "Staff view: this search also finds openings that are not live (draft, scheduled, held for review, paused, closed and expired). A title search will not list all of a company's openings. A private record is kept of who searched and when, never the words searched for.";
 export const STAFF_STATUS_LABEL = { draft: "Draft", scheduled: "Scheduled", flagged: "Held for review", paused: "Paused", live: "Live", closed: "Closed", expired: "Expired" };
 
 // true ONLY for exactly one scope parameter whose value is exactly "all" (no other value, no repeat, no case change)

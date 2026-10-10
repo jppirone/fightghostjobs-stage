@@ -200,7 +200,7 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
   const c = checkCompany(companyIn.value), q = resolveSearch(queryIn.value, reqIn.value);
   if (!c.ok) { setFormError(c.message); companyIn.focus(); return; }
   if (!q.ok) { setFormError(q.message); (q.focus === "req" ? reqIn : queryIn).focus(); return; }
-  if (staffMode && (await runStaffSearch(c, q, { company: companyIn.value, q: queryIn.value, r: reqIn.value }, auto))) return;   // staff scope: the staff answer, read only, nothing stored or counted
+  if (staffMode && (await runStaffSearch(c, q, { company: companyIn.value, q: queryIn.value, r: reqIn.value }, auto))) return;   // staff scope: the staff answer; nothing is stored in the browser or counted for candidates (the database keeps its own private who-and-when record)
   if (!session || !session.isCandidate) {
     // kept in localStorage (all tabs of this browser, one hour, removed when used, never sent anywhere): the emailed link opens in a NEW tab (signin-handoff.js)
     savePending(localStorage, { company: companyIn.value, q: queryIn.value, r: reqIn.value });

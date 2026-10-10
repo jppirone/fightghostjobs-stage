@@ -879,6 +879,10 @@ control("the team page says who can register openings", "S66", edit("team.html",
 control("a search result chip says Registered with a date again", "S66", edit("js/chips.js", (s) => s.replace('text: "Added " + fmtDateTz(p.posted_at, tz)', 'text: "Registered " + fmtDateTz(p.posted_at, tz)')));
 control("the privacy heading says register openings again", "S66", edit("privacy.html", (s) => s.replace("If you add openings", "If you register openings")));
 
+// S65 (2026-10-09, prompt AZ): the staff view says it keeps a private who-and-when record
+control("the staff note loses the private record sentence", "S65", edit("js/staff-scope.js", (s) => s.replace(" A private record is kept of who searched and when, never the words searched for.", "")));
+control("the staff note says read only again", "S65", edit("js/staff-scope.js", (s) => s.replace("A private record is kept of who searched and when, never the words searched for.", "This view is read only.")));
+
 // S67 (2026-10-09): the page never sees a plan; the check mark is one strict boolean read in one place
 control("the search page reads is_registered directly", "S67", edit("js/pages/search.js", (s) => s.replace('isRegistered(row) ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }', 'row.is_registered ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }')));
 control("the staff card draws the mark without the rule", "S67", edit("js/pages/search.js", (s) => s.replace('isRegistered(row) ? h("div", { class: "pill badge-verified" }, "✓ Registered") : null', 'h("div", { class: "pill badge-verified" }, "✓ Registered")')));

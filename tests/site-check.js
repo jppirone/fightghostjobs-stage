@@ -1366,7 +1366,7 @@ export function checkSite(root) {
   }
 
   // S65 (2026-10-08): the staff-only search scope (search.html?scope=all). The decision is the database's (is_staff), never the page's: the staff mode starts ONLY on a clear true from api.isStaff; the staff branch of the search page calls no candidate function
-  // (those count, record or email), stores nothing in the browser, and marks the page noindex; its API calls are never cached; nothing about it is in search.html (the shell is the same for everybody); only the search page may call the two staff functions.
+  // (those count, record or email for candidates), stores nothing in the browser, and marks the page noindex (the database keeps its own private who-and-when record of each staff search: staff-audit-log-migration); its API calls are never cached; nothing about it is in search.html (the shell is the same for everybody); only the search page may call the two staff functions.
   {
     const sj = path.join(root, "js", "pages", "search.js"), ss = path.join(root, "js", "staff-scope.js"), shF = path.join(root, "search.html"), apiF = path.join(root, "js", "api.js");
     if (!fs.existsSync(ss)) add("S65", ss, "js/staff-scope.js must exist");
@@ -1375,6 +1375,9 @@ export function checkSite(root) {
       if (!s.includes('export const STAFF_BANNER = "Staff view: showing all openings, including ones that are not live.";')) add("S65", ss, "the staff banner must be exactly: Staff view: showing all openings, including ones that are not live.");
       if (!s.includes('all.length === 1 && all[0] === "all"')) add("S65", ss, "only exactly one scope parameter whose value is exactly all may ask for the staff scope");
       if (/\b(posting|listing|verified|certified|complian)/i.test(s)) add("S65", ss, "staff scope wording: opening and job ad, never posting, listing, verified, certified or compliant");
+      // October 9, 2026 (prompt AZ): the staff view keeps a private who-and-when record, and the words staff read say so in plain words, with no search words kept
+      if (!s.includes("A private record is kept of who searched and when, never the words searched for.")) add("S65", ss, "the line under the search boxes in the staff view must say: A private record is kept of who searched and when, never the words searched for.");
+      if (/read only/i.test(s)) add("S65", ss, "staff scope text must not say the staff view is read only or writes nothing: it keeps a private who-and-when record");
     }
     if (fs.existsSync(sj)) {
       const c = stripJsComments(read(sj));
