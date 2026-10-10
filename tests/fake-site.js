@@ -51,6 +51,7 @@ const ANALYTICS = { live_postings: 4, searches: 1284, detail_views: 406, link_cl
 export function startFakeSite(root, opts = {}) {
   root = path.resolve(root);
   const calls = []; let SELF = "";
+  let policyState = opts.policy === undefined ? null : opts.policy;   // the AI and hiring policy link the fake backend holds for the one opening (see opts.plan, opts.policy, opts.policyCheck, opts.policyDetail below)
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://x");
     const send = (status, body, extra) => { res.writeHead(status, Object.assign({ "Content-Type": "application/json", "Cache-Control": "no-store" }, extra || {})); res.end(typeof body === "string" ? body : JSON.stringify(body)); };
@@ -88,10 +89,27 @@ export function startFakeSite(root, opts = {}) {
       if (name === "list-my-postings") return poster ? send(200, { total: MINE.length, postings: body.offset ? [] : MINE, next_offset: null }) : unauth();
       if (name === "employer-analytics") return poster ? send(200, ANALYTICS) : unauth();
       if (name === "poster-roster-list") return poster ? send(200, { posters: ROSTER.map((p, i) => (i === 0 ? { ...p, poster_id: c.poster_id } : p)) }) : unauth();
+      // the AI and hiring policy link (prompt BA, October 10, 2026). opts.plan: "locked" (default: not on the destination links tier), "verified" or "lapsed"; opts.policy: the link already stored, { check_status, check_http, shown_as } or null (default none);
+      // opts.policyCheck: what the address check answers when a link is saved ("ok" default, "failed" with HTTP 404, "skipped"); a save is answered 403 plan_required unless opts.plan is "verified". opts.policyDetail: candidates are sent the policy link.
+      const planDoc = () => (opts.plan === "verified" ? { verified: true, source: "pilot", expires_at: null, lapsed: false } : opts.plan === "lapsed" ? { verified: false, source: "paid", expires_at: inDays(-3), lapsed: true } : { verified: false, source: null, expires_at: null, lapsed: false });
+      const policyEntry = () => (policyState ? { position: 1, kind: "policy", firm: null, label: null, shown_as: policyState.shown_as ?? "Employer's own site", check_status: policyState.check_status ?? null, check_http: policyState.check_http ?? null } : null);
+      if (name === "set-destination-links" && poster && body.kind === "policy") {
+        if (opts.plan !== "verified") return send(403, { error: "This feature is part of the destination links tier. Your organization is not on it (or the tier has ended), so nothing was changed. Contact sales@fightghostjobs.com.", code: "plan_required" });
+        const list = Array.isArray(body.links) ? body.links : [];
+        if (list.length > 1) return send(400, { error: "links must contain at most 1 entries", field: "links", errors: [{ field: "links", message: "links must contain at most 1 entries" }] });
+        if (list.length === 0) { const had = !!policyState; policyState = null; return send(200, { posting_id: body.posting_id, kind: "policy", changed: had, active_links: 0, links: [] }); }
+        const u = String(list[0].url || "");
+        if (!/^https:\/\//i.test(u)) return send(400, { error: "url must start with https://", field: "links[0].url", errors: [{ field: "links[0].url", message: "url must start with https://" }] });
+        if (/blocked\.example/.test(u)) return send(400, { error: "url host is not allowed", field: "links[0].url", errors: [{ field: "links[0].url", message: "url host is not allowed" }] });
+        const chk = opts.policyCheck || "ok", next = { check_status: chk, check_http: chk === "failed" ? 404 : chk === "ok" ? 200 : null, shown_as: "Employer's own site" };
+        const changed = !policyState || policyState.check_status !== next.check_status || u !== policyState.url;
+        policyState = { ...next, url: u };
+        return send(200, { posting_id: body.posting_id, kind: "policy", changed, active_links: 1, links: [policyEntry()] });
+      }
       if (name === "get-my-posting") {
         if (!poster) return unauth();
         return send(200, { posting: { id: body.posting_id, title: "Data Analyst", req_number: "4471", company_name: "Meridian Health", post_id: "ABCDEFGHJKMN", status: "live", closed_reason: null, stored_status: "live", is_remote: false, locations: ["Austin, TX"], location_ids: ["gn:4671654"], locations_attested: false, ai_filtering: false, ai_interview_other: null, third_party_recruiter: false, req_searchable: true, destination_links_exclusive: false, applicant_cap: null, description_text: Array.from({ length: 60 }, (_, i) => "requirement" + i).join(" "), window_days: 45, posted_at: inDays(-10), expiration_date: inDays(35), publish_by: null, go_live_at: null, created_at: inDays(-10), last_edited_at: null },
-          destination_links: [], plan: { verified: false, source: null, expires_at: null, lapsed: false }, recent_changes: [{ at: inDays(-2), note: "Fixed a typo in the third paragraph", kind: "text_correction", fields: ["description_text"] }, { at: inDays(-5), note: "Renamed the role", kind: "edit", fields: ["title"] }] });
+          destination_links: policyEntry() ? [policyEntry()] : [], plan: planDoc(), recent_changes: [{ at: inDays(-2), note: "Fixed a typo in the third paragraph", kind: "text_correction", fields: ["description_text"] }, { at: inDays(-5), note: "Renamed the role", kind: "edit", fields: ["title"] }] });
       }
       if (name === "edit-posting") return poster ? send(200, { edited: true, changed_fields: ["title"], similarity_pct: null }) : unauth();   // the saved posting reads back as it was (the fake keeps nothing), so a save ends with nothing unsaved
       if (name === "list-posting-comments") return poster ? send(200, { posting_id: body.posting_id, comments: [{ id: "c1", body: "This role was filled last month, according to a friend who works there.", created_at: inDays(-3), is_mine: false }], total: 1, next_offset: null }) : unauth();   // the employer reads the thread of their own posting
@@ -110,8 +128,16 @@ export function startFakeSite(root, opts = {}) {
       if (name === "candidate-posting-detail" && body.posting_ref === CLOSED_REF) return send(409, { error: "posting_not_open", code: "posting_not_open", status: "closed", closed_reason: "filled" });
       if (name === "candidate-post-comment") return send(200, { comment: { id: "c9", body: String(body.body || ""), created_at: new Date().toISOString(), is_mine: true } });
       if (name === "candidate-report-link") return send(200, { report_id: 1 });
-      if (name === "candidate-posting-detail") { const p = RESULTS.find((x) => x.posting_ref === body.posting_ref); return p ? send(200, { posting: p, links: [{ position: 1, label: "Careers site" }, { position: 2, label: "Apply on LinkedIn, the employer's own page" }] }) : send(404, { error: "not_found", code: "not_found" }); }
-      if (name === "candidate-link-issue") return send(200, { expires_at: inDays(0.0014), links: [{ position: 1, label: "Careers site", go_url: SELF + "/404.html" }] });
+      // opts.policyDetail: true = the AI and hiring policy link is sent with the other links; "only" = it is the only link the opening has (no application link)
+      const POLICY_ENTRY = { position: 1, kind: "policy", firm: null, label: "Employer's own site" };
+      if (name === "candidate-posting-detail") {
+        const p = RESULTS.find((x) => x.posting_ref === body.posting_ref);
+        if (!p) return send(404, { error: "not_found", code: "not_found" });
+        const apply = opts.policyDetail === "only" ? [] : [{ position: 1, label: "Careers site" }, { position: 2, label: "Apply on LinkedIn, the employer's own page" }];
+        return send(200, { posting: p, links: opts.policyDetail ? apply.concat([POLICY_ENTRY]) : apply });
+      }
+      // with opts.policyDetail the one-time links are https addresses the page accepts (the page opens whatever it is given; the test replaces window.open and reads the address); without it the answer is as it always was
+      if (name === "candidate-link-issue") return send(200, { expires_at: inDays(0.0014), links: [{ position: 1, label: "Careers site", go_url: opts.policyDetail ? "https://go.example.invalid/f/apply-1" : SELF + "/404.html" }].concat(opts.policyDetail ? [{ position: 1, kind: "policy", label: "Employer's own site", go_url: "https://go.example.invalid/f/policy-1" }] : []) });
       if (name === "candidate-list-comments") return send(200, { comments: [{ id: "c1", body: "This role was filled last month, according to a friend who works there.", created_at: inDays(-3), is_mine: false }], total: 1, next_offset: null });
       return send(404, { error: "no such function", code: "not_found" });
     }
