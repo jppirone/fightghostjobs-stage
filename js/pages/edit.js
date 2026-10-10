@@ -13,6 +13,7 @@ import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js
 import { loadCatalog } from "../location-catalog.js";
 import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js";
 import { mountLinkPanel } from "../link-panel.js";
+import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, POLICY_REMOVE_CONFIRM, policyLink } from "../policy-link.js";
 import { wireInfoIcons } from "../info-icon.js";
 import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL } from "../dirty-state.js";
 import { mountUnsavedGuard } from "../unsaved-guard.js";
@@ -20,7 +21,7 @@ import { mountUnsavedGuard } from "../unsaved-guard.js";
 wireInfoIcons();
 
 const postingId = new URLSearchParams(location.search).get("id") || "";
-const state = { orig: null, doc: null, aiFilter: null, aiInterview: null, recruiter: false, reqSearchable: true, exclusive: false, plan: null, busy: false, needNote: false, linksBusy: false, firmsBusy: false,
+const state = { orig: null, doc: null, aiFilter: null, aiInterview: null, recruiter: false, reqSearchable: true, exclusive: false, plan: null, busy: false, needNote: false, linksBusy: false, firmsBusy: false, policyBusy: false,
   baseline: null,        // the main form as it was last loaded or saved (dirty-state.js snapshotOf): "unsaved" means "different from this"
   glBaseline: "",        // the go-live box as it was last loaded or saved
   loading: false,        // true while populate() is filling the form, so a half-filled form is never taken for an edit
@@ -130,7 +131,7 @@ const linkPanel = mountLinkPanel({
   onSessionEnded: () => sessionEnded(),
   onStale: async () => { const reload = await api.getMyPosting(postingId); if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.LINKS }); },     // the plan ended, the posting is no longer editable, or the link is gone: start again from the server
   onChanged: async (list) => {                                                                                                // an edit or a remove worked: keep what this page holds in step, then refresh the change list
-    if (state.doc) state.doc.destination_links = list.concat(recruiterFirms(state.doc.destination_links));
+    if (state.doc) state.doc.destination_links = list.concat(recruiterFirms(state.doc.destination_links), policyLink(state.doc.destination_links) ? [policyLink(state.doc.destination_links)] : []);
     $("#clearLinksBtn").hidden = list.length === 0;
     const reload = await api.getMyPosting(postingId);
     if (reload.ok) { state.doc.recent_changes = reload.data.recent_changes; renderChanges(reload.data.recent_changes); }
@@ -207,6 +208,52 @@ async function submitFirms(clearAll) {
 $("#saveFirmsBtn").addEventListener("click", () => submitFirms(false));
 $("#clearFirmsBtn").addEventListener("click", () => { if (window.confirm("Remove every recruiter firm from this opening? You can name them again at any time.")) submitFirms(true); });
 
+// ---- the AI and hiring policy link (prompt BA, October 10, 2026): one more destination link, in the Disclosures area next to the AI toggles. The same tier gate as the links and the firms; its own Save and Remove buttons
+// (Save changes does not save it); the address is write-only (the box starts empty and is never filled from the server). The words and the states are in js/policy-link.js.
+function showPolicyField(msg) { const e = $("#policyError"); e.textContent = msg || ""; e.hidden = !msg; $("#policyUrl").setAttribute("aria-invalid", msg ? "true" : "false"); }
+function renderPolicy(doc, editable) {
+  const row = $("#policyRow"); row.hidden = !editable; if (!editable) return;
+  const v = policyView(doc, Date.now()), note = $("#policyNote"); clear(note); note.hidden = true;
+  $("#policyLocked").hidden = v.show !== "locked";
+  $("#policyForm").hidden = v.show !== "form";
+  if (v.show === "lapsed") { note.hidden = false; note.append(alertBox("notice", policyLapsedText(v))); }
+  if (v.show !== "form") return;
+  const trouble = v.status === "failed" || v.status === "unchecked";
+  const stored = $("#policyStored"); stored.hidden = trouble; stored.textContent = trouble ? "" : policyStoredText(v);
+  if (trouble) { note.hidden = false; note.append(alertBox("notice", policyStoredText(v))); }
+  $("#removePolicyBtn").hidden = !v.stored;
+  if (!state.policyBusy && !state.keepPanels.has(PANEL.POLICY)) { $("#policyUrl").value = ""; showPolicyField(""); }
+}
+async function submitPolicy(remove) {
+  if (state.policyBusy || !state.orig) return;
+  const box = $("#policyAlert"); say(box, "error", ""); showPolicyField("");
+  let url = null;
+  if (!remove) {
+    const c = checkPolicyUrl($("#policyUrl").value);
+    if (!c.ok) { showPolicyField(c.error); $("#policyUrl").focus(); return; }
+    url = c.url;
+  }
+  state.policyBusy = true; $("#savePolicyBtn").disabled = true; $("#removePolicyBtn").disabled = true;
+  try {
+    const r = await api.setPolicyLink(postingId, url);
+    if (!r.ok) {
+      if (isAuthFailure(r.error)) return sessionEnded();
+      const m = mapPolicyError(r.error);
+      if (m.field) { showPolicyField(m.field); $("#policyUrl").focus(); } else say(box, "error", m.general || failureText(r.error));
+      if (m.planRequired) { const reload = await api.getMyPosting(postingId); if (reload.ok) { state.policyBusy = false; await populate(reload.data, { keepForm: true, saved: PANEL.POLICY }); say($("#policyAlert"), "error", m.general); } }
+      return;
+    }
+    state.policyBusy = false;
+    const reload = await api.getMyPosting(postingId);
+    if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.POLICY });
+    const saved = r.data.links.find((x) => x.kind === "policy");
+    say($("#policyAlert"), remove || !saved || saved.check_status === "ok" ? "ok" : "notice", policySavedText(r.data, remove));
+  } finally { state.policyBusy = false; $("#savePolicyBtn").disabled = false; $("#removePolicyBtn").disabled = false; }
+}
+$("#savePolicyBtn").addEventListener("click", () => submitPolicy(false));
+$("#removePolicyBtn").addEventListener("click", () => { if (window.confirm(POLICY_REMOVE_CONFIRM)) submitPolicy(true); });
+$("#policyUrl").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); submitPolicy(false); } });   // Enter saves the policy link, never the whole opening
+
 // opts: keepForm: the main form's unsaved edits stay (another part of the page was just saved, so the posting is read again, but what was typed in the form is not thrown away);
 //       saved: the section that was just saved ("*" = all of them, a discard): the other sections keep what was typed in them and not saved yet
 async function populate(doc, opts) {
@@ -239,6 +286,7 @@ async function populate(doc, opts) {
   form.hidden = !editable;
   renderLinks(doc, editable);
   renderFirms(doc, editable);
+  renderPolicy(doc, editable);
   renderSchedule(p, editable);
   const ro = $("#readonlyNote"); ro.hidden = editable; clear(ro);
   if (!editable) {
@@ -344,6 +392,7 @@ function panelsUnsaved() {
   if (!state.orig) return out;
   if ((shown("#linksForm") && rowsTyped(links.values())) || (shown("#linksPanel") && linkPanel.hasPending())) out.push(PANEL.LINKS);
   if (shown("#firmsForm") && rowsTyped(firms.values())) out.push(PANEL.FIRMS);
+  if (shown("#policyForm") && $("#policyUrl").value.trim() !== "") out.push(PANEL.POLICY);
   if (shown("#scheduleCard") && $("#gldate").value !== state.glBaseline) out.push(PANEL.GOLIVE);
   return out;
 }

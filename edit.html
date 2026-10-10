@@ -102,6 +102,20 @@
         <div class="field-error" data-error-for="aiInterviewNote" hidden></div>
       </div>
 
+      <div id="policyRow" hidden style="display:flex;flex-direction:column;gap:8px;">
+        <label for="policyUrl" id="policyLabel" style="font-size:14px;font-weight:600;">Link to your AI and hiring policy (optional)</label>
+        <div id="policyHint" style="font-size:13px;color:var(--muted);line-height:1.6;">Shown to candidates as a link to your own page. FightGhostJobs checks only that the address answers; it does not read or judge what the page says.</div>
+        <div id="policyLocked" hidden style="font-size:13px;color:var(--muted);line-height:1.6;">Adding a link to your AI and hiring policy is part of the destination links tier. Your organization is not on it. <a href="mailto:sales@fightghostjobs.com?subject=Destination%20links%20tier" style="font-weight:600;">Write to sales@fightghostjobs.com →</a></div>
+        <div id="policyNote" hidden></div>
+        <div id="policyForm" hidden style="display:flex;flex-direction:column;gap:8px;">
+          <div id="policyStored" role="status" style="font-size:13px;line-height:1.6;color:#4A453F;"></div>
+          <input id="policyUrl" type="text" inputmode="url" maxlength="2048" autocomplete="off" spellcheck="false" aria-describedby="policyHint policyStored policyError" placeholder="https://">
+          <div id="policyError" class="field-error" hidden></div>
+          <div id="policyAlert" hidden></div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;"><button type="button" id="savePolicyBtn" class="btn btn-dark btn-sm">Save policy link</button><button type="button" id="removePolicyBtn" class="btn btn-outline btn-sm" hidden>Remove policy link</button></div>
+        </div>
+      </div>
+
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div>
           <div style="font-size:14px;font-weight:600;">Third-party recruiter involved</div>

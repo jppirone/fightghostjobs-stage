@@ -204,7 +204,8 @@ export function storedLinkText(x) {
     + (x.check_status === "failed" ? " (did not answer when we checked" + (Number.isInteger(x.check_http) ? ": HTTP " + x.check_http : "") + ")" : "");
 }
 // the two kinds a stored set holds (get-my-posting lists both together); an answer from before pass C has no kind and is all application links
-export const applyLinks = (list) => (Array.isArray(list) ? list : []).filter((x) => x.kind !== "recruiter");
+// (prompt BA, October 10, 2026: a third kind, "policy", the AI and hiring policy link; it is neither an application link nor a firm and has its own box, js/policy-link.js)
+export const applyLinks = (list) => (Array.isArray(list) ? list : []).filter((x) => x.kind === undefined || x.kind === "apply");
 export const recruiterFirms = (list) => (Array.isArray(list) ? list : []).filter((x) => x.kind === "recruiter");
 
 // What the page says about the plan. plan: what get-my-posting / poster-session returned.

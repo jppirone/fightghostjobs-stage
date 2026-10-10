@@ -66,8 +66,8 @@ export const UNSAVED = {
   LEAVE_SAVE_AND_LEAVE: "Save and leave", LEAVE_SAVE: "Save changes", LEAVE_DISCARD: "Discard and leave", LEAVE_STAY: "Stay on this page",
 };
 // the sections that save through their own button
-export const PANEL = { LINKS: "destination links", FIRMS: "recruiter firms", GOLIVE: "go-live time" };
-const ORDER = [PANEL.LINKS, PANEL.FIRMS, PANEL.GOLIVE];
+export const PANEL = { POLICY: "AI and hiring policy link", LINKS: "destination links", FIRMS: "recruiter firms", GOLIVE: "go-live time" };   // prompt BA: the policy link, in the Disclosures area, saves with its own button
+const ORDER = [PANEL.POLICY, PANEL.LINKS, PANEL.FIRMS, PANEL.GOLIVE];
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const joinNames = (names) => names.length <= 1 ? (names[0] || "") : names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
 

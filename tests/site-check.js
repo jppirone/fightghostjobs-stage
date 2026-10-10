@@ -811,7 +811,7 @@ export function checkSite(root) {
         'titleRule: (status) => "On a " + status + " opening, a new title must keep at least 60% of the wording of the current one. A bigger change needs a new opening.",',
         'noteRequired: (status) => "This opening is " + status + ", so a change to it needs a note. Say what changed and why.",',
         'LEAVE_SAVE_AND_LEAVE: "Save and leave", LEAVE_SAVE: "Save changes", LEAVE_DISCARD: "Discard and leave", LEAVE_STAY: "Stay on this page",',
-        'export const PANEL = { LINKS: "destination links", FIRMS: "recruiter firms", GOLIVE: "go-live time" };', 'out.headline = cap(named) + " not saved yet";',
+        'export const PANEL = { POLICY: "AI and hiring policy link", LINKS: "destination links", FIRMS: "recruiter firms", GOLIVE: "go-live time" };', 'out.headline = cap(named) + " not saved yet";',
         '" not saved yet. Save changes does not save " + itThem + ": use the button in " + section + "."']) if (!c.includes(need)) add("S45", dsF, "dirty-state.js must keep: " + need.slice(0, 90));
       if (raw.includes(EMDASH)) add("S45", dsF, "no em dash in the unsaved-changes words");
     } else add("S45", dsF, "js/dirty-state.js is missing");
