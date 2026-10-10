@@ -139,9 +139,10 @@ control("the comments page names the author", "S29", edit("js/pages/comments.js"
 control("the wrong-link report stops saying it is private", "S29", edit("comments.html", (s) => s.replace("Tell us here, privately:", "Tell us here:")));
 control("the dashboard stops linking the comments", "S29", edit("js/pages/dashboard.js", (s) => s.replace('"comments.html?id=" + encodeURIComponent(p.id)', '"dashboard.html"')));
 // S38 (item 4, 2026-10-03): the destination links rows panel. Write-only: no address on the page, the blank tab first, the plan's words once, no new host.
-const PANEL = "js/link-panel.js", MODEL = "js/link-panel-model.js";
-control("the address box is given the row's address", "S38", edit(PANEL, (s) => s.replace('labelBox.value = row.label || "";', 'labelBox.value = row.label || ""; addr.value = row.url;')));
-control("the address box is created with a value", "S38", edit(PANEL, (s) => s.replace('autocapitalize: "off", spellcheck: "false", "aria-label": LP.addressAria(row.position)', 'autocapitalize: "off", spellcheck: "false", value: "x", "aria-label": LP.addressAria(row.position)')));
+// (prompt BC, October 10, 2026: the rows and the address box are the shared rows panel, js/row-panel.js, so these controls damage THAT file; the destination links profile, js/link-panel.js, is WRAP)
+const PANEL = "js/row-panel.js", WRAP = "js/link-panel.js", MODEL = "js/link-panel-model.js";
+control("the address box is given the row's address", "S38", edit(PANEL, (s) => s.replace("if (secondBox) secondBox.value = S.prefill(row);", "if (secondBox) secondBox.value = S.prefill(row); addr.value = row.url;")));
+control("the address box is created with a value", "S38", edit(PANEL, (s) => s.replace('autocapitalize: "off", spellcheck: "false", "aria-label": E.addressAria(row)', 'autocapitalize: "off", spellcheck: "false", value: "x", "aria-label": E.addressAria(row)')));
 control("the address box loses autocomplete off", "S38", edit(PANEL, (s) => s.replace('maxlength: "2048", autocomplete: "off", autocapitalize', 'maxlength: "2048", autocapitalize')));
 control("the address box gets a value attribute", "S38", append(PANEL, 'const _v = (addr) => addr.setAttribute("value", "x");'));
 control("the address box gets a default value", "S38", append(PANEL, "const _d = (addr) => { addr.defaultValue = 'x'; };"));
@@ -149,8 +150,8 @@ control("the address box is assigned a variable", "S38", append(PANEL, "const _e
 control("a row reads the address field", "S38", edit(MODEL, (s) => s.replace("rows.push({ position: x.position,", "rows.push({ url: x.url, position: x.position,")));
 control("a row reads a host field", "S38", append(MODEL, "const _h = (x) => x.host;"));
 control("a row reads the encrypted address", "S38", append(MODEL, "const _u = (list) => list.map((q) => q.url_enc);"));
-control("the ticket link is shown as the note text", "S38", edit(PANEL, (s) => s.replace('setNote(row.position, { kind: "notice", text: LP.OPENED });', 'setNote(row.position, { kind: "notice", text: r.data.go_url });')));
-control("the ticket link is written into the blocked note", "S38", edit(PANEL, (s) => s.replace('LP.BLOCKED, h("a", { href: note.link', 'LP.BLOCKED, note.link, h("a", { href: note.link')));
+control("the ticket link is shown as the note text", "S38", edit(PANEL, (s) => s.replace('setNote(row.position, { kind: "notice", text: W.OPENED });', 'setNote(row.position, { kind: "notice", text: r.data.go_url });')));
+control("the ticket link is written into the blocked note", "S38", edit(PANEL, (s) => s.replace('W.BLOCKED, h("a", { href: note.link', 'W.BLOCKED, note.link, h("a", { href: note.link')));
 control("the tab is opened after the request", "S38", edit(PANEL, (s) => s.replace("const w = openBlank();", "let w = null;").replace("const opened = !!w", "w = openBlank(); const opened = !!w")));
 control("the opener is not cut", "S38", edit(PANEL, (s) => s.replace("w.opener = null;", "")));
 control("the opener is cut after the tab is pointed", "S38", edit(PANEL, (s) => s.replace("try { w.opener = null; }", "w.location = r.data.go_url; try { w.opener = null; }").replace("        w.location = r.data.go_url;\n", "")));
@@ -169,7 +170,7 @@ control("the old 'not shown back to you' sentence returns", "S38", edit("edit.ht
 control("the old stored-links block returns", "S38", edit("edit.html", (s) => s.replace('<div id="linksList" class="link-list"></div>', '<div id="linksList" class="link-list"></div><div id="linksStored"></div>')));
 control("an em dash in the panel's html", "S38", edit("edit.html", (s) => s.replace('<div id="linksList" class="link-list"></div>', '<div id="linksList" class="link-list" title="a \u2014 b"></div>')));
 control("an em dash in the panel model", "S38", edit(MODEL, (s) => s.replace('LINK_GONE: "That link is no longer stored, so nothing was changed."', 'LINK_GONE: "That link is no longer stored \u2014 so nothing was changed."')));
-control("an em dash in the panel code", "S38", edit(PANEL, (s) => s.replace('"Open Link " + note.position', '"Open Link \u2014 " + note.position')));
+control("an em dash in the panel code", "S38", edit(PANEL, (s) => s.replace('class: "link-open"', 'class: "link-open \u2014"')));
 control("the rows host loses its id", "S38", edit("edit.html", (s) => s.replace('<div id="linksList" class="link-list"></div>', '<div class="link-list"></div>')));
 control("the panel loses its id", "S38", edit("edit.html", (s) => s.replace('<div id="linksPanel" hidden', "<div hidden")));
 control("the check answer accepts extra keys", "S38", edit("js/api.js", (s) => s.replace("Object.keys(d).length === 2 && isStr(d.go_url)", "isStr(d.go_url)")));
@@ -185,13 +186,13 @@ control("a labelled row loses its number in the row title", "S38", edit(MODEL, (
 control("the title form drops the number for a labelled row", "S38", edit(MODEL, (s) => s.replace("linkName(position) + (typeof label", '(typeof label === "string" && label.trim() !== "" ? "" : linkName(position)) + (typeof label')));
 control("the edit dialog title drops the label form", "S38", edit(MODEL, (s) => s.replace('editTitle: (n, label) => "Replace the address for " + linkTitle(n, label),', 'editTitle: (n) => "Replace the address for Link " + n,')));
 control("the remove question drops the label form", "S38", edit(MODEL, (s) => s.replace('removeConfirm: (n, label) => "Remove " + linkTitle(n, label) + "?', 'removeConfirm: (n) => "Remove Link " + n + "?')));
-control("the panel stops passing the label to the confirm sentence", "S38", edit(PANEL, (s) => s.replace("confirmText(row.position, plan, row.label)", "confirmText(row.position, plan)")));
+control("the panel stops passing the label to the confirm sentence", "S38", edit(WRAP, (s) => s.replace("confirmText(row.position, plan, row.label)", "confirmText(row.position, plan)")));
 control("the remove question changes", "S38", edit(MODEL, (s) => s.replace("Candidates will no longer see it.", "Candidates will not see it.")));
 control("the blocked sentence changes", "S38", edit(MODEL, (s) => s.replace("Your browser blocked the new tab.", "Your browser blocked the tab.")));
 control("rows include the recruiter firms", "S38", edit(MODEL, (s) => s.replace("for (const x of applyLinks(", "for (const x of (")));
 control("the edit page stops mounting the panel", "S38", edit("js/pages/edit.js", (s) => s.replace("linkPanel.render(doc.destination_links);", "")));
 control("the edit page draws the old stored sentence", "S38", append("js/pages/edit.js", '$("#linksStored");'));
-control("a row action stops using the stored position", "S38", edit(PANEL, (s) => s.replace("api.removeDestinationLink(ctx.getPostingId(), row.position)", "api.removeDestinationLink(ctx.getPostingId(), 1)")));
+control("a row action stops using the stored position", "S38", edit(WRAP,(s) => s.replace("api.removeDestinationLink(ctx.getPostingId(), row.position)", "api.removeDestinationLink(ctx.getPostingId(), 1)")));
 control("the panel row style is dropped", "S38", edit("app.css", (s) => s.replace(".link-row{display:flex;", ".link-row{display:grid;")));
 control("the privacy page stops saying comments are anonymous", "S29", edit("privacy.html", (s) => s.replace("never who wrote it", "and who wrote it")));
 control("the stage gate stops checking the host (it would run on the real site)", "S30", edit("js/stage-gate.js", (s) => s.replace("if (location.hostname !== HOST) return;", "if (false) return;")));
@@ -944,6 +945,47 @@ control("the policy save changes its request shape", "S70", edit("js/api.js", (s
 control("Enter in the policy box is no longer its own save", "S70", edit("js/pages/edit.js", (s) => s.replace('$("#policyUrl").addEventListener("keydown"', '$("#policyUrl").addEventListener("keyup"')));
 control("the policy link's browser test is not run", "S70", edit("tests/run-all.js", (s) => s.replace('path.join(here, "policy-link.test.js")', 'path.join(here, "place.test.js")')));
 control("the policy link's unit test is not run", "S70", edit("tests/run-all.js", (s) => s.replace('path.join(here, "policy-link.unit.test.js")', 'path.join(here, "place.unit.test.js")')));
+
+// S72 (2026-10-10, prompts BC and BC1): the recruiter firms and the AI and hiring policy link as rows on the shared rows panel
+{
+  const FIRM = "js/firm-panel.js", FMODEL = "js/firm-panel-model.js", POL = "js/policy-panel.js", POLM = "js/policy-link.js", ROW = "js/row-panel.js";
+  control("a firm without an address gets Check link", "S72", edit(FIRM, (s) => s.replace("canCheck: (row) => row.hasAddress,", "canCheck: () => true,")));
+  control("a firm's Edit calls an application link's edit", "S72", edit(FIRM, (s) => s.replace("api.editRecruiterFirm(ctx.getPostingId(), row.position, change)", "api.editDestinationLink(ctx.getPostingId(), row.position, change)")));
+  control("a firm's Remove calls the whole-set replace", "S72", edit(FIRM, (s) => s.replace("api.removeRecruiterFirm(ctx.getPostingId(), row.position)", "api.setRecruiterFirms(ctx.getPostingId(), [])")));
+  control("a firm's Check link asks for an application link", "S72", edit(FIRM, (s) => s.replace("api.checkRecruiterFirm(ctx.getPostingId(), row.position)", "api.checkDestinationLink(ctx.getPostingId(), row.position)")));
+  control("the policy link's Remove calls a firm's remove", "S72", edit(POL, (s) => s.replace("api.setPolicyLink(ctx.getPostingId(), null)", "api.removeRecruiterFirm(ctx.getPostingId(), 1)")));
+  control("the policy link's Edit calls an application link's edit", "S72", edit(POL, (s) => s.replace("api.setPolicyLink(ctx.getPostingId(), change.url)", "api.editDestinationLink(ctx.getPostingId(), 1, { url: change.url })")));
+  control("the policy link's Check link asks for an application link", "S72", edit(POL, (s) => s.replace("api.checkPolicyLink(ctx.getPostingId())", "api.checkDestinationLink(ctx.getPostingId(), 1)")));
+  control("a profile builds a row itself", "S72", append(FIRM, "const _row = () => document.createElement(\"div\");"));
+  control("a profile builds an element with h()", "S72", append(POL, "const _el = (h) => h(\"div\", {}, \"x\");"));
+  control("a firm row reads an address field", "S72", edit(FMODEL, (s) => s.replace("rows.push({ position: x.position,", "rows.push({ url: x.url, position: x.position,")));
+  control("the limit of three firms is removed", "S72", edit(FMODEL, (s) => s.replace("x.position > 3 ||", "x.position > 30 ||")));
+  control("a firm's accessible name loses the word firm", "S72", edit(FMODEL, (s) => s.replace('checkAria = (n) => "Check link for firm " + n', 'checkAria = (n) => "Check link " + n')));
+  control("the policy row's accessible name changes", "S72", edit(POLM, (s) => s.replace('remove: "Remove AI and hiring policy link"', 'remove: "Remove policy link"')));
+  control("the policy row exists with no link stored", "S72", edit(POLM, (s) => s.replace("const l = policyLink(list);\n  if (!l) return [];", "const l = policyLink(list) || { check_status: null };")));
+  control("the shared panel names an api call", "S72", append(ROW, "const _c = (api) => api.setPolicyLink(null, null);"));
+  control("Check link is drawn for every row", "S72", edit(ROW, (s) => s.replace("const check = P.canCheck(row) ? h(", "const check = true ? h(")));
+  control("the check call of a firm names no kind", "S72", edit("js/api.js", (s) => s.replace('call("check-destination-link", { posting_id: postingId, kind: "recruiter", position }', 'call("check-destination-link", { posting_id: postingId, position }')));
+  control("the policy check call asks for kind apply", "S72", edit("js/api.js", (s) => s.replace('call("check-destination-link", { posting_id: postingId, kind: "policy", position: 1 }', 'call("check-destination-link", { posting_id: postingId, kind: "apply", position: 1 }')));
+  control("a firm's answer may be of another kind", "S72", edit("js/api.js", (s) => s.replace('d.kind === "recruiter" && (d.op === "edit" || d.op === "remove")', '(d.op === "edit" || d.op === "remove")')));
+  control("the firm check call says who is asking", "S72", edit("js/api.js", (s) => s.replace('call("check-destination-link", { posting_id: postingId, kind: "recruiter", position }', 'call("check-destination-link", { posting_id: postingId, poster_id: postingId, kind: "recruiter", position }')));
+  control("the candidate's page loads the firm rows", "S72", append("js/pages/search.js", 'import "../firm-panel.js";'));
+  control("the extension's hand-off names the policy row call", "S72", append("js/fragment-prefill.js", "export const _p = (api) => api.checkPolicyLink;"));
+  control("the editor stops drawing the firm rows", "S72", edit("js/pages/edit.js", (s) => s.replace("firmPanel.render(doc.destination_links);", "")));
+  control("Discard leaves the policy row open", "S72", edit("js/pages/edit.js", (s) => s.replace("if (shown(\"#policyPanel\")) policyPanel.discard();", "")));
+  control("the policy row's typed work is not counted as unsaved", "S72", edit("js/pages/edit.js", (s) => s.replace(" || (shown(\"#policyPanel\") && policyPanel.hasPending())", "")));
+  control("the old stored-firms sentence returns", "S72", edit("edit.html", (s) => s.replace('<div id="firmsList" class="link-list"></div>', '<div id="firmsList" class="link-list"></div><div id="firmsStored"></div>')));
+  control("the Remove policy link button returns", "S72", edit("edit.html", (s) => s.replace('<div id="policyAlert" hidden></div>', '<div id="policyAlert" hidden></div><button type="button" id="removePolicyBtn">Remove policy link</button>')));
+  control("the firms hint is dropped from the page", "S72", edit("edit.html", (s) => s.replace('<div id="firmsPanelHint" class="field-hint" style="margin-top:0;" hidden>', '<div class="field-hint" style="margin-top:0;" hidden>')));
+  control("an em dash in the firms area", "S72", edit("edit.html", (s) => s.replace("The other firms are not touched.", "The other firms — are not touched.")));
+  control("the firm rows' browser test is not run", "S72", edit("tests/run-all.js", (s) => s.replace('path.join(here, "firm-rows.test.js")', 'path.join(here, "place.test.js")')));
+  control("the rows' unit test is not run", "S72", edit("tests/run-all.js", (s) => s.replace('path.join(here, "rows-panels.unit.test.js")', 'path.join(here, "place.unit.test.js")')));
+  control("a banned word is in the firm rows' words (the opening vocabulary, rule S66)", "S66", edit(FMODEL, (s) => s.replace("No address was added for this firm, so there is nothing to check.", "No address was added for this firm's posting, so there is nothing to check.")));
+  control("a banned word is in the policy row's words (rule S66)", "S66", edit(POLM, (s) => s.replace("The address is not shown on this page. Use Check link to open it in a new tab,", "The address of the listing is not shown on this page. Use Check link to open it in a new tab,")));
+  control("the shared panel's address box is given a value", "S38", edit(ROW, (s) => s.replace('const addr = h("input", { type: "text", inputmode: "url",', 'const addr = h("input", { type: "text", value: "x", inputmode: "url",')));
+  control("the destination links profile builds its own row", "S72", append(WRAP, "const _row = () => document.createElement(\"li\");"));
+  control("the destination links profile stops using the shared panel", "S72", edit(WRAP, (s) => s.replace("return mountRowPanel({ ...ctx, profile });", "return null;")));
+}
 
 // S71 (2026-10-10, prompt BF): the stage SQL and edge function tools live outside this repository (C:\Users\jpiro\fightghostjobs\tools, next to it). Each control works on a COPY of that folder; the repository copy is only the host of the call.
 {

@@ -107,13 +107,17 @@
         <div id="policyHint" style="font-size:13px;color:var(--muted);line-height:1.6;">Shown to candidates as a link to your own page. FightGhostJobs checks only that the address answers; it does not read or judge what the page says.</div>
         <div id="policyLocked" hidden style="font-size:13px;color:var(--muted);line-height:1.6;">Adding a link to your AI and hiring policy is part of the destination links tier. Your organization is not on it. <a href="mailto:sales@fightghostjobs.com?subject=Destination%20links%20tier" style="font-weight:600;">Write to sales@fightghostjobs.com →</a></div>
         <div id="policyNote" hidden></div>
+        <div id="policyPanel" hidden style="display:flex;flex-direction:column;gap:12px;">
+          <div id="policyPanelHint" class="field-hint" style="margin-top:0;" hidden>The address is not shown on this page. Use Check link to open it in a new tab, Edit to replace it, or Remove to take the link off. The page you are taken to may show its own address in its tab; that is normal.</div>
+          <div id="policyList" class="link-list"></div>
+        </div>
         <div id="policyForm" hidden style="display:flex;flex-direction:column;gap:8px;">
           <div id="policyStored" role="status" style="font-size:13px;line-height:1.6;color:#4A453F;"></div>
           <input id="policyUrl" type="text" inputmode="url" maxlength="2048" autocomplete="off" spellcheck="false" aria-describedby="policyHint policyStored policyError" placeholder="https://">
           <div id="policyError" class="field-error" hidden></div>
-          <div id="policyAlert" hidden></div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;"><button type="button" id="savePolicyBtn" class="btn btn-dark btn-sm">Save policy link</button><button type="button" id="removePolicyBtn" class="btn btn-outline btn-sm" hidden>Remove policy link</button></div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;"><button type="button" id="savePolicyBtn" class="btn btn-dark btn-sm">Save policy link</button></div>
         </div>
+        <div id="policyAlert" hidden></div>
       </div>
 
       <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -199,7 +203,8 @@
         <div id="firmsLocked" hidden style="font-size:13px;color:var(--muted);line-height:1.6;">Naming the recruiter firm is part of the destination links tier. Your organization is not on it. <a href="mailto:sales@fightghostjobs.com?subject=Destination%20links%20tier" style="font-weight:600;">Write to sales@fightghostjobs.com →</a></div>
         <div id="firmsNote" hidden></div>
         <div id="firmsForm" hidden style="display:flex;flex-direction:column;gap:12px;">
-          <div id="firmsStored" style="font-size:13px;line-height:1.6;color:#4A453F;"></div>
+          <div id="firmsPanelHint" class="field-hint" style="margin-top:0;" hidden>These firm addresses are not shown on this page. Use Check link to open one in a new tab, Edit to change a firm's name or replace its address, or Remove to take one firm out. The other firms are not touched. The page you are taken to may show its own address in its tab; that is normal.</div>
+          <div id="firmsList" class="link-list"></div>
           <div class="field-hint" style="margin-top:0;">Up to 3 firms. Candidates see the name as "Recruiter firm: …". The address is optional and, like a destination link, is never shown to them: they see where it goes. What you save replaces what is stored. The firms stay with the opening; while the recruiter toggle above is off they are hidden from candidates, not deleted.</div>
           <div id="firmRows" style="display:flex;flex-direction:column;gap:12px;"></div>
           <div><button type="button" id="addFirmBtn" class="btn btn-outline btn-sm">Add another firm</button></div>

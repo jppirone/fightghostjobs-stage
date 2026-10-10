@@ -80,3 +80,38 @@ export function candidatePolicyLine(links) {
 }
 // the links a candidate may APPLY through (and report): everything except the policy link
 export const applicationLinks = (links) => (Array.isArray(links) ? links : []).filter((x) => x && x.kind !== "policy");
+
+// ---- the row (prompt BC, October 10, 2026): once a link is stored it is one row like the destination links and the recruiter firms, with Check link, Edit and Remove (js/policy-panel.js over js/row-panel.js).
+// The words of the row are here; nothing about what candidates are shown changes (the candidate line, the tier gate and the stored check are as BA built them).
+export const POLICY_TITLE = "AI and hiring policy link";
+export const policyAria = { check: "Check link for AI and hiring policy link", edit: "Edit AI and hiring policy link", remove: "Remove AI and hiring policy link" };
+export const POLICY_ROW_HINT = "The address is not shown on this page. Use Check link to open it in a new tab, Edit to replace it, or Remove to take the link off. The page you are taken to may show its own address in its tab; that is normal.";
+export const POLICY_EDIT_HELP = "The current address is not shown. Enter the full new address.";
+export const POLICY_ADDRESS_ARIA = "Address for the AI and hiring policy link";
+export const POLICY_EDIT_TITLE = "Replace the address of the AI and hiring policy link";
+export const POLICY_CONFIRM_REPLACE = "Replace the address of the AI and hiring policy link? Candidates are sent to the address you entered, once a check of it answers.";
+export const POLICY_OPEN_LABEL = "Open AI and hiring policy link";
+// the one row, or none: from get-my-posting's destination_links (or an answer's links)
+export function policyRows(list) {
+  const l = policyLink(list);
+  if (!l) return [];
+  const c = l.check_status;
+  return [{ position: 1, title: POLICY_TITLE, status: c === "ok" ? "ok" : c === "failed" ? "failed" : "unchecked", http: Number.isInteger(l.check_http) ? l.check_http : null, shownAs: typeof l.shown_as === "string" && l.shown_as !== "" ? l.shown_as : null }];
+}
+export const policySignature = (rows) => JSON.stringify(rows.map((r) => [r.position, r.status, r.http, r.shownAs]));
+// the lines under the title: what candidates see for it (only while the stored check answered), and what the check said
+export function policyRowMeta(row) {
+  if (row.status === "ok") return ["Candidates see: " + POLICY_LINE_LABEL + " " + (row.shownAs || "your link"), "When we checked, the address answered."];
+  return ["Candidates see: nothing yet."];
+}
+// a check that did not pass is told in the row, in the amber notice (the same sentence as the line under the box when a link is saved)
+export function policyRowNotice(row) {
+  if (row.status === "ok") return null;
+  return { kind: "notice", text: policyStoredText({ stored: true, status: row.status, http: row.http, shownAs: row.shownAs }) };
+}
+// what the Edit box asked for: the new address, always (there is nothing else to change). -> { ok, errors: { url? }, change: { url } | null, replacesAddress }
+export function planPolicyEdit(addressText) {
+  const c = checkPolicyUrl(addressText);
+  if (!c.ok) return { ok: false, errors: { url: c.error }, change: null, replacesAddress: true };
+  return { ok: true, errors: {}, change: { url: c.url }, replacesAddress: true };
+}

@@ -108,6 +108,10 @@ export const shapes = {
     && isNullable(l.label, isStr) && shapes.linkExtras(l),
   linkOpAnswer: (d) => isObj(d) && Object.keys(d).every((k) => LINK_OP_KEYS.includes(k)) && UUID_RE.test(d.posting_id) && d.kind === "apply" && (d.op === "edit" || d.op === "remove") && Number.isInteger(d.position) && d.position >= 1 && d.position <= 10 && isBool(d.changed)
     && Number.isInteger(d.active_links) && Array.isArray(d.links) && d.links.length <= 10 && d.links.length === d.active_links && d.links.every(shapes.linkRow) && d.links.every((l, i) => i === 0 || d.links[i - 1].position < l.position),
+  // prompt BC (October 10, 2026): the answer of an edit or a remove of ONE recruiter firm: the firms after the change by their stored positions (1 to 3, ascending, gaps allowed), each with only the seven fields a stored link carries
+  firmRow: (l) => isObj(l) && Object.keys(l).every((k) => LINK_ROW_KEYS.includes(k)) && Number.isInteger(l.position) && l.position >= 1 && l.position <= 3 && l.kind === "recruiter" && isStr(l.firm) && l.label === null && shapes.linkExtras(l),
+  firmOpAnswer: (d) => isObj(d) && Object.keys(d).every((k) => LINK_OP_KEYS.includes(k)) && UUID_RE.test(d.posting_id) && d.kind === "recruiter" && (d.op === "edit" || d.op === "remove") && Number.isInteger(d.position) && d.position >= 1 && d.position <= 3 && isBool(d.changed)
+    && Number.isInteger(d.active_links) && Array.isArray(d.links) && d.links.length <= 3 && d.links.length === d.active_links && d.links.every(shapes.firmRow) && d.links.every((l, i) => i === 0 || d.links[i - 1].position < l.position),
   openAnswer: (d) => isObj(d) && shapes.openPosting(d.posting) && shapes.storedLinks(d.destination_links) && shapes.plan(d.plan) && Array.isArray(d.recent_changes) && d.recent_changes.length <= 5
     && d.recent_changes.every((c) => isObj(c) && isStr(c.at) && isStr(c.note) && isNullable(c.kind, isStr) && Array.isArray(c.fields) && c.fields.every(isStr)),
   // schedule-posting: whether anything changed, the go-live time now stored (null = removed) and the resulting status
@@ -224,6 +228,28 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     removeDestinationLink: async (postingId, position) => {
       if (!UUID_RE.test(postingId) || !Number.isInteger(position) || position < 1 || position > 10) return { ok: false, status: 0, error: { code: "invalid_request" } };
       return call("set-destination-links", { posting_id: postingId, kind: "apply", op: "remove", position }, { validate: (d) => shapes.linkOpAnswer(d) && d.op === "remove" && d.position === position && d.posting_id.toLowerCase() === postingId.toLowerCase() });
+    },
+    // prompt BC: the same three one-row actions for ONE named recruiter firm (position 1 to 3), and Check link for the AI and hiring policy link (position 1). The poster comes from the session only; no address is ever sent back.
+    checkRecruiterFirm: async (postingId, position) => {
+      if (!UUID_RE.test(postingId) || !Number.isInteger(position) || position < 1 || position > 3) return { ok: false, status: 0, error: { code: "invalid_request" } };
+      return call("check-destination-link", { posting_id: postingId, kind: "recruiter", position }, { validate: shapes.checkIssue });
+    },
+    // change = { url?, name? }: a blank or missing url keeps the stored address; name absent keeps the name. At least one of the two is required.
+    editRecruiterFirm: async (postingId, position, change) => {
+      const c = isObj(change) ? change : {}, hasUrl = isStr(c.url) && c.url.trim() !== "", hasName = isStr(c.name) && c.name.trim() !== "";
+      if (!UUID_RE.test(postingId) || !Number.isInteger(position) || position < 1 || position > 3 || !(hasUrl || hasName) || (c.url !== undefined && !isStr(c.url)) || (c.name !== undefined && !isStr(c.name))) return { ok: false, status: 0, error: { code: "invalid_request" } };
+      const body = { posting_id: postingId, kind: "recruiter", op: "edit", position };
+      if (hasUrl) body.url = c.url.trim();
+      if (hasName) body.name = c.name.trim();
+      return call("set-destination-links", body, { validate: (d) => shapes.firmOpAnswer(d) && d.op === "edit" && d.position === position && d.posting_id.toLowerCase() === postingId.toLowerCase() });
+    },
+    removeRecruiterFirm: async (postingId, position) => {
+      if (!UUID_RE.test(postingId) || !Number.isInteger(position) || position < 1 || position > 3) return { ok: false, status: 0, error: { code: "invalid_request" } };
+      return call("set-destination-links", { posting_id: postingId, kind: "recruiter", op: "remove", position }, { validate: (d) => shapes.firmOpAnswer(d) && d.op === "remove" && d.position === position && d.posting_id.toLowerCase() === postingId.toLowerCase() });
+    },
+    checkPolicyLink: async (postingId) => {
+      if (!UUID_RE.test(postingId)) return { ok: false, status: 0, error: { code: "invalid_request" } };
+      return call("check-destination-link", { posting_id: postingId, kind: "policy", position: 1 }, { validate: shapes.checkIssue });
     },
     listMyPostings: (offset) => call("list-my-postings", offset ? { offset } : {}, { validate: shapes.myPostings }),
     // the caller's own six analytics metrics over [from, to) (pass 24); from/to are ISO-8601 instants. The organization is taken server-side from the signed-in session, never sent here.

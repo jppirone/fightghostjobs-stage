@@ -52,6 +52,8 @@ export function startFakeSite(root, opts = {}) {
   root = path.resolve(root);
   const calls = []; let SELF = "";
   let policyState = opts.policy === undefined ? null : opts.policy;   // the AI and hiring policy link the fake backend holds for the one opening (see opts.plan, opts.policy, opts.policyCheck, opts.policyDetail below)
+  // the recruiter firms the fake backend holds for the one opening (prompt BC, October 10, 2026): opts.firms = [{ firm, with_address (default true), check_status, check_http, shown_as }] in position order; opts.recruiter: the saved toggle is on
+  let firmsState = (opts.firms || []).map((f, i) => ({ position: i + 1, firm: f.firm, has_url: f.with_address !== false, shown_as: f.shown_as === undefined ? "Employer's own site" : f.shown_as, check_status: f.check_status || "ok", check_http: f.check_http === undefined ? (f.check_status === "failed" ? 404 : 200) : f.check_http }));
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://x");
     const send = (status, body, extra) => { res.writeHead(status, Object.assign({ "Content-Type": "application/json", "Cache-Control": "no-store" }, extra || {})); res.end(typeof body === "string" ? body : JSON.stringify(body)); };
@@ -93,6 +95,42 @@ export function startFakeSite(root, opts = {}) {
       // opts.policyCheck: what the address check answers when a link is saved ("ok" default, "failed" with HTTP 404, "skipped"); a save is answered 403 plan_required unless opts.plan is "verified". opts.policyDetail: candidates are sent the policy link.
       const planDoc = () => (opts.plan === "verified" ? { verified: true, source: "pilot", expires_at: null, lapsed: false } : opts.plan === "lapsed" ? { verified: false, source: "paid", expires_at: inDays(-3), lapsed: true } : { verified: false, source: null, expires_at: null, lapsed: false });
       const policyEntry = () => (policyState ? { position: 1, kind: "policy", firm: null, label: null, shown_as: policyState.shown_as ?? "Employer's own site", check_status: policyState.check_status ?? null, check_http: policyState.check_http ?? null } : null);
+      const firmEntries = () => firmsState.map((f) => ({ position: f.position, kind: "recruiter", firm: f.firm, label: null, shown_as: f.has_url ? f.shown_as : null, check_status: f.has_url ? f.check_status : null, check_http: f.has_url ? f.check_http : null }));
+      const PLAN_REFUSAL = { error: "This feature is part of the destination links tier. Your organization is not on it (or the tier has ended), so nothing was changed. Contact sales@fightghostjobs.com.", code: "plan_required" };
+      // Check link for a firm or for the policy link: a one-time ticket (an https address on a host that is not the site; the test replaces window.open and reads it)
+      if (name === "check-destination-link" && poster) {
+        if (opts.plan !== "verified") return send(403, PLAN_REFUSAL);
+        if (opts.checkLinkRefused) return send(429, { error: "rate_limited", code: "rate_limited" }, { "Retry-After": "30" });
+        const missing = () => send(404, { error: "link_not_found", code: "link_not_found" });
+        if (body.kind === "recruiter") { const f = firmsState.find((x) => x.position === body.position); if (!f || !f.has_url) return missing(); }
+        else if (body.kind === "policy") { if (!policyState || body.position !== 1) return missing(); }
+        else return missing();   // application links are not modeled by this fake
+        return send(200, { go_url: "https://go.example.invalid/check/" + body.kind + "-" + body.position, expires_at: new Date(Date.now() + 60000).toISOString() });
+      }
+      // one-firm changes by stored position (edit: a new address and/or a new name; remove) and the whole-set replace of the firms
+      if (name === "set-destination-links" && poster && body.kind === "recruiter" && body.op) {
+        if (opts.plan !== "verified") return send(403, PLAN_REFUSAL);
+        const f = firmsState.find((x) => x.position === body.position);
+        if (!f) return send(404, { error: "link_not_found", code: "link_not_found" });
+        let changed = false;
+        if (body.op === "remove") { firmsState = firmsState.filter((x) => x !== f); changed = true; }
+        else {
+          if (typeof body.url === "string" && body.url.trim() !== "") {
+            if (!/^https:\/\//i.test(body.url)) return send(400, { error: "url must start with https://", field: "url", errors: [{ field: "url", message: "url must start with https://" }] });
+            if (/blocked\.example/.test(body.url)) return send(400, { error: "url host is not allowed", field: "url", errors: [{ field: "url", message: "url host is not allowed" }] });
+            f.has_url = true; f.url = body.url; f.check_status = opts.firmCheck || "ok"; f.check_http = f.check_status === "failed" ? 404 : 200; changed = true;
+          }
+          if (typeof body.name === "string" && body.name.trim() !== "" && body.name.trim() !== f.firm) { f.firm = body.name.trim(); changed = true; }
+        }
+        return send(200, { posting_id: body.posting_id, kind: "recruiter", op: body.op, position: body.position, changed, active_links: firmsState.length, links: firmEntries() });
+      }
+      if (name === "set-destination-links" && poster && body.kind === "recruiter") {
+        if (opts.plan !== "verified") return send(403, PLAN_REFUSAL);
+        const list = Array.isArray(body.links) ? body.links : [];
+        if (list.length > 3) return send(400, { error: "links must contain at most 3 entries", field: "links", errors: [{ field: "links", message: "links must contain at most 3 entries" }] });
+        firmsState = list.map((x, i) => ({ position: i + 1, firm: String(x.name || ""), has_url: typeof x.url === "string" && x.url !== "", shown_as: "Employer's own site", check_status: opts.firmCheck || "ok", check_http: opts.firmCheck === "failed" ? 404 : 200 }));
+        return send(200, { posting_id: body.posting_id, kind: "recruiter", changed: true, active_links: firmsState.length, links: firmEntries() });
+      }
       if (name === "set-destination-links" && poster && body.kind === "policy") {
         if (opts.plan !== "verified") return send(403, { error: "This feature is part of the destination links tier. Your organization is not on it (or the tier has ended), so nothing was changed. Contact sales@fightghostjobs.com.", code: "plan_required" });
         const list = Array.isArray(body.links) ? body.links : [];
@@ -108,8 +146,8 @@ export function startFakeSite(root, opts = {}) {
       }
       if (name === "get-my-posting") {
         if (!poster) return unauth();
-        return send(200, { posting: { id: body.posting_id, title: "Data Analyst", req_number: "4471", company_name: "Meridian Health", post_id: "ABCDEFGHJKMN", status: "live", closed_reason: null, stored_status: "live", is_remote: false, locations: ["Austin, TX"], location_ids: ["gn:4671654"], locations_attested: false, ai_filtering: false, ai_interview_other: null, third_party_recruiter: false, req_searchable: true, destination_links_exclusive: false, applicant_cap: null, description_text: Array.from({ length: 60 }, (_, i) => "requirement" + i).join(" "), window_days: 45, posted_at: inDays(-10), expiration_date: inDays(35), publish_by: null, go_live_at: null, created_at: inDays(-10), last_edited_at: null },
-          destination_links: policyEntry() ? [policyEntry()] : [], plan: planDoc(), recent_changes: [{ at: inDays(-2), note: "Fixed a typo in the third paragraph", kind: "text_correction", fields: ["description_text"] }, { at: inDays(-5), note: "Renamed the role", kind: "edit", fields: ["title"] }] });
+        return send(200, { posting: { id: body.posting_id, title: "Data Analyst", req_number: "4471", company_name: "Meridian Health", post_id: "ABCDEFGHJKMN", status: "live", closed_reason: null, stored_status: "live", is_remote: false, locations: ["Austin, TX"], location_ids: ["gn:4671654"], locations_attested: false, ai_filtering: false, ai_interview_other: null, third_party_recruiter: opts.recruiter === true || firmsState.length > 0, req_searchable: true, destination_links_exclusive: false, applicant_cap: null, description_text: Array.from({ length: 60 }, (_, i) => "requirement" + i).join(" "), window_days: 45, posted_at: inDays(-10), expiration_date: inDays(35), publish_by: null, go_live_at: null, created_at: inDays(-10), last_edited_at: null },
+          destination_links: firmEntries().concat(policyEntry() ? [policyEntry()] : []), plan: planDoc(), recent_changes: [{ at: inDays(-2), note: "Fixed a typo in the third paragraph", kind: "text_correction", fields: ["description_text"] }, { at: inDays(-5), note: "Renamed the role", kind: "edit", fields: ["title"] }] });
       }
       if (name === "edit-posting") return poster ? send(200, { edited: true, changed_fields: ["title"], similarity_pct: null }) : unauth();   // the saved posting reads back as it was (the fake keeps nothing), so a save ends with nothing unsaved
       if (name === "list-posting-comments") return poster ? send(200, { posting_id: body.posting_id, comments: [{ id: "c1", body: "This role was filled last month, according to a friend who works there.", created_at: inDays(-3), is_mine: false }], total: 1, next_offset: null }) : unauth();   // the employer reads the thread of their own posting

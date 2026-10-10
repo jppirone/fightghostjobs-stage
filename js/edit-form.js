@@ -140,6 +140,15 @@ export function checkLinks(rows) {
   return out;
 }
 
+// prompt BC (October 10, 2026): the address rules in one place for the rows' edit forms: https, a real address, at most 2048 characters. -> an error sentence, or null when the address is fine
+export function addressProblem(text) {
+  const url = String(text == null ? "" : text).trim();
+  if (url.length > MAX_URL) return "Keep the address to " + MAX_URL + " characters or fewer.";
+  if (!/^https:\/\//i.test(url)) return "The address must start with https://";
+  try { const u = new URL(url); if (u.protocol === "https:" && u.hostname !== "") return null; } catch { /* not an address */ }
+  return "That does not look like a web address.";
+}
+
 // ---- recruiter firms (pass C): the same call replaces the posting's whole set of named firms (kind = recruiter): 1 to 3 rows of { name, url? }; the name is required, the link optional.
 export const MAX_FIRMS = 3, MAX_FIRM_NAME = 200;
 // rows: [{ name, url }] as typed (a row with both boxes empty is ignored). -> { ok, errors: { rowIndex: { name?, url? } }, form?, links: [{ name, url? }] (the rows that are fine, in order), rowOf }

@@ -1,6 +1,6 @@
 // policy-link.test.js - the employer's AI and hiring policy link in a real browser (October 10, 2026, prompt BA). The repo's own files and a fake backend (tests/fake-site.js; no real project, no key, no network).
 //
-// THE EDITOR (edit.html, the Disclosures area, directly under the two AI toggles): a box with its own Save policy link and Remove policy link buttons, behind the SAME tier check as the destination links.
+// THE EDITOR (edit.html, the Disclosures area, directly under the two AI toggles): a box with its own Save policy link button while none is stored, and ONE ROW (Check link, Edit, Remove: prompt BC1) once a link is stored, behind the SAME tier check as the destination links.
 //   not on the tier: the sales notice and no box; on the tier and empty; on the tier with a stored link whose check answered, did not answer, or could not be tried (the employer is told candidates are not shown it);
 //   lapsed: kept and hidden, said so. A refused address shows its reason under the box; nothing typed is sent without being checked first; Enter saves the policy link and never the whole opening; the unsaved bar names it.
 // THE CANDIDATE (search.html, the details window): one line "AI and hiring policy: <where it goes>" only when the server sent the entry, through the same one-time link as the other links; it never takes the place of an application link,
@@ -81,13 +81,13 @@ const SCENARIOS = {
   async empty(root) { return withSite(root, { plan: "verified" }, (site) => withTab(async (tab) => { const bad = [];
     await openEdit(tab, site);
     if (!(await visible(tab, "#policyUrl")) || !(await visible(tab, "#savePolicyBtn"))) bad.push("an organization on the tier does not get the box and its Save button");
-    if (await visible(tab, "#removePolicyBtn")) bad.push("Remove is offered with nothing stored");
+    if (await visible(tab, "#policyPanel") || (await visible(tab, "#policyList .link-row"))) bad.push("a row (Check link, Edit, Remove) is drawn with nothing stored");
     if (await visible(tab, "#policyLocked")) bad.push("the sales notice is shown to an organization on the tier");
     if ((await text(tab, "#policyStored")) !== "No AI and hiring policy link is saved.") bad.push("the stored line is '" + (await text(tab, "#policyStored")) + "'");
     const v = await tab.eval("document.querySelector('#policyUrl').value");
     if (v !== "") bad.push("the box is not empty at the start");
     // names a screen reader reads
-    const names = await tab.eval("(() => { const i = document.querySelector('#policyUrl'); const l = document.querySelector('label[for=policyUrl]'); return { label: l ? l.innerText.trim() : null, desc: (i.getAttribute('aria-describedby') || '').split(' ').map((id) => (document.getElementById(id) || {}).id).filter(Boolean), save: document.querySelector('#savePolicyBtn').innerText.trim(), remove: document.querySelector('#removePolicyBtn').innerText.trim() }; })()");
+    const names = await tab.eval("(() => { const i = document.querySelector('#policyUrl'); const l = document.querySelector('label[for=policyUrl]'); return { label: l ? l.innerText.trim() : null, desc: (i.getAttribute('aria-describedby') || '').split(' ').map((id) => (document.getElementById(id) || {}).id).filter(Boolean), save: document.querySelector('#savePolicyBtn').innerText.trim() }; })()");
     if (names.label !== "Link to your AI and hiring policy (optional)") bad.push("the box has no label that names it: " + JSON.stringify(names));
     if (!names.desc.includes("policyHint")) bad.push("the hint is not tied to the box");
     if (names.save !== "Save policy link") bad.push("the button is called '" + names.save + "'");
@@ -112,13 +112,17 @@ const SCENARIOS = {
     const msg = await text(tab, "#policyAlert");
     if (!/^Saved\. Candidates see it as AI and hiring policy: Employer's own site\./.test(msg || "")) bad.push("the message is '" + msg + "'");
     if ((await tab.eval("document.querySelector('#policyUrl').value")) !== "") bad.push("the address was put back into the box (it is write-only)");
-    if (!(await visible(tab, "#removePolicyBtn"))) bad.push("Remove is not offered after a save");
+    if (!(await visible(tab, "#policyList .link-row"))) bad.push("the stored link is not drawn as a row after a save");
+    if (await visible(tab, "#policyUrl") || await visible(tab, "#savePolicyBtn")) bad.push("the box and its Save button stay beside the row");
     if (await visible(tab, "#unsavedBar")) bad.push("the unsaved bar stayed after the save");
-    if (!/Candidates see it as AI and hiring policy: Employer's own site\. When we checked, the address answered\./.test((await text(tab, "#policyStored")) || "")) bad.push("the stored line is '" + (await text(tab, "#policyStored")) + "'");
+    if ((await text(tab, "#policyList .link-row-title")) !== "AI and hiring policy link") bad.push("the row is titled '" + (await text(tab, "#policyList .link-row-title")) + "'");
+    if (!/Candidates see: AI and hiring policy: Employer's own site When we checked, the address answered\./.test((await text(tab, "#policyList .link-row-main")) || "")) bad.push("the row says '" + (await text(tab, "#policyList .link-row-main")) + "'");
     if (await visible(tab, "#clearLinksBtn")) bad.push("the policy link was counted as an application link (the panel offers to remove them)");
-    // Remove
-    await tab.eval("document.querySelector('#removePolicyBtn').click()");
-    await tab.waitFor("!document.querySelector('#removePolicyBtn') || document.querySelector('#removePolicyBtn').hidden", 8000); await sleep(400);
+    // Remove, from the row: it asks first, then takes only the policy link off
+    await tab.eval("document.querySelector('#policyList button[aria-label=\"Remove AI and hiring policy link\"]').click()"); await sleep(300);
+    if (callsOf(site, "set-destination-links").length !== 1) bad.push("Remove sent something before the person confirmed");
+    await tab.eval("document.querySelector('#policyList .link-remove button.btn-dark').click()");
+    await tab.waitFor("document.querySelector('#policyPanel').hidden", 8000); await sleep(400);
     const c2 = callsOf(site, "set-destination-links");
     if (c2.length !== 2 || JSON.stringify(c2[1].body) !== JSON.stringify({ posting_id: PID, kind: "policy", links: [] })) bad.push("Remove sent " + JSON.stringify(c2[1] && c2[1].body));
     if (!/^Removed\./.test((await text(tab, "#policyAlert")) || "")) bad.push("the message after Remove is '" + (await text(tab, "#policyAlert")) + "'");
@@ -128,14 +132,16 @@ const SCENARIOS = {
     await typeIn(tab, "#policyUrl", "https://policy.own-employer.example/gone");
     await tab.eval("document.querySelector('#savePolicyBtn').click()");
     await tab.waitFor("document.querySelector('#policyAlert') && !document.querySelector('#policyAlert').hidden", 8000); await sleep(500);
-    const msg = await text(tab, "#policyAlert"), note = await text(tab, "#policyNote");
+    const msg = await text(tab, "#policyAlert"), note = await text(tab, "#policyList");
     if (!/did not answer \(HTTP 404\)\. Candidates are not shown it until a check answers/.test(msg || "")) bad.push("the message after the save is '" + msg + "'");
-    if (!/did not answer \(HTTP 404\)\. Candidates are not shown it\./.test(note || "")) bad.push("the notice that stays is '" + note + "'");
-    if (!(await visible(tab, "#removePolicyBtn"))) bad.push("Remove is not offered for a stored link that did not answer");
+    if (!/did not answer \(HTTP 404\)\. Candidates are not shown it\./.test(note || "")) bad.push("the notice that stays in the row is '" + note + "'");
+    if (!/Candidates see: nothing yet\./.test(note || "")) bad.push("the row does not say candidates see nothing yet: '" + note + "'");
+    if (!(await visible(tab, "#policyList button[aria-label=\"Remove AI and hiring policy link\"]"))) bad.push("Remove is not offered in the row of a stored link that did not answer");
+    if (!(await visible(tab, "#policyList button[aria-label=\"Check link for AI and hiring policy link\"]"))) bad.push("Check link is not offered in the row of a stored link that did not answer (the employer can still open it)");
     return bad; })); },
   async storedFailing(root) { return withSite(root, { plan: "verified", policy: { check_status: "skipped", check_http: null } }, (site) => withTab(async (tab) => { const bad = [];
     await openEdit(tab, site);
-    const note = await text(tab, "#policyNote");
+    const note = await text(tab, "#policyList");
     if (!/could not be checked just now, so candidates are not shown it yet/.test(note || "")) bad.push("a link that could not be tried is described as '" + note + "'");
     if (await visible(tab, "#clearLinksBtn")) bad.push("a stored policy link is listed among the application links");
     return bad; })); },
@@ -144,6 +150,7 @@ const SCENARIOS = {
     const note = await text(tab, "#policyNote");
     if (!/tier ended/.test(note || "") || !/kept but hidden from candidates until it is renewed/.test(note || "")) bad.push("the lapsed notice is '" + note + "'");
     if (await visible(tab, "#policyUrl") || await visible(tab, "#policyLocked")) bad.push("a lapsed organization sees the box or the sales notice");
+    if (await visible(tab, "#policyPanel")) bad.push("a lapsed organization is offered the row (Check link, Edit, Remove) of a link that is kept and hidden");
     return bad; })); },
   async refused(root) { return withSite(root, { plan: "verified" }, (site) => withTab(async (tab) => { const bad = [];
     await openEdit(tab, site);
@@ -157,7 +164,7 @@ const SCENARIOS = {
     await tab.eval("document.querySelector('#savePolicyBtn').click()");
     await tab.waitFor("!document.querySelector('#policyError').hidden && /not allowed/.test(document.querySelector('#policyError').innerText)", 8000);
     if (callsOf(site, "set-destination-links").length !== 1) bad.push("expected one request");
-    if (await visible(tab, "#removePolicyBtn")) bad.push("a refused address was stored");
+    if (await visible(tab, "#policyPanel")) bad.push("a refused address was stored");
     return bad; })); },
   async enterKey(root) { return withSite(root, { plan: "verified" }, (site) => withTab(async (tab) => { const bad = [];
     await openEdit(tab, site);
@@ -173,6 +180,75 @@ const SCENARIOS = {
     await tab.eval("document.querySelector('#unsavedDiscard').click()"); await sleep(700);
     if ((await tab.eval("document.querySelector('#policyUrl').value")) !== "") bad.push("Discard left the typed address in the box");
     if (await visible(tab, "#unsavedBar")) bad.push("the bar stayed after Discard");
+    if (callsOf(site, "set-destination-links").length) bad.push("Discard sent something");
+    return bad; })); },
+  // ---- the row (prompt BC1, October 10, 2026): a stored link is one row with Check link, Edit and Remove, like the destination links and the recruiter firms
+  async rowStates(root) { return withSite(root, { plan: "verified", policy: { check_status: "ok", check_http: 200 } }, (site) => withTab(async (tab) => { const bad = [];
+    await openEdit(tab, site);
+    if (!(await visible(tab, "#policyList .link-row"))) { bad.push("a stored link is not drawn as a row"); return bad; }
+    if (await visible(tab, "#policyUrl") || await visible(tab, "#savePolicyBtn")) bad.push("the empty-state box is shown beside a stored link");
+    const names = await tab.eval("[...document.querySelectorAll('#policyList .link-row-actions button')].map((b) => [b.innerText.trim(), b.getAttribute('aria-label')])");
+    const want = [["Check link", "Check link for AI and hiring policy link"], ["Edit", "Edit AI and hiring policy link"], ["Remove", "Remove AI and hiring policy link"]];
+    if (JSON.stringify(names) !== JSON.stringify(want)) bad.push("the buttons are " + JSON.stringify(names));
+    if (!(await visible(tab, "#policyPanelHint"))) bad.push("the hint that the address is not shown is missing");
+    const page = await tab.eval("document.body.innerText");
+    if (/policy\.own-employer|go\.example\.invalid/.test(page)) bad.push("an address or a ticket is on the page");
+    if (callsOf(site, "check-destination-link").length || callsOf(site, "set-destination-links").length) bad.push("something was sent when the page loaded");
+    return bad; })); },
+  async checkLink(root) { return withSite(root, { plan: "verified", policy: { check_status: "ok", check_http: 200 } }, (site) => withTab(async (tab) => { const bad = [];
+    await openEdit(tab, site);
+    await tab.eval("window.__tabs = []; window.open = () => { const w = { closed: false, opener: 'the-opener', close() { this.closed = true; } }; Object.defineProperty(w, 'location', { set(v) { w.href = String(v); }, get() { return w.href; } }); window.__tabs.push(w); return w; };");
+    await tab.eval("document.querySelector('#policyList button[aria-label=\"Check link for AI and hiring policy link\"]').click()");
+    await tab.waitFor("window.__tabs.length === 1 && !!window.__tabs[0].href", 8000); await sleep(300);
+    const c = callsOf(site, "check-destination-link");
+    if (c.length !== 1 || JSON.stringify(c[0].body) !== JSON.stringify({ posting_id: PID, kind: "policy", position: 1 })) bad.push("the check request was " + JSON.stringify(c.map((x) => x.body)));
+    const tabs = await tab.eval("window.__tabs.map((w) => [w.href, w.opener])");
+    if (JSON.stringify(tabs) !== JSON.stringify([["https://go.example.invalid/check/policy-1", null]])) bad.push("the new tab was " + JSON.stringify(tabs));
+    const page = await tab.eval("document.body.innerText");
+    if (/go\.example\.invalid|policy\.own-employer/.test(page)) bad.push("the ticket link or an address is on the page");
+    if (!/Opened in a new tab\./.test((await text(tab, "#policyList")) || "")) bad.push("the row does not say the tab opened: " + (await text(tab, "#policyList")));
+    if (callsOf(site, "set-destination-links").length || callsOf(site, "edit-posting").length) bad.push("Check link saved something");
+    return bad; })); },
+  async editRow(root) { return withSite(root, { plan: "verified", policy: { check_status: "ok", check_http: 200 } }, (site) => withTab(async (tab) => { const bad = [];
+    await openEdit(tab, site);
+    await tab.eval("document.querySelector('#policyList button[aria-label=\"Edit AI and hiring policy link\"]').click()"); await sleep(300);
+    if ((await tab.eval("document.querySelector('#policyList form input').value")) !== "") bad.push("the edit box is not empty (the address is never shown)");
+    await typeIn(tab, "#policyList form input", "https://policy.own-employer.example/new");
+    if (!(await visible(tab, "#unsavedBar")) || !/AI and hiring policy link not saved yet/.test((await text(tab, "#unsavedHead")) || "")) bad.push("a typed replacement does not show the unsaved bar for the policy link: " + (await text(tab, "#unsavedHead")));
+    await tab.eval("document.querySelector('#policyList form').requestSubmit()"); await sleep(300);
+    if (callsOf(site, "set-destination-links").length) bad.push("something was sent before the person confirmed");
+    if (!/Replace the address of the AI and hiring policy link\?/.test((await text(tab, "#policyList form")) || "")) bad.push("the confirm sentence is '" + (await text(tab, "#policyList form")) + "'");
+    await tab.eval("[...document.querySelectorAll('#policyList form button')].find((b) => b.innerText.trim() === 'Save').click()");
+    await tab.waitFor("document.querySelector('#policyList .alert') !== null", 8000); await sleep(400);
+    const c = callsOf(site, "set-destination-links");
+    if (c.length !== 1 || JSON.stringify(c[0].body) !== JSON.stringify({ posting_id: PID, kind: "policy", links: [{ url: "https://policy.own-employer.example/new" }] })) bad.push("the request was " + JSON.stringify(c.map((x) => x.body)));
+    if (callsOf(site, "edit-posting").length) bad.push("the opening itself was saved as well");
+    if ((await tab.eval("document.querySelector('#policyList form input').value")) !== "") bad.push("the address was left in the box after the request");
+    const page = await tab.eval("document.body.innerText");
+    if (/policy\.own-employer/.test(page)) bad.push("the address is on the page");
+    if (!/Saved\. Candidates see it as AI and hiring policy: Employer's own site\./.test((await text(tab, "#policyList")) || "")) bad.push("the row says '" + (await text(tab, "#policyList")) + "'");
+    if (await visible(tab, "#unsavedBar")) bad.push("the unsaved bar stayed after the replace");
+    return bad; })); },
+  async editRefused(root) { return withSite(root, { plan: "verified", policy: { check_status: "ok", check_http: 200 } }, (site) => withTab(async (tab) => { const bad = [];
+    await openEdit(tab, site);
+    await tab.eval("document.querySelector('#policyList button[aria-label=\"Edit AI and hiring policy link\"]').click()"); await sleep(300);
+    await typeIn(tab, "#policyList form input", "https://blocked.example/apply");
+    await tab.eval("document.querySelector('#policyList form').requestSubmit()"); await sleep(300);
+    await tab.eval("[...document.querySelectorAll('#policyList form button')].find((b) => b.innerText.trim() === 'Save').click()");
+    await tab.waitFor("/not allowed/.test(document.querySelector('#policyList form').innerText)", 8000); await sleep(300);
+    const box = await tab.eval("document.querySelector('#policyList form input').value");
+    if (box !== "") bad.push("the refused address was left in the box (" + JSON.stringify(box) + ")");
+    if (/blocked\.example/.test(await tab.eval("document.body.innerText"))) bad.push("the refused address is on the page");
+    if (!(await visible(tab, "#policyList .link-row"))) bad.push("a refused replacement removed the stored row");
+    return bad; })); },
+  async rowDiscard(root) { return withSite(root, { plan: "verified", policy: { check_status: "ok", check_http: 200 } }, (site) => withTab(async (tab) => { const bad = [];
+    await openEdit(tab, site);
+    await tab.eval("document.querySelector('#policyList button[aria-label=\"Edit AI and hiring policy link\"]').click()"); await sleep(300);
+    await typeIn(tab, "#policyList form input", "https://policy.own-employer.example/typed");
+    if (!(await visible(tab, "#unsavedBar"))) bad.push("a typed replacement does not show the unsaved bar");
+    await tab.eval("document.querySelector('#unsavedDiscard').click()"); await sleep(700);
+    if (await visible(tab, "#unsavedBar")) bad.push("the bar stayed after Discard");
+    if (await visible(tab, "#policyList form")) bad.push("the open edit form stayed after Discard");
     if (callsOf(site, "set-destination-links").length) bad.push("Discard sent something");
     return bad; })); },
   // ---- the candidate
@@ -234,11 +310,19 @@ const DEFECTS = [
   ["a candidate is shown a policy line the server did not send", [["js/policy-link.js", (s) => s.replace('if (!l || typeof l.label !== "string" || l.label === "") return null;', 'if (!l || typeof l.label !== "string" || l.label === "") return { position: 1, label: POLICY_LINE_LABEL, where: "Employer\'s own site" };')]], ["candidateNone"]],
   ["the application links include the policy link", [["js/policy-link.js", (s) => s.replace('filter((x) => x && x.kind !== "policy")', "filter((x) => !!x)")]], ["candidateOnly", "candidateLine"]],
   ["the policy link is saved as an application link", [["js/api.js", (s) => s.replace('kind: "policy", links: url === null', 'kind: "apply", links: url === null')]], ["save"]],
-  ["Enter in the policy box saves the whole opening", [["js/pages/edit.js", (s) => s.replace('$("#policyUrl").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); submitPolicy(false); } });', "")]], ["enterKey"]],
+  ["Enter in the policy box saves the whole opening", [["js/pages/edit.js", (s) => s.replace('$("#policyUrl").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); submitPolicy(); } });', "")]], ["enterKey"]],
   ["a link that did not answer is not told to the employer", [["js/policy-link.js", (s) => s.replace('if (v.status === "failed") return', 'if (v.status === "never") return')]], ["failing", "storedFailing"]],
   ["the apply click opens whichever link has the same position", [["js/pages/search.js", (s) => s.replace('(x.kind || "apply") === (link.kind || "apply")', "true")]], ["candidateLine"]],
   ["the sales notice is never shown", [["js/pages/edit.js", (s) => s.replace('$("#policyLocked").hidden = v.show !== "locked";', '$("#policyLocked").hidden = true;')]], ["locked"]],
   ["the address is sent without being checked", [["js/policy-link.js", (s) => s.replace('if (!/^https:\\/\\//i.test(url)) return { ok: false, error: "The address must start with https://" };', "")]], ["refused"]],
+  // prompt BC1: the row
+  ["Check link is drawn when no policy link is stored (a row is made up and the section shows it)", [["js/policy-link.js", (s) => s.replace("  if (!l) return [];\n  const c = l.check_status;", "  if (!l) return [{ position: 1, title: POLICY_TITLE, status: \"unchecked\", http: null, shownAs: null }];\n  const c = l.check_status;")], ["js/pages/edit.js", (s) => s.replace("  $(\"#policyPanel\").hidden = !rowShown;", "  $(\"#policyPanel\").hidden = !(v.show === \"form\");").replace("policyPanel.render(rowShown ? doc.destination_links : []);", "policyPanel.render(doc.destination_links);")]], ["empty", "refused"]],
+  ["Edit changes an application link instead of the policy link", [["js/policy-panel.js", (s) => s.replace("runEdit: (row, change) => api.setPolicyLink(ctx.getPostingId(), change.url),", "runEdit: (row, change) => api.editDestinationLink(ctx.getPostingId(), 1, { url: change.url }),")]], ["editRow"]],
+  ["Remove takes out an application link instead of the policy link", [["js/policy-panel.js", (s) => s.replace("runRemove: () => api.setPolicyLink(ctx.getPostingId(), null),", "runRemove: () => api.removeDestinationLink(ctx.getPostingId(), 1),")]], ["save"]],
+  ["the address stays in the edit box after the request (it would be shown on the page)", [["js/row-panel.js", (s) => s.replace("finally { addr.value = \"\"; }", "finally { /* kept */ }")]], ["editRefused"]],
+  ["Check link asks for an application link", [["js/api.js", (s) => s.replace("kind: \"policy\", position: 1 }, { validate: shapes.checkIssue }", "kind: \"apply\", position: 1 }, { validate: shapes.checkIssue }")]], ["checkLink"]],
+  ["the box and its Save button stay beside a stored link", [["js/pages/edit.js", (s) => s.replace("$(\"#policyForm\").hidden = !(v.show === \"form\" && !v.stored);", "$(\"#policyForm\").hidden = !(v.show === \"form\");")]], ["rowStates"]],
+  ["a lapsed organization is offered the row", [["js/pages/edit.js", (s) => s.replace("const rowShown = v.show === \"form\" && v.stored;", "const rowShown = v.stored;")]], ["lapsed"]],
   ["the wrong-link report can name the policy link", [["js/comments-model.js", (s) => s.replace('d.data.links.filter((l) => !(l && l.kind === "policy"))', "d.data.links")]], ["__picker"]],
 ];
 test("negative controls: each defect in the policy link page code makes a scenario fail", { timeout: 1800000 }, async () => {

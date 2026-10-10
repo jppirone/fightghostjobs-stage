@@ -49,6 +49,7 @@
 //   S59 no verify, verified or verification in candidate-facing text (Part E7): the word is confirm; exceptions are the destination link wording, data and class names, and privacy.html
 //   S64 no database script in the repository: no .sql file anywhere and no top-level db folder (the whole repository is served by Pages)
 //   S70 the employer's AI and hiring policy link (prompt BA): one box in the Disclosures area of the editor under the two AI toggles, behind the destination links tier, its own save, never an application link, one line for candidates only when the server sent it, words that claim nothing about the page
+//   S72 the recruiter firms and the AI and hiring policy link as rows (prompts BC and BC1): one shared rows panel (js/row-panel.js) for all three link areas; a firm without an address has no Check link; each row calls its own kind's calls only; the address never reaches a row; three firms at most; exact accessible names
 //   S71 the stage SQL and edge function tools (prompt BF; they live in C:\Users\jpiro\fightghostjobs\tools, outside this repository): no token, key or password written anywhere, the stage ref only as one constant, the only host api.supabase.com
 //   S69 test browsers: one launcher (tests/cdp-tabs.js) that records the pid at spawn, marks its profile folder, closes on a bound, removes the folder and prints when it cannot; a time limit per suite step; the leak check is the last step and fails with LEAK: <count>; the negative control that leaves a browser open
 //   S65 the staff-only search scope (scope=all): the database decides who is staff, the page starts staff mode only on a clear true, the staff branch calls no candidate function and stores nothing, noindex, never cached, nothing in search.html, only the search page uses the staff functions
@@ -538,7 +539,7 @@ export function checkSite(root, opts = {}) {
   //   * js/api.js: the check answer is exactly two keys; the edit and remove answers accept only the link fields; the three calls go to the right functions; js/pages/edit.js mounts the panel.
   {
     const P = (...a) => path.join(root, ...a);
-    const htmlF = P("edit.html"), panelF = P("js", "link-panel.js"), modelF = P("js", "link-panel-model.js"), apiF = P("js", "api.js"), editF = P("js", "pages", "edit.js"), cssF = P("app.css");
+    const htmlF = P("edit.html"), panelF = P("js", "row-panel.js"), wrapF = P("js", "link-panel.js"), modelF = P("js", "link-panel-model.js"), apiF = P("js", "api.js"), editF = P("js", "pages", "edit.js"), cssF = P("app.css");
     const appFiles = html.concat(js);
     const count38 = (str) => appFiles.reduce((n, f) => n + read(f).split(str).length - 1, 0);
     const once38 = (str, why, where) => { const k = count38(str); if (k !== 1) add("S38", where, why + " (found " + k + " times, expected once): " + str.slice(0, 70)); };
@@ -583,7 +584,7 @@ export function checkSite(root, opts = {}) {
       for (const line of c.split("\n")) if (/\bgo_url\b/.test(line) && !/w\.location = r\.data\.go_url;|link = r\.data\.go_url;/.test(line)) add("S38", panelF, "the ticket link (go_url) may only be used as a tab's location or a link's href: " + line.trim().slice(0, 80));
       if (!/href: note\.link, target: "_blank", rel: "noopener noreferrer"/.test(c)) add("S38", panelF, "the fallback link must open a new tab with rel noopener noreferrer");
       if (/\b(textContent|innerText)\s*=\s*[^;]*\b(link|go_url)\b/.test(c) || /alertBox\([^)]*\b(link|go_url)\b/.test(c) || (c.match(/note\.link/g) || []).length !== (c.match(/href: note\.link/g) || []).length + (c.match(/if \(note\.link\)/g) || []).length) add("S38", panelF, "the ticket link must never be shown as text (it is only a link's href)");
-      const iOpen = c.indexOf("= openBlank();"), iCall = c.indexOf("api.checkDestinationLink("), iOpener = c.indexOf("w.opener = null"), iLoc = c.indexOf("w.location = r.data.go_url");
+      const iOpen = c.indexOf("= openBlank();"), iCall = c.indexOf("P.runCheck("), iOpener = c.indexOf("w.opener = null"), iLoc = c.indexOf("w.location = r.data.go_url");
       if (iOpen < 0 || iCall < 0 || iOpen > iCall) add("S38", panelF, "the blank tab must be opened (openBlank) BEFORE the check request is sent, inside the click");
       if (iOpener < 0 || iLoc < 0 || iOpener > iLoc) add("S38", panelF, "the new tab's opener must be cut BEFORE it is pointed at the ticket link");
       for (const m of c.matchAll(/window\.open\(([^)]*)\)/g)) if (m[1].trim() !== '"about:blank", "_blank"') add("S38", panelF, "window.open may open about:blank only (the address goes in afterwards): " + m[0].slice(0, 60));
@@ -591,9 +592,17 @@ export function checkSite(root, opts = {}) {
       if (/https?:\/\/[^\s"'`)<>]+/.test(c)) add("S38", panelF, "no web address in the panel code");
       if (/["'][^"']*\b(Add a|Add another|Add link|Add new)\b/.test(c)) add("S38", panelF, "the panel has no Add control (a new link goes through the whole-set form)");
       if (raw.includes(EMDASH)) add("S38", panelF, "no em dash in the panel's text");
-      for (const need of ["LP.removeConfirm(row.position, row.label)", "LP.editTitle(row.position, row.label)", "confirmText(row.position, plan, row.label)"]) if (!c.includes(need)) add("S38", panelF, "the dialog texts must be given the row's label so a labelled row keeps its number in one title form: " + need);
-      if (!/api\.checkDestinationLink\(ctx\.getPostingId\(\), row\.position\)/.test(c) || !/api\.editDestinationLink\(ctx\.getPostingId\(\), row\.position, plan\.change\)/.test(c) || !/api\.removeDestinationLink\(ctx\.getPostingId\(\), row\.position\)/.test(c)) add("S38", panelF, "the three row actions must call the three api functions with the opening id and the row's stored position");
+      if (!/const r = await P\.runCheck\(row\);/.test(c) || !/r = await P\.runEdit\(row, plan\.change\)/.test(c) || !/const r = await P\.runRemove\(row\);/.test(c)) add("S38", panelF, "the three row actions go through the profile's runCheck, runEdit and runRemove, once each");
     }
+    // since prompt BC (October 10, 2026) the rows are the shared panel (js/row-panel.js, pinned above) and js/link-panel.js is the destination links PROFILE: its dialog texts and its three calls are pinned here
+    if (fs.existsSync(wrapF)) {
+      const wraw = read(wrapF), wc = stripJsComments(wraw);
+      for (const need of ["LP.removeConfirm(row.position, row.label)", "LP.editTitle(row.position, row.label)", "confirmText(row.position, plan, row.label)"]) if (!wc.includes(need)) add("S38", wrapF, "the dialog texts must be given the row's label so a labelled row keeps its number in one title form: " + need);
+      if (!/api\.checkDestinationLink\(ctx\.getPostingId\(\), row\.position\)/.test(wc) || !/api\.editDestinationLink\(ctx\.getPostingId\(\), row\.position, change\)/.test(wc) || !/api\.removeDestinationLink\(ctx\.getPostingId\(\), row\.position\)/.test(wc)) add("S38", wrapF, "the three row actions must call the three api functions with the opening id and the row's stored position");
+      if (!wc.includes("mountRowPanel({ ...ctx, profile })")) add("S38", wrapF, "the destination links rows are the shared rows panel (js/row-panel.js)");
+      if (/https?:\/\/[^\s"'`)<>]+/.test(wc)) add("S38", wrapF, "no web address in the panel code");
+      if (wraw.includes(EMDASH)) add("S38", wrapF, "no em dash in the panel's text");
+    } else add("S38", wrapF, "js/link-panel.js must exist");
     if (fs.existsSync(apiF)) {
       const a = stripJsComments(read(apiF));
       if (!/checkIssue: \(d\) => isObj\(d\) && Object\.keys\(d\)\.length === 2 && isStr\(d\.go_url\) && isHttpsTicket\(d\.go_url\)/.test(a)) add("S38", apiF, "the check answer must be exactly two keys, with an https ticket link");
@@ -833,7 +842,7 @@ export function checkSite(root, opts = {}) {
       if (!e.includes("guard = mountUnsavedGuard({") || !e.includes('guard.interceptClick(ev, { kind: "link"') || !e.includes('"#navAccount button:not(.avatar-btn)"')) add("S45", eF, "edit.js must mount the unsaved-changes guard and hold back links and Sign out that leave the page");
       if (!e.includes("state.baseline = snapshotOf(collect());") || !e.includes("snapshotOf(collect()) !== state.baseline")) add("S45", eF, "edit.js must compare the form with the snapshot taken when it was loaded or saved");
       if (!e.includes("async function submit() {\n  if (state.busy || !state.orig) return false;")) add("S45", eF, "submit() must say whether it saved (the leave dialog and the bar need to know)");
-      if ((e.split("populate(reload.data, { keepForm: true, saved: PANEL.LINKS })").length - 1) !== 3 || !e.includes("populate(reload.data, { keepForm: true, saved: PANEL.FIRMS })") || !e.includes("populate(reload.data, { keepForm: true, saved: PANEL.GOLIVE })")) add("S45", eF, "saving a section (links, firms, go-live) must not throw away what was typed in the rest of the page (populate keepForm)");
+      if ((e.split("populate(reload.data, { keepForm: true, saved: PANEL.LINKS })").length - 1) !== 3 || (e.split("populate(reload.data, { keepForm: true, saved: PANEL.FIRMS })").length - 1) !== 2 || !e.includes("populate(reload.data, { keepForm: true, saved: PANEL.GOLIVE })")) add("S45", eF, "saving a section (links, firms, go-live) must not throw away what was typed in the rest of the page (populate keepForm)");
     }
     if (fs.existsSync(cF)) {
       const c = read(cF);
@@ -1473,12 +1482,15 @@ export function checkSite(root, opts = {}) {
       if (i < 0 || !(a >= 0 && a < i && r2 > i)) add("S70", htmlF, "the AI and hiring policy box must sit directly under the two AI toggles and their notes (after aiInterviewNoteRow, before the recruiter toggle)");
       if (!h.includes('<label for="policyUrl" id="policyLabel"') || !h.includes(">Link to your AI and hiring policy (optional)</label>")) add("S70", htmlF, "the box needs its visible label, tied to the input");
       if (!h.includes('id="policyLocked"') || !/id="policyLocked"[^>]*>[^<]*destination links tier[^<]*<a href="mailto:sales@fightghostjobs\.com/.test(h)) add("S70", htmlF, "the not-on-the-tier notice must name the destination links tier and carry the sales address");
-      for (const id of ["policyUrl", "savePolicyBtn", "removePolicyBtn", "policyHint", "policyStored"]) if (!h.includes('id="' + id + '"')) add("S70", htmlF, "edit.html must keep #" + id);
+      for (const id of ["policyUrl", "savePolicyBtn", "policyHint", "policyStored"]) if (!h.includes('id="' + id + '"')) add("S70", htmlF, "edit.html must keep #" + id);
+      // prompt BC (October 10, 2026): a stored link is one ROW (Check link, Edit, Remove) in the same section; the old Remove policy link button is gone (the row's Remove does it)
+      for (const id of ["policyPanel", "policyPanelHint", "policyList", "policyAlert"]) if (h.split('id="' + id + '"').length !== 2) add("S70", htmlF, "edit.html must carry #" + id + " exactly once");
+      if (/id="removePolicyBtn"/.test(h)) add("S70", htmlF, "the stored policy link is removed from its row; there is no separate Remove policy link button");
     }
     // who may write it: only the editor calls the save; no other script names the policy link's save or its kind in a request
     for (const f of js) {
       const r = rel(f), t = stripJsComments(read(f));
-      if (/setPolicyLink/.test(t) && r !== "js/api.js" && r !== "js/pages/edit.js") add("S70", f, "only the editor (js/pages/edit.js) may save the AI and hiring policy link");
+      if (/setPolicyLink/.test(t) && r !== "js/api.js" && r !== "js/pages/edit.js" && r !== "js/policy-panel.js") add("S70", f, "only the editor (js/pages/edit.js, and its policy row js/policy-panel.js) may save the AI and hiring policy link");
       if (/kind:\s*"policy"/.test(t) && !["js/api.js", "js/pages/search.js"].includes(r)) add("S70", f, "only js/api.js (the save) and js/pages/search.js (the candidate's line) name the policy kind in a request or a row");
     }
     if (fs.existsSync(editF) && !stripJsComments(read(editF)).includes('$("#policyUrl").addEventListener("keydown"')) add("S70", editF, "Enter in the policy box must save the policy link, never the whole opening");
@@ -1495,6 +1507,86 @@ export function checkSite(root, opts = {}) {
     }
     for (const need of ['path.join(here, "policy-link.unit.test.js")', 'path.join(here, "policy-link.test.js")']) if (fs.existsSync(runF) && !read(runF).includes(need)) add("S70", runF, "the policy link's tests must run in the suite: " + need);
     for (const t of ["policy-link.unit.test.js", "policy-link.test.js"]) if (!fs.existsSync(P("tests", t))) add("S70", P("tests", t), "the policy link's test must exist");
+  }
+
+  // S72 (2026-10-10, prompts BC and BC1): the recruiter firms and the AI and hiring policy link as ROWS (Check link, Edit, Remove), on the ONE shared rows panel (js/row-panel.js) that the destination links use too.
+  // Pinned: every row, box and button is built once, in js/row-panel.js, and the three profiles (link-panel.js, firm-panel.js, policy-panel.js) only name words, rows and calls; a firm without an address has no Check link;
+  // each row action calls the call of ITS OWN kind and no other (a firm never an application link's call or the whole-set call, the policy link never a firm's or an application link's); the address never reaches a row
+  // (rows are read from position, name, shown_as and the check result only); three firms at most; the exact accessible names; the candidate pages never carry the panel code; the page mounts them; their tests run in the suite.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const rowF = P("js", "row-panel.js"), firmF = P("js", "firm-panel.js"), firmMF = P("js", "firm-panel-model.js"), polPF = P("js", "policy-panel.js"), polF = P("js", "policy-link.js"), linkPF = P("js", "link-panel.js");
+    const htmlF = P("edit.html"), apiF = P("js", "api.js"), editF = P("js", "pages", "edit.js"), runF = P("tests", "run-all.js");
+    const EM = "—";
+    const body = (f) => (fs.existsSync(f) ? stripJsComments(read(f)) : "");
+    for (const f of [rowF, firmF, firmMF, polPF, linkPF]) if (!fs.existsSync(f)) add("S72", f, "this file must exist");
+    // one component: a profile builds nothing
+    for (const f of [linkPF, firmF, polPF]) {
+      const c = body(f);
+      if (/\bh\(|\bdocument\b|createElement|\.append\(|innerHTML/.test(c)) add("S72", f, "a profile only names words, rows and calls; every row, box and button is built once, in js/row-panel.js");
+      if (c && !c.includes("mountRowPanel({ ...ctx, profile })")) add("S72", f, "the rows are the shared rows panel: return mountRowPanel({ ...ctx, profile })");
+    }
+    // each kind calls its own calls and no other
+    const callsOf = (c) => ["checkDestinationLink", "editDestinationLink", "removeDestinationLink", "setDestinationLinks", "checkRecruiterFirm", "editRecruiterFirm", "removeRecruiterFirm", "setRecruiterFirms", "checkPolicyLink", "setPolicyLink"].filter((n) => new RegExp("\\bapi\\." + n + "\\b").test(c));
+    const fc = body(firmF), pc = body(polPF);
+    if (fc) {
+      if (JSON.stringify(callsOf(fc).sort()) !== JSON.stringify(["checkRecruiterFirm", "editRecruiterFirm", "removeRecruiterFirm"])) add("S72", firmF, "the firm rows call api.checkRecruiterFirm, api.editRecruiterFirm and api.removeRecruiterFirm and nothing else: " + callsOf(fc).join(", "));
+      for (const need of ["api.checkRecruiterFirm(ctx.getPostingId(), row.position)", "api.editRecruiterFirm(ctx.getPostingId(), row.position, change)", "api.removeRecruiterFirm(ctx.getPostingId(), row.position)", "canCheck: (row) => row.hasAddress,"]) if (!fc.includes(need)) add("S72", firmF, "the firm profile must keep: " + need);
+    }
+    if (pc) {
+      if (JSON.stringify(callsOf(pc).sort()) !== JSON.stringify(["checkPolicyLink", "setPolicyLink"])) add("S72", polPF, "the policy row calls api.checkPolicyLink and api.setPolicyLink and nothing else: " + callsOf(pc).join(", "));
+      for (const need of ["api.checkPolicyLink(ctx.getPostingId())", "api.setPolicyLink(ctx.getPostingId(), change.url)", "api.setPolicyLink(ctx.getPostingId(), null)"]) if (!pc.includes(need)) add("S72", polPF, "the policy profile must keep: " + need);
+    }
+    // a firm row is built from position, name, shown_as and the check result only; three at most
+    if (fs.existsSync(firmMF)) {
+      const m = body(firmMF);
+      if (!m.includes("recruiterFirms(")) add("S72", firmMF, "firm rows come from the recruiter firms only (recruiterFirms)");
+      if (!m.includes("x.position > 3 ||")) add("S72", firmMF, "at most three firms are rows (position 1 to 3)");
+      if (/\bx\.(url|href|host|address|link|url_enc|link_id|id)\b/.test(m) || /\burl_enc\b|\blink_id\b/.test(m)) add("S72", firmMF, "a firm row must be built from position, firm, shown_as and the check result only: no field that could hold an address is read");
+      if (/https?:\/\/[^\s"'`)<>]+/.test(m)) add("S72", firmMF, "no web address in the firm rows' words");
+      for (const need of ['checkAria = (n) => "Check link for firm " + n, editAria = (n) => "Edit firm " + n, removeAria = (n) => "Remove firm " + n;', 'canCheck']) if (need !== "canCheck" && !m.includes(need)) add("S72", firmMF, "the accessible names must stay: " + need);
+      if (read(firmMF).includes(EM)) add("S72", firmMF, "no em dash in the firm rows' words");
+    }
+    if (fs.existsSync(polF)) {
+      const p = body(polF);
+      if (!p.includes('export const policyAria = { check: "Check link for AI and hiring policy link", edit: "Edit AI and hiring policy link", remove: "Remove AI and hiring policy link" };')) add("S72", polF, "the policy row's accessible names must stay");
+      if (!p.includes("const l = policyLink(list);\n  if (!l) return [];")) add("S72", polF, "the policy row exists only while a policy link is stored");
+      if (/\bl\.(url|href|host|address|url_enc|link_id)\b/.test(p.slice(p.indexOf("export function policyRows")))) add("S72", polF, "the policy row is built from the check result and what candidates see only: no field that could hold an address is read");
+      if (read(polF).includes(EM)) add("S72", polF, "no em dash in the policy link's words");
+    }
+    // the shared panel: a row without an address has no Check link; the same Remove and Edit questions for all
+    if (fs.existsSync(rowF)) {
+      const c = body(rowF);
+      if (!c.includes("const check = P.canCheck(row) ? h(\"button\"")) add("S72", rowF, "Check link is drawn only for a row the profile says can be checked (a firm with an address, a stored policy link, an application link)");
+      if (/\bapi\./.test(c)) add("S72", rowF, "the shared panel names no api call: the profiles carry them");
+    }
+    // the page: markup, mounting, unsaved work and Discard
+    if (fs.existsSync(htmlF)) {
+      const h2 = read(htmlF);
+      for (const id of ["firmsList", "firmsPanelHint"]) if (h2.split('id="' + id + '"').length !== 2) add("S72", htmlF, "edit.html must carry #" + id + " exactly once");
+      if (/id="firmsStored"|id="removePolicyBtn"/.test(h2)) add("S72", htmlF, "the old stored-firms sentence and the Remove policy link button are replaced by the rows");
+      if (h2.slice(h2.indexOf('id="firmsPanel"'), h2.indexOf('id="readonlyNote"')).includes(EM)) add("S72", htmlF, "no em dash in the firms area");
+    }
+    if (fs.existsSync(editF)) {
+      const e = body(editF);
+      for (const need of ["mountFirmPanel({", "firmPanel.render(doc.destination_links)", "mountPolicyPanel({", "policyPanel.render(", "firmPanel.hasPending()", "policyPanel.hasPending()", "firmPanel.discard()", "policyPanel.discard()"]) if (!e.includes(need)) add("S72", editF, "edit.js must keep: " + need);
+      if (/firmsStored/.test(e)) add("S72", editF, "edit.js must not draw the old stored-firms sentence");
+    }
+    // api: the exact requests and the strict answers
+    if (fs.existsSync(apiF)) {
+      const a = body(apiF);
+      for (const need of ['call("check-destination-link", { posting_id: postingId, kind: "recruiter", position }', 'const body = { posting_id: postingId, kind: "recruiter", op: "edit", position };', 'call("set-destination-links", { posting_id: postingId, kind: "recruiter", op: "remove", position }', 'call("check-destination-link", { posting_id: postingId, kind: "policy", position: 1 }',
+        'd.kind === "recruiter" && (d.op === "edit" || d.op === "remove")', 'l.kind === "recruiter" && isStr(l.firm) && l.label === null']) if (!a.includes(need)) add("S72", apiF, "api.js must make the call or keep the check: " + need);
+      const i0 = a.indexOf("checkRecruiterFirm:"), i1 = a.indexOf("listMyPostings:");
+      if (i0 < 0 || i1 < i0 || /poster_id|organization_id/.test(a.slice(i0, i1))) add("S72", apiF, "the rows' calls never send who is asking");
+    }
+    // the candidate pages and the extension's hand-off never carry the panel code
+    for (const rel of ["js/pages/search.js", "js/comments-model.js", "js/pages/comments.js", "js/fragment-prefill.js", "js/signin-handoff.js", "js/pages/dashboard.js", "js/pages/index.js"]) {
+      const f = P(...rel.split("/"));
+      if (fs.existsSync(f) && /row-panel|firm-panel|policy-panel|checkRecruiterFirm|editRecruiterFirm|removeRecruiterFirm|checkPolicyLink/.test(stripJsComments(read(f)))) add("S72", f, "only the opening editor uses the rows panel and the firm and policy row calls");
+    }
+    for (const need of ['path.join(here, "rows-panels.unit.test.js")', 'path.join(here, "rows-panels.mutants.test.js")', 'path.join(here, "firm-rows.test.js")']) if (fs.existsSync(runF) && !read(runF).includes(need)) add("S72", runF, "the rows' tests must run in the suite: " + need);
+    for (const t of ["rows-panels.unit.test.js", "rows-panels.mutants.test.js", "firm-rows.test.js", "fake-dom.js"]) if (!fs.existsSync(P("tests", t))) add("S72", P("tests", t), "the rows' test must exist");
   }
 
   // S71 (2026-10-10, prompt BF): the stage SQL and edge function tools (run-sql.js, deploy-edge.js). They live in C:\Users\jpiro\fightghostjobs\tools, outside this repository (it is served by Pages), so the rule reads that folder next to this

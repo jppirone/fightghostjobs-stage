@@ -7,13 +7,15 @@ import { rememberNext } from "../session.js";
 import { $, $$, h, clear, alertBox } from "../dom.js";
 import { fmtClose, fmtStamp, waitText, groupCode } from "../format.js";
 import { statusChip } from "../dashboard-model.js";
-import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, checkFirms, mapLinksErrors, planNotice, checkWarnings, storedLinkText, applyLinks, recruiterFirms } from "../edit-form.js";
+import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, checkFirms, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js";
 import { mountLocationPicker } from "../location-picker.js";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js";
 import { loadCatalog } from "../location-catalog.js";
 import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js";
 import { mountLinkPanel } from "../link-panel.js";
-import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, POLICY_REMOVE_CONFIRM, policyLink } from "../policy-link.js";
+import { mountFirmPanel } from "../firm-panel.js";
+import { mountPolicyPanel } from "../policy-panel.js";
+import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js";
 import { wireInfoIcons } from "../info-icon.js";
 import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL } from "../dirty-state.js";
 import { mountUnsavedGuard } from "../unsaved-guard.js";
@@ -164,6 +166,20 @@ function renderLinks(doc, editable) {
 // The panel sits in the Destination links card, below Save changes: the toggle (free) is above it, naming a firm and its links is the verified plan's part, and it saves with its own button.
 // Why "saved first": set-destination-links reads the STORED third_party_recruiter flag inside its transaction and refuses with 409 recruiter_off when it is not true (and a database trigger refuses the insert too), so the toggle must be saved by Save changes before a firm can be stored.
 const firms = mountFirmRowsById();
+// the rows panel (prompt BC): Check link, Edit and Remove on ONE named firm, the same shared rows panel the destination links use. It draws from position, name, what candidates see and the check result; it never receives or shows an address.
+const firmPanel = mountFirmPanel({
+  host: $("#firmsList"), hintEl: $("#firmsPanelHint"), api, getPostingId: () => postingId,
+  isBlocked: () => state.firmsBusy,
+  onSessionEnded: () => sessionEnded(),
+  onStale: async () => { const reload = await api.getMyPosting(postingId); if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.FIRMS }); },
+  onChanged: async (list) => {                                                                                                // an edit or a remove worked: keep what this page holds in step, then refresh the change list
+    if (state.doc) state.doc.destination_links = applyLinks(state.doc.destination_links).concat(list, policyLink(state.doc.destination_links) ? [policyLink(state.doc.destination_links)] : []);
+    $("#clearFirmsBtn").hidden = list.length === 0;
+    const reload = await api.getMyPosting(postingId);
+    if (reload.ok) { state.doc.recent_changes = reload.data.recent_changes; renderChanges(reload.data.recent_changes); }
+    refreshUnsaved();
+  },
+});
 function renderFirms(doc, editable) {
   const panel = $("#firmsPanel"), stored = recruiterFirms(doc.destination_links);
   panel.hidden = !editable || (!state.recruiter && stored.length === 0);
@@ -176,8 +192,7 @@ function renderFirms(doc, editable) {
   else if (notice.state === "active" && !state.recruiter && stored.length) { note.hidden = false; note.append(alertBox("notice", "The toggle is off: " + (stored.length === 1 ? "the firm you named is" : "the " + stored.length + " firms you named are") + " kept but hidden from candidates. Turn it on and save to show them again.")); }
   else if (notice.state === "active" && state.recruiter && !savedOn) { note.hidden = false; note.append(alertBox("notice", "Naming a firm is optional. To name one here, first save this opening with the recruiter toggle on (Save changes, above); then come back to this section.")); }
   if (!$("#firmsForm").hidden) {
-    const box = $("#firmsStored"); clear(box);
-    box.append(stored.length === 0 ? "No recruiter firm is named yet." : h("span", {}, h("strong", {}, stored.length === 1 ? "1 firm is named" : stored.length + " firms are named"), ": ", stored.map(storedLinkText).join("; "), "."));
+    firmPanel.render(doc.destination_links);      // one row per named firm (or the sentence that none is named yet)
     $("#clearFirmsBtn").hidden = stored.length === 0;
     if (!state.firmsBusy && !state.keepPanels.has(PANEL.FIRMS)) firms.reset();
   }
@@ -211,31 +226,44 @@ $("#clearFirmsBtn").addEventListener("click", () => { if (window.confirm("Remove
 // ---- the AI and hiring policy link (prompt BA, October 10, 2026): one more destination link, in the Disclosures area next to the AI toggles. The same tier gate as the links and the firms; its own Save and Remove buttons
 // (Save changes does not save it); the address is write-only (the box starts empty and is never filled from the server). The words and the states are in js/policy-link.js.
 function showPolicyField(msg) { const e = $("#policyError"); e.textContent = msg || ""; e.hidden = !msg; $("#policyUrl").setAttribute("aria-invalid", msg ? "true" : "false"); }
+// prompt BC: with a link stored the section shows ONE ROW (Check link, Edit, Remove: js/policy-panel.js over the shared rows panel); with none it shows the box and Save policy link, as before
+const policyPanel = mountPolicyPanel({
+  host: $("#policyList"), hintEl: $("#policyPanelHint"), api, getPostingId: () => postingId,
+  isBlocked: () => state.policyBusy,
+  onSessionEnded: () => sessionEnded(),
+  onStale: async () => { const reload = await api.getMyPosting(postingId); if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.POLICY }); },
+  onChanged: async (list, said) => {            // a replace or a remove worked: keep the page's copy in step, draw the section again (the box comes back when the link is gone), and refresh the change list
+    if (state.doc) {
+      state.doc.destination_links = (state.doc.destination_links || []).filter((x) => x.kind !== "policy").concat(list.filter((x) => x.kind === "policy"));
+      renderPolicy(state.doc, true);
+    }
+    if (said && said.op === "remove") say($("#policyAlert"), "ok", said.text);      // the row is gone, so its own sentence goes where the box's messages go
+    const reload = await api.getMyPosting(postingId);
+    if (reload.ok && state.doc) { state.doc.recent_changes = reload.data.recent_changes; renderChanges(reload.data.recent_changes); }
+    refreshUnsaved();
+  },
+});
 function renderPolicy(doc, editable) {
   const row = $("#policyRow"); row.hidden = !editable; if (!editable) return;
   const v = policyView(doc, Date.now()), note = $("#policyNote"); clear(note); note.hidden = true;
   $("#policyLocked").hidden = v.show !== "locked";
-  $("#policyForm").hidden = v.show !== "form";
+  const rowShown = v.show === "form" && v.stored;
+  $("#policyPanel").hidden = !rowShown;
+  $("#policyForm").hidden = !(v.show === "form" && !v.stored);
   if (v.show === "lapsed") { note.hidden = false; note.append(alertBox("notice", policyLapsedText(v))); }
+  policyPanel.render(rowShown ? doc.destination_links : []);
   if (v.show !== "form") return;
-  const trouble = v.status === "failed" || v.status === "unchecked";
-  const stored = $("#policyStored"); stored.hidden = trouble; stored.textContent = trouble ? "" : policyStoredText(v);
-  if (trouble) { note.hidden = false; note.append(alertBox("notice", policyStoredText(v))); }
-  $("#removePolicyBtn").hidden = !v.stored;
+  const stored = $("#policyStored"); stored.hidden = v.stored; stored.textContent = v.stored ? "" : policyStoredText(v);
   if (!state.policyBusy && !state.keepPanels.has(PANEL.POLICY)) { $("#policyUrl").value = ""; showPolicyField(""); }
 }
-async function submitPolicy(remove) {
+async function submitPolicy() {
   if (state.policyBusy || !state.orig) return;
   const box = $("#policyAlert"); say(box, "error", ""); showPolicyField("");
-  let url = null;
-  if (!remove) {
-    const c = checkPolicyUrl($("#policyUrl").value);
-    if (!c.ok) { showPolicyField(c.error); $("#policyUrl").focus(); return; }
-    url = c.url;
-  }
-  state.policyBusy = true; $("#savePolicyBtn").disabled = true; $("#removePolicyBtn").disabled = true;
+  const c = checkPolicyUrl($("#policyUrl").value);
+  if (!c.ok) { showPolicyField(c.error); $("#policyUrl").focus(); return; }
+  state.policyBusy = true; $("#savePolicyBtn").disabled = true;
   try {
-    const r = await api.setPolicyLink(postingId, url);
+    const r = await api.setPolicyLink(postingId, c.url);
     if (!r.ok) {
       if (isAuthFailure(r.error)) return sessionEnded();
       const m = mapPolicyError(r.error);
@@ -247,12 +275,11 @@ async function submitPolicy(remove) {
     const reload = await api.getMyPosting(postingId);
     if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.POLICY });
     const saved = r.data.links.find((x) => x.kind === "policy");
-    say($("#policyAlert"), remove || !saved || saved.check_status === "ok" ? "ok" : "notice", policySavedText(r.data, remove));
-  } finally { state.policyBusy = false; $("#savePolicyBtn").disabled = false; $("#removePolicyBtn").disabled = false; }
+    say($("#policyAlert"), !saved || saved.check_status === "ok" ? "ok" : "notice", policySavedText(r.data, false));
+  } finally { state.policyBusy = false; $("#savePolicyBtn").disabled = false; }
 }
-$("#savePolicyBtn").addEventListener("click", () => submitPolicy(false));
-$("#removePolicyBtn").addEventListener("click", () => { if (window.confirm(POLICY_REMOVE_CONFIRM)) submitPolicy(true); });
-$("#policyUrl").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); submitPolicy(false); } });   // Enter saves the policy link, never the whole opening
+$("#savePolicyBtn").addEventListener("click", () => submitPolicy());
+$("#policyUrl").addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); submitPolicy(); } });   // Enter saves the policy link, never the whole opening
 
 // opts: keepForm: the main form's unsaved edits stay (another part of the page was just saved, so the posting is read again, but what was typed in the form is not thrown away);
 //       saved: the section that was just saved ("*" = all of them, a discard): the other sections keep what was typed in them and not saved yet
@@ -391,8 +418,8 @@ function panelsUnsaved() {
   const out = [];
   if (!state.orig) return out;
   if ((shown("#linksForm") && rowsTyped(links.values())) || (shown("#linksPanel") && linkPanel.hasPending())) out.push(PANEL.LINKS);
-  if (shown("#firmsForm") && rowsTyped(firms.values())) out.push(PANEL.FIRMS);
-  if (shown("#policyForm") && $("#policyUrl").value.trim() !== "") out.push(PANEL.POLICY);
+  if ((shown("#firmsForm") && rowsTyped(firms.values())) || (shown("#firmsForm") && firmPanel.hasPending())) out.push(PANEL.FIRMS);
+  if ((shown("#policyForm") && $("#policyUrl").value.trim() !== "") || (shown("#policyPanel") && policyPanel.hasPending())) out.push(PANEL.POLICY);
   if (shown("#scheduleCard") && $("#gldate").value !== state.glBaseline) out.push(PANEL.GOLIVE);
   return out;
 }
@@ -416,6 +443,8 @@ async function discardAll() {
   try {
     await populate(state.doc, { saved: "*" });
     if (shown("#linksPanel")) linkPanel.discard();            // the rows are drawn again from the stored links: an open edit form and what was typed in it are gone
+    if (shown("#firmsForm")) firmPanel.discard();             // the same for the recruiter firms' rows and for the policy link's row
+    if (shown("#policyPanel")) policyPanel.discard();
     showErrors({}); say(formAlert, "error", "");
     guard.refresh();
   } finally { guard.hush(false); }
