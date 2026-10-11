@@ -1,25 +1,28 @@
 // register.js - an employer registers a posting: create it (a draft), then publish it (standard tier goes live immediately).
 // "Save draft" stops after the first step: the draft is then found and published from My postings (dashboard.html). Nothing here trusts the page for identity: the session token tells the server who is acting.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=b3915a14";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=2edd398d";
 import { rememberNext } from "../session.js?v=124260d8";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { fmtClose, groupCode, waitText } from "../format.js?v=696f63b8";
 import { checkGoLive, mapScheduleError } from "../schedule-form.js?v=b2985372";
-import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome, collectFirms, firmsOutcome } from "../register-form.js?v=aa09741d";
-import { mapLinksErrors, planNotice, checkWarnings } from "../edit-form.js?v=960d07a7";
-import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js?v=956aa806";
+import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome, collectFirms, firmsOutcome } from "../register-form.js?v=811abbd1";
+import { mapLinksErrors, planNotice, checkWarnings } from "../edit-form.js?v=80d9d54e";
+import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js?v=42a146ec";
 import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
+import { mountPlaceChoice } from "../place-choice.js?v=2089f0a5";
+import { PLACE_WORDS, storedPlaceText, collapsePlaceText } from "../place-text.js?v=ff0ec9af";
 import { wireInfoIcons } from "../info-icon.js?v=66958a58";
 
 wireInfoIcons();
 // links: the destination-link rows, mounted only when the organization's plan allows links (null otherwise); linksSaved / linksProblem: what happened to them after the posting was created
 // firms: the recruiter-firm rows (pass C), mounted with the links when the plan allows; they matter only while the recruiter toggle is on
-const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false, dupAsked: false, goLiveIso: null, links: null, linksSaved: null, linksAnswer: null, linksProblem: null, firms: null, firmsSaved: null, firmsProblem: null };
+const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false, dupAsked: false, goLiveIso: null, links: null, linksSaved: null, linksAnswer: null, linksProblem: null, firms: null, firmsSaved: null, firmsProblem: null, placeProblem: null };
 const form = $("#form"), result = $("#result"), pageAlert = $("#pageAlert"), formAlert = $("#formAlert");
 const registerBtn = $("#registerBtn"), draftBtn = $("#draftBtn");
 const picker = mountLocationPicker({ isRemote: () => $("#remote").checked });
 $("#remote").addEventListener("change", () => picker.refresh());
+const place = mountPlaceChoice();      // prompt BH: "A place outside the US or not in the list" (one plain text box instead of the list)
 
 function wireToggle(id, key) {
   const btn = $(id);
@@ -42,7 +45,7 @@ const val = (id) => $(id).value;
 const goLater = () => $("#glLater").checked;
 function syncGoLive() { $("#glWhen").hidden = !goLater(); registerBtn.textContent = goLater() ? "Add and schedule" : "Add opening"; }
 $("#glNow").addEventListener("change", syncGoLive); $("#glLater").addEventListener("change", syncGoLive);
-const collect = () => ({ title: val("#jtitle"), req: val("#req"), locEntries: picker.get().entries, attested: picker.get().attested, remote: $("#remote").checked, appcap: val("#appcap"), win: val("#livedays"), closeout: val("#closeout"), desc: val("#desc"),
+const collect = () => ({ title: val("#jtitle"), req: val("#req"), locEntries: place.outside() ? [] : picker.get().entries, attested: place.outside() ? false : picker.get().attested, outside: place.outside(), locText: place.text(), remote: $("#remote").checked, appcap: val("#appcap"), win: val("#livedays"), closeout: val("#closeout"), desc: val("#desc"),
   aiFilter: state.aiFilter, aiInterview: state.aiInterview, aiFilterNote: val("#aiFilterNote"), aiInterviewNote: val("#aiInterviewNote"), recruiter: state.recruiter, dupAsked: state.dupAsked, dupNote: val("#dupnote"), goLater: goLater(), goLive: val("#gldate") });
 
 function showErrors(byField) {
@@ -95,6 +98,8 @@ async function submit(mode) {
     }
     state.saved = created.data;
     lockForm();
+    // prompt BH: a server that does not know the typed place yet answers without it: the result says so, so nobody believes the place was saved
+    state.placeProblem = values.outside === true && storedPlaceText(created.data) !== collapsePlaceText(values.locText) ? PLACE_WORDS.NOT_SAVED : null;
     // 2. the destination links, if any were entered: the posting exists now, so a refusal here is reported with the result, never as a failed registration
     if (lc.used && await saveLinks(lc) === "gone") return;
     if (fc.used && await saveFirms(fc) === "gone") return;
@@ -195,6 +200,7 @@ function showResult(p, kind, problem, goLiveAt) {
   if (lo) result.append(h("div", { style: "margin-top:12px;" }, alertBox(lo.kind, lo.text)));
   const fo = firmsOutcome(state.firmsSaved, state.firmsProblem);
   if (fo) result.append(h("div", { style: "margin-top:12px;" }, alertBox(fo.kind, fo.text)));
+  if (state.placeProblem) result.append(h("div", { style: "margin-top:12px;", id: "placeProblem" }, alertBox("error", state.placeProblem)));
   result.append(h("div", { style: "margin-top:20px;" },
     h("div", { style: "font-size:13px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;" }, "Your Opening ID"),
     h("span", { class: "code-box", id: "postId" }, groupCode(p.public_code)),
@@ -213,13 +219,14 @@ function registerAnother() {
   state.saved = null; result.hidden = true; clear(result);
   for (const id of ["#jtitle", "#req", "#appcap", "#closeout", "#desc", "#aiFilterNote", "#aiInterviewNote"]) $(id).value = "";
   $("#aiFilterNoteRow").hidden = true; $("#aiInterviewNoteRow").hidden = true;
-  picker.reset();
+  picker.reset(); place.reset();
   $("#livedays").value = "45";
   $("#remote").checked = false;
   for (const [id, key] of [["#aiFilterToggle", "aiFilter"], ["#aiInterviewToggle", "aiInterview"], ["#recruiterToggle", "recruiter"]]) { state[key] = false; $(id).classList.remove("on"); $(id).setAttribute("aria-checked", "false"); }
   $("#recruiterPanel").hidden = true;
   state.linksSaved = null; state.linksAnswer = null; state.linksProblem = null; if (state.links) { state.links.reset(); say($("#linksAlert"), "error", ""); }
   state.firmsSaved = null; state.firmsProblem = null; if (state.firms) { state.firms.reset(); say($("#firmsAlert"), "error", ""); }
+  state.placeProblem = null;
   dropReusedPrompt(); say(formAlert, "error", "");
   unlockForm(); $("#jtitle").focus();
 }

@@ -2,24 +2,26 @@
 // The server judges the rest (how much of the requirements text is kept, the location rule, duplicate req numbers) and this page shows its answer in words. Nothing here trusts the page for identity: the session token tells the server who is acting.
 // Unsaved work is never lost silently: a bar at the bottom of the window says what is not saved, the browser asks before the page is left, and the page's own links ask with a dialog (js/unsaved-guard.js; what counts as unsaved is js/dirty-state.js).
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=b3915a14";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=2edd398d";
 import { rememberNext } from "../session.js?v=124260d8";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { fmtClose, fmtStamp, waitText, groupCode } from "../format.js?v=696f63b8";
 import { statusChip } from "../dashboard-model.js?v=7d5b30a5";
-import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js?v=960d07a7";
+import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js?v=80d9d54e";
 import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
+import { mountPlaceChoice } from "../place-choice.js?v=2089f0a5";
+import { storedPlaceText } from "../place-text.js?v=ff0ec9af";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js?v=b2985372";
 import { loadCatalog } from "../location-catalog.js?v=bb0c937e";
-import { mountLinkRowsById, mountLinkRows } from "../link-rows.js?v=956aa806";
-import { mountLinkPanel } from "../link-panel.js?v=f7448164";
-import { mountFirmPanel } from "../firm-panel.js?v=2e69e212";
-import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=2265604c";
-import { mountPolicyPanel } from "../policy-panel.js?v=5ebabf53";
-import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js?v=5ae45807";
+import { mountLinkRowsById, mountLinkRows } from "../link-rows.js?v=42a146ec";
+import { mountLinkPanel } from "../link-panel.js?v=a5513579";
+import { mountFirmPanel } from "../firm-panel.js?v=8d981243";
+import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=d251344f";
+import { mountPolicyPanel } from "../policy-panel.js?v=ec1e1504";
+import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js?v=6491c7c9";
 import { wireInfoIcons } from "../info-icon.js?v=66958a58";
-import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL } from "../dirty-state.js?v=2b26d816";
-import { mountUnsavedGuard } from "../unsaved-guard.js?v=e187e0bd";
+import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL } from "../dirty-state.js?v=a7143233";
+import { mountUnsavedGuard } from "../unsaved-guard.js?v=2ce5c612";
 
 wireInfoIcons();
 
@@ -33,6 +35,7 @@ let guard = null;        // the unsaved-changes guard (mounted at the bottom of 
 const form = $("#form"), pageAlert = $("#pageAlert"), formAlert = $("#formAlert"), saveBtn = $("#saveBtn");
 const picker = mountLocationPicker({ isRemote: () => $("#remote").checked, onChange: () => refreshUnsaved() });
 $("#remote").addEventListener("change", () => picker.refresh());
+const place = mountPlaceChoice({ onChange: () => refreshUnsaved() });      // prompt BH: "A place outside the US or not in the list"
 
 const val = (id) => $(id).value;
 function say(box, kind, text) { clear(box); box.hidden = !text; if (text) box.append(alertBox(kind, text)); }
@@ -61,7 +64,7 @@ const planActive = () => !!state.plan && state.plan.verified === true;
 // the employer's AI notes (pass D) are offered only while their toggle is on
 function syncNoteRows() { $("#aiFilterNoteRow").hidden = state.aiFilter !== true; $("#aiInterviewNoteRow").hidden = state.aiInterview !== true; }
 
-const collect = () => ({ title: val("#jtitle"), req: val("#req"), desc: val("#desc"), locEntries: picker.get().entries, attested: picker.get().attested, remote: $("#remote").checked, appcap: val("#appcap"),
+const collect = () => ({ title: val("#jtitle"), req: val("#req"), desc: val("#desc"), locEntries: place.outside() ? [] : picker.get().entries, attested: place.outside() ? false : picker.get().attested, outside: place.outside(), locText: place.text(), remote: $("#remote").checked, appcap: val("#appcap"),
   aiFilter: state.aiFilter, aiInterview: state.aiInterview, aiFilterNote: val("#aiFilterNote"), aiInterviewNote: val("#aiInterviewNote"), recruiter: state.recruiter, reqSearchable: state.reqSearchable, exclusive: planActive() ? state.exclusive : undefined, note: val("#note") });
 
 // the catalog entries for the stored ids (a place the catalog no longer has still shows, by the display text the database stored)
@@ -340,7 +343,7 @@ async function populate(doc, opts) {
   line.append(h("span", { class: "status " + chip.cls }, chip.text), " ", p.stored_status === "draft" ? (p.go_live_at ? "Scheduled: not visible to candidates until it goes live." : "Not visible to candidates yet.") : (p.status === "live" || p.status === "paused") && p.expiration_date ? "Closes " + fmtClose(p.expiration_date) + "." : "");
   noteLabel(p.stored_status === "draft");
   renderChanges(doc.recent_changes);
-  if (!keepForm) { picker.set(await entriesFor(p), p.locations_attested); state.baseline = snapshotOf(collect()); }     // the snapshot every later edit is compared with
+  if (!keepForm) { picker.set(await entriesFor(p), p.locations_attested); place.set((p.location_ids || []).length === 0 ? storedPlaceText(p) : ""); state.baseline = snapshotOf(collect()); }     // the snapshot every later edit is compared with
   form.hidden = !editable;
   renderLinks(doc, editable);
   renderFirms(doc, editable);
@@ -377,7 +380,7 @@ async function submit() {
   showErrors(check.errors);
   if (!check.body) {
     if (check.errors.form) { say(formAlert, "notice", check.errors.form + " Change something, then save."); return false; }
-    const first = ["jtitle", "req", "locpicker", "attest", "appcap", "desc", "aiFilterNote", "aiInterviewNote", "note"].find((k) => check.errors[k]);
+    const first = ["jtitle", "req", "locpicker", "loctext", "attest", "appcap", "desc", "aiFilterNote", "aiInterviewNote", "note"].find((k) => check.errors[k]);
     if (first === "locpicker" || first === "attest") picker.focusFor(first); else if (first) $("#" + first).focus();
     return false;
   }

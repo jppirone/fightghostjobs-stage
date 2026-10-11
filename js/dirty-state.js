@@ -6,6 +6,8 @@
 // toggle is on, "one opening" counted only with two or more places), so a change followed by a revert to the same value is not a change, and neither is whitespace around a value.
 // The change note is not part of the snapshot: a note with nothing changed is not saveable ("Nothing has changed.").
 
+import { storedPlaceText } from "./place-text.js?v=ff0ec9af";
+
 const trim = (t) => String(t == null ? "" : t).trim();
 // the description as the browser hands it back: a text box reports line breaks as \n, whatever the stored text used
 const lines = (t) => trim(String(t == null ? "" : t).replace(/\r\n?/g, "\n"));
@@ -17,7 +19,7 @@ export function snapshotOf(v) {
   const ids = (Array.isArray(v.locEntries) ? v.locEntries : []).map((e) => e.id);
   const tri = (x) => (x === true || x === false ? x : null);       // an AI answer never stated stays "not stated"
   return JSON.stringify({
-    title: trim(v.title), req: trim(v.req), desc: lines(v.desc), loc: ids, remote: v.remote === true, attested: ids.length >= 2 && v.attested === true, appcap: capKey(v.appcap),
+    title: trim(v.title), req: trim(v.req), desc: lines(v.desc), loc: ids, place: v.outside === true ? trim(v.locText) : null, remote: v.remote === true, attested: ids.length >= 2 && v.attested === true, appcap: capKey(v.appcap),
     aiFilter: tri(v.aiFilter), aiInterview: tri(v.aiInterview),
     aiFilterNote: v.aiFilter === true ? (trim(v.aiFilterNote) || null) : null, aiInterviewNote: v.aiInterview === true ? (trim(v.aiInterviewNote) || null) : null,
     recruiter: v.recruiter === true, reqSearchable: v.reqSearchable !== false, exclusive: typeof v.exclusive === "boolean" ? v.exclusive : null,
@@ -26,7 +28,8 @@ export function snapshotOf(v) {
 // what the page puts in the form for a posting (the same values populate() uses): lets a test, or a caller without a form, build the snapshot straight from the posting.
 // entries: the catalog entries for p.location_ids (only the ids are compared); planActive: whether the exclusive toggle is offered
 export function valuesFromPosting(p, { planActive = false } = {}) {
-  return { title: p.title, req: p.req_number || "", desc: p.description_text, locEntries: (p.location_ids || []).map((id) => ({ id })), attested: p.locations_attested === true, remote: p.is_remote === true,
+  const typedPlace = (p.location_ids || []).length === 0 ? storedPlaceText(p) : "";   // prompt BH: a typed place (only while the opening has no list place)
+  return { title: p.title, req: p.req_number || "", desc: p.description_text, locEntries: (p.location_ids || []).map((id) => ({ id })), attested: p.locations_attested === true, remote: p.is_remote === true, outside: typedPlace !== "", locText: typedPlace,
     appcap: p.applicant_cap === null || p.applicant_cap === undefined ? "" : String(p.applicant_cap), aiFilter: p.ai_filtering, aiInterview: p.ai_interview_other,
     aiFilterNote: p.ai_filtering_note || "", aiInterviewNote: p.ai_interview_note || "", recruiter: p.third_party_recruiter === true, reqSearchable: p.req_searchable !== false,
     exclusive: planActive ? p.destination_links_exclusive === true : undefined };

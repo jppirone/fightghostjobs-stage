@@ -1379,7 +1379,7 @@ export function checkSite(root, opts = {}) {
     const rel = (f) => path.relative(root, f).split(path.sep).join("/");
     for (const f of js) {
       const t = stripJsComments(read(f)), r = rel(f);
-      if (/source_location_text/.test(t) && r !== "js/place.js" && r !== "js/api.js") add("S68", f, "only js/place.js may read source_location_text");
+      if (/source_location_text/.test(t) && r !== "js/place.js" && r !== "js/api.js" && r !== "js/place-text.js") add("S68", f, "only js/place.js and js/place-text.js may name source_location_text");
       if (r === "js/api.js") for (const l of t.split("\n")) if (/source_location_text/.test(l) && !/STAFF_ROW_OPTIONAL_KEYS/.test(l)) add("S68", f, "api.js may name source_location_text only in the staff optional key list: " + l.trim().slice(0, 80));
     }
     for (const f of html) if (/source_location_text/.test(read(f))) add("S68", f, "no page may name source_location_text");
@@ -1387,7 +1387,7 @@ export function checkSite(root, opts = {}) {
     if (!fs.existsSync(pl)) add("S68", pl, "js/place.js must exist");
     else {
       const s = stripJsComments(read(pl));
-      if (!s.includes('export const PLACE_NOTE = "as given by the employer\'s job board";')) add("S68", pl, "the note must be exactly: as given by the employer's job board");
+      if (!s.includes('export const PLACE_NOTE = "as written by the employer";')) add("S68", pl, "the note must be exactly: as written by the employer");
       if (!s.includes("export const MAX_PLACE_CHARS = 200;") || !s.includes(".slice(0, MAX_PLACE_CHARS)")) add("S68", pl, "the place text is cut at 200 characters (MAX_PLACE_CHARS = 200 and .slice(0, MAX_PLACE_CHARS))");
       if (!/replace\(\/\[\\u0000-\\u001f\\u007f-\\u009f\]\/g, ""\)/.test(s)) add("S68", pl, "control characters must be removed from the place text");
       if (!s.includes('locs.length === 0 ? sourcePlaceText(row) : ""')) add("S68", pl, "the source text is used ONLY when the opening has no catalog place");
@@ -1511,6 +1511,75 @@ export function checkSite(root, opts = {}) {
     for (const t of ["policy-link.unit.test.js", "policy-link.test.js"]) if (!fs.existsSync(P("tests", t))) add("S70", P("tests", t), "the policy link's test must exist");
   }
 
+  // S76 (2026-10-11, prompt BH): the place an employer TYPES for an opening outside the US list. A label only: nothing searches, sorts or filters by it; one or the other (a list place or a typed place, never both).
+  // Pinned: the choice and the box on both forms (the exact choice words, 100 characters); the rule lives in js/place-text.js and REUSES the AI notes checks (characters and web addresses), adds the email and markup refusals and the
+  // limit of 100; an edit sends the text with the list cleared and the list with the text cleared; a create sends the text and no list place; the form hides the list while the choice is on; the typed place is part of what is
+  // "not saved yet"; My openings shows it through js/place.js; the two scripts that may name the field are place.js and place-text.js (S68); the two tests run in the suite.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const body = (f) => (fs.existsSync(f) ? stripJsComments(read(f)) : "");
+    for (const rel of ["register.html", "edit.html"]) {
+      const f = P(rel);
+      if (!fs.existsSync(f)) continue;
+      const h = read(f);
+      for (const id of ["locCatalog", "locOutside", "locTyped", "loctext", "loctextHint"]) if (!h.includes('id="' + id + '"')) add("S76", f, "the location area is missing #" + id);
+      if (!/<label class="check-row" for="locOutside"[^>]*><input id="locOutside" type="checkbox"> A place outside the US or not in the list<\/label>/.test(h)) add("S76", f, 'the choice must read "A place outside the US or not in the list"');
+      if (!/<input id="loctext" type="text" maxlength="100" /.test(h)) add("S76", f, "the typed place box holds at most 100 characters");
+      if (!h.includes('data-error-for="loctext"')) add("S76", f, "the typed place box needs its error line");
+      if (/source_location_text/.test(h)) add("S76", f, "no page names the stored field (js/place-text.js does)");
+    }
+    const ptF = P("js", "place-text.js"), pcF = P("js", "place-choice.js"), efF = P("js", "edit-form.js"), rfF = P("js", "register-form.js"), edF = P("js", "pages", "edit.js"), rgF = P("js", "pages", "register.js"), dbF = P("js", "pages", "dashboard.js"), dsF = P("js", "dirty-state.js"), runF = P("tests", "run-all.js");
+    if (fs.existsSync(ptF)) {
+      const s = body(ptF);
+      for (const [needle, why] of [['export const PLACE_FIELD = "source_location_text";', "the request field is source_location_text"], ["export const MAX_PLACE_TEXT = 100;", "the limit is 100 characters"],
+        ['import { hasBadChars, looksLikeWebAddress } from "./ai-notes.js";', "the characters and web address checks are the AI notes' own"], ['CHOICE: "A place outside the US or not in the list",', "the choice words"],
+        ['if (s.includes("@")) return PLACE_WORDS.EMAIL;', "an email address is refused"], ["if (/[<>]/.test(s)) return PLACE_WORDS.MARKUP;", "markup brackets are refused"], ["if (hasBadChars(s)) return PLACE_WORDS.CHARS;", "line breaks and control characters are refused"],
+        ["if (looksLikeWebAddress(s)) return PLACE_WORDS.LINK;", "web addresses are refused"], ['.replace(/ {2,}/g, " ").replace(/^ +| +$/g, "")', "spaces are collapsed and trimmed (a line break is not)"]]) if (!s.includes(needle)) add("S76", ptF, "js/place-text.js: " + why);
+      if (/innerHTML|insertAdjacentHTML|document\./.test(s)) add("S76", ptF, "js/place-text.js is pure: no DOM, no markup");
+    }
+    if (fs.existsSync(pcF)) {
+      const s = body(pcF);
+      if (!s.includes("typed.hidden = !choice.checked; catalog.hidden = choice.checked;")) add("S76", pcF, "with the choice on the list is hidden and the box shown");
+      if (/innerHTML|insertAdjacentHTML/.test(s)) add("S76", pcF, "no markup from data");
+    }
+    if (fs.existsSync(efF)) {
+      const s = body(efF);
+      if (!s.includes("if (typed !== wasTyped) ch[PLACE_FIELD] = typed;")) add("S76", efF, "an edit sends the typed place when it changed (null clears it)");
+      if (!s.includes('export const LOCATION_GROUP = ["location_ids", "is_remote", "locations_attested", PLACE_FIELD];')) add("S76", efF, "a change of the typed place is a location change (a new req number on a live opening)");
+      if (!s.includes("if (PLACE_FIELD in changed) { const p = placeTextProblem(changed[PLACE_FIELD]); if (p) e.loctext = p; }")) add("S76", efF, "the typed place is judged when it changed, by the one rule");
+      if (!s.includes("const typed = v.outside === true ? collapsePlaceText(v.locText) : null")) add("S76", efF, "the typed place is the collapsed text of the box while the choice is on, and nothing otherwise");
+    }
+    if (fs.existsSync(rfF)) {
+      const s = body(rfF);
+      if (!s.includes("if (v.outside === true) body[PLACE_FIELD] = collapsePlaceText(v.locText);")) add("S76", rfF, "a create sends the typed place");
+      if (!/if \(v\.outside === true\) body\[PLACE_FIELD\] = collapsePlaceText\(v\.locText\);\s*else \{\s*if \(chosen\.length\) body\.location_ids/.test(s)) add("S76", rfF, "a create sends the list places only when no typed place is chosen");
+      if (!s.includes("if (v.outside === true) { const p = placeTextProblem(collapsePlaceText(v.locText)); if (p) e.loctext = p; }")) add("S76", rfF, "the typed place is judged by the one rule");
+    }
+    for (const f of [edF, rgF]) if (fs.existsSync(f)) {
+      const s = body(f);
+      if (!s.includes("locEntries: place.outside() ? [] : picker.get().entries, attested: place.outside() ? false : picker.get().attested, outside: place.outside(), locText: place.text(),")) add("S76", f, "the form's answer carries no list place while the typed place is chosen");
+      if (!/mountPlaceChoice\(/.test(s)) add("S76", f, "the page mounts the place choice");
+    }
+    if (fs.existsSync(rgF)) {
+      const s = body(rgF);
+      if (!s.includes("state.placeProblem = values.outside === true && storedPlaceText(created.data) !== collapsePlaceText(values.locText) ? PLACE_WORDS.NOT_SAVED : null;")) add("S76", rgF, "a create answered without the typed place is told to the person (an older server drops it silently)");
+      if (!s.includes('alertBox("error", state.placeProblem)')) add("S76", rgF, "the result shows that the place was not saved");
+    }
+    if (fs.existsSync(edF)) {
+      const s = body(edF);
+      if (!s.includes('place.set((p.location_ids || []).length === 0 ? storedPlaceText(p) : "");')) add("S76", edF, "an opening's typed place is put in the box when the page loads");
+    }
+    if (fs.existsSync(dbF)) {
+      const s = body(dbF);
+      if (!s.includes("placeParts(p).text")) add("S76", dbF, "My openings shows the place through js/place.js (the typed place when there is no list place)");
+      if (/locationLine\(/.test(s)) add("S76", dbF, "My openings never calls locationLine directly");
+    }
+    if (fs.existsSync(dsF) && !body(dsF).includes('place: v.outside === true ? trim(v.locText) : null,')) add("S76", dsF, "the typed place is part of the unsaved snapshot");
+    if (fs.existsSync(runF)) {
+      const r = read(runF);
+      for (const n of ["place-text.unit.test.js", "place-text.test.js"]) if (!r.includes('"' + n + '"')) add("S76", runF, n + " is not in the suite");
+    }
+  }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed
   // file is a new address. This rule fails when a reference has no marker, or a marker that is not the current one (a changed file whose markers were not stamped again). Every other rule reads the pages and

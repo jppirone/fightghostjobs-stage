@@ -1,7 +1,7 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=b3915a14";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=2edd398d";
 import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=124260d8";
 import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=68216be2";
 import { savePending, takePending } from "../signin-handoff.js?v=882122ed";
@@ -14,13 +14,13 @@ import { recapSentence } from "../search-recap.js?v=467642b9";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js?v=ff147636";
 import { waitText } from "../format.js?v=696f63b8";
 import { postingChips, notOpenMessage } from "../chips.js?v=f36dd73d";
-import { aiNotes } from "../ai-notes.js?v=b731ef47";
-import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=5ae45807";
+import { aiNotes } from "../ai-notes.js?v=35c5dc92";
+import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=6491c7c9";
 import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";
 import { openUnit } from "../open-link.js?v=454df0f2";
 import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js?v=7ea239bc";
 import { isRegistered } from "../registered.js?v=f191c8c2";
-import { placeParts } from "../place.js?v=16471013";
+import { placeParts } from "../place.js?v=4ae8b3ba";
 import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=c7fcdca3";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { placeParts, sourcePlaceText, PLACE_NOTE, MAX_PLACE_CHARS } from "../js/place.js";
 
 test("the note is exactly the agreed words and the limit is 200", () => {
-  assert.equal(PLACE_NOTE, "as given by the employer's job board");
+  assert.equal(PLACE_NOTE, "as written by the employer");
   assert.equal(MAX_PLACE_CHARS, 200);
 });
 

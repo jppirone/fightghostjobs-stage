@@ -11,14 +11,20 @@ const TLDS = "com|net|org|edu|gov|io|co|ai|app|dev|xyz|info|biz|tv|ly|cc|uk|ca|d
 const DOMAIN_RE = new RegExp("[a-z0-9][.](" + TLDS + ")(?![a-z0-9])");
 const IP_RE = /[0-9]{1,3}([.][0-9]{1,3}){3}/;
 
+// the two checks other free text of the employer reuses (the typed place, js/place-text.js; prompt BH): control or invisible characters, and a web address in any disguise
+export const hasBadChars = (s) => BAD_CHARS.test(String(s == null ? "" : s));
+export function looksLikeWebAddress(s) {
+  const x = String(s == null ? "" : s).normalize("NFKC").toLowerCase().split("[.]").join(".").split("(.)").join(".").split("{.}").join(".").split(cc(12290)).join(".");
+  return x.includes("://") || /www[.]/.test(x) || IP_RE.test(x) || DOMAIN_RE.test(x);
+}
+
 // t: the trimmed text. -> null when fine (an empty note is "no note"), else the sentence to show under the box
 export function aiNoteProblem(t) {
   const s = String(t == null ? "" : t);
   if (s === "") return null;
-  if (BAD_CHARS.test(s)) return "Keep it to one paragraph of plain text (no line breaks).";
+  if (hasBadChars(s)) return "Keep it to one paragraph of plain text (no line breaks).";
   if (Array.from(s).length > MAX_AI_NOTE) return "Keep it to " + MAX_AI_NOTE + " characters or fewer.";
-  const x = s.normalize("NFKC").toLowerCase().split("[.]").join(".").split("(.)").join(".").split("{.}").join(".").split(cc(12290)).join(".");
-  if (x.includes("://") || /www[.]/.test(x) || IP_RE.test(x) || DOMAIN_RE.test(x)) return "No web addresses here: the destination links are for those.";
+  if (looksLikeWebAddress(s)) return "No web addresses here: the destination links are for those.";
   return null;
 }
 

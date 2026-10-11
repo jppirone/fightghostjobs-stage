@@ -892,7 +892,7 @@ control("the search input reads the source place text (matching)", "S68", edit("
 control("the chips read the source place text", "S68", edit("js/chips.js", (s) => s + '\nexport const READS_PLACE = (row) => row.source_location_text;\n'));
 control("the search page reads the source place text itself", "S68", edit("js/pages/search.js", (s) => s.replace("const p = placeParts(row);", "const p = placeParts(row); if (row.source_location_text) p.note = null;")));
 control("a page names the source place field", "S68", edit("search.html", (s) => s.replace('<div id="modalPlace"', '<div data-field="source_location_text" id="modalPlace"')));
-control("the place note wording changes", "S68", edit("js/place.js", (s) => s.replace('export const PLACE_NOTE = "as given by the employer\'s job board";', 'export const PLACE_NOTE = "from the employer\'s job board";')));
+control("the place note wording changes", "S68", edit("js/place.js", (s) => s.replace('export const PLACE_NOTE = "as written by the employer";', 'export const PLACE_NOTE = "from the employer\'s job board";')));
 control("the place cap is removed", "S68", edit("js/place.js", (s) => s.replace(".slice(0, MAX_PLACE_CHARS)", "")));
 control("control characters are no longer removed from the place text", "S68", edit("js/place.js", (s) => s.replace('.replace(/[\\u0000-\\u001f\\u007f-\\u009f]/g, "")', "")));
 control("the source text is used even when the opening has a catalog place", "S68", edit("js/place.js", (s) => s.replace('locs.length === 0 ? sourcePlaceText(row) : ""', "sourcePlaceText(row)")));
@@ -988,6 +988,41 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the shared panel's address box is given a value", "S38", edit(ROW, (s) => s.replace('const addr = h("input", { type: "text", inputmode: "url",', 'const addr = h("input", { type: "text", value: "x", inputmode: "url",')));
   control("the destination links profile builds its own row", "S72", append(WRAP, "const _row = () => document.createElement(\"li\");"));
   control("the destination links profile stops using the shared panel", "S72", edit(WRAP, (s) => s.replace("return mountRowPanel({ ...ctx, profile });", "return null;")));
+}
+
+// S76 (2026-10-11, prompt BH): the typed place.
+{
+  const PT = "js/place-text.js", EF = "js/edit-form.js", RF = "js/register-form.js", ED = "js/pages/edit.js", RG = "js/pages/register.js", PC = "js/place-choice.js";
+  control("the register page loses the choice", "S76", edit("register.html", (s) => s.replace('<input id="locOutside" type="checkbox"> A place outside the US or not in the list', '<input id="locOutside" type="checkbox"> Somewhere else')));
+  control("the edit page loses the typed place box", "S76", edit("edit.html", (s) => s.replace('<input id="loctext" type="text" maxlength="100"', '<input id="loctext2" type="text" maxlength="100"')));
+  control("the box may hold 500 characters", "S76", edit("edit.html", (s) => s.replace('<input id="loctext" type="text" maxlength="100"', '<input id="loctext" type="text" maxlength="500"')));
+  control("a page names the stored field", "S76", edit("register.html", (s) => s.replace('id="loctextHint"', 'data-x="source_location_text" id="loctextHint"')));
+  control("the limit is 300 characters", "S76", edit(PT, (s) => s.replace("export const MAX_PLACE_TEXT = 100;", "export const MAX_PLACE_TEXT = 300;")));
+  control("the request field is renamed", "S76", edit(PT, (s) => s.replace('export const PLACE_FIELD = "source_location_text";', 'export const PLACE_FIELD = "location_text";')));
+  control("the rule does not refuse an email address", "S76", edit(PT, (s) => s.replace('if (s.includes("@")) return PLACE_WORDS.EMAIL;', "")));
+  control("the rule does not refuse a web address", "S76", edit(PT, (s) => s.replace("if (looksLikeWebAddress(s)) return PLACE_WORDS.LINK;", "")));
+  control("the rule does not refuse a line break", "S76", edit(PT, (s) => s.replace("if (hasBadChars(s)) return PLACE_WORDS.CHARS;", "")));
+  control("the rule does not refuse markup brackets", "S76", edit(PT, (s) => s.replace("if (/[<>]/.test(s)) return PLACE_WORDS.MARKUP;", "")));
+  control("a line break is collapsed instead of refused", "S76", edit(PT, (s) => s.replace('.replace(/ {2,}/g, " ").replace(/^ +| +$/g, "")', '.replace(/\\s+/g, " ").trim()')));
+  control("the place text script builds markup", "S76", append(PT, "export const _x = (e, t) => { e.innerHTML = t; };"));
+  control("the choice words change", "S76", edit(PT, (s) => s.replace('CHOICE: "A place outside the US or not in the list",', 'CHOICE: "Another place",')));
+  control("the list stays shown while the choice is on", "S76", edit(PC, (s) => s.replace("typed.hidden = !choice.checked; catalog.hidden = choice.checked;", "typed.hidden = !choice.checked;")));
+  control("an edit does not send a changed typed place", "S76", edit(EF, (s) => s.replace("if (typed !== wasTyped) ch[PLACE_FIELD] = typed;", "")));
+  control("a change of the typed place is not a location change", "S76", edit(EF, (s) => s.replace('export const LOCATION_GROUP = ["location_ids", "is_remote", "locations_attested", PLACE_FIELD];', 'export const LOCATION_GROUP = ["location_ids", "is_remote", "locations_attested"];')));
+  control("the edit form does not judge the typed place", "S76", edit(EF, (s) => s.replace("if (PLACE_FIELD in changed) { const p = placeTextProblem(changed[PLACE_FIELD]); if (p) e.loctext = p; }", "")));
+  control("a create does not send the typed place", "S76", edit(RF, (s) => s.replace("if (v.outside === true) body[PLACE_FIELD] = collapsePlaceText(v.locText);", "")));
+  control("a create sends list places with the typed place", "S76", edit(RF, (s) => s.replace("  else {\n    if (chosen.length) body.location_ids", "  {\n    if (chosen.length) body.location_ids")));
+  control("the register form does not judge the typed place", "S76", edit(RF, (s) => s.replace("if (v.outside === true) { const p = placeTextProblem(collapsePlaceText(v.locText)); if (p) e.loctext = p; }", "if (v.outside === true) { }")));
+  control("the register page sends list places while the typed place is chosen", "S76", edit(RG, (s) => s.replace("locEntries: place.outside() ? [] : picker.get().entries", "locEntries: picker.get().entries")));
+  control("the edit page sends list places while the typed place is chosen", "S76", edit(ED, (s) => s.replace("locEntries: place.outside() ? [] : picker.get().entries", "locEntries: picker.get().entries")));
+  control("the edit page does not put the stored typed place in the box", "S76", edit(ED, (s) => s.replace('place.set((p.location_ids || []).length === 0 ? storedPlaceText(p) : "");', 'place.set("");')));
+  control("the register page does not tell that the place was not saved", "S76", edit(RG, (s) => s.replace("state.placeProblem = values.outside === true && storedPlaceText(created.data) !== collapsePlaceText(values.locText) ? PLACE_WORDS.NOT_SAVED : null;", "state.placeProblem = null;")));
+  control("the result does not show the place problem", "S76", edit(RG, (s) => s.replace('alertBox("error", state.placeProblem)', 'alertBox("error", "")')));
+  control("My openings calls locationLine", "S76", edit("js/pages/dashboard.js", (s) => s.replace("placeParts(p).text", "locationLine(p.is_remote, p.locations)")));
+  control("the typed place is not part of the unsaved snapshot", "S76", edit("js/dirty-state.js", (s) => s.replace("place: v.outside === true ? trim(v.locText) : null, ", "")));
+  control("a script other than the two place scripts names the field", "S68", append("js/format.js", 'export const _f = "source_location_text";'));
+  control("a banned word is in the choice's words (rule S66)", "S66", edit(PT, (s) => s.replace('HINT: "Shown to candidates as you wrote it.', 'HINT: "Shown to candidates as the listing says it.')));
+  control("a browser test is out of the suite", "S76", edit("tests/run-all.js", (s) => s.replace(/\[path\.join\(here, "place-text\.test\.js"\)\], true\],\n/, "")));
 }
 
 // S75 (2026-10-10, prompt BG): version markers. Each control works on the files as stored (editRaw), because the markers are what the rule is about.

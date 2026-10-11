@@ -1,7 +1,7 @@
 // place.test.js - the display-only place text in a real browser (October 9, 2026, prompt AZ3). The repo's own files and a fake backend (tests/fake-site.js; no real project, no key, no network).
 //
 // THE RULE: an opening with NO catalog place may carry source_location_text, the place as the employer's job board gave it. The page shows it ONLY while the opening has no catalog place, always followed by the small note
-// "as given by the employer's job board", in the results card, in the details window and in the staff view, as plain text (a "<script>" in it is shown as characters), at most 200 characters, and never sends it anywhere or uses it to search.
+// "as written by the employer", in the results card, in the details window and in the staff view, as plain text (a "<script>" in it is shown as characters), at most 200 characters, and never sends it anywhere or uses it to search.
 // Then negative controls: one defect at a time in the page code (the text shown with a catalog place, no length limit, no escaping); each must make a scenario fail.
 // A missing browser FAILS the test (set FGJ_BROWSER). Run: node --test tests/place.test.js
 import { test, before, after } from "node:test";
@@ -20,7 +20,7 @@ before(async () => { browser = await launchBrowser(); });
 after(async () => { if (browser) await browser.close(); });
 
 const STAFF = "staff@example.test", PLAIN = "cand@example.test";
-const NOTE = "as given by the employer's job board";
+const NOTE = "as written by the employer";
 async function openSearch(tab, site, email, query) {
   await tab.goto(site.url + "/404.html"); await tab.eval("try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}");
   await tab.goto(site.url + "/_dev/link?kind=candidate&email=" + encodeURIComponent(email));
@@ -54,7 +54,7 @@ const SCENARIOS = {
       await tab.eval("document.querySelectorAll('#results .view-details')[" + i + "].click()");
       await tab.waitFor("document.querySelector('#modalBackdrop').classList.contains('open')", 8000); await sleep(500);
       const m = await tab.eval("(() => { const p = document.querySelector('#modalPlace'); return { hidden: p.hidden, text: p.innerText.replace(/\\s+/g, ' ').trim() }; })()");
-      if (want && (m.hidden || !m.text.startsWith("Tokyo, Japan") || !m.text.includes("as given by the employer's job board"))) bad.push("the details window of the opening without a catalog place does not show the place and the note: " + JSON.stringify(m));
+      if (want && (m.hidden || !m.text.startsWith("Tokyo, Japan") || !m.text.includes("as written by the employer"))) bad.push("the details window of the opening without a catalog place does not show the place and the note: " + JSON.stringify(m));
       if (!want && (!m.hidden || m.text !== "")) bad.push("the details window of the opening with a catalog place shows a board text: " + JSON.stringify(m));
       await tab.eval("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))"); await sleep(300);
     }

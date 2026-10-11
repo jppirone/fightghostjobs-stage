@@ -5,7 +5,8 @@
 // Company name, dates, tier and the closeout condition are never editable.
 
 import { problems as locationProblems } from "./location-rules.js?v=d6656595";
-import { aiNoteProblem } from "./ai-notes.js?v=b731ef47";
+import { aiNoteProblem } from "./ai-notes.js?v=35c5dc92";
+import { PLACE_FIELD, collapsePlaceText, placeTextProblem, storedPlaceText } from "./place-text.js?v=ff0ec9af";
 
 export const MAX_NOTE = 500, MAX_DESC = 20000, MAX_REQ = 100;
 export const MAX_APPLICANT_CAP = 2147483647;
@@ -14,6 +15,7 @@ export const MAX_APPLICANT_CAP = 2147483647;
 export const FIELD_OF_SERVER_NAME = {
   title: "jtitle", req_number: "req", description_text: "desc", location_ids: "locpicker", is_remote: "locpicker", locations_attested: "attest", applicant_cap: "appcap", change_note: "note",
   ai_filtering_note: "aiFilterNote", ai_interview_note: "aiInterviewNote", req_searchable: "reqSearchToggle",
+  [PLACE_FIELD]: "loctext",      // prompt BH: the typed place
 };
 
 // how req numbers are compared everywhere (case, spaces and punctuation ignored)
@@ -23,7 +25,7 @@ const sameList = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === 
 const hasControl = (s) => Array.from(String(s)).some((ch) => { const c = ch.codePointAt(0); return c < 32 || c === 127; });
 
 // orig: the posting object get-my-posting returned.
-// v: { title, req, desc, locEntries, attested, remote, appcap, aiFilter, aiInterview, recruiter, reqSearchable, exclusive, note }     (aiFilter / aiInterview: true, false or null = never stated and not touched;
+// v: { title, req, desc, locEntries, attested, remote, outside, locText, appcap, aiFilter, aiInterview, recruiter, reqSearchable, exclusive, note }     (outside: "A place outside the US or not in the list" is chosen, so locText is the place and locEntries is empty)     (aiFilter / aiInterview: true, false or null = never stated and not touched;
 //   reqSearchable: true / false, the req-number search toggle (pass 26), default true; exclusive: true / false, or undefined = the employer's plan does not offer it, so it is not touched)
 // -> the fields that changed, by their backend names.
 export function changedFields(orig, v) {
@@ -34,6 +36,9 @@ export function changedFields(orig, v) {
   if (desc !== String(orig.description_text).trim()) ch.description_text = desc;
   const ids = (Array.isArray(v.locEntries) ? v.locEntries : []).map((e) => e.id);
   if (!sameList(ids, orig.location_ids)) ch.location_ids = ids;
+  // the typed place (prompt BH): a place outside the US list is text; the list's places and a typed place are never both, so choosing one sends the other cleared (the backend refuses both)
+  const typed = v.outside === true ? collapsePlaceText(v.locText) : null, wasTyped = storedPlaceText(orig) || null;
+  if (typed !== wasTyped) ch[PLACE_FIELD] = typed;
   if ((v.remote === true) !== orig.is_remote) ch.is_remote = v.remote === true;
   const attested = ids.length >= 2 && v.attested === true;
   if (attested !== orig.locations_attested) ch.locations_attested = attested;
@@ -52,7 +57,7 @@ export function changedFields(orig, v) {
   return ch;
 }
 
-export const LOCATION_GROUP = ["location_ids", "is_remote", "locations_attested"];
+export const LOCATION_GROUP = ["location_ids", "is_remote", "locations_attested", PLACE_FIELD];
 
 // -> { errors: { fieldInputId: message, form?: message }, changed, body?: { posting_id, ...changed, change_note? } }
 export function checkEdit(orig, v) {
@@ -67,7 +72,8 @@ export function checkEdit(orig, v) {
   const capText = String(v.appcap == null ? "" : v.appcap).trim();
   if (capText !== "" && (!/^[0-9]+$/.test(capText) || Number(capText) < 1 || Number(capText) > MAX_APPLICANT_CAP)) e.appcap = "The cap must be a whole number of 1 or more, or left empty.";
   const chosen = Array.isArray(v.locEntries) ? v.locEntries : [];
-  if (v.remote !== true && chosen.length === 0) e.locpicker = "Choose a location from the list, or tick Remote role.";
+  if (v.outside === true) { if (PLACE_FIELD in changed) { const p = placeTextProblem(changed[PLACE_FIELD]); if (p) e.loctext = p; } }      // an unchanged typed place (for example one staged from the board) is not judged again
+  else if (v.remote !== true && chosen.length === 0) e.locpicker = "Choose a location from the list, or tick Remote role.";
   else Object.assign(e, locationProblems(chosen, v.remote === true, v.attested === true));
   if (v.aiFilter === true) { const p = aiNoteProblem(String(v.aiFilterNote == null ? "" : v.aiFilterNote).trim()); if (p) e.aiFilterNote = p; }
   if (v.aiInterview === true) { const p = aiNoteProblem(String(v.aiInterviewNote == null ? "" : v.aiInterviewNote).trim()); if (p) e.aiInterviewNote = p; }

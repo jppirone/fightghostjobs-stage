@@ -3,8 +3,8 @@
 // none) and the save-time check result. Whether the firm has an address is read from shown_as only (the server sends it for a firm that has an address and null for one that has none).
 // The words are the destination links rows' own (js/link-panel-model.js LP) wherever the meaning is the same; the sentences that name a firm are new and listed in reports\stage-bc-report.txt.
 
-import { MAX_FIRM_NAME, recruiterFirms, addressProblem } from "./edit-form.js?v=960d07a7";
-import { LP } from "./link-panel-model.js?v=48a22733";
+import { MAX_FIRM_NAME, recruiterFirms, addressProblem } from "./edit-form.js?v=80d9d54e";
+import { LP } from "./link-panel-model.js?v=0fe982ef";
 
 const hasControl = (s) => Array.from(String(s)).some((ch) => { const c = ch.codePointAt(0); return c < 32 || c === 127; });
 

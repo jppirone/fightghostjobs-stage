@@ -4,9 +4,10 @@
 // offered); both AI disclosures are REQUIRED and are always sent as true or false (never omitted, never null); the acting employer and organization are never sent (the server reads them from the session).
 
 import { problems as locationProblems } from "./location-rules.js?v=d6656595";
+import { PLACE_FIELD, collapsePlaceText, placeTextProblem } from "./place-text.js?v=ff0ec9af";
 import { checkGoLive } from "./schedule-form.js?v=b2985372";
-import { checkLinks, checkFirms } from "./edit-form.js?v=960d07a7";
-import { aiNoteProblem } from "./ai-notes.js?v=b731ef47";
+import { checkLinks, checkFirms } from "./edit-form.js?v=80d9d54e";
+import { aiNoteProblem } from "./ai-notes.js?v=35c5dc92";
 
 // The recruiter-firm rows (pass C) are OPTIONAL too, and only matter while the "third-party recruiter involved" toggle is on: blank rows mean "no firms named".
 export function collectFirms(rows, recruiterOn) {
@@ -44,6 +45,7 @@ export const MIN_WINDOW_DAYS = 14, MAX_WINDOW_DAYS = 45;      // the standard-ti
 
 // The form's input ids -> the backend's field names (for showing a server refusal under the right input)
 export const FIELD_OF_SERVER_NAME = {
+  [PLACE_FIELD]: "loctext",      // prompt BH: the typed place
   title: "jtitle", req_number: "req", location_ids: "locpicker", locations: "locpicker", is_remote: "locpicker", locations_attested: "attest", applicant_cap: "appcap",
   initial_closeout_condition: "closeout", description_text: "desc", window_days: "livedays", duplicate_explanation: "dupnote", ai_filtering_note: "aiFilterNote", ai_interview_note: "aiInterviewNote",
 };
@@ -77,7 +79,8 @@ export function validateForm(v) {
   if (v.aiFilter === true) { const p = aiNoteProblem(String(v.aiFilterNote == null ? "" : v.aiFilterNote).trim()); if (p) e.aiFilterNote = p; }
   if (v.aiInterview === true) { const p = aiNoteProblem(String(v.aiInterviewNote == null ? "" : v.aiInterviewNote).trim()); if (p) e.aiInterviewNote = p; }
   const chosen = Array.isArray(v.locEntries) ? v.locEntries : [];
-  if (v.remote !== true && chosen.length === 0) e.locpicker = "Choose a location from the list, or tick Remote role.";
+  if (v.outside === true) { const p = placeTextProblem(collapsePlaceText(v.locText)); if (p) e.loctext = p; }      // prompt BH: a place outside the US list, typed
+  else if (v.remote !== true && chosen.length === 0) e.locpicker = "Choose a location from the list, or tick Remote role.";
   else Object.assign(e, locationProblems(chosen, v.remote === true, v.attested === true));
   return e;
 }
@@ -100,8 +103,11 @@ export function buildCreateBody(v) {
   const fNote = String(v.aiFilterNote == null ? "" : v.aiFilterNote).trim(), iNote = String(v.aiInterviewNote == null ? "" : v.aiInterviewNote).trim();
   if (v.aiFilter === true && fNote !== "") body.ai_filtering_note = fNote;                  // the employer's words travel only with a toggle that is on (the backend refuses them otherwise)
   if (v.aiInterview === true && iNote !== "") body.ai_interview_note = iNote;
-  if (chosen.length) body.location_ids = chosen.map((c) => c.id);
-  if (chosen.length >= 2) body.locations_attested = v.attested === true;
+  if (v.outside === true) body[PLACE_FIELD] = collapsePlaceText(v.locText);      // prompt BH: a typed place; no list place goes with it
+  else {
+    if (chosen.length) body.location_ids = chosen.map((c) => c.id);
+    if (chosen.length >= 2) body.locations_attested = v.attested === true;
+  }
   if (String(v.appcap || "").trim() !== "") body.applicant_cap = Number(String(v.appcap).trim());
   const w = String(v.win == null ? "" : v.win).trim();
   if (w !== "") body.window_days = Number(w);          // omitted means 45 (the backend's default); a value outside 14-45 is refused by the backend, whatever this page checked

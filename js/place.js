@@ -8,7 +8,7 @@
 //   * shown with textContent only (the caller builds text nodes; nothing here makes markup), at most 200 characters, control characters removed.
 import { locationLine } from "./format.js?v=696f63b8";
 
-export const PLACE_NOTE = "as given by the employer's job board";
+export const PLACE_NOTE = "as written by the employer";   // prompt BH (October 11, 2026): the text is the employer's own words, typed on the form or staged from its public job board; it was "as given by the employer's job board" (AZ3) before employers could type one
 export const MAX_PLACE_CHARS = 200;
 
 // the text of a row's source place, cleaned, or "" when there is none (not a string, empty after cleaning)

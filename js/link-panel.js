@@ -4,8 +4,8 @@
 //   * an address is NEVER on the page; Check link opens a one-time ticket link in a new tab; Remove and Edit ask first, in the row.
 //   * the three row actions call exactly these api functions with the stored position: api.checkDestinationLink, api.editDestinationLink, api.removeDestinationLink.
 
-import { checkWarnings } from "./edit-form.js?v=960d07a7";
-import { LP, panelRows, rowMeta, rowsSignature, checkAria, editAria, removeAria, planEdit, confirmText, refusalFor, successText } from "./link-panel-model.js?v=48a22733";
+import { checkWarnings } from "./edit-form.js?v=80d9d54e";
+import { LP, panelRows, rowMeta, rowsSignature, checkAria, editAria, removeAria, planEdit, confirmText, refusalFor, successText } from "./link-panel-model.js?v=0fe982ef";
 import { mountRowPanel } from "./row-panel.js?v=2ab133e1";
 
 // ctx: { host, hintEl, noteEl, api, getPostingId, openBlank, schedule, now, isBlocked, onSessionEnded, onStale, onChanged }
