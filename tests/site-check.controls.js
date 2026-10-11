@@ -1214,9 +1214,10 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
     const c = rest.indexOf('    <div id="linksCard"');
     return rest.slice(0, c) + blk + rest.slice(c);
   }));
-  control("the main button is back inside the form", "S78", edit(EH, (s) => s.replace("    </form>", '      <button type="button" id="saveBtn" class="btn btn-dark" data-mode="close">Close</button>\n    </form>')));
-  control("the main button is a submit button", "S78", edit(EH, (s) => s.replace('<button type="button" id="saveBtn" class="btn btn-dark" data-mode="close">Close</button>', '<button type="submit" id="saveBtn" class="btn btn-dark" data-mode="close">Close</button>')));
-  control("the main button starts as Save changes", "S78", edit(EH, (s) => s.replace('data-mode="close">Close</button>', 'data-mode="close">Save changes</button>')));
+  control("the main button is back inside the form", "S78", edit(EH, (s) => s.replace("    </form>", '      <button type="button" id="saveBtn" class="btn btn-dark" data-mode="back">Back to My openings</button>\n    </form>')));
+  control("the main button is a submit button", "S78", edit(EH, (s) => s.replace('<button type="button" id="saveBtn" class="btn btn-dark" data-mode="back">Back to My openings</button>', '<button type="submit" id="saveBtn" class="btn btn-dark" data-mode="back">Back to My openings</button>')));
+  control("the main button starts as Save changes", "S78", edit(EH, (s) => s.replace('data-mode="back">Back to My openings</button>', 'data-mode="back">Save changes</button>')));
+  control("the main button is called Close again", "S78", edit(EH, (s) => s.replace('data-mode="back">Back to My openings</button>', 'data-mode="back">Close</button>')));
   control("the old Back to My openings button is back in the form", "S78", edit(EH, (s) => s.replace("    </form>", '      <a href="dashboard.html" class="btn btn-ghost">Back to My openings</a>\n    </form>')));
   control("a Cancel button is added to the action area", "S78", edit(EH, (s) => s.replace('<button type="button" id="publishBtn" class="btn btn-outline" hidden>Publish</button>', '<button type="button" id="publishBtn" class="btn btn-outline" hidden>Publish</button>\n        <button type="button" id="cancelBtn" class="btn btn-ghost">Cancel</button>')));
   control("Save as draft is shown at once", "S78", edit(EH, (s) => s.replace('<button type="button" id="draftSaveBtn" class="btn btn-outline" hidden>Save as draft</button>', '<button type="button" id="draftSaveBtn" class="btn btn-outline">Save as draft</button>')));
@@ -1224,7 +1225,7 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the note is back in the form", "S78", edit(EH, (s) => s.replace('<div id="formAlert" hidden></div>', "").replace("    </form>", '      <div id="formAlert" hidden></div>\n    </form>')));
   control("the title limit changes", "S78", edit(EH, (s) => s.replace('id="jtitle" type="text" maxlength="200"', 'id="jtitle" type="text" maxlength="250"')));
   control("the description limit is gone from the register page", "S78", edit("register.html", (s) => s.replace('<textarea id="desc" rows="5" maxlength="20000">', '<textarea id="desc" rows="5">')));
-  control("the main button always reads Save changes", "S78", edit(EJ, (s) => s.replace("saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.CLOSE;", "saveBtn.textContent = ACTION.SAVE;")));
+  control("the main button always reads Save changes", "S78", edit(EJ, (s) => s.replace("saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.BACK;", "saveBtn.textContent = ACTION.SAVE;")));
   control("Close leaves without the leave dialog", "S78", edit(EJ, (s) => s.replace('guard.openDialog(() => go("dashboard.html"), saveBtn);', 'go("dashboard.html");')));
   control("the bottom button does not double check the link sections", "S78", edit(EJ, (s) => s.replace("  if (!linkSectionsClear()) return;\n  await submit();", "  await submit();")));
   control("the double check says nothing", "S78", edit(EJ, (s) => s.replace('say(formAlert, "notice", panelsFirstText(open));', 'say(formAlert, "notice", "");')));
@@ -1271,6 +1272,28 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the candidate search page leaves the note off", "S79", edit("js/pages/search.js", (s) => s.replace("const placeNodesOf = (row) => placeNodes(h, row);", "const placeNodesOf = (row) => placeNodes(h, row, { note: false });")));
   control("the comments page leaves the note off", "S79", edit("js/pages/comments.js", (s) => s.replace("placeNodes(h, p), ", "placeNodes(h, p, { note: false }), ")));
   control("the My openings browser test is not in the suite", "S79", edit("tests/run-all.js", (s) => s.replace('path.join(here, "my-openings.test.js")', 'path.join(here, "unit.test.js")')));
+}
+
+// S80 (prompt BM, October 11, 2026): the note box belongs to a change; the button with nothing changed reads Back to My openings
+{
+  const EH = "edit.html", EJ = "js/pages/edit.js";
+  control("the note block is gone from the page file", "S80", edit(EH, (s) => s.replace('id="noteBlock"', 'id="noteBlockGone"')));
+  control("the note block is outside the action area", "S80", edit(EH, (s) => {
+    const a = s.indexOf('      <!-- prompt BM: this block is on the page only'), b = s.indexOf('      <div id="formAlert" hidden></div>'), blk = s.slice(a, b), rest = s.slice(0, a) + s.slice(b);
+    return rest.replace('    <div id="actionArea"', blk + '    <div id="actionArea"');
+  }));
+  control("the note block loses its limit hint", "S80", edit(EH, (s) => s.replace("One line, 500 characters at most. It is saved with the change.", "It is saved with the change.")));
+  control("a bottom button is called Close", "S80", edit(EH, (s) => s.replace('<button type="button" id="publishBtn" class="btn btn-outline" hidden>Publish</button>', '<button type="button" id="publishBtn" class="btn btn-outline" hidden>Publish</button>\n        <button type="button" id="closeTestBtn" class="btn btn-outline">Close</button>')));
+  control("the note block stays in the page at load", "S80", edit(EJ, (s) => s.replace("\nnoteBlock.remove();\n", "\n")));
+  control("the note box shows for every state", "S80", edit(EJ, (s) => s.replace("syncNoteBlock(editable && formUnsaved());", "syncNoteBlock(editable);")));
+  control("the note box shows for a link section alone", "S80", edit(EJ, (s) => s.replace("syncNoteBlock(editable && formUnsaved());", "syncNoteBlock(editable && anyUnsaved());")));
+  control("the cursor jumps into the box", "S80", edit(EJ, (s) => s.replace("if (wanted && !inPage) actionArea.insertBefore(noteBlock, actionArea.firstChild);", "if (wanted && !inPage) actionArea.insertBefore(noteBlock, null);")));
+  control("the note text stays when the box goes", "S80", edit(EJ, (s) => s.replace('noteInput.value = ""; noteInput.setAttribute("aria-invalid", "false");', 'noteInput.setAttribute("aria-invalid", "false");')));
+  control("the page asks for the box by id again", "S80", append(EJ, 'export const NOTE_VALUE = () => $("#note").value;'));
+  control("the collected note is read by id", "S80", edit(EJ, (s) => s.replace("note: noteInput.value", 'note: val("#note")')));
+  control("the main button reads Save changes with nothing changed", "S80", edit(EJ, (s) => s.replace("saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.BACK;", "saveBtn.textContent = ACTION.SAVE;")));
+  control("the main button word is Close again", "S80", edit("js/dirty-state.js", (s) => s.replace('BACK: "Back to My openings"', 'BACK: "Close"')));
+  control("the note box's browser test is not in the suite", "S80", edit("tests/run-all.js", (s) => s.replace('path.join(here, "note-box.test.js")', 'path.join(here, "unit.test.js")')));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });

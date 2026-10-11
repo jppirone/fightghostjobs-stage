@@ -7,7 +7,9 @@ import { resolveSearch } from "../js/search-input.js";
 import { focusWithRing } from "../js/focus-ring.js";
 
 test("the action area's words", () => {
-  assert.deepEqual(ACTION, { SAVE: "Save changes", CLOSE: "Close", SAVE_DRAFT: "Save as draft", PUBLISH: "Publish" });
+  // prompt BM: the main button with nothing changed reads "Back to My openings" (it was "Close", which reads as closing the opening)
+  assert.deepEqual(ACTION, { SAVE: "Save changes", BACK: "Back to My openings", SAVE_DRAFT: "Save as draft", PUBLISH: "Publish" });
+  assert.equal(Object.values(ACTION).some((w) => /^close$/i.test(w)), false, "no button of the editor is called Close");
   assert.equal(ADDED_LABEL, "Added");
 });
 

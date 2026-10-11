@@ -89,27 +89,27 @@ const SCENARIOS = {
     if (o.inForm) bad.push("the main button is still inside the main form");
     if (o.backLink) bad.push("the old Back to My openings button is still in the form");
     if (o.afterVisible.length) bad.push("something visible follows the action area in its column: " + JSON.stringify(o.afterVisible));
-    if (o.label !== "Close") bad.push("with nothing changed the main button reads '" + o.label + "'");
+    if (o.label !== "Back to My openings") bad.push("with nothing changed the main button reads '" + o.label + "'");
     return bad; })); },
   async editButtonLabel(root) { return withSite(root, { plan: "verified" }, (site) => withTab(async (tab) => { const bad = [];
     await openEdit(tab, site);
-    if ((await text(tab, "#saveBtn")) !== "Close") bad.push("fresh page: the button reads '" + (await text(tab, "#saveBtn")) + "'");
+    if ((await text(tab, "#saveBtn")) !== "Back to My openings") bad.push("fresh page: the button reads '" + (await text(tab, "#saveBtn")) + "'");
     await typeIn(tab, "#jtitle", "Data Analyst II"); await sleep(100);
     if ((await text(tab, "#saveBtn")) !== "Save changes") bad.push("something changed: the button reads '" + (await text(tab, "#saveBtn")) + "'");
     await typeIn(tab, "#jtitle", "Data Analyst"); await sleep(100);
-    if ((await text(tab, "#saveBtn")) !== "Close") bad.push("changed back by hand: the button reads '" + (await text(tab, "#saveBtn")) + "'");
-    // Close goes to My openings and sends nothing
+    if ((await text(tab, "#saveBtn")) !== "Back to My openings") bad.push("changed back by hand: the button reads '" + (await text(tab, "#saveBtn")) + "'");
+    // Back to My openings goes to My openings and sends nothing
     await click(tab, "#saveBtn");
     await tab.waitFor("location.pathname === '/dashboard.html'", 8000);
-    if ((await path_(tab)) !== "/dashboard.html") bad.push("Close did not go to My openings");
-    if (callsOf(site, "edit-posting").length) bad.push("Close sent a save");
-    // Save changes saves, and the button goes back to Close
+    if ((await path_(tab)) !== "/dashboard.html") bad.push("Back to My openings did not go to My openings");
+    if (callsOf(site, "edit-posting").length) bad.push("Back to My openings sent a save");
+    // Save changes saves, and the button goes back to Back to My openings
     await tab.goto(site.url + "/" + EDIT);
     await tab.waitFor("!!document.querySelector('#jtitle').value", 10000); await sleep(600);
     await typeIn(tab, "#jtitle", "Data Analyst II"); await typeIn(tab, "#note", "Level added to the title");
     await click(tab, "#saveBtn"); await sleep(1200);
     if (callsOf(site, "edit-posting").length !== 1) bad.push("Save changes sent " + callsOf(site, "edit-posting").length + " saves");
-    if ((await text(tab, "#saveBtn")) !== "Close") bad.push("after a save the button reads '" + (await text(tab, "#saveBtn")) + "'");
+    if ((await text(tab, "#saveBtn")) !== "Back to My openings") bad.push("after a save the button reads '" + (await text(tab, "#saveBtn")) + "'");
     if (!/^Saved\./.test((await text(tab, "#formAlert")) || "")) bad.push("the saved sentence is not next to the button: '" + (await text(tab, "#formAlert")) + "'");
     return bad; })); },
   // ---- the link sections keep their own saves; the bottom button double checks them
@@ -354,9 +354,9 @@ for (const [name, run] of Object.entries(SCENARIOS)) {
 
 // ---- negative controls: one defect at a time in the page code; each must make a scenario fail
 const DEFECTS = [
-  ["the main button never reads Close", [["js/pages/edit.js", (s) => s.replace("saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.CLOSE;", "saveBtn.textContent = ACTION.SAVE;")]], ["editBottomArea", "editButtonLabel"]],
-  ["the main button never reads Save changes", [["js/pages/edit.js", (s) => s.replace("saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.CLOSE;", "saveBtn.textContent = ACTION.CLOSE;")]], ["editButtonLabel", "editLinkCheck"]],
-  ["Close saves instead of leaving", [["js/pages/edit.js", (s) => s.replace("if (!anyUnsaved()) { guard.openDialog(() => go(\"dashboard.html\"), saveBtn); return; }", "if (!anyUnsaved()) { await submit(); return; }")]], ["editButtonLabel"]],
+  ["the main button never reads Back to My openings", [["js/pages/edit.js", (s) => s.replace("saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.BACK;", "saveBtn.textContent = ACTION.SAVE;")]], ["editBottomArea", "editButtonLabel"]],
+  ["the main button never reads Save changes", [["js/pages/edit.js", (s) => s.replace("saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.BACK;", "saveBtn.textContent = ACTION.BACK;")]], ["editButtonLabel", "editLinkCheck"]],
+  ["Back to My openings saves instead of leaving", [["js/pages/edit.js", (s) => s.replace("if (!anyUnsaved()) { guard.openDialog(() => go(\"dashboard.html\"), saveBtn); return; }", "if (!anyUnsaved()) { await submit(); return; }")]], ["editButtonLabel"]],
   ["the bottom button submits while a link section has typed text", [["js/pages/edit.js", (s) => s.replace("  if (!linkSectionsClear()) return;\n  await submit();", "  await submit();")]], ["editLinkCheck"]],
   ["the double check names no section", [["js/dirty-state.js", (s) => s.replace('return "The " + names[0] + " section has something', 'return "A section has something')]], ["editLinkCheck"]],
   ["the double check ignores the policy link box", [["js/pages/edit.js", (s) => s.replace("if ((shown(\"#policyForm\") && $(\"#policyUrl\").value.trim() !== \"\") || (shown(\"#policyPanel\") && policyPanel.hasPending())) out.push(PANEL.POLICY);", "")]], ["editLinkCheck"]],

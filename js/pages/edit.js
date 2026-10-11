@@ -23,8 +23,8 @@ import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-pan
 import { mountPolicyPanel } from "../policy-panel.js?v=22622330";
 import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js?v=f2ea9573";
 import { wireInfoIcons } from "../info-icon.js?v=66958a58";
-import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL, ACTION, ADDED_LABEL, panelsFirstText } from "../dirty-state.js?v=db4c2123";
-import { mountUnsavedGuard } from "../unsaved-guard.js?v=891a3799";
+import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL, ACTION, ADDED_LABEL, panelsFirstText } from "../dirty-state.js?v=7d4da23c";
+import { mountUnsavedGuard } from "../unsaved-guard.js?v=206c5678";
 
 wireInfoIcons();
 
@@ -46,6 +46,10 @@ function showErrors(byField) {
   for (const el of $$("[data-error-for]")) { const id = el.dataset.errorFor; const msg = byField[id]; el.hidden = !msg; el.textContent = msg || ""; const inp = $("#" + (id === "locpicker" ? "locq" : id)); if (inp) inp.setAttribute("aria-invalid", msg ? "true" : "false"); }
 }
 const draftSaveBtn = $("#draftSaveBtn"), publishBtn = $("#publishBtn"), actionArea = $("#actionArea");
+// prompt BM: "What changed, and why?" belongs to a CHANGE: its box (label, field, rule sentence, error line, limit hint) is taken out of the page while the main form has no change, and put back as soon as it has one.
+// The elements are kept here, so everything that reads them (collect, the rules, the errors) keeps working while they are out of the page.
+const noteBlock = $("#noteBlock"), noteInput = $("#note"), noteLabelEl = $("#noteLabel"), noteNeededEl = $("#noteNeeded");
+noteBlock.remove();
 function setBusy(on) { state.busy = on; saveBtn.disabled = on; draftSaveBtn.disabled = on; publishBtn.disabled = on; $("#unsavedSave").disabled = on; $("#unsavedDiscard").disabled = on; }
 // the boxes that stop typing at a limit say so (prompt BK); the limit is each box's own maxlength. The description's own hint already says "Up to 20,000 characters.", so only its count and its limit sentence are added.
 const limitHints = [mountLimitHint({ input: $("#jtitle") }), mountLimitHint({ input: $("#req") }), mountLimitHint({ input: $("#aiFilterNote") }), mountLimitHint({ input: $("#aiInterviewNote") }), mountLimitHint({ input: $("#desc"), hint: false })];
@@ -71,7 +75,7 @@ const planActive = () => !!state.plan && state.plan.verified === true;
 function syncNoteRows() { $("#aiFilterNoteRow").hidden = state.aiFilter !== true; $("#aiInterviewNoteRow").hidden = state.aiInterview !== true; }
 
 const collect = () => ({ title: val("#jtitle"), req: val("#req"), desc: val("#desc"), locEntries: place.outside() ? [] : picker.get().entries, attested: place.outside() ? false : picker.get().attested, outside: place.outside(), locText: place.text(), remote: $("#remote").checked, appcap: val("#appcap"),
-  aiFilter: state.aiFilter, aiInterview: state.aiInterview, aiFilterNote: val("#aiFilterNote"), aiInterviewNote: val("#aiInterviewNote"), recruiter: state.recruiter, reqSearchable: state.reqSearchable, exclusive: planActive() ? state.exclusive : undefined, note: val("#note") });
+  aiFilter: state.aiFilter, aiInterview: state.aiInterview, aiFilterNote: val("#aiFilterNote"), aiInterviewNote: val("#aiInterviewNote"), recruiter: state.recruiter, reqSearchable: state.reqSearchable, exclusive: planActive() ? state.exclusive : undefined, note: noteInput.value });
 
 // the catalog entries for the stored ids (a place the catalog no longer has still shows, by the display text the database stored)
 async function entriesFor(p) {
@@ -82,8 +86,8 @@ async function entriesFor(p) {
 }
 
 function noteLabel(isDraft) {
-  $("#noteLabel").textContent = isDraft && !state.needNote ? "What changed, and why? (optional on a draft; kept with the opening)." : "What changed, and why? (required; kept with the opening).";
-  $("#note").setAttribute("aria-required", isDraft && !state.needNote ? "false" : "true");
+  noteLabelEl.textContent = isDraft && !state.needNote ? "What changed, and why? (optional on a draft; kept with the opening)." : "What changed, and why? (required; kept with the opening).";
+  noteInput.setAttribute("aria-required", isDraft && !state.needNote ? "false" : "true");
 }
 
 function renderChanges(list) {
@@ -339,7 +343,7 @@ async function populate(doc, opts) {
     state.exclusive = p.destination_links_exclusive === true; setToggle("#exclusiveToggle", state.exclusive);
     state.reqSearchable = p.req_searchable !== false; setToggle("#reqSearchToggle", state.reqSearchable);
     $("#jtitle").value = p.title; $("#req").value = p.req_number || ""; $("#desc").value = p.description_text; $("#appcap").value = p.applicant_cap === null ? "" : String(p.applicant_cap);
-    $("#remote").checked = p.is_remote; $("#note").value = "";
+    $("#remote").checked = p.is_remote; noteInput.value = "";
     setToggle("#aiFilterToggle", p.ai_filtering === true); setToggle("#aiInterviewToggle", p.ai_interview_other === true); setToggle("#recruiterToggle", p.third_party_recruiter);
     $("#aiFilterNote").value = p.ai_filtering_note || ""; $("#aiInterviewNote").value = p.ai_interview_note || ""; syncNoteRows();
   }
@@ -500,7 +504,7 @@ function enterSaves(ev) {
   if (t && t.tagName === "INPUT" && t.type === "text") { ev.preventDefault(); if (anyUnsaved()) onMain(); }
 }
 form.addEventListener("keydown", enterSaves);
-$("#note").addEventListener("keydown", enterSaves);
+noteInput.addEventListener("keydown", enterSaves);
 
 // ---- unsaved work (js/dirty-state.js decides what counts; js/unsaved-guard.js shows the bar, asks before the page is left, and holds the dialog)
 // The main form is unsaved when it differs from the snapshot taken when it was last loaded or saved. The sections that save through their own buttons (destination links, recruiter firms, the go-live time)
@@ -522,14 +526,30 @@ function unsavedModel() {
   // linkRows / linkEdit: which kind of destination links work is unsaved (typed new rows, or the open Edit of a stored link): the bar names the right button for each (js/dirty-state.js)
   return { form: dirty, panels: panelsUnsaved(), linkRows: shown("#linksForm") && rowsTyped(links.values()), linkEdit: shown("#linksPanel") && linkPanel.hasPending(), firmRows: shown("#firmsForm") && rowsTyped(firms.values()), firmEdit: shown("#firmsForm") && firmPanel.hasPending(), status: state.orig.stored_status, noteMissing: rules.noteMissing, noteRequired: rules.noteRequired, rules };
 }
+// the note box (prompt BM): in the page only while the main form differs from what is saved. Taken out again when the change is undone, with its text, its rule sentence and its error: a note that is not in
+// the page can never be sent. Nothing moves the cursor: if it was inside the box when the box goes, it goes to the main button.
+function syncNoteBlock(wanted) {
+  const inPage = noteBlock.isConnected;
+  if (wanted && !inPage) actionArea.insertBefore(noteBlock, actionArea.firstChild);
+  else if (!wanted && inPage) {
+    const had = noteBlock.contains(document.activeElement);
+    noteBlock.remove();
+    noteInput.value = ""; noteInput.setAttribute("aria-invalid", "false");
+    const err = noteBlock.querySelector('[data-error-for="note"]'); err.hidden = true; err.textContent = "";
+    noteNeededEl.hidden = true; noteNeededEl.textContent = "";
+    if (state.needNote) { state.needNote = false; noteLabel(state.orig.stored_status === "draft"); }       // a server demand for an explanation belonged to that change
+    if (had) saveBtn.focus();
+  }
+}
 // the bottom area: shown for an opening that can be edited; the main button's words follow what is unsaved; Save as draft and Publish only for a draft (Publish while its publish window is open)
 function syncActions() {
   const editable = !!state.orig && !form.hidden;
   actionArea.hidden = !editable;
+  syncNoteBlock(editable && formUnsaved());
   if (!editable) return;
   const dirty = anyUnsaved(), draft = state.orig.stored_status === "draft";
-  saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.CLOSE;
-  saveBtn.setAttribute("data-mode", dirty ? "save" : "close");
+  saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.BACK;
+  saveBtn.setAttribute("data-mode", dirty ? "save" : "back");
   draftSaveBtn.hidden = !draft;
   publishBtn.hidden = !(draft && actionsFor(state.orig, Date.now()).includes("publish"));
 }
@@ -539,7 +559,7 @@ function refreshUnsaved() {
   for (const x of limitHints) x.refresh();         // the counts follow a value a script put in a box (a save, Discard)
   syncActions();
   const m = unsavedModel(), status = state.orig ? state.orig.stored_status : "live";
-  const need = $("#noteNeeded"); need.hidden = !m.noteRequired; need.textContent = m.noteRequired ? UNSAVED.noteRequired(status) : "";          // the note rule, shown as soon as a change makes it apply
+  const need = noteNeededEl; need.hidden = !m.noteRequired; need.textContent = m.noteRequired ? UNSAVED.noteRequired(status) : "";          // the note rule, shown as soon as a change makes it apply
   const rule = $("#titleRule"); rule.hidden = !m.rules.titleRule; rule.textContent = m.rules.titleRule ? UNSAVED.titleRule(status) : "";           // and the title rule, as soon as the title is changed
 }
 // Discard: the saved values go back into the form and every section (a fresh read of what was last loaded or saved; nothing is sent)

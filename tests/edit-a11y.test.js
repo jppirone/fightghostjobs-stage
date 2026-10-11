@@ -51,7 +51,9 @@ const SCENARIOS = {
       await type(tab, "jtitle", orig + " XY"); await type(tab, "note", "typo"); await tab.eval(`document.getElementById("note").dispatchEvent(new KeyboardEvent("keyup", { bubbles: true }))`);
       await mark(1, "more typing")();
       // 2. changed back by hand: the bar goes away; told once
-      await tab.eval(`document.getElementById("jtitle").focus()`); await type(tab, "jtitle", orig); await type(tab, "note", ""); await sleep(200);
+      // (prompt BM: the note box goes out of the page, with its text, as soon as the change is undone, so there is no box left to empty by hand)
+      await tab.eval(`document.getElementById("jtitle").focus()`); await type(tab, "jtitle", orig); await sleep(200);
+      if (await tab.eval(`!!document.getElementById("note")`)) bad.push("the note box stayed on the page after the title was changed back");
       if (await barShown()) bad.push("the bar stayed after the title was changed back");
       s = await mark(2, "changed back by hand")();
       if (s[1] !== "No unsaved changes.") bad.push("the message when the bar goes away is '" + s[1] + "'");

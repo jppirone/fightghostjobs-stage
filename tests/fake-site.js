@@ -54,13 +54,14 @@ const ANALYTICS = { live_postings: 4, searches: 1284, detail_views: 406, link_cl
 // opts.pageCache: Cache-Control for the pages and scripts (default no-store, as always). opts.commentsOff: serve js/config.js with the comments switch turned OFF (COMMENTS_VISIBLE false), to test the pages in that state. By default the fake site serves the file exactly as shipped, which is ON since October 6, 2026, so every test written for the pages with comments keeps covering them
 export function startFakeSite(root, opts = {}) {
   root = path.resolve(root);
-  const calls = []; let SELF = "";
+  const calls = [], hits = []; let SELF = "";      // hits (prompt BM): every request the browser made, "METHOD /path", whatever it was for
   const state = { published: false };   // prompt BK: what a call changed that a later read must show (the opening is live after Publish)
   let policyState = opts.policy === undefined ? null : opts.policy;   // the AI and hiring policy link the fake backend holds for the one opening (see opts.plan, opts.policy, opts.policyCheck, opts.policyDetail below)
   // the recruiter firms the fake backend holds for the one opening (prompt BC, October 10, 2026): opts.firms = [{ firm, with_address (default true), check_status, check_http, shown_as }] in position order; opts.recruiter: the saved toggle is on
   let firmsState = (opts.firms || []).map((f, i) => ({ position: i + 1, firm: f.firm, has_url: f.with_address !== false, shown_as: f.shown_as === undefined ? "Employer's own site" : f.shown_as, check_status: f.check_status || "ok", check_http: f.check_http === undefined ? (f.check_status === "failed" ? 404 : 200) : f.check_http }));
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://x");
+    hits.push(req.method + " " + url.pathname);
     const send = (status, body, extra) => { res.writeHead(status, Object.assign({ "Content-Type": "application/json", "Cache-Control": "no-store" }, extra || {})); res.end(typeof body === "string" ? body : JSON.stringify(body)); };
     const readBody = () => new Promise((ok) => { let s = ""; req.on("data", (c) => (s += c)); req.on("end", () => { try { ok(JSON.parse(s || "{}")); } catch { ok({}); } }); });
     const claimsOf = () => { try { return JSON.parse(Buffer.from(String(req.headers.authorization || "").replace(/^Bearer /, "").split(".")[1], "base64url").toString()); } catch { return null; } };
@@ -272,5 +273,5 @@ export function startFakeSite(root, opts = {}) {
     if (rel === "/js/config.js" && opts.codeOn) data = Buffer.from(data.toString("utf8").replace("EMAIL_CODE_ENTRY = false", "EMAIL_CODE_ENTRY = true"));   // opts.codeOn: the emailed-code field switched ON (it ships OFF, so every other test sees the sign-in pages as shipped)
     res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": opts.pageCache || "no-store" }); res.end(data);   // opts.pageCache: the Cache-Control the real stage serves (max-age=600), for the test that needs the browser's back/forward cache to be allowed; the default is unchanged
   });
-  return new Promise((resolve) => server.listen(0, "127.0.0.1", () => { SELF = "http://127.0.0.1:" + server.address().port; resolve({ url: SELF, calls, close: () => new Promise((r) => { server.close(r); if (server.closeAllConnections) server.closeAllConnections(); }) }); }));
+  return new Promise((resolve) => server.listen(0, "127.0.0.1", () => { SELF = "http://127.0.0.1:" + server.address().port; resolve({ url: SELF, calls, hits, close: () => new Promise((r) => { server.close(r); if (server.closeAllConnections) server.closeAllConnections(); }) }); }));
 }

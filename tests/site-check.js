@@ -1686,7 +1686,7 @@ export function checkSite(root, opts = {}) {
       const form = h.slice(iForm, iFormEnd);
       if (form.includes('id="saveBtn"') || form.includes('id="note"') || form.includes('id="formAlert"') || /Back to My openings/.test(form)) add("S78", editH, "the main button, the note and the messages are not in the form: they are in the one action area at the bottom");
       const area = iArea >= 0 && iRo > iArea ? h.slice(iArea, iRo) : "";
-      if (!/<button type="button" id="saveBtn" class="btn btn-dark" data-mode="close">Close<\/button>/.test(area)) add("S78", editH, "the main button is a plain button, outside the form, that starts as Close");
+      if (!/<button type="button" id="saveBtn" class="btn btn-dark" data-mode="back">Back to My openings<\/button>/.test(area)) add("S78", editH, "the main button is a plain button, outside the form, that starts as Back to My openings (prompt BM: it was Close)");
       if (!/<button type="button" id="draftSaveBtn" class="btn btn-outline" hidden>Save as draft<\/button>\s*<button type="button" id="publishBtn" class="btn btn-outline" hidden>Publish<\/button>\s*<\/div>\s*<\/div>/.test(area)) add("S78", editH, "Save as draft and Publish are hidden until the page shows them, and they end the action area: nothing follows them");
       if (/Cancel|<a /.test(area)) add("S78", editH, "no Cancel and no link in the action area (the bar's Discard is the way back without saving)");
       if (/id="saveBtn"[^>]*type="submit"|type="submit"[^>]*id="saveBtn"/.test(h)) add("S78", editH, "the main button must not be a submit button of the form (Enter would then leave the page on Close)");
@@ -1701,8 +1701,8 @@ export function checkSite(root, opts = {}) {
     if (fs.existsSync(edF)) {
       const s = body(edF);
       for (const [pin, why] of [
-        ["saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.CLOSE;", "the main button reads Save changes while something changed and Close while nothing has"],
-        ["if (!anyUnsaved()) { guard.openDialog(() => go(\"dashboard.html\"), saveBtn); return; }", "Close goes to My openings through the leave dialog (it asks only if something turns out to be unsaved)"],
+        ["saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.BACK;", "the main button reads Save changes while something changed and Back to My openings while nothing has"],
+        ["if (!anyUnsaved()) { guard.openDialog(() => go(\"dashboard.html\"), saveBtn); return; }", "Back to My openings goes to My openings through the leave dialog (it asks only if something turns out to be unsaved)"],
         ["  if (!linkSectionsClear()) return;\n  await submit();", "the main button double checks the link sections before it submits"],
         ["say(formAlert, \"notice\", panelsFirstText(open));", "the double check says one sentence that names the sections"],
         ["draftSaveBtn.hidden = !draft;", "Save as draft is for a draft only"],
@@ -1728,7 +1728,7 @@ export function checkSite(root, opts = {}) {
     }
     if (fs.existsSync(dsF)) {
       const s = body(dsF);
-      if (!s.includes('export const ACTION = { SAVE: "Save changes", CLOSE: "Close", SAVE_DRAFT: "Save as draft", PUBLISH: "Publish" };')) add("S78", dsF, "the action area's words");
+      if (!s.includes('export const ACTION = { SAVE: "Save changes", BACK: "Back to My openings", SAVE_DRAFT: "Save as draft", PUBLISH: "Publish" };')) add("S78", dsF, "the action area's words");
       if (!s.includes("These sections have something that is not saved: ") || !s.includes('" section has something that is not saved. Use the button in that section to save it first, then press Save changes."')) add("S78", dsF, "the double check's sentences");
     }
     if (fs.existsSync(lhF)) {
@@ -1783,6 +1783,39 @@ export function checkSite(root, opts = {}) {
     if (fs.existsSync(plJ) && !body(plJ).includes("if (p.note && !(opts && opts.note === false)) out.push(")) add("S79", plJ, "placeNodes leaves the note off only when the caller says so (the default shows it)");
     for (const f of [srJ, cmJ]) if (fs.existsSync(f) && /note:\s*false/.test(body(f))) add("S79", f, "a screen a candidate sees keeps the note: no note: false here");
     if (fs.existsSync(runF) && !read(runF).includes('"my-openings.test.js"')) add("S79", runF, "my-openings.test.js is not in the suite");
+  }
+  // S80 (2026-10-11, prompt BM): the opening editor's note box belongs to a CHANGE. Pinned: the block (#noteBlock) is taken out of the page at load, put back only while the MAIN FORM differs from what is saved (a link
+  // section alone does not bring it), taken out again with its text, rule sentence and error cleared; the cursor is never moved by it; the main button with nothing changed reads Back to My openings and no button of
+  // the bottom area is called Close. The browser test runs in the suite.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const body = (f) => (fs.existsSync(f) ? stripJsComments(read(f)) : "");
+    const editH = P("edit.html"), edF = P("js", "pages", "edit.js"), dsF = P("js", "dirty-state.js"), runF = P("tests", "run-all.js");
+    if (fs.existsSync(editH)) {
+      const h = read(editH);
+      if (h.split('id="noteBlock"').length !== 2) add("S80", editH, "edit.html carries #noteBlock exactly once (the note's label, field, rule sentence, error and limit hint)");
+      const iArea = h.indexOf('id="actionArea"'), iBlock = h.indexOf('id="noteBlock"'), iBtn = h.indexOf('id="saveBtn"');
+      if (!(iArea >= 0 && iBlock > iArea && iBtn > iBlock)) add("S80", editH, "the note block is inside the action area, before the buttons");
+      const block = iBlock >= 0 ? h.slice(iBlock, iBtn) : "";
+      if (!block.includes('id="note"') || !block.includes('id="noteLabel"') || !block.includes('id="noteNeeded"') || !block.includes('data-error-for="note"') || !block.includes("One line, 500 characters at most.")) add("S80", editH, "the note block holds the field, its label, its rule sentence, its error and its limit hint");
+      const area = iArea >= 0 ? h.slice(iArea, h.indexOf('id="readonlyNote"')) : "";
+      if (/>\s*Close\s*</.test(area)) add("S80", editH, "no button of the bottom area is called Close");
+    }
+    if (fs.existsSync(edF)) {
+      const s = body(edF);
+      for (const [pin, why] of [
+        ["const noteBlock = $(\"#noteBlock\"), noteInput = $(\"#note\"), noteLabelEl = $(\"#noteLabel\"), noteNeededEl = $(\"#noteNeeded\");\nnoteBlock.remove();", "the note block is taken out of the page at load and kept"],
+        ["syncNoteBlock(editable && formUnsaved());", "the box is in the page only while the main form has a change (not for a link section alone)"],
+        ["if (wanted && !inPage) actionArea.insertBefore(noteBlock, actionArea.firstChild);", "the box goes back in at the top of the bottom area, without moving the cursor"],
+        ["noteInput.value = \"\"; noteInput.setAttribute(\"aria-invalid\", \"false\");", "the text is cleared when the box goes"],
+        ["note: noteInput.value", "everything reads the box through the kept element"],
+        ["saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.BACK;", "with nothing changed the main button reads Back to My openings"],
+      ]) if (!s.includes(pin)) add("S80", edF, "edit.js: " + why);
+      if (/\$\("#note"\)/.test(s.replace(/const noteBlock = [^\n]*\n/, ""))) add("S80", edF, "edit.js reads the note box only through noteInput (a query by id finds nothing while the box is out of the page)");
+      if (/ACTION\.CLOSE|"Close"/.test(s)) add("S80", edF, "edit.js has no Close button word");
+    }
+    if (fs.existsSync(dsF) && !body(dsF).includes('BACK: "Back to My openings"')) add("S80", dsF, "the main button's word is Back to My openings");
+    if (fs.existsSync(runF) && !read(runF).includes('"note-box.test.js"')) add("S80", runF, "note-box.test.js is not in the suite");
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed

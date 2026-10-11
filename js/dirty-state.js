@@ -76,8 +76,8 @@ const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const joinNames = (names) => names.length <= 1 ? (names[0] || "") : names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
 
 // ---- prompt BK (October 11, 2026): the one action area at the very bottom of the edit page
-// the main button reads "Save changes" while something on the page has changed, "Close" (back to My openings) while nothing has
-export const ACTION = { SAVE: "Save changes", CLOSE: "Close", SAVE_DRAFT: "Save as draft", PUBLISH: "Publish" };
+// the main button reads "Save changes" while something on the page has changed, "Back to My openings" while nothing has (prompt BM: it was "Close", which reads as closing the opening)
+export const ACTION = { SAVE: "Save changes", BACK: "Back to My openings", SAVE_DRAFT: "Save as draft", PUBLISH: "Publish" };
 // the bottom button's double check: a section that saves through its own button holds something not saved. One plain sentence that names it; nothing is submitted.
 export function panelsFirstText(panels) {
   const names = ORDER.filter((n) => Array.isArray(panels) && panels.includes(n));
