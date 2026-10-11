@@ -55,6 +55,7 @@ const ANALYTICS = { live_postings: 4, searches: 1284, detail_views: 406, link_cl
 export function startFakeSite(root, opts = {}) {
   root = path.resolve(root);
   const calls = []; let SELF = "";
+  const state = { published: false };   // prompt BK: what a call changed that a later read must show (the opening is live after Publish)
   let policyState = opts.policy === undefined ? null : opts.policy;   // the AI and hiring policy link the fake backend holds for the one opening (see opts.plan, opts.policy, opts.policyCheck, opts.policyDetail below)
   // the recruiter firms the fake backend holds for the one opening (prompt BC, October 10, 2026): opts.firms = [{ firm, with_address (default true), check_status, check_http, shown_as }] in position order; opts.recruiter: the saved toggle is on
   let firmsState = (opts.firms || []).map((f, i) => ({ position: i + 1, firm: f.firm, has_url: f.with_address !== false, shown_as: f.shown_as === undefined ? "Employer's own site" : f.shown_as, check_status: f.check_status || "ok", check_http: f.check_http === undefined ? (f.check_status === "failed" ? 404 : 200) : f.check_http }));
@@ -165,6 +166,8 @@ export function startFakeSite(root, opts = {}) {
       }
       // prompt BJ: the whole-set replace of the application links (the register page saves them right after the opening is added). opts.applyCheck: "ok" (default) or "failed" (HTTP 404) for every address;
       // opts.applyRefusal = { status, body } makes it refuse. The addresses are never sent back (position and label only), like the real one.
+      // opts.linkDelayMs (prompt BK): every address-saving call answers after this long (the server asks each address once), for the wait word
+      if (name === "set-destination-links" && opts.linkDelayMs) await new Promise((r) => setTimeout(r, opts.linkDelayMs));
       if (name === "set-destination-links" && poster && (body.kind === undefined || body.kind === "apply")) {
         if (opts.plan !== "verified") return send(403, PLAN_REFUSAL);
         if (opts.applyRefusal) return send(opts.applyRefusal.status, opts.applyRefusal.body);
@@ -178,7 +181,15 @@ export function startFakeSite(root, opts = {}) {
       }
       if (name === "get-my-posting") {
         if (!poster) return unauth();
-        return send(200, { posting: { id: body.posting_id, title: "Data Analyst", req_number: "4471", company_name: "Meridian Health", post_id: "ABCDEFGHJKMN", status: "live", closed_reason: null, stored_status: "live", is_remote: false, locations: opts.placeText ? [] : ["Austin, TX"], location_ids: opts.placeText ? [] : ["gn:4671654"], source_location_text: opts.placeText || null, locations_attested: false, ai_filtering: false, ai_interview_other: null, third_party_recruiter: opts.recruiter === true || firmsState.length > 0, req_searchable: true, destination_links_exclusive: false, applicant_cap: null, description_text: Array.from({ length: 60 }, (_, i) => "requirement" + i).join(" "), window_days: 45, posted_at: inDays(-10), expiration_date: inDays(35), publish_by: null, go_live_at: null, created_at: inDays(-10), last_edited_at: null },
+        // prompt BK: opts.postingStatus: "live" (default), "draft", "scheduled" (a draft with a go-live time), "paused", "closed" or "expired" (a live opening whose clock has run out)
+        const ps = state.published ? "live" : (opts.postingStatus || "live");
+        const PS = ps === "draft" ? { status: "draft", stored_status: "draft", closed_reason: null, posted_at: null, expiration_date: null, publish_by: inDays(11), go_live_at: null }
+          : ps === "scheduled" ? { status: "scheduled", stored_status: "draft", closed_reason: null, posted_at: null, expiration_date: null, publish_by: null, go_live_at: inDays(5) }
+          : ps === "paused" ? { status: "paused", stored_status: "paused", closed_reason: null, posted_at: inDays(-10), expiration_date: inDays(35), publish_by: null, go_live_at: null }
+          : ps === "closed" ? { status: "closed", stored_status: "closed", closed_reason: "filled", posted_at: inDays(-10), expiration_date: inDays(35), publish_by: null, go_live_at: null }
+          : ps === "expired" ? { status: "expired", stored_status: "live", closed_reason: "expired_no_action", posted_at: inDays(-50), expiration_date: inDays(-5), publish_by: null, go_live_at: null }
+          : { status: "live", stored_status: "live", closed_reason: null, posted_at: inDays(-10), expiration_date: inDays(35), publish_by: null, go_live_at: null };
+        return send(200, { posting: { id: body.posting_id, title: "Data Analyst", req_number: "4471", company_name: "Meridian Health", post_id: "ABCDEFGHJKMN", ...PS, is_remote: false, locations: opts.placeText ? [] : ["Austin, TX"], location_ids: opts.placeText ? [] : ["gn:4671654"], source_location_text: opts.placeText || null, locations_attested: false, ai_filtering: false, ai_interview_other: null, third_party_recruiter: opts.recruiter === true || firmsState.length > 0, req_searchable: true, destination_links_exclusive: false, applicant_cap: null, description_text: Array.from({ length: 60 }, (_, i) => "requirement" + i).join(" "), window_days: 45, created_at: opts.createdAt || inDays(-10), last_edited_at: null },
           destination_links: firmEntries().concat(policyEntry() ? [policyEntry()] : []), plan: planDoc(), recent_changes: opts.recentChanges || [{ at: inDays(-2), note: "Fixed a typo in the third paragraph", kind: "text_correction", fields: ["description_text"] }, { at: inDays(-5), note: "Renamed the role", kind: "edit", fields: ["title"] }] });
       }
       // prompt BH: create-posting answers with a draft (the request body is in site.calls); opts.createRefusal = { status, body } makes it refuse, opts.createDropsPlace answers without the typed place
@@ -186,6 +197,13 @@ export function startFakeSite(root, opts = {}) {
         if (!poster) return unauth();
         if (opts.createRefusal) return send(opts.createRefusal.status, opts.createRefusal.body);
         return send(201, { id: "3f1d5b1e-0000-4000-8000-0000000000aa", status: "draft", title: String(body.title || ""), expiration_date: inDays(30), public_code: "ABCDEFGHJKMN", posting_ref: "abcdefghjkmnpqrstvwx", closed_reason: null, source_location_text: opts.createDropsPlace ? null : (typeof body.source_location_text === "string" ? body.source_location_text : null) });   // the real one answers with the whole row (returning *); opts.createDropsPlace: a server that does not know the typed place yet
+      }
+      // prompt BK: Publish on the edit page (the same call My openings makes). opts.publishRefusal = { status, body } makes it refuse.
+      if (name === "publish-posting") {
+        if (!poster) return unauth();
+        if (opts.publishRefusal) return send(opts.publishRefusal.status, opts.publishRefusal.body);
+        state.published = true;
+        return send(200, { posting: { id: body.posting_id, status: "live", title: "Data Analyst", expiration_date: inDays(45), public_code: "ABCDEFGHJKMN", posting_ref: "abcdefghjkmnpqrstvwx", closed_reason: null } });
       }
       if (name === "edit-posting") return poster ? send(200, { edited: true, changed_fields: ["title"], similarity_pct: null }) : unauth();   // the saved posting reads back as it was (the fake keeps nothing), so a save ends with nothing unsaved
       if (name === "list-posting-comments") return poster ? send(200, { posting_id: body.posting_id, comments: [{ id: "c1", body: "This role was filled last month, according to a friend who works there.", created_at: inDays(-3), is_mine: false }], total: 1, next_offset: null }) : unauth();   // the employer reads the thread of their own posting

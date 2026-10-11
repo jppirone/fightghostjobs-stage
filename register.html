@@ -9,7 +9,7 @@
 <script src="js/stage-gate.js?v=d48925c1"></script>
 <title>FightGhostJobs | Add an Opening</title>
 <link rel="stylesheet" href="styles.css?v=4cea5b1e">
-<link rel="stylesheet" href="app.css?v=029b9c9e">
+<link rel="stylesheet" href="app.css?v=8587fe0c">
 </head>
 <body>
 <a id="skipToUnsaved" class="skip-link" href="#unsavedSave" hidden>Skip to unsaved changes</a>
@@ -162,6 +162,8 @@
         <button type="button" id="recruiterToggle" class="toggle" role="switch" aria-checked="false" aria-label="Third-party recruiter involved"><span class="toggle-knob"></span></button>
       </div>
 
+      <div id="recruiterCleared" class="field-hint" role="status" hidden style="margin-top:-12px;"></div>
+
       <div id="recruiterPanel" hidden style="display:flex;flex-direction:column;gap:12px;background:var(--panel);border:1px dashed #C9C1B4;border-radius:10px;padding:14px 18px;">
         <div style="font-size:13px;font-weight:700;">Recruiter firms</div>
         <div id="firmsLocked" hidden style="display:flex;align-items:center;gap:10px;">
@@ -197,9 +199,10 @@
 
       <div style="height:1px;background:var(--line);"></div>
       <div id="formAlert" hidden></div>
-      <div style="display:flex;gap:12px;">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
         <button type="submit" id="registerBtn" class="btn btn-dark" style="flex:1;justify-content:center;">Add opening</button>
         <button type="button" id="draftBtn" class="btn btn-ghost">Save draft</button>
+        <span id="waitWord" role="status" hidden style="font-size:14px;color:var(--muted);"></span>
       </div>
     </form>
 
@@ -254,6 +257,6 @@
 
 <footer class="site-footer"><span>FightGhostJobs</span><a href="privacy.html">Privacy</a><a href="mailto:privacy@fightghostjobs.com">privacy@fightghostjobs.com</a></footer>
 
-<script type="module" src="js/pages/register.js?v=1f74b164"></script>
+<script type="module" src="js/pages/register.js?v=4310ba0d"></script>
 </body>
 </html>

@@ -815,7 +815,8 @@ export function checkSite(root, opts = {}) {
       if (t.includes("The yes/no flag is free. Naming the firm is a destination links tier feature.")) add("S45", htmlF, "the old recruiter sentence (which implied the firm is named up here) must be gone from the edit page");
       const iTog = t.indexOf('id="recruiterToggle"'), iSave = t.indexOf('id="saveBtn"'), iFirms = t.indexOf('id="firmsPanel"'), iEnd = t.indexOf('id="readonlyNote"');
       if (iTog < 0 || iSave < 0 || iTog > iSave) add("S45", htmlF, "the recruiter toggle (free, for every employer) must be ABOVE Save changes");
-      if (iFirms < 0 || iCard < 0 || iFirms < iSave || iFirms < iCard || iFirms > iEnd) add("S45", htmlF, "the recruiter firms panel (destination links tier) must sit inside the Destination links card, BELOW Save changes: nothing paid goes above the Save button except what the main save itself covers");
+      // prompt BK (October 11, 2026): the main button is the one action area at the very bottom, after every section; the firms panel is inside the Destination links card, ABOVE it (rule S78 pins the bottom area itself)
+      if (iFirms < 0 || iCard < 0 || iFirms < iCard || iFirms > iSave || iSave > iEnd) add("S45", htmlF, "the recruiter firms panel (destination links tier) must sit inside the Destination links card, which sits ABOVE the one action area with Save changes at the bottom");
       const region = t.slice(t.indexOf('id="unsavedLive"'), t.indexOf("<footer")) + t.slice(t.indexOf('id="recruiterHint"'), t.indexOf('id="recruiterHint"') + 400);
       if (region.includes(EMDASH)) add("S45", htmlF, "no em dash in the bar, the dialog or the recruiter sentence");
     } else add("S45", htmlF, "edit.html is missing");
@@ -833,7 +834,7 @@ export function checkSite(root, opts = {}) {
       const raw = read(gF), c = stripJsComments(raw);
       if (!c.includes('win.addEventListener("beforeunload", onBeforeUnload)') || !c.includes('win.removeEventListener("beforeunload", onBeforeUnload)') || !/ev\.preventDefault\(\); ev\.returnValue = "";/.test(c)) add("S45", gF, "the guard must ask the browser before the page is left (beforeunload) while something is unsaved, and stop asking when nothing is");
       if (!/ev\.key === "Escape"\) \{ ev\.preventDefault\(\); if \(!busy\) closeDialog\(true\); return; \}/.test(c)) add("S45", gF, "Escape in the leave dialog must mean Stay");
-      if (!c.includes("dlg.stay.focus();") || !c.includes("d.returnTo.focus()")) add("S45", gF, "focus must move into the leave dialog (on Stay) and return to what opened it");
+      if (!c.includes("focusWithRing(dlg.stay);") || !c.includes("d.returnTo.focus()")) add("S45", gF, "focus must move into the leave dialog (on Stay, with its ring drawn at once: js/focus-ring.js) and return to what opened it");
       if (!/ev\.key === "Tab"/.test(c)) add("S45", gF, "Tab must stay inside the leave dialog");
       if (!c.includes('root.classList.toggle("unsaved-on", s.any)')) add("S45", gF, "the guard must mark the page while the bar shows (a focused field is kept clear of it)");
       if (/\b(localStorage|sessionStorage|indexedDB|document\.cookie|fetch\s*\(|console\.)/.test(c) || /https?:\/\/[^\s"'`)<>]+/.test(c)) add("S45", gF, "the guard keeps nothing, sends nothing and logs nothing");
@@ -1616,12 +1617,13 @@ export function checkSite(root, opts = {}) {
     if (fs.existsSync(rgF)) {
       const s = body(rgF);
       if (!s.includes("mountLinkRowsById({ checkAddress: addressProblem })") || !s.includes("mountFirmRowsById({ checkAddress: addressProblem })")) add("S77", rgF, "the register page's rows judge each address as typed (checkAddress: addressProblem, the edit page's rule)");
-      if (!s.includes("const lp = linkProblems({ links: lc, firms: fc, policy: pc, firmsIgnored });")) add("S77", rgF, "every section is judged together before anything is created (linkProblems)");
+      if (!s.includes("const lp = linkProblems({ links: lc, firms: fc, policy: pc });")) add("S77", rgF, "every section is judged together before anything is created (linkProblems)");
       const iCreate = s.indexOf("api.createPosting("), iPolicy = s.indexOf("savePolicy(pc)"), iLinks = s.indexOf("saveLinks(lc)"), iFirms = s.indexOf("saveFirms(fc)");
       if (!(iCreate > 0 && iLinks > iCreate && iFirms > iLinks && iPolicy > iFirms)) add("S77", rgF, "the policy link is saved after the opening exists, after the links and the firms");
       if (!s.includes("api.setPolicyLink(state.saved.id, pc.url)")) add("S77", rgF, "the policy link is saved with api.setPolicyLink on the created opening");
       if (!s.includes("summarize: summarizeRegister") || !s.includes("mountUnsavedGuard({")) add("S77", rgF, "the register page uses the shared unsaved component with its own summary");
-      if (!s.includes("const firmsIgnored = !!state.firms && !state.recruiter && rowsTyped(state.firms.values());")) add("S77", rgF, "a firm typed while the recruiter switch is off is told to the person, never dropped silently");
+      // prompt BK: a firm typed while the switch is off can no longer exist (turning it off clears the typed rows, S78), and the firms are still never saved while it is off (collectFirms takes the switch)
+      if (!s.includes("const fc = state.firms ? collectFirms(state.firms.values(), state.recruiter) : none;")) add("S77", rgF, "firms are collected with the recruiter switch: they are never saved while it is off");
       if (/api\.createPosting\([^)]*policy/i.test(s)) add("S77", rgF, "the policy link is never part of the create call");
     }
     if (fs.existsSync(rfF)) {
@@ -1663,6 +1665,90 @@ export function checkSite(root, opts = {}) {
     if (fs.existsSync(runF)) {
       const r = read(runF);
       for (const n of ["register-bj.unit.test.js", "register-bj.test.js"]) if (!r.includes('"' + n + '"')) add("S77", runF, n + " is not in the suite");
+    }
+  }
+  // S78 (2026-10-11, prompt BK): the opening editor's ONE action area at the very bottom, and the follow-ups. Pinned: the area is after the form, the go-live card, the destination links (with the recruiter firms)
+  // and the policy link, and nothing but its own buttons follows the note and the messages inside it; the main button is outside the form, reads Close until something changes, and double checks the link sections before it
+  // submits (one sentence naming them); Save as draft and Publish exist for a draft only and no code path of the page sets an opening back to draft; Publish asks first, with My openings' own words; the history ends with
+  // an "Added" line; typed firms are cleared when the recruiter switch goes off, with one sentence next to the switch; "Checking address(es)" shows while the checks run; the boxes that stop typing at a limit say so;
+  // the button a dialog gives the cursor to shows its ring at once; the search refusal for both boxes filled clears the old results. The two new tests run in the suite.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const body = (f) => (fs.existsSync(f) ? stripJsComments(read(f)) : "");
+    const editH = P("edit.html"), regH = P("register.html"), edF = P("js", "pages", "edit.js"), rgF = P("js", "pages", "register.js"), dsF = P("js", "dirty-state.js"), lhF = P("js", "limit-hint.js"), frF = P("js", "focus-ring.js");
+    const cssF = P("app.css"), daF = P("js", "dashboard-actions.js"), tmF = P("js", "pages", "team.js"), seF = P("js", "pages", "search.js"), siF = P("js", "search-input.js"), runF = P("tests", "run-all.js");
+    if (fs.existsSync(editH)) {
+      const h = read(editH);
+      const at = (s) => h.indexOf(s);
+      for (const id of ["actionArea", "saveBtn", "draftSaveBtn", "publishBtn", "actionButtons", "note", "formAlert"]) if (h.split('id="' + id + '"').length !== 2) add("S78", editH, "edit.html must carry #" + id + " exactly once");
+      const iForm = at('<form id="form"'), iFormEnd = at("</form>"), iSched = at('id="scheduleCard"'), iLinks = at('id="linksCard"'), iFirms = at('id="firmsPanel"'), iPolicy = at('id="policyRow"'), iArea = at('id="actionArea"'), iRo = at('id="readonlyNote"');
+      if (!(iForm >= 0 && iPolicy > iForm && iPolicy < iFormEnd && iSched > iFormEnd && iLinks > iSched && iFirms > iLinks && iArea > iFirms && iRo > iArea)) add("S78", editH, "the action area must come after the form, the go-live card, the destination links with the recruiter firms and the policy link, and before the read-only note");
+      const form = h.slice(iForm, iFormEnd);
+      if (form.includes('id="saveBtn"') || form.includes('id="note"') || form.includes('id="formAlert"') || /Back to My openings/.test(form)) add("S78", editH, "the main button, the note and the messages are not in the form: they are in the one action area at the bottom");
+      const area = iArea >= 0 && iRo > iArea ? h.slice(iArea, iRo) : "";
+      if (!/<button type="button" id="saveBtn" class="btn btn-dark" data-mode="close">Close<\/button>/.test(area)) add("S78", editH, "the main button is a plain button, outside the form, that starts as Close");
+      if (!/<button type="button" id="draftSaveBtn" class="btn btn-outline" hidden>Save as draft<\/button>\s*<button type="button" id="publishBtn" class="btn btn-outline" hidden>Publish<\/button>\s*<\/div>\s*<\/div>/.test(area)) add("S78", editH, "Save as draft and Publish are hidden until the page shows them, and they end the action area: nothing follows them");
+      if (/Cancel|<a /.test(area)) add("S78", editH, "no Cancel and no link in the action area (the bar's Discard is the way back without saving)");
+      if (/id="saveBtn"[^>]*type="submit"|type="submit"[^>]*id="saveBtn"/.test(h)) add("S78", editH, "the main button must not be a submit button of the form (Enter would then leave the page on Close)");
+      for (const id of ["loctextCount", "loctextLimit"]) if (h.split('id="' + id + '"').length !== 2) add("S78", editH, "edit.html must carry #" + id);
+      for (const [id, n] of [["jtitle", 200], ["req", 100], ["aiFilterNote", 300], ["aiInterviewNote", 300], ["desc", 20000]]) if (!new RegExp('id="' + id + '"[^>]*maxlength="' + n + '"').test(h)) add("S78", editH, "#" + id + " keeps its limit of " + n + " characters (the hint and the count read the box's maxlength)");
+    }
+    if (fs.existsSync(regH)) {
+      const h = read(regH);
+      for (const id of ["recruiterCleared", "waitWord"]) if (!new RegExp('id="' + id + '"[^>]*role="status"|role="status"[^>]*id="' + id + '"').test(h)) add("S78", regH, "register.html must carry #" + id + " as a polite status (role=status)");
+      for (const [id, n] of [["jtitle", 200], ["req", 100], ["closeout", 300], ["aiFilterNote", 300], ["aiInterviewNote", 300], ["desc", 20000]]) if (!new RegExp('id="' + id + '"[^>]*maxlength="' + n + '"').test(h)) add("S78", regH, "#" + id + " keeps its limit of " + n + " characters (the hint and the count read the box's maxlength)");
+    }
+    if (fs.existsSync(edF)) {
+      const s = body(edF);
+      for (const [pin, why] of [
+        ["saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.CLOSE;", "the main button reads Save changes while something changed and Close while nothing has"],
+        ["if (!anyUnsaved()) { guard.openDialog(() => go(\"dashboard.html\"), saveBtn); return; }", "Close goes to My openings through the leave dialog (it asks only if something turns out to be unsaved)"],
+        ["  if (!linkSectionsClear()) return;\n  await submit();", "the main button double checks the link sections before it submits"],
+        ["say(formAlert, \"notice\", panelsFirstText(open));", "the double check says one sentence that names the sections"],
+        ["draftSaveBtn.hidden = !draft;", "Save as draft is for a draft only"],
+        ["publishBtn.hidden = !(draft && actionsFor(state.orig, Date.now()).includes(\"publish\"));", "Publish is for a draft whose publish window is open (the rule of My openings)"],
+        ["actionArea.hidden = !editable;", "the action area is for an opening that can be edited"],
+        ["runAction(\"publish\", state.orig, {", "Publish asks first, with My openings' own dialog and words"],
+        ["if (added !== null) ul.append(", "the history ends with the Added line"],
+        ["mountLimitHint({ input: $(\"#jtitle\") })", "the job title box says its limit"],
+      ]) if (!s.includes(pin)) add("S78", edF, "edit.js: " + why);
+      if (/status\s*:\s*["']draft["']|setToDraft|backToDraft/.test(s)) add("S78", edF, "no code path of the editor sets an opening back to draft");
+      if (/api\.(unpublish|setDraft|revertToDraft)/.test(s)) add("S78", edF, "the editor calls no API that sets an opening back to draft");
+    }
+    if (fs.existsSync(rgF)) {
+      const s = body(rgF);
+      for (const [pin, why] of [
+        ["if (!state[key] && state.firms && rowsTyped(state.firms.values())) {\n        state.firms.reset(); say($(\"#firmsAlert\"), \"error\", \"\");", "turning the recruiter switch off clears the typed firm rows"],
+        ["const RECRUITER_CLEARED = \"The firm names you typed were cleared because Third-party recruiter involved is off.\";", "the sentence next to the switch"],
+        ["const WAIT_ONE = \"Checking address\", WAIT_MANY = \"Checking addresses\";", "the wait words"],
+        ["if (addresses > 0) { waitWord.textContent = addresses === 1 ? WAIT_ONE : WAIT_MANY; waitWord.hidden = false; }", "the wait word shows while the addresses are checked"],
+        ["waitWord.textContent = \"\"; waitWord.hidden = true;", "the wait word is taken away when the checks are over"],
+        ["const limitHints = [\"#jtitle\", \"#req\", \"#closeout\", \"#aiFilterNote\", \"#aiInterviewNote\", \"#desc\"].map((sel) => mountLimitHint({ input: $(sel) }));", "the six boxes say their limit"],
+      ]) if (!s.includes(pin)) add("S78", rgF, "register.js: " + why);
+    }
+    if (fs.existsSync(dsF)) {
+      const s = body(dsF);
+      if (!s.includes('export const ACTION = { SAVE: "Save changes", CLOSE: "Close", SAVE_DRAFT: "Save as draft", PUBLISH: "Publish" };')) add("S78", dsF, "the action area's words");
+      if (!s.includes("These sections have something that is not saved: ") || !s.includes('" section has something that is not saved. Use the button in that section to save it first, then press Save changes."')) add("S78", dsF, "the double check's sentences");
+    }
+    if (fs.existsSync(lhF)) {
+      const s = body(lhF);
+      for (const pin of ['HINT: "Up to " + fmt(max) + " characters."', 'FULL: "That is all it can hold: " + fmt(max) + " characters."', 'CUT: "What you pasted was longer than " + fmt(max) + " characters, so it was cut at " + fmt(max) + "."', "Number(input.getAttribute(\"maxlength\"))"]) if (!s.includes(pin)) add("S78", lhF, "limit-hint.js keeps: " + pin.slice(0, 70));
+      if (/innerHTML|insertAdjacentHTML/.test(s)) add("S78", lhF, "no markup is made from text");
+    } else add("S78", lhF, "js/limit-hint.js must exist");
+    if (fs.existsSync(frF)) { if (!body(frF).includes('el.classList.add("focus-ring");')) add("S78", frF, "the ring class is put on the button the dialog chose"); } else add("S78", frF, "js/focus-ring.js must exist");
+    if (fs.existsSync(cssF) && !read(cssF).includes("button.focus-ring,a.focus-ring{outline:2px solid var(--ember);outline-offset:2px}")) add("S78", cssF, "the .focus-ring rule: the same ring as :focus-visible (2px, ember, offset 2px)");
+    if (fs.existsSync(daF) && !body(daF).includes("focusWithRing(focusable(form)[0] || confirm);")) add("S78", daF, "the My openings dialog's button shows its ring at once");
+    if (fs.existsSync(tmF) && !body(tmF).includes("focusWithRing(confirm);")) add("S78", tmF, "the roster dialog's button shows its ring at once");
+    if (fs.existsSync(siF)) {
+      const s = body(siF);
+      if (!s.includes('focus: "req", clearResults: true };')) add("S78", siF, "the both-boxes-filled refusal asks the page to clear the old results");
+      if ((s.match(/clearResults: true/g) || []).length !== 1) add("S78", siF, "only that one refusal clears the old results");
+    }
+    if (fs.existsSync(seF) && !body(seF).includes("if (q.clearResults) { clear(resultsEl); countEl.hidden = true; hideRecap(); lastSearch = null; status.clear(); }")) add("S78", seF, "the search page clears the list, its count, the recap and the status on that refusal");
+    if (fs.existsSync(runF)) {
+      const r = read(runF);
+      for (const n of ["register-bk.unit.test.js", "register-bk.test.js"]) if (!r.includes('"' + n + '"')) add("S78", runF, n + " is not in the suite");
     }
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed

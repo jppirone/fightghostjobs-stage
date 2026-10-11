@@ -417,7 +417,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   const HTML = "edit.html", DS = "js/dirty-state.js", GD = "js/unsaved-guard.js", EJ = "js/pages/edit.js", CSS = "app.css";
   const BAR = /<div id="unsavedBar"[\s\S]*?<\/main>/;
   const TOGGLE_BLOCK = /      <div class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;">\n        <div>\n          <div style="font-size:14px;font-weight:600;">Third-party recruiter involved<\/div>[\s\S]*?<\/button>\n      <\/div>\n/;
-  const FIRMS_BLOCK = /      <div id="firmsPanel"[\s\S]*?\n      <\/div>\n    <\/div>\n\n    <div id="readonlyNote"/;
+  const FIRMS_BLOCK = /      <div id="firmsPanel"[\s\S]*?\n      <\/div>\n    <\/div>\n\n    <!-- prompt BK: the ONE action area/;
   control("the unsaved bar is removed", "S45", edit(HTML, (s) => s.replace('id="unsavedBar"', 'id="unsavedBarX"')));
   control("the bar is no longer a polite live region", "S45", edit(HTML, (s) => s.replace('role="status" aria-live="polite" aria-atomic="true"></div>\n<div id="unsavedBar"', 'role="status" aria-atomic="true"></div>\n<div id="unsavedBar"')));
   control("the status region loses role=status", "S45", edit(HTML, (s) => s.replace('class="unsaved-sr" role="status" aria-live="polite"', 'class="unsaved-sr" aria-live="polite"')));
@@ -440,8 +440,8 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the recruiter sentence drops the pointer to the Destination links section", "S45", edit(HTML, (s) => s.replace("It belongs to the Destination links section below, which is part of the destination links tier.", "It is a destination links tier feature.")));
   control("the old recruiter sentence returns", "S45", edit(HTML, (s) => s.replace("Free for every employer: just say yes or no. Naming the recruiter firm and adding its links is optional. It belongs to the Destination links section below, which is part of the destination links tier.", "The yes/no flag is free. Naming the firm is a destination links tier feature.")));
   control("the recruiter toggle is no longer read with its sentence", "S45", edit(HTML, (s) => s.replace('aria-label="Third-party recruiter involved" aria-describedby="recruiterHint"', 'aria-label="Third-party recruiter involved"')));
-  control("the recruiter toggle moves below Save changes", "S45", edit(HTML, (s) => { const m = s.match(TOGGLE_BLOCK); return s.replace(m[0], "").replace("    </form>\n", m[0] + "    </form>\n"); }));
-  control("the recruiter firms panel moves above Save changes", "S45", edit(HTML, (s) => { const m = s.match(FIRMS_BLOCK); const block = m[0].replace(/\n    <\/div>\n\n    <div id="readonlyNote"$/, "\n"); return s.replace(m[0], "    </div>\n\n    <div id=\"readonlyNote\"").replace('      <div id="exclusiveRow" hidden>', block + '      <div id="exclusiveRow" hidden>'); }));
+  control("the recruiter toggle moves below the one action area with Save changes", "S45", edit(HTML, (s) => { const m = s.match(TOGGLE_BLOCK); return s.replace(m[0], "").replace('    <div id="readonlyNote" class="card" hidden></div>', m[0] + '    <div id="readonlyNote" class="card" hidden></div>'); }));
+  control("the recruiter firms panel moves above the Destination links card", "S45", edit(HTML, (s) => { const m = s.match(FIRMS_BLOCK); const block = m[0].replace(/\n    <\/div>\n\n    <!-- prompt BK: the ONE action area$/, "\n"); return s.replace(m[0], "    </div>\n\n    <!-- prompt BK: the ONE action area").replace('      <div id="exclusiveRow" hidden>', block + '      <div id="exclusiveRow" hidden>'); }));
   control("the dirty-state headline changes", "S45", edit(DS, (s) => s.replace('HEAD: "You have unsaved changes",', 'HEAD: "Unsaved changes",')));
   control("the dirty-state sentence about Save changes changes", "S45", edit(DS, (s) => s.replace('FORM_DETAIL: "They take effect only when you press Save changes.",', 'FORM_DETAIL: "Press Save.",')));
   control("a section's headline stops saying not saved yet", "S45", edit(DS, (s) => s.replace('out.headline = cap(named) + " not saved yet";', 'out.headline = cap(named) + " changed";')));
@@ -455,7 +455,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the guard never stops asking", "S45", edit(GD, (s) => s.replace('win.removeEventListener("beforeunload", onBeforeUnload); listening = false;', "listening = false;")));
   control("the guard's browser question is not actually raised", "S45", edit(GD, (s) => s.replace('ev.preventDefault(); ev.returnValue = ""; return "";', 'return undefined;')));
   control("Escape in the dialog no longer means Stay", "S45", edit(GD, (s) => s.replace('if (ev.key === "Escape") { ev.preventDefault(); if (!busy) closeDialog(true); return; }', 'if (ev.key === "Escape") { return; }')));
-  control("focus does not move into the dialog", "S45", edit(GD, (s) => s.replace("    dlg.stay.focus();\n", "")));
+  control("focus does not move into the dialog", "S45", edit(GD, (s) => s.replace("    focusWithRing(dlg.stay);", "")));
   control("focus does not return after the dialog", "S45", edit(GD, (s) => s.replace("d.returnTo.focus()", "void 0")));
   control("Tab is no longer kept inside the dialog", "S45", edit(GD, (s) => s.replace('if (ev.key === "Tab")', 'if (ev.key === "F13")')));
   control("the page is no longer marked while the bar shows", "S45", edit(GD, (s) => s.replace('root.classList.toggle("unsaved-on", s.any);', "")));
@@ -1179,12 +1179,12 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the register page's skip link is not the first thing in the body", "S31", edit(RH, (s) => s.replace('<a id="skipToUnsaved" class="skip-link" href="#unsavedSave" hidden>Skip to unsaved changes</a>\n', "")));
   control("the register page's rows do not judge an address as typed", "S77", edit(RG, (s) => s.replace("mountLinkRowsById({ checkAddress: addressProblem })", "mountLinkRowsById()")));
   control("the register page's firm rows do not judge an address as typed", "S77", edit(RG, (s) => s.replace("mountFirmRowsById({ checkAddress: addressProblem })", "mountFirmRowsById()")));
-  control("the sections are not judged together", "S77", edit(RG, (s) => s.replace("const lp = linkProblems({ links: lc, firms: fc, policy: pc, firmsIgnored });", "const lp = linkProblems({ links: lc, firms: none, policy: pc, firmsIgnored });")));
+  control("the sections are not judged together", "S77", edit(RG, (s) => s.replace("const lp = linkProblems({ links: lc, firms: fc, policy: pc });", "const lp = linkProblems({ links: lc, firms: none, policy: pc });")));
   control("the policy link is saved before the opening is created", "S77", edit(RG, (s) => s.replace("const created = await api.createPosting(buildCreateBody(values));", "if (pc.used) await savePolicy(pc);\n    const created = await api.createPosting(buildCreateBody(values));")));
   control("the policy link rides along with the create call", "S77", edit(RG, (s) => s.replace("api.createPosting(buildCreateBody(values))", "api.createPosting({ policy: pc, ...buildCreateBody(values) })")));
   control("the policy link is saved on no opening", "S77", edit(RG, (s) => s.replace("api.setPolicyLink(state.saved.id, pc.url)", "api.setPolicyLink(null, pc.url)")));
   control("the register page does not use the shared unsaved component's summary", "S77", edit(RG, (s) => s.replace("summarize: summarizeRegister", "summarize: undefined")));
-  control("a typed firm is dropped without a word", "S77", edit(RG, (s) => s.replace("const firmsIgnored = !!state.firms && !state.recruiter && rowsTyped(state.firms.values());", "const firmsIgnored = false;")));
+  control("firms are saved while the recruiter switch is off", "S77", edit(RG, (s) => s.replace("const fc = state.firms ? collectFirms(state.firms.values(), state.recruiter) : none;", "const fc = state.firms ? collectFirms(state.firms.values(), true) : none;")));
   control("the one list leaves out the policy link by name", "S77", edit("js/register-form.js", (s) => s.replace('items.push("the AI and hiring policy link (" + ', 'items.push("the link (" + ')));
   control("an address is not judged when the person leaves the box", "S77", edit("js/link-rows.js", (s) => s.replace('row.addr.addEventListener("blur", () => judge(row));', "")));
   control("a row is added while an address above is malformed", "S77", edit("js/link-rows.js", (s) => s.replace("if (bad) { bad.addr.focus(); return; }", "")));
@@ -1203,6 +1203,54 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("plainChangeNote is gone", "S77", edit("js/edit-form.js", (s) => s.replace("export function plainChangeNote(", "export function plainChangeNoteGone(")));
   control("the register page's unit tests are not in the suite", "S77", edit("tests/run-all.js", (s) => s.replace(', path.join(here, "register-bj.unit.test.js")', "")));
   control("the register page's browser test is not in the suite", "S77", edit("tests/run-all.js", (s) => s.replace('path.join(here, "register-bj.test.js")', 'path.join(here, "unit.test.js")')));
+}
+
+// S78 (prompt BK, October 11, 2026): the opening editor's one action area, the draft rules and the follow-ups
+{
+  const EH = "edit.html", EJ = "js/pages/edit.js", RJ = "js/pages/register.js";
+  control("the action area is gone", "S78", edit(EH, (s) => s.replace('id="actionArea"', 'id="actionAreaGone"')));
+  control("the action area comes before the destination links", "S78", edit(EH, (s) => {
+    const a = s.indexOf('    <!-- prompt BK: the ONE action area'), b = s.indexOf('    <div id="readonlyNote"', a), blk = s.slice(a, b), rest = s.slice(0, a) + s.slice(b);
+    const c = rest.indexOf('    <div id="linksCard"');
+    return rest.slice(0, c) + blk + rest.slice(c);
+  }));
+  control("the main button is back inside the form", "S78", edit(EH, (s) => s.replace("    </form>", '      <button type="button" id="saveBtn" class="btn btn-dark" data-mode="close">Close</button>\n    </form>')));
+  control("the main button is a submit button", "S78", edit(EH, (s) => s.replace('<button type="button" id="saveBtn" class="btn btn-dark" data-mode="close">Close</button>', '<button type="submit" id="saveBtn" class="btn btn-dark" data-mode="close">Close</button>')));
+  control("the main button starts as Save changes", "S78", edit(EH, (s) => s.replace('data-mode="close">Close</button>', 'data-mode="close">Save changes</button>')));
+  control("the old Back to My openings button is back in the form", "S78", edit(EH, (s) => s.replace("    </form>", '      <a href="dashboard.html" class="btn btn-ghost">Back to My openings</a>\n    </form>')));
+  control("a Cancel button is added to the action area", "S78", edit(EH, (s) => s.replace('<button type="button" id="publishBtn" class="btn btn-outline" hidden>Publish</button>', '<button type="button" id="publishBtn" class="btn btn-outline" hidden>Publish</button>\n        <button type="button" id="cancelBtn" class="btn btn-ghost">Cancel</button>')));
+  control("Save as draft is shown at once", "S78", edit(EH, (s) => s.replace('<button type="button" id="draftSaveBtn" class="btn btn-outline" hidden>Save as draft</button>', '<button type="button" id="draftSaveBtn" class="btn btn-outline">Save as draft</button>')));
+  control("a link follows the buttons", "S78", edit(EH, (s) => s.replace('<button type="button" id="publishBtn" class="btn btn-outline" hidden>Publish</button>\n      </div>\n    </div>', '<button type="button" id="publishBtn" class="btn btn-outline" hidden>Publish</button>\n      </div>\n      <a href="dashboard.html">Back</a>\n    </div>')));
+  control("the note is back in the form", "S78", edit(EH, (s) => s.replace('<div id="formAlert" hidden></div>', "").replace("    </form>", '      <div id="formAlert" hidden></div>\n    </form>')));
+  control("the title limit changes", "S78", edit(EH, (s) => s.replace('id="jtitle" type="text" maxlength="200"', 'id="jtitle" type="text" maxlength="250"')));
+  control("the description limit is gone from the register page", "S78", edit("register.html", (s) => s.replace('<textarea id="desc" rows="5" maxlength="20000">', '<textarea id="desc" rows="5">')));
+  control("the main button always reads Save changes", "S78", edit(EJ, (s) => s.replace("saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.CLOSE;", "saveBtn.textContent = ACTION.SAVE;")));
+  control("Close leaves without the leave dialog", "S78", edit(EJ, (s) => s.replace('guard.openDialog(() => go("dashboard.html"), saveBtn);', 'go("dashboard.html");')));
+  control("the bottom button does not double check the link sections", "S78", edit(EJ, (s) => s.replace("  if (!linkSectionsClear()) return;\n  await submit();", "  await submit();")));
+  control("the double check says nothing", "S78", edit(EJ, (s) => s.replace('say(formAlert, "notice", panelsFirstText(open));', 'say(formAlert, "notice", "");')));
+  control("Save as draft is for every opening", "S78", edit(EJ, (s) => s.replace("draftSaveBtn.hidden = !draft;", "draftSaveBtn.hidden = false;")));
+  control("Publish is for every opening", "S78", edit(EJ, (s) => s.replace('publishBtn.hidden = !(draft && actionsFor(state.orig, Date.now()).includes("publish"));', "publishBtn.hidden = false;")));
+  control("the action area is shown for a closed opening", "S78", edit(EJ, (s) => s.replace("actionArea.hidden = !editable;", "actionArea.hidden = false;")));
+  control("Publish does not ask first", "S78", edit(EJ, (s) => s.replace('runAction("publish", state.orig, {', 'runAction("pause", state.orig, {')));
+  control("the history has no Added line", "S78", edit(EJ, (s) => s.replace("if (added !== null) ul.append(", "if (false) ul.append(")));
+  control("an API that sets an opening back to draft is called", "S78", append(EJ, "export const BACK = (api, id) => api.revertToDraft(id);"));
+  control("the editor sends a draft status", "S78", append(EJ, 'export const BODY = { status: "draft" };'));
+  control("the job title box says no limit", "S78", edit(EJ, (s) => s.replace('mountLimitHint({ input: $("#jtitle") })', "null")));
+  control("typed firms stay when the switch goes off", "S78", edit(RJ, (s) => s.replace('state.firms.reset(); say($("#firmsAlert"), "error", "");', "void 0;")));
+  control("the cleared-firms sentence changes", "S78", edit(RJ, (s) => s.replace("The firm names you typed were cleared because Third-party recruiter involved is off.", "Firms were cleared.")));
+  control("the wait words change", "S78", edit(RJ, (s) => s.replace('const WAIT_ONE = "Checking address", WAIT_MANY = "Checking addresses";', 'const WAIT_ONE = "Please wait", WAIT_MANY = "Please wait";')));
+  control("the wait word is never shown", "S78", edit(RJ, (s) => s.replace("if (addresses > 0) { waitWord.textContent = addresses === 1 ? WAIT_ONE : WAIT_MANY; waitWord.hidden = false; }", "")));
+  control("the register page's wait word is not a status", "S78", edit("register.html", (s) => s.replace('<span id="waitWord" role="status"', '<span id="waitWord"')));
+  control("the register page's limit hints lose a box", "S78", edit(RJ, (s) => s.replace('"#closeout", ', "")));
+  control("the limit words change", "S78", edit("js/limit-hint.js", (s) => s.replace('HINT: "Up to " + fmt(max) + " characters."', 'HINT: "At most " + fmt(max) + " characters."')));
+  control("the limit hint reads a fixed number, not the box's limit", "S78", edit("js/limit-hint.js", (s) => s.replace('Number(input.getAttribute("maxlength"))', "100")));
+  control("the ring class is not put on the button", "S78", edit("js/focus-ring.js", (s) => s.replace('el.classList.add("focus-ring");', "void 0;")));
+  control("the ring rule is thinner", "S78", edit("app.css", (s) => s.replace("button.focus-ring,a.focus-ring{outline:2px solid var(--ember);outline-offset:2px}", "button.focus-ring,a.focus-ring{outline:1px solid var(--ember);outline-offset:2px}")));
+  control("the My openings dialog's button has no ring", "S78", edit("js/dashboard-actions.js", (s) => s.replace("focusWithRing(focusable(form)[0] || confirm);", "(focusable(form)[0] || confirm).focus();")));
+  control("the roster dialog's button has no ring", "S78", edit("js/pages/team.js", (s) => s.replace("focusWithRing(confirm);", "confirm.focus();")));
+  control("another search refusal clears the results too", "S78", edit("js/search-input.js", (s) => s.replace('focus: "req" };\n  if (hasReq)', 'focus: "req", clearResults: true };\n  if (hasReq)')));
+  control("the search page does not clear the results", "S78", edit("js/pages/search.js", (s) => s.replace("if (q.clearResults) { clear(resultsEl); countEl.hidden = true; hideRecap(); lastSearch = null; status.clear(); }", "")));
+  control("the editor's browser test is not in the suite", "S78", edit("tests/run-all.js", (s) => s.replace('path.join(here, "register-bk.test.js")', 'path.join(here, "unit.test.js")')));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });

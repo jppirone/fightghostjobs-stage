@@ -145,9 +145,10 @@ export function policyOutcome(saved, problem) {
 export { mapPolicyError };
 
 // Everything that is wrong with the three link sections BEFORE anything is saved, as one list (never one section at a time).
-//   links / firms: the collect results (collectLinks / collectFirms); policy: collectPolicy's; firmsIgnored: true when firm rows hold text but the recruiter switch is off (they would not be saved)
+//   links / firms: the collect results (collectLinks / collectFirms); policy: collectPolicy's
+//   (prompt BK: a firm typed while the recruiter switch is off can no longer be there: turning the switch off clears the typed firm rows, so that block of prompt BJ is gone)
 // -> { ok, items: [sentence], text } ; text is one plain sentence naming every section that needs fixing
-export function linkProblems({ links, firms, policy, firmsIgnored }) {
+export function linkProblems({ links, firms, policy }) {
   const items = [];
   const rowErrors = (kind, collected, keys) => {
     if (!collected || collected.ok) return;
@@ -157,18 +158,18 @@ export function linkProblems({ links, firms, policy, firmsIgnored }) {
   rowErrors("destination link", links, ["url", "label"]);
   rowErrors("recruiter firm", firms, ["name", "url"]);
   if (policy && policy.used && !policy.ok) items.push("the AI and hiring policy link (" + String(policy.error || "not valid").replace(/[.]$/, "") + ")");
-  if (firmsIgnored) items.push("recruiter firms (a firm is typed, but \"Third-party recruiter involved\" is off, so it would not be saved: turn it on, or clear the firm)");
   return { ok: items.length === 0, items, text: items.length ? "Nothing was saved. Please fix: " + items.join("; ") + "." : "" };
 }
 
-// What the check taken at save found, in one sentence for every address that did not answer (advisory: they are saved anyway). Each argument is the "links" list of that save's answer
+// What the check taken at save found, in one sentence for every destination link and recruiter firm that did not answer (advisory: they are saved anyway). Each argument is the "links" list of that save's answer
 // ([{ position, kind, firm?, check_status, check_http }]) or null when that kind was not sent. -> { kind: "notice", text } or null when every address answered
-export function checkReport({ links, firms, policy }) {
+// The AI and hiring policy link is NOT in this sentence (prompt BK): "It is saved anyway" is true of a destination link, but a policy link whose check did not answer is not shown to candidates, so it has its own
+// words, the editor's (js/policy-link.js policySavedText, through policyOutcome above).
+export function checkReport({ links, firms }) {
   const one = (l) => (Number.isInteger(l.check_http) ? " answered HTTP " + l.check_http : " could not be reached");
   const items = [];
   for (const l of (Array.isArray(links) ? links : [])) if (l && l.check_status === "failed" && l.kind !== "recruiter" && l.kind !== "policy") items.push("destination link " + l.position + one(l));
   for (const l of (Array.isArray(firms) ? firms : [])) if (l && l.kind === "recruiter" && l.check_status === "failed") items.push("recruiter firm " + (typeof l.firm === "string" && l.firm !== "" ? l.firm : l.position) + one(l));
-  for (const l of (Array.isArray(policy) ? policy : [])) if (l && l.kind === "policy" && l.check_status === "failed") items.push("the AI and hiring policy link" + one(l));
   if (!items.length) return null;
   return { kind: "notice", text: "When we checked, " + items.join("; ") + ". " + (items.length === 1 ? "It is saved anyway. Make sure it is right." : "They are saved anyway. Make sure they are right.") };
 }

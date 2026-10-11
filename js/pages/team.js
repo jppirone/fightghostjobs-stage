@@ -5,6 +5,7 @@ import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFai
 import { rememberNext } from "../session.js?v=124260d8";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { checkAdd, successorChoices, statusText, roleText, actionsFor, mapRosterError } from "../roster-model.js?v=0e3dedd7";
+import { focusWithRing } from "../focus-ring.js?v=98307f3f";
 
 const state = { me: null, roster: [], busy: false };
 const rowsEl = $("#rows"), note = $("#actionNote"), pageAlert = $("#pageAlert"), addForm = $("#addForm"), addBtn = $("#addBtn");
@@ -58,7 +59,7 @@ function openDialog({ title, content, confirmLabel, onSubmit }) {
     if (r && r.error) { errBox.hidden = false; errBox.textContent = r.error; return; }
     close();
   });
-  document.body.append(backdrop); document.addEventListener("keydown", onKey); confirm.focus();
+  document.body.append(backdrop); document.addEventListener("keydown", onKey); focusWithRing(confirm);   // prompt BK: the ring shows at once
 }
 const para = (text) => h("p", { style: "font-size:14px;line-height:1.6;color:var(--muted);margin:0 0 12px 0;" }, text);
 

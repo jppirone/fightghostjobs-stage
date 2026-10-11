@@ -4,6 +4,7 @@ import { h } from "./dom.js?v=ff147636";
 import { isAuthFailure, describeError } from "./api.js?v=2b6638b4";
 import { checkBump, checkClose, MAX_BUMP_DAYS, MAX_REASON, MAX_CLOSE_DETAIL } from "./dashboard-model.js?v=7d5b30a5";
 import { fmtClose } from "./format.js?v=696f63b8";
+import { focusWithRing } from "./focus-ring.js?v=98307f3f";
 const DAY_MS = 86400000;
 
 export const ACTION_LABEL = { edit: "Edit", publish: "Publish", unschedule: "Remove schedule", pause: "Pause", resume: "Resume", extend: "Extend", close: "Close" };
@@ -39,7 +40,7 @@ function openDialog({ title, content, confirmLabel, onSubmit }) {
     close();
   });
   document.body.append(backdrop); document.addEventListener("keydown", onKey);
-  (focusable(form)[0] || confirm).focus();
+  focusWithRing(focusable(form)[0] || confirm);        // prompt BK: a button that gets the cursor shows its ring at once
 }
 
 const para = (text) => h("p", { style: "font-size:14px;line-height:1.6;color:var(--muted);margin:0 0 12px 0;" }, text);

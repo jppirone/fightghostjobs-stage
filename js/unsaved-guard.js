@@ -7,7 +7,8 @@
 //        go(url), activeElement(): the focused element, confirmDiscard(): boolean, rescueFocus(): where focus goes when the bar closes with focus inside it }
 //   win: needs addEventListener / removeEventListener (the window); root: the <html> element (gets the class unsaved-on while the bar shows)
 // -> { refresh, isDirty, summary, announce, hush, interceptClick, openDialog, dialogOpen, allowLeave }
-import { summarize, linkLeaves, UNSAVED } from "./dirty-state.js?v=9f2a6974";
+import { summarize, linkLeaves, UNSAVED } from "./dirty-state.js?v=db4c2123";
+import { focusWithRing } from "./focus-ring.js?v=98307f3f";
 
 // is node inside ancestor (works on a real DOM and on the small fake the tests use)
 const within = (node, ancestor) => { for (let n = node; n; n = n.parentNode || n.parent) if (n === ancestor) return true; return false; };
@@ -46,7 +47,7 @@ export function mountUnsavedGuard(ctx) {
     dlg.title.textContent = s.dialogTitle; dlg.text.textContent = s.dialogText;
     dlg.save.hidden = !s.leaveCanSave; dlg.save.textContent = s.leaveSaveLabel;
     dlg.overlay.hidden = false;
-    dlg.stay.focus();
+    focusWithRing(dlg.stay);                 // prompt BK: the cursor is on Stay and its ring shows at once, also when the dialog was opened with a mouse click
   }
   function closeDialog(restoreFocus) {
     const d = dialog; dialog = null; dlg.overlay.hidden = true;

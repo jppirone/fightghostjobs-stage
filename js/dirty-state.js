@@ -75,6 +75,19 @@ const ORDER = [PANEL.POLICY, PANEL.LINKS, PANEL.FIRMS, PANEL.GOLIVE];
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const joinNames = (names) => names.length <= 1 ? (names[0] || "") : names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
 
+// ---- prompt BK (October 11, 2026): the one action area at the very bottom of the edit page
+// the main button reads "Save changes" while something on the page has changed, "Close" (back to My openings) while nothing has
+export const ACTION = { SAVE: "Save changes", CLOSE: "Close", SAVE_DRAFT: "Save as draft", PUBLISH: "Publish" };
+// the bottom button's double check: a section that saves through its own button holds something not saved. One plain sentence that names it; nothing is submitted.
+export function panelsFirstText(panels) {
+  const names = ORDER.filter((n) => Array.isArray(panels) && panels.includes(n));
+  if (names.length === 0) return "";
+  if (names.length === 1) return "The " + names[0] + " section has something that is not saved. Use the button in that section to save it first, then press Save changes.";
+  return "These sections have something that is not saved: " + joinNames(names) + ". Use the button in each one to save it first, then press Save changes.";
+}
+// the first line of the history of an opening: when it was added (the opening's own creation time; the page draws it with the other lines' time style)
+export const ADDED_LABEL = "Added";
+
 // m: { form: bool, panels: [names], status: "live" | "paused" | "draft", noteMissing: bool, noteRequired: bool }
 // -> { any, showSave, headline, detail, liveText, dialogTitle, dialogText, leaveCanSave, leaveSaveLabel, panelNames }
 //   headline / detail: what the bar shows (detail changes as the note is typed); liveText: what a screen reader is told (it does not change while the note is typed, so it is not repeated);

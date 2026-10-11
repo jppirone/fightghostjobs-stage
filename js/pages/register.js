@@ -6,23 +6,28 @@ import { rememberNext } from "../session.js?v=124260d8";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { fmtClose, groupCode, waitText } from "../format.js?v=696f63b8";
 import { checkGoLive, mapScheduleError } from "../schedule-form.js?v=b2985372";
-import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome, collectFirms, firmsOutcome, collectPolicy, policyOutcome, mapPolicyError, linkProblems, checkReport } from "../register-form.js?v=b567c43d";
+import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome, collectFirms, firmsOutcome, collectPolicy, policyOutcome, mapPolicyError, linkProblems, checkReport } from "../register-form.js?v=baec0d26";
 import { mapLinksErrors, planNotice, addressProblem } from "../edit-form.js?v=b5757c87";
 import { policyView, policyLapsedText } from "../policy-link.js?v=f2ea9573";
-import { registerSnapshot, summarizeRegister, REGISTER_UNSAVED, rowsTyped } from "../dirty-state.js?v=9f2a6974";
-import { mountUnsavedGuard } from "../unsaved-guard.js?v=a7af949e";
+import { registerSnapshot, summarizeRegister, REGISTER_UNSAVED, rowsTyped } from "../dirty-state.js?v=db4c2123";
+import { mountUnsavedGuard } from "../unsaved-guard.js?v=891a3799";
 import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js?v=a79f852e";
 import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
 import { mountPlaceChoice } from "../place-choice.js?v=f65a1b27";
 import { PLACE_WORDS, storedPlaceText, collapsePlaceText } from "../place-text.js?v=cb5d7506";
 import { wireInfoIcons } from "../info-icon.js?v=66958a58";
+import { mountLimitHint } from "../limit-hint.js?v=1cfa5987";
 
 wireInfoIcons();
 // links: the destination-link rows, mounted only when the organization's plan allows links (null otherwise); linksSaved / linksProblem: what happened to them after the posting was created
 // firms: the recruiter-firm rows (pass C), mounted with the links when the plan allows; they matter only while the recruiter toggle is on
 const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false, dupAsked: false, goLiveIso: null, links: null, linksSaved: null, linksAnswer: null, linksProblem: null, firms: null, firmsSaved: null, firmsProblem: null, firmsAnswer: null, placeProblem: null, policyOn: false, policySaved: null, policyProblem: null, baseline: null, guard: null };
 const form = $("#form"), result = $("#result"), pageAlert = $("#pageAlert"), formAlert = $("#formAlert");
-const registerBtn = $("#registerBtn"), draftBtn = $("#draftBtn");
+const registerBtn = $("#registerBtn"), draftBtn = $("#draftBtn"), waitWord = $("#waitWord");
+const WAIT_ONE = "Checking address", WAIT_MANY = "Checking addresses";      // prompt BK: shown next to the buttons while the server asks each address once
+const RECRUITER_CLEARED = "The firm names you typed were cleared because Third-party recruiter involved is off.";
+// the boxes that stop typing at a limit say so (prompt BK): job title, req number, close-out text, the two AI notes and the description; the limit is each box's own maxlength
+const limitHints = ["#jtitle", "#req", "#closeout", "#aiFilterNote", "#aiInterviewNote", "#desc"].map((sel) => mountLimitHint({ input: $(sel) }));
 const picker = mountLocationPicker({ isRemote: () => $("#remote").checked });
 $("#remote").addEventListener("change", () => picker.refresh());
 const place = mountPlaceChoice();      // prompt BH: "A place outside the US or not in the list" (one plain text box instead of the list)
@@ -34,7 +39,16 @@ function wireToggle(id, key) {
     state[key] = !state[key];
     btn.classList.toggle("on", state[key]);
     btn.setAttribute("aria-checked", state[key] ? "true" : "false");
-    if (key === "recruiter") $("#recruiterPanel").hidden = !state[key];
+    if (key === "recruiter") {
+      $("#recruiterPanel").hidden = !state[key];
+      // prompt BK: turning the switch off clears the firm names that were typed (nothing is saved yet on this page) and says so next to the switch; turning it on again says nothing
+      const said = $("#recruiterCleared");
+      if (!state[key] && state.firms && rowsTyped(state.firms.values())) {
+        state.firms.reset(); say($("#firmsAlert"), "error", "");
+        said.textContent = RECRUITER_CLEARED; said.hidden = false;
+        refreshUnsaved();
+      } else { said.textContent = ""; said.hidden = true; }
+    }
     if (key === "aiFilter") $("#aiFilterNoteRow").hidden = !state[key];
     if (key === "aiInterview") $("#aiInterviewNoteRow").hidden = !state[key];
   });
@@ -90,18 +104,16 @@ async function submit(mode) {
   const none = { used: false, ok: true, links: [], rowOf: [], errors: {} };
   const lc = state.links ? collectLinks(state.links.values()) : none;
   const fc = state.firms ? collectFirms(state.firms.values(), state.recruiter) : none;
-  const firmsIgnored = !!state.firms && !state.recruiter && rowsTyped(state.firms.values());
   const pc = state.policyOn ? collectPolicy(val("#policyUrl")) : { used: false, ok: true };
   if (state.links) { state.links.showErrors(lc.errors); say($("#linksAlert"), "error", ""); }
   if (state.firms) { state.firms.showErrors(fc.errors); say($("#firmsAlert"), "error", ""); }
   showPolicyField(pc.used && !pc.ok ? pc.error : "");
-  const lp = linkProblems({ links: lc, firms: fc, policy: pc, firmsIgnored });
+  const lp = linkProblems({ links: lc, firms: fc, policy: pc });
   if (Object.keys(problems).length || !lp.ok) {
     say(formAlert, "error", lp.ok ? "" : lp.text);
     if (Object.keys(problems).length) { const first = Object.keys(problems)[0]; if (first === "locpicker" || first === "attest") picker.focusFor(first); else $("#" + first).focus(); }
     else if (!lc.ok) state.links.focus(lc.errors);
     else if (!fc.ok) state.firms.focus(fc.errors);
-    else if (firmsIgnored) $("#recruiterToggle").focus();
     else $("#policyUrl").focus();
     return;
   }
@@ -122,13 +134,18 @@ async function submit(mode) {
     // prompt BH: a server that does not know the typed place yet answers without it: the result says so, so nobody believes the place was saved
     state.placeProblem = values.outside === true && storedPlaceText(created.data) !== collapsePlaceText(values.locText) ? PLACE_WORDS.NOT_SAVED : null;
     // 2. the destination links, if any were entered: the posting exists now, so a refusal here is reported with the result, never as a failed registration
+    // prompt BK: each address is asked once by the server while these calls run (up to about 12 seconds per call when a host is slow), so the person is told what the buttons are waiting for
+    const addresses = (lc.used ? lc.links.length : 0) + (fc.used ? fc.links.filter((x) => typeof x.url === "string" && x.url !== "").length : 0) + (pc.used ? 1 : 0);
+    if (addresses > 0) { waitWord.textContent = addresses === 1 ? WAIT_ONE : WAIT_MANY; waitWord.hidden = false; }
     if (lc.used && await saveLinks(lc) === "gone") return;
     if (fc.used && await saveFirms(fc) === "gone") return;
     if (pc.used && await savePolicy(pc) === "gone") return;
+    waitWord.textContent = ""; waitWord.hidden = true;           // the checks are over
     if (mode === "draft") { showResult(created.data, "draft"); return; }
     // 3. publish now, or schedule the go-live for the time chosen
     if (goLater()) { state.goLiveIso = checkGoLive(val("#gldate"), Date.now()).iso || null; await schedule(); } else await publish();
   } finally {
+    waitWord.textContent = ""; waitWord.hidden = true;
     setBusy(false);
   }
 }
@@ -246,7 +263,7 @@ function showResult(p, kind, problem, goLiveAt) {
   const po = policyOutcome(state.policySaved, state.policyProblem);
   if (po) result.append(h("div", { style: "margin-top:12px;", id: "policyOutcome" }, alertBox(po.kind, po.text)));
   // what the address check found, for every address that did not answer, in ONE sentence (they are saved anyway)
-  const cr = checkReport({ links: state.linksAnswer, firms: state.firmsAnswer, policy: state.policySaved ? state.policySaved.links : null });
+  const cr = checkReport({ links: state.linksAnswer, firms: state.firmsAnswer });      // the policy link has its own words above (prompt BK)
   if (cr) result.append(h("div", { style: "margin-top:12px;", id: "checkReport" }, alertBox(cr.kind, cr.text)));
   if (state.placeProblem) result.append(h("div", { style: "margin-top:12px;", id: "placeProblem" }, alertBox("error", state.placeProblem)));
   result.append(h("div", { style: "margin-top:20px;" },
@@ -275,6 +292,7 @@ function resetForm() {
   $("#remote").checked = false;
   for (const [id, key] of [["#aiFilterToggle", "aiFilter"], ["#aiInterviewToggle", "aiInterview"], ["#recruiterToggle", "recruiter"]]) { state[key] = false; $(id).classList.remove("on"); $(id).setAttribute("aria-checked", "false"); }
   $("#recruiterPanel").hidden = true;
+  $("#recruiterCleared").hidden = true; $("#recruiterCleared").textContent = "";
   state.linksSaved = null; state.linksAnswer = null; state.linksProblem = null; if (state.links) { state.links.reset(); say($("#linksAlert"), "error", ""); }
   state.firmsSaved = null; state.firmsProblem = null; state.firmsAnswer = null; if (state.firms) { state.firms.reset(); say($("#firmsAlert"), "error", ""); }
   state.policySaved = null; state.policyProblem = null;
@@ -293,7 +311,7 @@ function unsavedModel() {
   if (state.baseline === null || state.saved) return { dirty: false, sections: [] };
   return { dirty: registerSnapshot(collect(), rowsNow()) !== state.baseline, sections: SECTIONS() };
 }
-function refreshUnsaved() { if (state.guard) state.guard.refresh(); }
+function refreshUnsaved() { for (const x of limitHints) x.refresh(); if (state.guard) state.guard.refresh(); }      // the counts follow a value a script put in a box (Discard, Add another opening)
 const toNext = (url) => go(url);
 state.guard = mountUnsavedGuard({
   win: window, root: document.documentElement,

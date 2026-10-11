@@ -8,7 +8,7 @@ import { groupCode, waitText } from "../format.js?v=696f63b8";
 import { placeNodes } from "../place.js?v=3ce4ad57";
 import { FILTERS, statusChip, matchesFilter, matchesText, sortByPosted, reqCell, postedCell, capCell, closesCell } from "../dashboard-model.js?v=7d5b30a5";
 import { actionsFor, publishWindowEnded } from "../dashboard-model.js?v=7d5b30a5";
-import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=85922441";
+import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=2388f448";
 import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";
 
 if (!COMMENTS_VISIBLE) { const th = document.querySelector('th[data-col="comments"]'); if (th) th.remove(); }   // the one comments switch (js/config.js): no Comments column while it is off

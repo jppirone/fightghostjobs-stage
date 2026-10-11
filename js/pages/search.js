@@ -18,7 +18,7 @@ import { aiNotes } from "../ai-notes.js?v=35c5dc92";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=f2ea9573";
 import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";
 import { openUnit } from "../open-link.js?v=454df0f2";
-import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js?v=7ea239bc";
+import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js?v=3ea36db8";
 import { isRegistered } from "../registered.js?v=f191c8c2";
 import { placeNodes } from "../place.js?v=3ce4ad57";
 import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=c7fcdca3";
@@ -205,7 +205,13 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
   setFormError(""); hideRecap();
   const c = checkCompany(companyIn.value), q = resolveSearch(queryIn.value, reqIn.value);
   if (!c.ok) { setFormError(c.message); companyIn.focus(); return; }
-  if (!q.ok) { setFormError(q.message); (q.focus === "req" ? reqIn : queryIn).focus(); return; }
+  if (!q.ok) {
+    setFormError(q.message);
+    // prompt BK: the req number AND the title are both filled: nothing from an earlier search stays under this refusal (the list, its count, the recap, what "Edit this search" would restore, the spoken status)
+    if (q.clearResults) { clear(resultsEl); countEl.hidden = true; hideRecap(); lastSearch = null; status.clear(); }
+    (q.focus === "req" ? reqIn : queryIn).focus();
+    return;
+  }
   if (staffMode && (await runStaffSearch(c, q, { company: companyIn.value, q: queryIn.value, r: reqIn.value }, auto))) return;   // staff scope: the staff answer; nothing is stored in the browser or counted for candidates (the database keeps its own private who-and-when record)
   if (!session || !session.isCandidate) {
     // kept in localStorage (all tabs of this browser, one hour, removed when used, never sent anywhere): the emailed link opens in a NEW tab (signin-handoff.js)

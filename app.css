@@ -3,6 +3,8 @@
 
 [hidden]{display:none!important}
 a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,.info-icon:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+/* BK focus: the button a dialog gives the cursor to when it opens (js/focus-ring.js): the same ring as above, drawn at once, because a focus set by script after a mouse click is not "visible" to the browser. */
+button.focus-ring,a.focus-ring{outline:2px solid var(--ember);outline-offset:2px}
 /* BG focus: a script moves focus to a sentence or a box that is not a control (tabindex="-1") so a screen reader reads it; that focus is not drawn. Buttons, links and fields keep their ring (the rule above). */
 [tabindex="-1"]:not(a):not(button):not(input):not(select):not(textarea):not(summary):focus,
 [tabindex="-1"]:not(a):not(button):not(input):not(select):not(textarea):not(summary):focus-visible{outline:none}

@@ -70,7 +70,7 @@ export function checkReq(text) {
 // Two boxes, exactly one used: "Req number" or "PostID, or part of the title".  -> { ok:false, message, focus:"title"|"req" } | { ok:true, kind:"phrase"|"code"|"req", value, alsoTryCode? }
 export function resolveSearch(titleText, reqText) {
   const hasTitle = String(titleText || "").trim() !== "", hasReq = String(reqText || "").trim() !== "";
-  if (hasTitle && hasReq) return { ok: false, message: "Fill in the req number, or the Opening ID / title box, not both.", focus: "req" };
+  if (hasTitle && hasReq) return { ok: false, message: "Fill in the req number, or the Opening ID / title box, not both.", focus: "req", clearResults: true };   // prompt BK: the page clears the earlier results under this refusal
   if (!hasTitle && !hasReq) return { ok: false, message: "Enter a req number, an Opening ID or part of the job title.", focus: "req" };
   if (hasReq) { const r = checkReq(reqText); return r.ok ? { ok: true, kind: "req", value: r.value } : { ok: false, message: r.message, focus: "req" }; }
   const q = classifyQuery(titleText);

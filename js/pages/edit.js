@@ -6,7 +6,9 @@ import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFai
 import { rememberNext } from "../session.js?v=124260d8";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { fmtClose, fmtStamp, waitText, groupCode } from "../format.js?v=696f63b8";
-import { statusChip } from "../dashboard-model.js?v=7d5b30a5";
+import { statusChip, actionsFor } from "../dashboard-model.js?v=7d5b30a5";
+import { runAction } from "../dashboard-actions.js?v=2388f448";
+import { mountLimitHint } from "../limit-hint.js?v=1cfa5987";
 import { checkEdit, mapEditErrors, KIND_TEXT, plainChangeNote, checkLinks, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js?v=b5757c87";
 import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
 import { mountPlaceChoice } from "../place-choice.js?v=f65a1b27";
@@ -21,8 +23,8 @@ import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-pan
 import { mountPolicyPanel } from "../policy-panel.js?v=22622330";
 import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js?v=f2ea9573";
 import { wireInfoIcons } from "../info-icon.js?v=66958a58";
-import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL } from "../dirty-state.js?v=9f2a6974";
-import { mountUnsavedGuard } from "../unsaved-guard.js?v=a7af949e";
+import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL, ACTION, ADDED_LABEL, panelsFirstText } from "../dirty-state.js?v=db4c2123";
+import { mountUnsavedGuard } from "../unsaved-guard.js?v=891a3799";
 
 wireInfoIcons();
 
@@ -43,7 +45,10 @@ function say(box, kind, text) { clear(box); box.hidden = !text; if (text) box.ap
 function showErrors(byField) {
   for (const el of $$("[data-error-for]")) { const id = el.dataset.errorFor; const msg = byField[id]; el.hidden = !msg; el.textContent = msg || ""; const inp = $("#" + (id === "locpicker" ? "locq" : id)); if (inp) inp.setAttribute("aria-invalid", msg ? "true" : "false"); }
 }
-function setBusy(on) { state.busy = on; saveBtn.disabled = on; $("#unsavedSave").disabled = on; $("#unsavedDiscard").disabled = on; }
+const draftSaveBtn = $("#draftSaveBtn"), publishBtn = $("#publishBtn"), actionArea = $("#actionArea");
+function setBusy(on) { state.busy = on; saveBtn.disabled = on; draftSaveBtn.disabled = on; publishBtn.disabled = on; $("#unsavedSave").disabled = on; $("#unsavedDiscard").disabled = on; }
+// the boxes that stop typing at a limit say so (prompt BK); the limit is each box's own maxlength. The description's own hint already says "Up to 20,000 characters.", so only its count and its limit sentence are added.
+const limitHints = [mountLimitHint({ input: $("#jtitle") }), mountLimitHint({ input: $("#req") }), mountLimitHint({ input: $("#aiFilterNote") }), mountLimitHint({ input: $("#aiInterviewNote") }), mountLimitHint({ input: $("#desc"), hint: false })];
 async function sessionEnded() { await signOut(); rememberNext("edit.html?id=" + postingId, "poster"); go("employer-signin.html?reason=expired"); }
 function failureText(err) {
   if (err.code === "rate_limited") return "Too many requests just now. Try again in " + waitText(err.retryAfter || 30) + ".";
@@ -83,8 +88,11 @@ function noteLabel(isDraft) {
 
 function renderChanges(list) {
   const card = $("#changesCard"), ul = $("#changesList"); clear(ul);
-  card.hidden = list.length === 0;
+  const added = state.orig && typeof state.orig.created_at === "string" && state.orig.created_at !== "" ? state.orig.created_at : null;
+  card.hidden = list.length === 0 && added === null;
   for (const c of list) ul.append(h("li", {}, h("div", { style: "font-weight:600;" }, KIND_TEXT[c.kind] || "Edit", h("span", { style: "font-weight:400;color:var(--muted);" }, " · " + fmtStamp(c.at))), h("div", { style: "color:#4A453F;margin-top:2px;overflow-wrap:anywhere;" }, plainChangeNote(c.note))));
+  // prompt BK: the oldest line, always last: when the opening was added (its own creation time), so the latest edit is never taken for the opening just being created
+  if (added !== null) ul.append(h("li", { "data-added": "" }, h("div", { style: "font-weight:600;" }, ADDED_LABEL, h("span", { style: "font-weight:400;color:var(--muted);" }, " · " + fmtStamp(added)))));
 }
 
 // ---- the go-live time: a draft (scheduled or not) can carry one; the 15-minute scheduler publishes it, and the window starts then
@@ -196,7 +204,7 @@ function renderFirms(doc, editable) {
   $("#firmsForm").hidden = !(notice.state === "active" && savedOn && state.recruiter);
   if (notice.state === "lapsed") { note.hidden = false; note.append(alertBox("notice", "Your destination links tier ended. " + (stored.length ? "The " + stored.length + " firm" + (stored.length === 1 ? "" : "s") + " you named " + (stored.length === 1 ? "is" : "are") + " kept but hidden from candidates until it is renewed." : "Naming a recruiter firm is paused until it is renewed."))); }
   else if (notice.state === "active" && !state.recruiter && stored.length) { note.hidden = false; note.append(alertBox("notice", "The toggle is off: " + (stored.length === 1 ? "the firm you named is" : "the " + stored.length + " firms you named are") + " kept but hidden from candidates. Turn it on and save to show them again.")); }
-  else if (notice.state === "active" && state.recruiter && !savedOn) { note.hidden = false; note.append(alertBox("notice", "Naming a firm is optional. To name one here, first save this opening with the recruiter toggle on (Save changes, above); then come back to this section.")); }
+  else if (notice.state === "active" && state.recruiter && !savedOn) { note.hidden = false; note.append(alertBox("notice", "Naming a firm is optional. To name one here, first save this opening with the recruiter toggle on (Save changes, at the bottom of the page); then come back to this section.")); }
   if (!$("#firmsForm").hidden) {
     firmPanel.render(doc.destination_links);      // one row per named firm (or the sentence that none is named yet)
     syncFirmAdd(stored.length);
@@ -409,7 +417,7 @@ async function submit() {
     if (reload.ok) await populate(reload.data);
     showErrors({});
     say(formAlert, "ok", "Saved. " + (r.data.changed_fields.length === 1 ? "1 field was changed." : r.data.changed_fields.length + " fields were changed.") + (r.data.similarity_pct !== null && r.data.similarity_pct !== undefined ? " " + r.data.similarity_pct + "% of the earlier requirements wording is kept." : ""));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    formAlert.scrollIntoView({ block: "nearest", behavior: "smooth" });     // prompt BK: the message is at the bottom of the page now, next to the button that was pressed
     return true;
   } finally { setBusy(false); }
 }
@@ -444,7 +452,55 @@ async function submitLinks(clearAll) {
 }
 $("#linksForm").addEventListener("submit", (ev) => { ev.preventDefault(); submitLinks(false); });
 $("#clearLinksBtn").addEventListener("click", () => { if (window.confirm("Remove all destination links from this opening? Candidates will then see no apply link. You can add links again at any time.")) submitLinks(true); });
-form.addEventListener("submit", (ev) => { ev.preventDefault(); submit(); });
+// ---- the one action area at the bottom (prompt BK, October 11, 2026). The main button reads Save changes while something on the page has changed and Close while nothing has; the link sections keep their own
+// saves in the middle, and the bottom button double checks them: a section with something not saved is named in one sentence, nothing is submitted, and the person saves that section first.
+// Save as draft and Publish exist for a draft only: a live, paused or closed opening is never set back to draft by this page (the server refuses it too: tests\register-bk.test.js, the status guard test).
+const anyUnsaved = () => formUnsaved() || panelsUnsaved().length > 0;
+// -> true when the page may go on (nothing in a link section is waiting to be saved); otherwise the sentence is shown and false comes back
+function linkSectionsClear() {
+  const open = panelsUnsaved();
+  if (open.length === 0) return true;
+  say(formAlert, "notice", panelsFirstText(open));
+  return false;
+}
+async function onMain() {
+  if (state.busy || !state.orig) return;
+  say(formAlert, "error", "");
+  if (!anyUnsaved()) { guard.openDialog(() => go("dashboard.html"), saveBtn); return; }   // Close (the dialog asks first only if something turned out to be unsaved)
+  if (!linkSectionsClear()) return;
+  await submit();
+}
+async function onSaveAsDraft() {
+  if (state.busy || !state.orig || state.orig.stored_status !== "draft") return;
+  say(formAlert, "error", "");
+  if (!linkSectionsClear()) return;
+  if (formUnsaved() && !(await submit())) return;
+  go("dashboard.html");           // it stays a draft; the way back to My openings
+}
+async function onPublish() {
+  if (state.busy || !state.orig || state.orig.stored_status !== "draft") return;
+  say(formAlert, "error", "");
+  if (!linkSectionsClear()) return;
+  if (formUnsaved() && !(await submit())) return;
+  // the same confirmation, words and rules as Publish on My openings (js/dashboard-actions.js): goes live now, the window starts now
+  runAction("publish", state.orig, {
+    api,
+    done: async (text) => { const r = await api.getMyPosting(postingId); if (r.ok) await populate(r.data); say(formAlert, "ok", text); },
+    sessionEnded: () => sessionEnded(),
+  });
+}
+saveBtn.addEventListener("click", () => onMain());
+draftSaveBtn.addEventListener("click", () => onSaveAsDraft());
+publishBtn.addEventListener("click", () => onPublish());
+form.addEventListener("submit", (ev) => { ev.preventDefault(); onMain(); });
+// Enter in a single-line box saves (or, when nothing has changed, does nothing: it never leaves the page by itself)
+function enterSaves(ev) {
+  if (ev.key !== "Enter" || ev.defaultPrevented) return;
+  const t = ev.target;
+  if (t && t.tagName === "INPUT" && t.type === "text") { ev.preventDefault(); if (anyUnsaved()) onMain(); }
+}
+form.addEventListener("keydown", enterSaves);
+$("#note").addEventListener("keydown", enterSaves);
 
 // ---- unsaved work (js/dirty-state.js decides what counts; js/unsaved-guard.js shows the bar, asks before the page is left, and holds the dialog)
 // The main form is unsaved when it differs from the snapshot taken when it was last loaded or saved. The sections that save through their own buttons (destination links, recruiter firms, the go-live time)
@@ -466,9 +522,22 @@ function unsavedModel() {
   // linkRows / linkEdit: which kind of destination links work is unsaved (typed new rows, or the open Edit of a stored link): the bar names the right button for each (js/dirty-state.js)
   return { form: dirty, panels: panelsUnsaved(), linkRows: shown("#linksForm") && rowsTyped(links.values()), linkEdit: shown("#linksPanel") && linkPanel.hasPending(), firmRows: shown("#firmsForm") && rowsTyped(firms.values()), firmEdit: shown("#firmsForm") && firmPanel.hasPending(), status: state.orig.stored_status, noteMissing: rules.noteMissing, noteRequired: rules.noteRequired, rules };
 }
+// the bottom area: shown for an opening that can be edited; the main button's words follow what is unsaved; Save as draft and Publish only for a draft (Publish while its publish window is open)
+function syncActions() {
+  const editable = !!state.orig && !form.hidden;
+  actionArea.hidden = !editable;
+  if (!editable) return;
+  const dirty = anyUnsaved(), draft = state.orig.stored_status === "draft";
+  saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.CLOSE;
+  saveBtn.setAttribute("data-mode", dirty ? "save" : "close");
+  draftSaveBtn.hidden = !draft;
+  publishBtn.hidden = !(draft && actionsFor(state.orig, Date.now()).includes("publish"));
+}
 function refreshUnsaved() {
   if (!guard) return;
   guard.refresh();
+  for (const x of limitHints) x.refresh();         // the counts follow a value a script put in a box (a save, Discard)
+  syncActions();
   const m = unsavedModel(), status = state.orig ? state.orig.stored_status : "live";
   const need = $("#noteNeeded"); need.hidden = !m.noteRequired; need.textContent = m.noteRequired ? UNSAVED.noteRequired(status) : "";          // the note rule, shown as soon as a change makes it apply
   const rule = $("#titleRule"); rule.hidden = !m.rules.titleRule; rule.textContent = m.rules.titleRule ? UNSAVED.titleRule(status) : "";           // and the title rule, as soon as the title is changed

@@ -114,9 +114,10 @@ const SCENARIOS = {
     await fillRegister(tab); await pickAustin(tab);
     await typeIn(tab, "#policyUrl", "https://example.com/gone");
     await click(tab, "#draftBtn"); await waitResult(tab);
-    const o = (await text(tab, "#policyOutcome")) || "", r = (await text(tab, "#checkReport")) || "";
-    if (!/did not answer \(HTTP 404\)/.test(o)) bad.push("the failed check is not told next to the policy link: '" + o + "'");
-    if (!/When we checked, the AI and hiring policy link answered HTTP 404/.test(r)) bad.push("the one check sentence is missing or different: '" + r + "'");
+    // prompt BK: the card says what the editor says: it did not answer (with the code), candidates are not shown it until a check answers, and to make sure it is right and save it again
+    const o = (await text(tab, "#policyOutcome")) || "";
+    if (o !== "Saved, but when we checked, the address did not answer (HTTP 404). Candidates are not shown it until a check answers. Make sure the address is right, then save it again.") bad.push("the failed check is not told in the editor's words: '" + o + "'");
+    if (await visible(tab, "#checkReport")) bad.push("the policy link is also in the one check sentence, which says 'saved anyway': '" + (await text(tab, "#checkReport")) + "'");
     if (!(await text(tab, "#result h2"))) bad.push("the opening itself was not reported as saved");
     return bad; })); },
   // ---- addresses judged as typed, every problem in one list
@@ -155,23 +156,7 @@ const SCENARIOS = {
     const r = (await text(tab, "#checkReport")) || "";
     if (!/destination link 1 answered HTTP 404/.test(r) || (r.match(/When we checked/g) || []).length !== 1) bad.push("the address check is not ONE sentence: '" + r + "'");
     return bad; })); },
-  // ---- text typed in the firm rows while the recruiter switch is off
-  async firmReminder(root) { return withSite(root, { plan: "verified" }, (site) => withTab(async (tab) => { const bad = [];
-    await openRegister(tab, site);
-    await fillRegister(tab); await pickAustin(tab);
-    await click(tab, "#recruiterToggle"); await sleep(150);
-    await typeIn(tab, 'input[aria-label="Recruiter firm 1"]', "Northwind Staffing");
-    await click(tab, "#recruiterToggle"); await sleep(150);
-    for (const btn of ["#draftBtn", "#registerBtn"]) {
-      await click(tab, btn); await sleep(400);
-      const a = (await text(tab, "#formAlert")) || "";
-      if (!/^Nothing was saved\. Please fix: recruiter firms \(a firm is typed, but "Third-party recruiter involved" is off/.test(a)) bad.push(btn + " says '" + a + "'");
-      if (callsOf(site, "create-posting").length) { bad.push(btn + " created the opening although a typed firm would be dropped"); return bad; }
-    }
-    await click(tab, "#recruiterToggle"); await sleep(150);
-    await click(tab, "#draftBtn"); await waitResult(tab);
-    if (firmCalls(site).length !== 1) bad.push("with the switch on, the firm was not saved (" + firmCalls(site).length + " calls)");
-    return bad; })); },
+  // (prompt BK: the "a firm is typed while the switch is off" scenario is gone with the state it tested: turning the switch off clears the typed firm rows; tests\register-bk.test.js, firmsCleared)
   // ---- the buttons
   async bottomButtons(root) { return withSite(root, { plan: "verified" }, (site) => withTab(async (tab) => { const bad = [];
     await openRegister(tab, site);
@@ -352,10 +337,9 @@ const DEFECTS = [
   ["the policy link is saved before the opening exists (sent with the create)", [["js/pages/register.js", (s) => s.replace("state.saved = created.data;\n    lockForm();", "state.saved = created.data;\n    lockForm();\n    await savePolicy({ url: \"https://example.com/x\" });")]], ["policyNotRequired"]],
   ["an address is not judged when the person leaves the box", [["js/link-rows.js", (s) => s.replace("row.addr.addEventListener(\"blur\", () => judge(row));", "")]], ["addressAsTyped"]],
   ["another row can be added while an address is malformed", [["js/link-rows.js", (s) => s.replace("if (bad) { bad.addr.focus(); return; }", "")]], ["addressAsTyped"]],
-  ["the policy address is not judged before saving", [["js/pages/register.js", (s) => s.replace("const lp = linkProblems({ links: lc, firms: fc, policy: pc, firmsIgnored });", "const lp = linkProblems({ links: lc, firms: fc, policy: { used: false, ok: true }, firmsIgnored });")]], ["addressAsTyped"]],
+  ["the policy address is not judged before saving", [["js/pages/register.js", (s) => s.replace("const lp = linkProblems({ links: lc, firms: fc, policy: pc });", "const lp = linkProblems({ links: lc, firms: fc, policy: { used: false, ok: true } });")]], ["addressAsTyped"]],
   ["problems are told one section at a time (the policy is left out of the list)", [["js/register-form.js", (s) => s.replace("if (policy && policy.used && !policy.ok) items.push(", "if (false) items.push(")]], ["addressAsTyped"]],
-  ["a typed firm is dropped without a word while the switch is off", [["js/pages/register.js", (s) => s.replace("const firmsIgnored = !!state.firms && !state.recruiter && rowsTyped(state.firms.values());", "const firmsIgnored = false;")]], ["firmReminder"]],
-  ["the page does not check the addresses, the server's answer is the only check sentence per address", [["js/register-form.js", (s) => s.replace("for (const l of (Array.isArray(policy) ? policy : [])) if (l && l.kind === \"policy\" && l.check_status === \"failed\") items.push(", "for (const l of []) if (l && l.kind === \"policy\" && l.check_status === \"failed\") items.push(")]], ["policyCheckFailed"]],
+  ["the card's policy words are not the editor's (it says 'saved anyway')", [["js/register-form.js", (s) => s.replace("return { kind: !l || l.check_status === \"ok\" ? \"ok\" : \"notice\", text: policySavedText(saved, false) };", "return { kind: \"notice\", text: \"When we checked, the AI and hiring policy link answered HTTP \" + (l && l.check_http) + \". It is saved anyway. Make sure it is right.\" };")]], ["policyCheckFailed"]],
   ["the unsaved bar is never shown on the register page", [["js/pages/register.js", (s) => s.replace("return { dirty: registerSnapshot(collect(), rowsNow()) !== state.baseline, sections: SECTIONS() };", "return { dirty: false, sections: [] };")]], ["unsavedBar", "leaveDialog", "barSaveDraft"]],
   ["the typed link rows are not counted as unsaved work", [["js/dirty-state.js", (s) => s.replace("links: strip(r.links, [\"url\", \"label\"]), firms: strip(r.firms, [\"name\", \"url\"]), policy: trim(r.policy),", "links: [], firms: [], policy: \"\",")]], ["unsavedOnlyLinks"]],
   ["Discard does not clear the policy box", [["js/pages/register.js", (s) => s.replace('"#aiInterviewNote", "#policyUrl", "#gldate"]', '"#aiInterviewNote", "#gldate"]')]], ["unsavedBar"]],

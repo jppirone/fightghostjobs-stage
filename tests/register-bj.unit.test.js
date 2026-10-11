@@ -25,7 +25,7 @@ test("every link section is judged together: one plain list names each section t
   const links = collectLinks([{ url: "https://ok.example/apply", label: "" }, { url: "https//bad.example/apply", label: "" }]);
   const firms = collectFirms([{ name: "", url: "https//firm.example" }], true);
   const policy = collectPolicy("www.example.com/policy");
-  const r = linkProblems({ links, firms, policy, firmsIgnored: false });
+  const r = linkProblems({ links, firms, policy });
   assert.equal(r.ok, false);
   assert.equal(r.items.length >= 3, true, JSON.stringify(r.items));
   assert.match(r.text, /^Nothing was saved\. Please fix: /);
@@ -35,18 +35,18 @@ test("every link section is judged together: one plain list names each section t
   assert.equal(/destination link 1/.test(r.text), false, "the row that is fine is not named");
 });
 
-test("a firm typed while the recruiter switch is off is one plain reminder, naming the section", () => {
-  const ok = { used: false, ok: true, links: [], rowOf: [], errors: {} };
-  const r = linkProblems({ links: ok, firms: ok, policy: { used: false, ok: true }, firmsIgnored: true });
-  assert.equal(r.ok, false);
-  assert.equal(r.items.length, 1);
-  assert.match(r.text, /recruiter firms/);
-  assert.match(r.text, /Third-party recruiter involved/);
-});
-
+// (prompt BK: the "a firm is typed while the recruiter switch is off" reminder is gone: turning the switch off clears the typed firm rows, so that state cannot occur; tests\register-bk.test.js, firmsCleared)
 test("nothing wrong: ok, no text", () => {
   const ok = { used: false, ok: true, links: [], rowOf: [], errors: {} };
-  assert.deepEqual(linkProblems({ links: ok, firms: ok, policy: { used: false, ok: true }, firmsIgnored: false }), { ok: true, items: [], text: "" });
+  assert.deepEqual(linkProblems({ links: ok, firms: ok, policy: { used: false, ok: true } }), { ok: true, items: [], text: "" });
+});
+test("firms are never collected while the recruiter switch is off", () => {
+  const rows = [{ name: "Northwind Staffing", url: "https://example.com/n" }];
+  const off = collectFirms(rows, false), on = collectFirms(rows, true);
+  assert.equal(off.used, false, "switch off: nothing is used or sent");
+  assert.deepEqual(off.links, []);
+  assert.equal(on.used, true);
+  assert.equal(on.links.length, 1);
 });
 
 // ---- what is told after the opening exists
@@ -61,16 +61,18 @@ test("the policy outcome: nothing sent says nothing; a saved link, a failed chec
 });
 
 test("the check report: one sentence for every address that did not answer, nothing when all answered", () => {
-  const okAll = { links: [{ position: 1, kind: "apply", check_status: "ok", check_http: 200 }], firms: [{ position: 1, kind: "recruiter", firm: "Northwind", check_status: "ok" }], policy: [{ position: 1, kind: "policy", check_status: "ok" }] };
+  const okAll = { links: [{ position: 1, kind: "apply", check_status: "ok", check_http: 200 }], firms: [{ position: 1, kind: "recruiter", firm: "Northwind", check_status: "ok" }] };
   assert.equal(checkReport(okAll), null);
-  assert.equal(checkReport({ links: null, firms: null, policy: null }), null);
+  assert.equal(checkReport({ links: null, firms: null }), null);
   const r = checkReport({ links: [{ position: 1, kind: "apply", check_status: "ok", check_http: 200 }, { position: 2, kind: "apply", check_status: "failed", check_http: 404 }],
-    firms: [{ position: 1, kind: "recruiter", firm: "Northwind", check_status: "failed", check_http: null }], policy: [{ position: 1, kind: "policy", check_status: "failed", check_http: 500 }] });
+    firms: [{ position: 1, kind: "recruiter", firm: "Northwind", check_status: "failed", check_http: null }] });
   assert.equal(r.kind, "notice");
   assert.match(r.text, /destination link 2 answered HTTP 404/);
   assert.match(r.text, /recruiter firm Northwind could not be reached/);
-  assert.match(r.text, /the AI and hiring policy link answered HTTP 500/);
   assert.match(r.text, /saved anyway/);
+  // the AI and hiring policy link is not in this sentence (prompt BK): "saved anyway" is not true of it, and it has the editor's own words (policyOutcome)
+  assert.equal(checkReport({ links: [], firms: [], policy: [{ position: 1, kind: "policy", check_status: "failed", check_http: 500 }] }), null);
+  assert.equal(checkReport({ links: [{ position: 1, kind: "policy", check_status: "failed", check_http: 500 }], firms: [] }), null, "even when a policy entry is handed in with the links");
   assert.equal((r.text.match(/When we checked/g) || []).length, 1, "one sentence, not one per address");
 });
 
