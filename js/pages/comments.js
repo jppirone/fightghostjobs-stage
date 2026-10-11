@@ -7,7 +7,7 @@ import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFai
 import { requestLink, watchOtherTabSignIn } from "../session.js?v=124260d8";
 import { $, h, clear, alertBox, chip } from "../dom.js?v=ff147636";
 import { waitText, groupCode } from "../format.js?v=696f63b8";
-import { placeNodes } from "../place.js?v=3ce4ad57";
+import { placeNodes } from "../place.js?v=c72ddb7f";
 import { postingChips, notOpenRecap } from "../chips.js?v=f36dd73d";
 import { aiNotes } from "../ai-notes.js?v=35c5dc92";
 import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js?v=fc0981ec";

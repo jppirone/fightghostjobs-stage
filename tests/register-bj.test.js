@@ -310,7 +310,8 @@ const SCENARIOS = {
   async editPlaceLine(root) { return withSite(root, { plan: "verified", placeText: "Zürich, Switzerland" }, (site) => withTab(async (tab) => { const bad = [];
     await openEdit(tab, site);
     const t = (await text(tab, "#placeLine")) || "";
-    if (t !== "Place: Zürich, Switzerland as provided by the employer") bad.push("the editor's place line reads '" + t + "'");
+    // prompt BL: the employer typed it, so the editor shows the plain place line (the candidate screens keep the note)
+    if (t !== "Place: Zürich, Switzerland") bad.push("the editor's place line reads '" + t + "'");
     return bad; })); },
   async historyWords(root) { return withSite(root, { plan: "verified", recentChanges: [
       { at: new Date(Date.now() - 86400000).toISOString(), note: "edit-posting: changed source_location_text", kind: "draft_edit", fields: [] },

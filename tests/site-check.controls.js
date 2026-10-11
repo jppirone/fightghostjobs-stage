@@ -578,7 +578,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the register page loses grid2", "S48", edit("register.html", (s) => s.replace('class="grid2"', "")));
   control("the sign-in page loses pg", "S48", edit("employer-signin.html", (s) => s.replace('class="pg pg-top cols"', 'class="cols"')));
   control("the search page's verify card loses pg", "S48", edit("search.html", (s) => s.replace('id="signinWrap" class="pg"', 'id="signinWrap"')));
-  control("the My openings table loses its table roles", "S48", edit("dashboard.html", (s) => s.replace('class="dash-table rtable" role="table"', 'class="dash-table rtable"')));
+  control("the My openings table loses its table roles", "S48", edit("dashboard.html", (s) => s.replace('class="dash-table rtable my-openings" role="table"', 'class="dash-table rtable my-openings"')));
   control("the My openings table loses its labelled scroll area", "S48", edit("dashboard.html", (s) => s.replace(' data-scroll-area="My openings table"', "")));
   control("the Team table loses rtable", "S48", edit("team.html", (s) => s.replace('class="dash-table rtable" role="table"', 'class="dash-table" role="table"')));
   control("the Analytics table loses its column header roles", "S48", edit("analytics.html", (s) => s.replace('<th role="columnheader">Searches</th>', "<th>Searches</th>").replace('role="columnheader">Posting<', ">Posting<")));
@@ -1021,7 +1021,7 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the edit page does not put the stored typed place in the box", "S76", edit(ED, (s) => s.replace('place.set((p.location_ids || []).length === 0 ? storedPlaceText(p) : "");', 'place.set("");')));
   control("the register page does not tell that the place was not saved", "S76", edit(RG, (s) => s.replace("state.placeProblem = values.outside === true && storedPlaceText(created.data) !== collapsePlaceText(values.locText) ? PLACE_WORDS.NOT_SAVED : null;", "state.placeProblem = null;")));
   control("the result does not show the place problem", "S76", edit(RG, (s) => s.replace('alertBox("error", state.placeProblem)', 'alertBox("error", "")')));
-  control("My openings calls locationLine", "S76", edit("js/pages/dashboard.js", (s) => s.replace("placeNodes(h, p)", "locationLine(p.is_remote, p.locations)")));
+  control("My openings calls locationLine", "S76", edit("js/pages/dashboard.js", (s) => s.replace("placeNodes(h, p, { note: false })", "locationLine(p.is_remote, p.locations)")));
   control("the typed place is not part of the unsaved snapshot", "S76", edit("js/dirty-state.js", (s) => s.replace("place: v.outside === true ? trim(v.locText) : null, ", "")));
   control("a script other than the two place scripts names the field", "S68", append("js/format.js", 'export const _f = "source_location_text";'));
   control("a banned word is in the choice's words (rule S66)", "S66", edit(PT, (s) => s.replace('HINT: "Shown to candidates as you wrote it.', 'HINT: "Shown to candidates as the listing says it.')));
@@ -1198,7 +1198,7 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the editor has no place line", "S77", edit(EH, (s) => s.replace('id="placeLine"', 'id="placeLineGone"')));
   control("the editor has no count under the place box", "S77", edit(EH, (s) => s.replace('id="loctextCount"', 'id="loctextCountGone"')));
   control("the comments page draws the place with locationLine", "S77", edit("js/pages/comments.js", (s) => s.replace("placeNodes(h, p)", "locationLine(p.is_remote, p.locations)")));
-  control("My openings draws no place through placeNodes", "S77", edit("js/pages/dashboard.js", (s) => s.replace("placeNodes(h, p)", "p.title")));
+  control("My openings draws no place through placeNodes", "S77", edit("js/pages/dashboard.js", (s) => s.replace("placeNodes(h, p, { note: false })", "p.title")));
   control("the editor's history draws the stored note raw", "S77", edit("js/pages/edit.js", (s) => s.replace("plainChangeNote(c.note)", "c.note")));
   control("plainChangeNote is gone", "S77", edit("js/edit-form.js", (s) => s.replace("export function plainChangeNote(", "export function plainChangeNoteGone(")));
   control("the register page's unit tests are not in the suite", "S77", edit("tests/run-all.js", (s) => s.replace(', path.join(here, "register-bj.unit.test.js")', "")));
@@ -1251,6 +1251,26 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("another search refusal clears the results too", "S78", edit("js/search-input.js", (s) => s.replace('focus: "req" };\n  if (hasReq)', 'focus: "req", clearResults: true };\n  if (hasReq)')));
   control("the search page does not clear the results", "S78", edit("js/pages/search.js", (s) => s.replace("if (q.clearResults) { clear(resultsEl); countEl.hidden = true; hideRecap(); lastSearch = null; status.clear(); }", "")));
   control("the editor's browser test is not in the suite", "S78", edit("tests/run-all.js", (s) => s.replace('path.join(here, "register-bk.test.js")', 'path.join(here, "unit.test.js")')));
+}
+
+// S79 (prompt BL, October 11, 2026): My openings fits its card; an employer never reads "as provided by the employer"
+{
+  const DH = "dashboard.html", DJ = "js/pages/dashboard.js", CSS = "app.css";
+  control("the My openings page is capped at 1440 again", "S79", edit(DH, (s) => s.replace("max-width:1800px;margin:0 auto;padding:44px 32px;", "max-width:1440px;margin:0 auto;padding:44px 32px;")));
+  control("the My openings table loses its scoping class", "S79", edit(DH, (s) => s.replace('class="dash-table rtable my-openings" role="table"', 'class="dash-table rtable" role="table"')));
+  control("the Title column loses its minimum", "S79", edit(CSS, (s) => s.replace('.my-openings thead th:first-child,.my-openings td[data-label="Title"]{min-width:11rem}', "")));
+  control("a long title can push a column off the page", "S79", edit(CSS, (s) => s.replace('.my-openings td[data-label="Title"]{overflow-wrap:anywhere}', "")));
+  control("the note has no fixed width", "S79", edit(CSS, (s) => s.replace(".my-openings .act-note{max-width:24ch;white-space:normal;overflow-wrap:break-word}", ".my-openings .act-note{white-space:normal}")));
+  control("an action word may break inside the word", "S79", edit(CSS, (s) => s.replace('.my-openings td[data-label="Actions"] .row-action{white-space:nowrap}', "")));
+  control("the table rules apply on a phone too", "S79", edit(CSS, (s) => s.replace("@media (min-width:641px){\n  .my-openings thead", "@media (min-width:1px){\n  .my-openings thead")));
+  control("My openings shows the note", "S79", edit(DJ, (s) => s.replace("placeNodes(h, p, { note: false })", "placeNodes(h, p)")));
+  control("the expired draft's note is three pieces on a line again", "S79", edit(DJ, (s) => s.replace('h("div", { class: "row-note act-note" },', 'h("span", { class: "row-note" },')));
+  control("the Actions cell is set to nowrap again", "S79", edit(DJ, (s) => s.replace('h("td", { role: "cell", "data-label": "Actions" }, actionCells(p, now))', 'h("td", { role: "cell", "data-label": "Actions", style: "white-space:nowrap;" }, actionCells(p, now))')));
+  control("the opening editor shows the note", "S79", edit("js/pages/edit.js", (s) => s.replace("placeNodes(h, p, { note: false })", "placeNodes(h, p)")));
+  control("the note is left off for everyone by default", "S79", edit("js/place.js", (s) => s.replace("if (p.note && !(opts && opts.note === false)) out.push(", "if (p.note && (opts && opts.note === true)) out.push(")));
+  control("the candidate search page leaves the note off", "S79", edit("js/pages/search.js", (s) => s.replace("const placeNodesOf = (row) => placeNodes(h, row);", "const placeNodesOf = (row) => placeNodes(h, row, { note: false });")));
+  control("the comments page leaves the note off", "S79", edit("js/pages/comments.js", (s) => s.replace("placeNodes(h, p), ", "placeNodes(h, p, { note: false }), ")));
+  control("the My openings browser test is not in the suite", "S79", edit("tests/run-all.js", (s) => s.replace('path.join(here, "my-openings.test.js")', 'path.join(here, "unit.test.js")')));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });

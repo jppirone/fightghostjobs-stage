@@ -5,7 +5,7 @@ import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFai
 import { rememberNext } from "../session.js?v=124260d8";
 import { $, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { groupCode, waitText } from "../format.js?v=696f63b8";
-import { placeNodes } from "../place.js?v=3ce4ad57";
+import { placeNodes } from "../place.js?v=c72ddb7f";
 import { FILTERS, statusChip, matchesFilter, matchesText, sortByPosted, reqCell, postedCell, capCell, closesCell } from "../dashboard-model.js?v=7d5b30a5";
 import { actionsFor, publishWindowEnded } from "../dashboard-model.js?v=7d5b30a5";
 import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=2388f448";
@@ -43,18 +43,19 @@ function renderFilters() {
 function actionCells(p, now) {
   // Edit is a page of its own (a link); the others are one-click dialogs
   const out = actionsFor(p, now).map((k) => k === "edit" ? h("a", { class: "row-action", href: "edit.html?id=" + encodeURIComponent(p.id) }, ACTION_LABEL[k]) : h("button", { type: "button", class: "row-action", onclick: () => runAction(k, p, deps) }, ACTION_LABEL[k]));
-  if (publishWindowEnded(p, now)) out.push(h("span", { class: "row-note" }, "Publish window ended: a draft can be published for 14 days after it was saved. To use it, "), h("a", { class: "row-action", href: "register.html" }, "add it again"), h("span", { class: "row-note" }, " as a new opening."));
+  // prompt BL: the note is ONE block that wraps inside the cell at a fixed width (css: .my-openings .act-note); it used to be three inline pieces on one line, which stretched the Actions column of every row
+  if (publishWindowEnded(p, now)) out.push(h("div", { class: "row-note act-note" }, "Publish window ended: a draft can be published for 14 days after it was saved. To use it, ", h("a", { class: "row-action note-link", href: "register.html" }, "add it again"), " as a new opening."));
   return out;
 }
 
 function row(p, now) {
   const chip = statusChip(p, now);
   return h("tr", { role: "row" },
-    h("td", { role: "cell", "data-label": "Title", style: "font-weight:600;" }, p.title, h("div", { style: "font-size:12px;font-weight:400;color:var(--muted);margin-top:3px;" }, placeNodes(h, p))),
+    h("td", { role: "cell", "data-label": "Title", style: "font-weight:600;" }, p.title, h("div", { style: "font-size:12px;font-weight:400;color:var(--muted);margin-top:3px;" }, placeNodes(h, p, { note: false }))),      // prompt BL: the employer typed the place: no "as provided by the employer" here
     h("td", { role: "cell", "data-label": "Req #", style: "color:var(--muted);" }, reqCell(p)),
     h("td", { role: "cell", "data-label": "Opening ID", class: "mono", style: "color:var(--muted);white-space:nowrap;" }, groupCode(p.post_id)),
     h("td", { role: "cell", "data-label": "Status" }, h("span", { class: "status " + chip.cls }, chip.text)),
-    h("td", { role: "cell", "data-label": "Actions", style: "white-space:nowrap;" }, actionCells(p, now)),          // right after the status: the actions must never be pushed off the edge of a narrow window
+    h("td", { role: "cell", "data-label": "Actions" }, actionCells(p, now)),          // right after the status: the actions must never be pushed off the edge of a narrow window (each action word stays on one line and the note wraps: css .my-openings)
     h("td", { role: "cell", "data-label": "Added", style: "color:var(--muted);" }, postedCell(p)),
     h("td", { role: "cell", "data-label": "Closes", style: "color:var(--muted);" }, closesCell(p), p.bump_used ? h("div", { class: "row-note" }, "extended " + p.bump_days + (p.bump_days === 1 ? " day" : " days")) : null),
     h("td", { role: "cell", "data-label": "Applicant cap", style: "color:var(--muted);" }, capCell(p)),

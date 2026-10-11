@@ -994,7 +994,7 @@ export function checkSite(root, opts = {}) {
       "employer-signin.html": ['class="pg pg-top cols"', 'class="h-big"'],
       "register.html": ['class="pg pg-top cols"', 'class="grid2"'], "edit.html": ['class="pg pg-top cols"', 'class="grid2"'],
       "search.html": ['<div class="pg" style="padding:56px 64px 32px 64px;">', 'id="signinWrap" class="pg"', 'id="roleNotice" class="pg"', 'id="landedNotice" class="pg"'],
-      "dashboard.html": ['class="pg"', 'class="fill"', 'class="card flush" data-scroll-area="My openings table"', 'class="dash-table rtable" role="table"', 'role="columnheader">Title<'],
+      "dashboard.html": ['class="pg"', 'class="fill"', 'class="card flush" data-scroll-area="My openings table"', 'class="dash-table rtable my-openings" role="table"', 'role="columnheader">Title<'],      // prompt BL: the class my-openings scopes the layout rules to this table
       "team.html": ['class="pg"', 'class="grid2"', 'class="card flush" data-scroll-area="Team table"', 'class="dash-table rtable" role="table"', '<th role="columnheader">Name</th><th role="columnheader">Work email</th><th role="columnheader">Role</th><th role="columnheader">Status</th><th role="columnheader">Actions</th>'],
       "analytics.html": ['class="pg"', 'class="grid2"', 'class="card flush" data-scroll-area="Traffic by opening table"', 'id="postingTable" class="rtable" role="table"', '<th role="columnheader">Opening</th><th role="columnheader">Searches</th><th role="columnheader">Detail views</th><th role="columnheader">Link clicks</th><th role="columnheader">Click-through</th>'],
       "comments.html": ['class="pg"'], "privacy.html": ['class="pg"'], "404.html": ['class="pg pg-top"'], "auth-callback.html": ['class="pg pg-top"'],
@@ -1572,7 +1572,7 @@ export function checkSite(root, opts = {}) {
     }
     if (fs.existsSync(dbF)) {
       const s = body(dbF);
-      if (!s.includes("placeNodes(h, p)")) add("S76", dbF, "My openings shows the place through js/place.js (the typed place when there is no list place)");
+      if (!s.includes("placeNodes(h, p, { note: false })")) add("S76", dbF,"My openings shows the place through js/place.js (the typed place when there is no list place)");
       if (/locationLine\(/.test(s)) add("S76", dbF, "My openings never calls locationLine directly");
     }
     if (fs.existsSync(dsF)) {
@@ -1658,7 +1658,7 @@ export function checkSite(root, opts = {}) {
       if (!fs.existsSync(f)) continue;
       const s = body(f);
       if (/locationLine\(/.test(s)) add("S77", f, "a screen draws the place only through js/place.js placeNodes, never locationLine directly");
-      if (!/placeNodes\(h, (p|row)\)|placeNodes\(h, row\)/.test(s)) add("S77", f, "this screen must draw the place through placeNodes (one place line everywhere)");
+      if (!/placeNodes\(h, (p|row)[,)]/.test(s)) add("S77", f, "this screen must draw the place through placeNodes (one place line everywhere)");
     }
     if (fs.existsSync(edF) && !body(edF).includes("plainChangeNote(c.note)")) add("S77", edF, "the history of an opening goes through plainChangeNote (no function or column name is drawn)");
     if (fs.existsSync(efF) && !body(efF).includes("export function plainChangeNote(")) add("S77", efF, "plainChangeNote must exist");
@@ -1750,6 +1750,39 @@ export function checkSite(root, opts = {}) {
       const r = read(runF);
       for (const n of ["register-bk.unit.test.js", "register-bk.test.js"]) if (!r.includes('"' + n + '"')) add("S78", runF, n + " is not in the suite");
     }
+  }
+  // S79 (2026-10-11, prompt BL): My openings fits its card and an employer never reads "as provided by the employer". Pinned: the page's width cap (1800 pixels, so the card follows the window), the class that scopes
+  // the table rules to this table, the Title column's minimum, the fixed width of every note in the Actions cell, the note as ONE block, and the place line of the two employer-only screens drawn without the
+  // note (the candidate screens are pinned by S68 and keep it). The browser test runs in the suite.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const body = (f) => (fs.existsSync(f) ? stripJsComments(read(f)) : "");
+    const dashH = P("dashboard.html"), dashJ = P("js", "pages", "dashboard.js"), editJ = P("js", "pages", "edit.js"), plJ = P("js", "place.js"), cssF = P("app.css"), srJ = P("js", "pages", "search.js"), cmJ = P("js", "pages", "comments.js"), runF = P("tests", "run-all.js");
+    if (fs.existsSync(dashH)) {
+      const h = read(dashH);
+      if (!/<div class="pg" style="max-width:1800px;margin:0 auto;/.test(h)) add("S79", dashH, "the My openings page is capped at 1800 pixels, not 1440: the card follows the window");
+      if (!h.includes('class="dash-table rtable my-openings" role="table"')) add("S79", dashH, "the My openings table carries the class my-openings (the layout rules are scoped to it)");
+    }
+    if (fs.existsSync(cssF)) {
+      const c = read(cssF);
+      for (const [pin, why] of [
+        ['.my-openings thead th:first-child,.my-openings td[data-label="Title"]{min-width:11rem}', "the Title column keeps a readable minimum"],
+        ['.my-openings td[data-label="Title"]{overflow-wrap:anywhere}', "a long title or place line wraps inside its column and never pushes another off the page"],
+        [".my-openings .act-note{max-width:24ch;white-space:normal;overflow-wrap:break-word}", "every note in the Actions cell wraps at a fixed width"],
+        ['.my-openings td[data-label="Actions"] .row-action{white-space:nowrap}', "an action word stays on one line"],
+      ]) if (!c.includes(pin)) add("S79", cssF, "app.css: " + why);
+      if (!/@media \(min-width:641px\)\{\s*\.my-openings thead/.test(c)) add("S79", cssF, "the My openings table rules apply above the phone width only (the phone layout is the card list of S48)");
+    }
+    if (fs.existsSync(dashJ)) {
+      const s = body(dashJ);
+      if (!s.includes("placeNodes(h, p, { note: false })")) add("S79", dashJ, "My openings draws the place without the note (the employer typed it)");
+      if (!s.includes('h("div", { class: "row-note act-note" },')) add("S79", dashJ, "the expired draft's note is ONE block (class act-note), not three pieces on a line");
+      if (/data-label": "Actions", style/.test(s)) add("S79", dashJ, "the Actions cell has no inline style (it must not be set to nowrap)");
+    }
+    if (fs.existsSync(editJ) && !body(editJ).includes("placeNodes(h, p, { note: false })")) add("S79", editJ, "the opening editor draws the place without the note");
+    if (fs.existsSync(plJ) && !body(plJ).includes("if (p.note && !(opts && opts.note === false)) out.push(")) add("S79", plJ, "placeNodes leaves the note off only when the caller says so (the default shows it)");
+    for (const f of [srJ, cmJ]) if (fs.existsSync(f) && /note:\s*false/.test(body(f))) add("S79", f, "a screen a candidate sees keeps the note: no note: false here");
+    if (fs.existsSync(runF) && !read(runF).includes('"my-openings.test.js"')) add("S79", runF, "my-openings.test.js is not in the suite");
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed

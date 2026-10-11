@@ -20,7 +20,7 @@ import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";
 import { openUnit } from "../open-link.js?v=454df0f2";
 import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js?v=3ea36db8";
 import { isRegistered } from "../registered.js?v=f191c8c2";
-import { placeNodes } from "../place.js?v=3ce4ad57";
+import { placeNodes } from "../place.js?v=c72ddb7f";
 import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=c7fcdca3";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");

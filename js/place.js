@@ -32,9 +32,11 @@ export function placeParts(row) {
 // ONE PLACE LINE EVERYWHERE (prompt BJ, October 11, 2026): the candidate results card, the details window, the opening's comments page, the staff view, My openings (and any other screen that names the place)
 // draw the place through THIS function: the typed place when the row has one (with Remote first when the opening is remote), otherwise the list places in order with Remote, otherwise "Location not stated";
 // the small note follows only a typed place. h is the page's element builder (js/dom.js). -> an array of nodes (text and one span)
-export function placeNodes(h, row) {
+// opts.note = false (prompt BL, October 11, 2026): the two screens only the EMPLOYER sees (My openings and the opening editor) show the plain place line: the employer typed the place themselves, so "as provided by
+// the employer" tells them nothing. Every screen a candidate sees keeps the note: showing it is the default.
+export function placeNodes(h, row, opts) {
   const p = placeParts(row);
   const out = [p.text];
-  if (p.note) out.push(" ", h("span", { class: "place-note", style: "font-size:12px;color:var(--faint);" }, p.note));
+  if (p.note && !(opts && opts.note === false)) out.push(" ", h("span", { class: "place-note", style: "font-size:12px;color:var(--faint);" }, p.note));
   return out;
 }

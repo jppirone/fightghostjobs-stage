@@ -90,6 +90,18 @@ a.row-action:hover{text-decoration:underline}
 .dash-table td{padding:14px 12px}
 .dash-table .row-action:first-child{margin-left:0}
 
+/* My openings (prompt BL, October 11, 2026): the table is a plain auto-layout table that uses the width of the card, and the card the width of the window (up to the page's 1800 pixel cap in dashboard.html).
+   Title and Actions are the columns that give first: the Title column keeps a readable minimum, long titles and place lines wrap inside it; every note in the Actions cell wraps at a fixed width, and each action word
+   stays on one line (it wraps between words, never inside one). Only the table with the class my-openings: the Team and Traffic tables share dash-table and rtable and are not touched. */
+@media (min-width:641px){
+  .my-openings thead th:first-child,.my-openings td[data-label="Title"]{min-width:11rem}
+  .my-openings td[data-label="Title"]{overflow-wrap:anywhere}
+  .my-openings td[data-label="Actions"]{white-space:normal}
+  .my-openings td[data-label="Actions"] .row-action{white-space:nowrap}
+  .my-openings .act-note{max-width:24ch;white-space:normal;overflow-wrap:break-word}
+  .my-openings .act-note .note-link{margin-left:0;display:inline;font-size:inherit}
+}
+
 /* contested comments (item A): the notice block (shown to candidates and to the owner) and the owner's contest form. Ink on white inside a dark-ember border: far above 4.5:1; the border carries the meaning for forced-colors too. */
 .contest-notice{border:2px solid var(--ember-dark);border-left-width:8px;border-radius:10px;background:#fff;color:var(--ink);padding:12px 16px;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
 .contest-notice-tag{font-size:12px;font-weight:700;color:var(--ember-dark);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}

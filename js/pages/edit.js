@@ -13,7 +13,7 @@ import { checkEdit, mapEditErrors, KIND_TEXT, plainChangeNote, checkLinks, mapLi
 import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
 import { mountPlaceChoice } from "../place-choice.js?v=f65a1b27";
 import { storedPlaceText } from "../place-text.js?v=cb5d7506";
-import { placeNodes } from "../place.js?v=3ce4ad57";
+import { placeNodes } from "../place.js?v=c72ddb7f";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js?v=b2985372";
 import { loadCatalog } from "../location-catalog.js?v=bb0c937e";
 import { mountLinkRowsById, mountLinkRows } from "../link-rows.js?v=a79f852e";
@@ -351,7 +351,7 @@ async function populate(doc, opts) {
   const line = $("#statusLine"); line.hidden = false; clear(line);
   line.append(h("span", { class: "status " + chip.cls }, chip.text), " ", p.stored_status === "draft" ? (p.go_live_at ? "Scheduled: not visible to candidates until it goes live." : "Not visible to candidates yet.") : (p.status === "live" || p.status === "paused") && p.expiration_date ? "Closes " + fmtClose(p.expiration_date) + "." : "");
   // the place line: the same one every other screen draws (js/place.js), from what is STORED (the form's own place boxes show what is being edited)
-  const pl = $("#placeLine"); pl.hidden = false; clear(pl); pl.append("Place: ", ...placeNodes(h, p));
+  const pl = $("#placeLine"); pl.hidden = false; clear(pl); pl.append("Place: ", ...placeNodes(h, p, { note: false }));      // prompt BL: the employer typed it, so no "as provided by the employer" here
   noteLabel(p.stored_status === "draft");
   renderChanges(doc.recent_changes);
   if (!keepForm) { picker.set(await entriesFor(p), p.locations_attested); place.set((p.location_ids || []).length === 0 ? storedPlaceText(p) : ""); state.baseline = snapshotOf(collect()); }     // the snapshot every later edit is compared with
