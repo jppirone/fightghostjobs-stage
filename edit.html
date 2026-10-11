@@ -35,6 +35,7 @@
       <h1 id="editHeading" tabindex="-1" style="font-size:32px;font-weight:700;margin-top:6px;letter-spacing:-.01em;">Edit an opening</h1>
       <div id="postIdLine" style="font-size:14px;color:var(--muted);margin-top:8px;" hidden>Opening ID <span class="mono" id="postId"></span></div>
       <div id="statusLine" style="font-size:14px;color:var(--muted);margin-top:8px;" hidden></div>
+      <div id="placeLine" style="font-size:14px;color:var(--muted);margin-top:8px;" hidden></div>
     </div>
 
     <div id="pageAlert" hidden></div>
@@ -67,7 +68,9 @@
           <div id="locTyped" hidden style="margin-top:8px;">
             <input id="loctext" type="text" maxlength="100" autocomplete="off" spellcheck="false" aria-label="A place outside the US or not in the list" aria-describedby="loctextHint" placeholder="For example: Lisbon, Portugal">
             <div class="field-error" data-error-for="loctext" hidden></div>
-            <div id="loctextHint" class="field-hint">Shown to candidates as you wrote it. It is not used to search, sort or filter, and it cannot hold a link or an email address.</div>
+            <div id="loctextHint" class="field-hint">Up to 100 characters. Shown to candidates as you wrote it. It is not used to search, sort or filter, and it cannot hold a link or an email address.</div>
+            <div id="loctextCount" class="field-hint" aria-hidden="true">0 of 100</div>
+            <div id="loctextLimit" class="field-hint" role="status" hidden></div>
           </div>
         </div>
       </div>
@@ -275,6 +278,6 @@
 
 <footer class="site-footer"><span>FightGhostJobs</span><a href="privacy.html">Privacy</a><a href="mailto:privacy@fightghostjobs.com">privacy@fightghostjobs.com</a></footer>
 
-<script type="module" src="js/pages/edit.js?v=f403ca55"></script>
+<script type="module" src="js/pages/edit.js?v=54353912"></script>
 </body>
 </html>

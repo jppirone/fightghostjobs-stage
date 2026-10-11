@@ -1,23 +1,26 @@
 // register.js - an employer registers a posting: create it (a draft), then publish it (standard tier goes live immediately).
 // "Save draft" stops after the first step: the draft is then found and published from My postings (dashboard.html). Nothing here trusts the page for identity: the session token tells the server who is acting.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=2edd398d";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=4c8c3f5c";
 import { rememberNext } from "../session.js?v=124260d8";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { fmtClose, groupCode, waitText } from "../format.js?v=696f63b8";
 import { checkGoLive, mapScheduleError } from "../schedule-form.js?v=b2985372";
-import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome, collectFirms, firmsOutcome } from "../register-form.js?v=811abbd1";
-import { mapLinksErrors, planNotice, checkWarnings } from "../edit-form.js?v=80d9d54e";
-import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js?v=42a146ec";
+import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome, collectFirms, firmsOutcome, collectPolicy, policyOutcome, mapPolicyError, linkProblems, checkReport } from "../register-form.js?v=b567c43d";
+import { mapLinksErrors, planNotice, addressProblem } from "../edit-form.js?v=b5757c87";
+import { policyView, policyLapsedText } from "../policy-link.js?v=f2ea9573";
+import { registerSnapshot, summarizeRegister, REGISTER_UNSAVED, rowsTyped } from "../dirty-state.js?v=9f2a6974";
+import { mountUnsavedGuard } from "../unsaved-guard.js?v=a7af949e";
+import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js?v=a79f852e";
 import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
-import { mountPlaceChoice } from "../place-choice.js?v=2089f0a5";
-import { PLACE_WORDS, storedPlaceText, collapsePlaceText } from "../place-text.js?v=ff0ec9af";
+import { mountPlaceChoice } from "../place-choice.js?v=f65a1b27";
+import { PLACE_WORDS, storedPlaceText, collapsePlaceText } from "../place-text.js?v=cb5d7506";
 import { wireInfoIcons } from "../info-icon.js?v=66958a58";
 
 wireInfoIcons();
 // links: the destination-link rows, mounted only when the organization's plan allows links (null otherwise); linksSaved / linksProblem: what happened to them after the posting was created
 // firms: the recruiter-firm rows (pass C), mounted with the links when the plan allows; they matter only while the recruiter toggle is on
-const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false, dupAsked: false, goLiveIso: null, links: null, linksSaved: null, linksAnswer: null, linksProblem: null, firms: null, firmsSaved: null, firmsProblem: null, placeProblem: null };
+const state = { aiFilter: false, aiInterview: false, recruiter: false, saved: null, busy: false, dupAsked: false, goLiveIso: null, links: null, linksSaved: null, linksAnswer: null, linksProblem: null, firms: null, firmsSaved: null, firmsProblem: null, firmsAnswer: null, placeProblem: null, policyOn: false, policySaved: null, policyProblem: null, baseline: null, guard: null };
 const form = $("#form"), result = $("#result"), pageAlert = $("#pageAlert"), formAlert = $("#formAlert");
 const registerBtn = $("#registerBtn"), draftBtn = $("#draftBtn");
 const picker = mountLocationPicker({ isRemote: () => $("#remote").checked });
@@ -41,6 +44,12 @@ wireToggle("#aiInterviewToggle", "aiInterview");
 wireToggle("#recruiterToggle", "recruiter");
 
 const val = (id) => $(id).value;
+// what the three link sections hold right now, as typed (the unsaved bar compares it with the blank form)
+const rowsNow = () => ({ links: state.links ? state.links.values() : [], firms: state.firms ? state.firms.values() : [], policy: state.policyOn ? val("#policyUrl") : "" });
+// the policy address box: judged when the person leaves it (the edit page's rule), the sentence goes away when it is edited
+function showPolicyField(msg) { const e = $("#policyError"); e.textContent = msg || ""; e.hidden = !msg; $("#policyUrl").setAttribute("aria-invalid", msg ? "true" : "false"); }
+$("#policyUrl").addEventListener("blur", () => { const c = collectPolicy(val("#policyUrl")); showPolicyField(c.used && !c.ok ? c.error : ""); });
+$("#policyUrl").addEventListener("input", () => showPolicyField(""));
 // "when should it go live": as soon as it is registered (the default) or at a time the employer chooses
 const goLater = () => $("#glLater").checked;
 function syncGoLive() { $("#glWhen").hidden = !goLater(); registerBtn.textContent = goLater() ? "Add and schedule" : "Add opening"; }
@@ -76,14 +85,26 @@ async function submit(mode) {
   const values = collect();
   const problems = validateForm(values);
   showErrors(problems);
-  if (Object.keys(problems).length) { const first = Object.keys(problems)[0]; if (first === "locpicker" || first === "attest") picker.focusFor(first); else $("#" + first).focus(); return; }
-  // the link rows are checked BEFORE anything is created, so a mistyped address never leaves a posting half done
-  const lc = state.links ? collectLinks(state.links.values()) : { used: false, ok: true, links: [], rowOf: [], errors: {} };
-  if (state.links) { state.links.showErrors(lc.errors); say($("#linksAlert"), "error", lc.ok ? "" : lc.form || "Nothing was saved. See the message under the address."); }
-  if (!lc.ok) { state.links.focus(lc.errors); return; }
-  const fc = state.firms ? collectFirms(state.firms.values(), state.recruiter) : { used: false, ok: true, links: [], rowOf: [], errors: {} };
-  if (state.firms) { state.firms.showErrors(fc.errors); say($("#firmsAlert"), "error", fc.ok ? "" : fc.form || "Nothing was saved. See the message under the firm."); }
-  if (!fc.ok) { state.firms.focus(fc.errors); return; }
+  // the link sections are checked BEFORE anything is created, so a mistyped address never leaves a posting half done, and ALL of them are judged together: every box shows its own sentence and one plain
+  // list at the bottom names every section that needs fixing (never one section at a time)
+  const none = { used: false, ok: true, links: [], rowOf: [], errors: {} };
+  const lc = state.links ? collectLinks(state.links.values()) : none;
+  const fc = state.firms ? collectFirms(state.firms.values(), state.recruiter) : none;
+  const firmsIgnored = !!state.firms && !state.recruiter && rowsTyped(state.firms.values());
+  const pc = state.policyOn ? collectPolicy(val("#policyUrl")) : { used: false, ok: true };
+  if (state.links) { state.links.showErrors(lc.errors); say($("#linksAlert"), "error", ""); }
+  if (state.firms) { state.firms.showErrors(fc.errors); say($("#firmsAlert"), "error", ""); }
+  showPolicyField(pc.used && !pc.ok ? pc.error : "");
+  const lp = linkProblems({ links: lc, firms: fc, policy: pc, firmsIgnored });
+  if (Object.keys(problems).length || !lp.ok) {
+    say(formAlert, "error", lp.ok ? "" : lp.text);
+    if (Object.keys(problems).length) { const first = Object.keys(problems)[0]; if (first === "locpicker" || first === "attest") picker.focusFor(first); else $("#" + first).focus(); }
+    else if (!lc.ok) state.links.focus(lc.errors);
+    else if (!fc.ok) state.firms.focus(fc.errors);
+    else if (firmsIgnored) $("#recruiterToggle").focus();
+    else $("#policyUrl").focus();
+    return;
+  }
   setBusy(true);
   try {
     // 1. create (a draft)
@@ -103,6 +124,7 @@ async function submit(mode) {
     // 2. the destination links, if any were entered: the posting exists now, so a refusal here is reported with the result, never as a failed registration
     if (lc.used && await saveLinks(lc) === "gone") return;
     if (fc.used && await saveFirms(fc) === "gone") return;
+    if (pc.used && await savePolicy(pc) === "gone") return;
     if (mode === "draft") { showResult(created.data, "draft"); return; }
     // 3. publish now, or schedule the go-live for the time chosen
     if (goLater()) { state.goLiveIso = checkGoLive(val("#gldate"), Date.now()).iso || null; await schedule(); } else await publish();
@@ -125,7 +147,7 @@ async function saveLinks(lc) {
 
 async function saveFirms(fc) {
   const r = await api.setRecruiterFirms(state.saved.id, fc.links);
-  if (r.ok) { state.firmsSaved = r.data.active_links; state.firmsProblem = null; return "saved"; }
+  if (r.ok) { state.firmsSaved = r.data.active_links; state.firmsAnswer = r.data.links; state.firmsProblem = null; return "saved"; }
   if (isAuthFailure(r.error)) { await sessionEnded(); return "gone"; }
   state.firmsProblem = mapLinksErrors(r.error, fc.rowOf);
   if (!state.firmsProblem.general && !Object.keys(state.firmsProblem.rows).length) state.firmsProblem.general = failureText(r.error);
@@ -134,13 +156,34 @@ async function saveFirms(fc) {
   return "refused";
 }
 
+// the AI and hiring policy link: one more address, saved by its own call right after the opening exists (the same call the edit page's box makes)
+async function savePolicy(pc) {
+  const r = await api.setPolicyLink(state.saved.id, pc.url);
+  if (r.ok) { state.policySaved = r.data; state.policyProblem = null; return "saved"; }
+  if (isAuthFailure(r.error)) { await sessionEnded(); return "gone"; }
+  const m = mapPolicyError(r.error);
+  state.policyProblem = { general: m.field || m.general || failureText(r.error) };
+  return "refused";
+}
+
 // The link rows (and the recruiter-firm rows) follow the organization's plan (poster-session): verified -> the rows; lapsed -> the paused notice; never verified -> the locked panel; plan unknown -> nothing is promised.
 function setupLinks(plan) {
   const notice = planNotice(plan, Date.now());
   $("#firmsLocked").hidden = notice.state === "active";
   $("#firmsForm").hidden = notice.state !== "active";
-  if (notice.state === "active") state.firms = mountFirmRowsById();
+  if (notice.state === "active") state.firms = mountFirmRowsById({ checkAddress: addressProblem });
   setupLinkRows(notice);
+  setupPolicy(plan);
+}
+// the AI and hiring policy link box is always on the page; on the tier it is a box, otherwise the edit page's own sentence (locked, or the tier ended)
+function setupPolicy(plan) {
+  const v = policyView({ plan, destination_links: [] }, Date.now());
+  $("#policyRow").hidden = planNotice(plan, Date.now()).state === "unknown";      // a plan the server did not state: nothing is promised, the row stays away (as the links section does)
+  state.policyOn = v.show === "form";
+  $("#policyLocked").hidden = v.show !== "locked";
+  $("#policyForm").hidden = v.show !== "form";
+  const note = $("#policyNote"); clear(note); note.hidden = true;
+  if (v.show === "lapsed") { note.hidden = false; note.append(alertBox("notice", policyLapsedText(v))); }
 }
 function setupLinkRows(notice) {
   $("#linksSection").hidden = notice.state === "unknown";
@@ -149,7 +192,7 @@ function setupLinkRows(notice) {
   const box = $("#linksPlan"); clear(box); box.hidden = true;
   if (notice.state === "lapsed") { box.hidden = false; box.append(alertBox("notice", "Your destination links tier ended" + (notice.endsAt ? " on " + planDay(notice.endsAt) : "") + ". Destination links are paused until it is renewed; the opening can still be added without them. To renew, write to sales@fightghostjobs.com.")); }
   else if (notice.state === "active" && notice.endsSoon) { box.hidden = false; box.append(alertBox("notice", "Your destination links tier ends on " + planDay(notice.endsAt) + ". After that, destination links are paused (kept, but candidates do not see them) until it is renewed.")); }
-  if (notice.state === "active") state.links = mountLinkRowsById();
+  if (notice.state === "active") state.links = mountLinkRowsById({ checkAddress: addressProblem });
 }
 const planDay = (iso) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
@@ -196,10 +239,15 @@ function showResult(p, kind, problem, goLiveAt) {
   if (typeof state.linksSaved === "number") rows.push(["Destination links", String(state.linksSaved)]);
   result.append(h("dl", { style: "margin:18px 0 0 0;display:grid;grid-template-columns:auto 1fr;gap:8px 18px;font-size:14px;" },
     rows.flatMap(([k, v]) => [h("dt", { style: "color:var(--faint);font-weight:600;" }, k), h("dd", { style: "margin:0;" }, v)])));
-  const lo = linksOutcome(state.linksSaved, state.linksProblem, checkWarnings(state.linksAnswer));
+  const lo = linksOutcome(state.linksSaved, state.linksProblem, null);
   if (lo) result.append(h("div", { style: "margin-top:12px;" }, alertBox(lo.kind, lo.text)));
   const fo = firmsOutcome(state.firmsSaved, state.firmsProblem);
   if (fo) result.append(h("div", { style: "margin-top:12px;" }, alertBox(fo.kind, fo.text)));
+  const po = policyOutcome(state.policySaved, state.policyProblem);
+  if (po) result.append(h("div", { style: "margin-top:12px;", id: "policyOutcome" }, alertBox(po.kind, po.text)));
+  // what the address check found, for every address that did not answer, in ONE sentence (they are saved anyway)
+  const cr = checkReport({ links: state.linksAnswer, firms: state.firmsAnswer, policy: state.policySaved ? state.policySaved.links : null });
+  if (cr) result.append(h("div", { style: "margin-top:12px;", id: "checkReport" }, alertBox(cr.kind, cr.text)));
   if (state.placeProblem) result.append(h("div", { style: "margin-top:12px;", id: "placeProblem" }, alertBox("error", state.placeProblem)));
   result.append(h("div", { style: "margin-top:20px;" },
     h("div", { style: "font-size:13px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;" }, "Your Opening ID"),
@@ -215,9 +263,12 @@ function showResult(p, kind, problem, goLiveAt) {
   result.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
-function registerAnother() {
+function registerAnother() { resetForm(); unlockForm(); $("#jtitle").focus(); refreshUnsaved(); }
+function resetForm() {
   state.saved = null; result.hidden = true; clear(result);
-  for (const id of ["#jtitle", "#req", "#appcap", "#closeout", "#desc", "#aiFilterNote", "#aiInterviewNote"]) $(id).value = "";
+  for (const id of ["#jtitle", "#req", "#appcap", "#closeout", "#desc", "#aiFilterNote", "#aiInterviewNote", "#policyUrl", "#gldate"]) $(id).value = "";
+  showPolicyField("");
+  $("#glNow").checked = true; $("#glLater").checked = false; syncGoLive();
   $("#aiFilterNoteRow").hidden = true; $("#aiInterviewNoteRow").hidden = true;
   picker.reset(); place.reset();
   $("#livedays").value = "45";
@@ -225,14 +276,45 @@ function registerAnother() {
   for (const [id, key] of [["#aiFilterToggle", "aiFilter"], ["#aiInterviewToggle", "aiInterview"], ["#recruiterToggle", "recruiter"]]) { state[key] = false; $(id).classList.remove("on"); $(id).setAttribute("aria-checked", "false"); }
   $("#recruiterPanel").hidden = true;
   state.linksSaved = null; state.linksAnswer = null; state.linksProblem = null; if (state.links) { state.links.reset(); say($("#linksAlert"), "error", ""); }
-  state.firmsSaved = null; state.firmsProblem = null; if (state.firms) { state.firms.reset(); say($("#firmsAlert"), "error", ""); }
+  state.firmsSaved = null; state.firmsProblem = null; state.firmsAnswer = null; if (state.firms) { state.firms.reset(); say($("#firmsAlert"), "error", ""); }
+  state.policySaved = null; state.policyProblem = null;
   state.placeProblem = null;
   dropReusedPrompt(); say(formAlert, "error", "");
-  unlockForm(); $("#jtitle").focus();
+  state.baseline = registerSnapshot(collect(), rowsNow());
 }
 
 form.addEventListener("submit", (ev) => { ev.preventDefault(); submit("register"); });
 draftBtn.addEventListener("click", () => submit("draft"));
+
+// ---- unsaved work (js/dirty-state.js decides and words it; js/unsaved-guard.js shows the bar, asks before the page is left and holds the dialog). Nothing is on the server until Add opening or Save draft,
+// so everything typed counts; once the opening exists the form is locked and nothing is unsaved.
+const SECTIONS = () => { const r = rowsNow(), out = []; if (rowsTyped(r.links)) out.push("destination links"); if (rowsTyped(r.firms)) out.push("recruiter firms"); if (r.policy.trim() !== "") out.push("AI and hiring policy link"); return out; };
+function unsavedModel() {
+  if (state.baseline === null || state.saved) return { dirty: false, sections: [] };
+  return { dirty: registerSnapshot(collect(), rowsNow()) !== state.baseline, sections: SECTIONS() };
+}
+function refreshUnsaved() { if (state.guard) state.guard.refresh(); }
+const toNext = (url) => go(url);
+state.guard = mountUnsavedGuard({
+  win: window, root: document.documentElement,
+  bar: $("#unsavedBar"), head: $("#unsavedHead"), detail: $("#unsavedDetail"), live: $("#unsavedLive"), saveBtn: $("#unsavedSave"), discardBtn: $("#unsavedDiscard"), skip: $("#skipToUnsaved"),
+  dlg: { overlay: $("#leaveOverlay"), title: $("#leaveTitle"), text: $("#leaveText"), save: $("#leaveSave"), discard: $("#leaveDiscard"), stay: $("#leaveStay") },
+  getModel: unsavedModel, summarize: summarizeRegister,
+  save: async () => { await submit("draft"); return state.saved !== null; },        // the bar and the dialog keep it as a draft (nothing goes live from a leave prompt)
+  discard: () => { state.guard.hush(true); try { resetForm(); unlockForm(); showErrors({}); } finally { state.guard.hush(false); } state.guard.refresh(); state.guard.announce(REGISTER_UNSAVED.DISCARDED); },
+  go: toNext,
+  activeElement: () => document.activeElement, confirmDiscard: () => window.confirm(REGISTER_UNSAVED.CONFIRM_DISCARD), rescueFocus: () => $("#jtitle").focus(),
+});
+for (const ev of ["input", "change", "click", "keyup"]) document.addEventListener(ev, () => refreshUnsaved());
+// a click on a link of this page that leaves it, or on Sign out, is held back while something is unsaved
+document.addEventListener("click", (ev) => {
+  const el = ev.target && ev.target.closest ? ev.target : null;
+  if (!el) return;
+  const a = el.closest("a[href]");
+  if (a) { state.guard.interceptClick(ev, { kind: "link", href: a.getAttribute("href"), target: a.getAttribute("target"), download: a.hasAttribute("download"), el: a }); return; }
+  const out = el.closest("#navAccount button:not(.avatar-btn)");
+  if (out) state.guard.interceptClick(ev, { kind: "button", el: out });
+}, true);
 
 (async () => {
   const ctx = await requirePoster("register.html");
@@ -242,4 +324,6 @@ draftBtn.addEventListener("click", () => submit("draft"));
   $("#orgName").textContent = ctx.info.organization.name;
   $("#companyShown").textContent = ctx.info.organization.name;   // read only: the server takes the company name from the organization and ignores any in the request
   setupLinks(ctx.info.plan);
+  state.baseline = registerSnapshot(collect(), rowsNow());     // the blank form the page starts as: what is "unsaved" is measured from here
+  refreshUnsaved();
 })();

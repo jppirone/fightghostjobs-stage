@@ -301,7 +301,7 @@ export function checkSite(root, opts = {}) {
     if (!/\.info-icon\{position:relative;/.test(c)) add("S25", css, ".info-icon must be position:relative (the tooltip is positioned against it)");
     if (!/\.info-icon:hover \.info-tooltip,\.info-icon:focus \.info-tooltip,\.info-icon\.open \.info-tooltip\{display:block\}/.test(c)) add("S25", css, "the tooltip must show on hover, focus and the open (tap) state");
     for (const rel of ["js/pages/register.js", "js/pages/edit.js", "js/pages/index.js"]) { const p = path.join(root, rel); if (!fs.existsSync(p) || !read(p).includes("wireInfoIcons()")) add("S25", p, rel + " must call wireInfoIcons()"); }
-    for (const rel of ["js/pages/register.js", "js/pages/edit.js"]) { const p = path.join(root, rel); if (!fs.existsSync(p) || !read(p).includes("mountLinkRowsById()")) add("S25", p, rel + " must mount the shared link rows"); }
+    for (const rel of ["js/pages/register.js", "js/pages/edit.js"]) { const p = path.join(root, rel); if (!fs.existsSync(p) || !read(p).includes("mountLinkRowsById(")) add("S25", p, rel + " must mount the shared link rows"); }
     const rj = path.join(root, "js", "pages", "register.js"); if (fs.existsSync(rj) && !read(rj).includes("api.setDestinationLinks(")) add("S25", rj, "register.js must save the links through api.setDestinationLinks");
   }
   // S26 (pass B): the candidate's details dialog explains the odd-looking links (one-time, tracked, protected; the name says where a link starts or that it is unverified) and says what to do when one is
@@ -322,7 +322,7 @@ export function checkSite(root, opts = {}) {
       if (/coming soon/i.test(t)) add("S27", p, "the recruiter-firm placeholder must be gone (the editor exists)");
       if (!t.includes('Candidates see the name as "Recruiter firm:')) add("S27", p, name + " must say how a firm is shown to candidates");
     }
-    for (const rel of ["js/pages/register.js", "js/pages/edit.js"]) { const p = path.join(root, rel); if (!fs.existsSync(p)) continue; const c = read(p); const isEdit = rel.endsWith("edit.js"); if (!c.includes(isEdit ? 'mountLinkRows({ host: $("#firmRows"), addBtn: null, mode: "firmAdd" })' : "mountFirmRowsById()")) add("S27", p, rel + (isEdit ? " must mount the one-row add form for the firms" : " must mount the shared firm rows")); if (!c.includes("api.setRecruiterFirms(")) add("S27", p, rel + " must save the firms through api.setRecruiterFirms"); }
+    for (const rel of ["js/pages/register.js", "js/pages/edit.js"]) { const p = path.join(root, rel); if (!fs.existsSync(p)) continue; const c = read(p); const isEdit = rel.endsWith("edit.js"); if (!c.includes(isEdit ? 'mountLinkRows({ host: $("#firmRows"), addBtn: null, mode: "firmAdd" })' : "mountFirmRowsById(")) add("S27", p, rel + (isEdit ? " must mount the one-row add form for the firms" : " must mount the shared firm rows")); if (!c.includes("api.setRecruiterFirms(")) add("S27", p, rel + " must save the firms through api.setRecruiterFirms"); }
     const sj = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj) && !read(sj).includes('"Recruiter firm: " + link.firm')) add("S27", sj, "search.js must render a named firm as Recruiter firm: <name>");
   }
   // S28 (pass D): the employer's AI notes. Both pages carry a 300-character box under each AI toggle that says it is shown to candidates and refuses web addresses; the pages check the note with the
@@ -397,7 +397,7 @@ export function checkSite(root, opts = {}) {
     for (const f of html) {
       const s = read(f), name = path.basename(f), body = s.slice(s.indexOf("<body"));
       const count = (sub) => body.split(sub).length - 1;
-      if (!body.startsWith('<body>\n' + (name === "edit.html" ? '<a id="skipToUnsaved" class="skip-link" href="#unsavedSave" hidden>Skip to unsaved changes</a>\n' : '') + '<a class="skip-link" href="#main">Skip to content</a>\n')) add("S31", f, "the skip link must be the first thing in the body");
+      if (!body.startsWith('<body>\n' + (name === "edit.html" || name === "register.html" ? '<a id="skipToUnsaved" class="skip-link" href="#unsavedSave" hidden>Skip to unsaved changes</a>\n' : '') + '<a class="skip-link" href="#main">Skip to content</a>\n')) add("S31", f, "the skip link must be the first thing in the body");
       if (count("<header ") !== 1 || count("</header>") !== 1) add("S31", f, "the page needs exactly one <header>");
       if (count('<main id="main">') !== 1 || count("</main>") !== 1) add("S31", f, "the page needs exactly one <main id=\"main\">");
       if (count("<footer ") !== 1 || count("</footer>") !== 1) add("S31", f, "the page needs exactly one <footer>");
@@ -1387,7 +1387,7 @@ export function checkSite(root, opts = {}) {
     if (!fs.existsSync(pl)) add("S68", pl, "js/place.js must exist");
     else {
       const s = stripJsComments(read(pl));
-      if (!s.includes('export const PLACE_NOTE = "as written by the employer";')) add("S68", pl, "the note must be exactly: as written by the employer");
+      if (!s.includes('export const PLACE_NOTE = "as provided by the employer";')) add("S68", pl, "the note must be exactly: as provided by the employer");
       if (!s.includes("export const MAX_PLACE_CHARS = 200;") || !s.includes(".slice(0, MAX_PLACE_CHARS)")) add("S68", pl, "the place text is cut at 200 characters (MAX_PLACE_CHARS = 200 and .slice(0, MAX_PLACE_CHARS))");
       if (!/replace\(\/\[\\u0000-\\u001f\\u007f-\\u009f\]\/g, ""\)/.test(s)) add("S68", pl, "control characters must be removed from the place text");
       if (!s.includes('locs.length === 0 ? sourcePlaceText(row) : ""')) add("S68", pl, "the source text is used ONLY when the opening has no catalog place");
@@ -1397,7 +1397,7 @@ export function checkSite(root, opts = {}) {
     if (fs.existsSync(sj)) {
       const s = stripJsComments(read(sj));
       if (/locationLine\(/.test(s)) add("S68", sj, "the search page shows a place only through placeNodes (js/place.js), never locationLine directly");
-      if (s.split("placeNodes(row)").length - 1 < 3) add("S68", sj, "the result card, the staff card and the details window must all show the place through placeNodes(row)");
+      if (s.split("placeNodesOf(row)").length - 1 < 3 || !s.includes("const placeNodesOf = (row) => placeNodes(h, row);")) add("S68", sj, "the result card, the staff card and the details window must all show the place through placeNodesOf(row), which is js/place.js placeNodes");
       if (/innerHTML|insertAdjacentHTML/.test(s)) add("S68", sj, "the search page makes no markup from data");
     }
     for (const f of html.concat(js)) {
@@ -1492,7 +1492,7 @@ export function checkSite(root, opts = {}) {
     // who may write it: only the editor calls the save; no other script names the policy link's save or its kind in a request
     for (const f of js) {
       const r = rel(f), t = stripJsComments(read(f));
-      if (/setPolicyLink/.test(t) && r !== "js/api.js" && r !== "js/pages/edit.js" && r !== "js/policy-panel.js") add("S70", f, "only the editor (js/pages/edit.js, and its policy row js/policy-panel.js) may save the AI and hiring policy link");
+      if (/setPolicyLink/.test(t) && r !== "js/api.js" && r !== "js/pages/edit.js" && r !== "js/policy-panel.js" && r !== "js/pages/register.js") add("S70", f, "only the editor (js/pages/edit.js, and its policy row js/policy-panel.js) and the register page (right after the opening is added, prompt BJ) may save the AI and hiring policy link");
       if (/kind:\s*"policy"/.test(t) && !["js/api.js", "js/pages/search.js"].includes(r)) add("S70", f, "only js/api.js (the save) and js/pages/search.js (the candidate's line) name the policy kind in a request or a row");
     }
     if (fs.existsSync(editF) && !stripJsComments(read(editF)).includes('$("#policyUrl").addEventListener("keydown"')) add("S70", editF, "Enter in the policy box must save the policy link, never the whole opening");
@@ -1571,13 +1571,98 @@ export function checkSite(root, opts = {}) {
     }
     if (fs.existsSync(dbF)) {
       const s = body(dbF);
-      if (!s.includes("placeParts(p).text")) add("S76", dbF, "My openings shows the place through js/place.js (the typed place when there is no list place)");
+      if (!s.includes("placeNodes(h, p)")) add("S76", dbF, "My openings shows the place through js/place.js (the typed place when there is no list place)");
       if (/locationLine\(/.test(s)) add("S76", dbF, "My openings never calls locationLine directly");
     }
-    if (fs.existsSync(dsF) && !body(dsF).includes('place: v.outside === true ? trim(v.locText) : null,')) add("S76", dsF, "the typed place is part of the unsaved snapshot");
+    if (fs.existsSync(dsF)) {
+      // the edit page's own snapshot (snapshotOf); the register page's snapshot (registerSnapshot, prompt BJ) repeats the line, so the pin is read from snapshotOf alone
+      const ds = body(dsF), i0 = ds.indexOf("export function snapshotOf("), i1 = ds.indexOf("\nexport ", i0 + 1);
+      if (i0 < 0 || !ds.slice(i0, i1 < 0 ? ds.length : i1).includes('place: v.outside === true ? trim(v.locText) : null,')) add("S76", dsF, "the typed place is part of the unsaved snapshot");
+    }
     if (fs.existsSync(runF)) {
       const r = read(runF);
       for (const n of ["place-text.unit.test.js", "place-text.test.js"]) if (!r.includes('"' + n + '"')) add("S76", runF, n + " is not in the suite");
+    }
+  }
+  // S77 (2026-10-11, prompt BJ): the register page ("Add an opening") and one place line. Pinned: the AI and hiring policy link row is on the page (its words, hidden until the plan is known) and is saved by the page
+  // right AFTER the opening exists, through the one api call, never with the create; every address is judged as typed with the edit page's rule (addressProblem) and all problems of all sections are said in ONE list before
+  // anything is created; Add opening and Save draft are the last two controls of the form, after every section, with no Cancel; the unsaved bar, Discard and the leave question are the edit page's own component
+  // (js/unsaved-guard.js) with the register page's own summary; the typed place box says its limit and counts on both forms; every screen draws the place through js/place.js placeNodes (no page calls locationLine) and
+  // the history of an opening goes through plainChangeNote (no stored note with a function or a column name is drawn). The two new tests run in the suite.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const body = (f) => (fs.existsSync(f) ? stripJsComments(read(f)) : "");
+    const regH = P("register.html"), editH = P("edit.html"), rgF = P("js", "pages", "register.js"), rfF = P("js", "register-form.js"), lrF = P("js", "link-rows.js"), ugF = P("js", "unsaved-guard.js"), dsF = P("js", "dirty-state.js");
+    const pcF = P("js", "place-choice.js"), ptF = P("js", "place-text.js"), efF = P("js", "edit-form.js"), edF = P("js", "pages", "edit.js"), runF = P("tests", "run-all.js");
+    if (fs.existsSync(regH)) {
+      const h = read(regH);
+      for (const id of ["policyRow", "policyLabel", "policyHint", "policyLocked", "policyNote", "policyForm", "policyUrl", "policyError", "unsavedBar", "unsavedHead", "unsavedDetail", "unsavedSave", "unsavedDiscard", "unsavedLive", "leaveOverlay", "leaveSave", "leaveDiscard", "leaveStay", "loctextCount", "loctextLimit"]) {
+        if (h.split('id="' + id + '"').length !== 2) add("S77", regH, "register.html must carry #" + id + " exactly once");
+      }
+      if (!h.includes(">Link to your AI and hiring policy (optional)</label>")) add("S77", regH, "the policy box needs its visible label: Link to your AI and hiring policy (optional)");
+      if (!/id="policyHint"[^>]*>[^<]*It is saved right after the opening is added\./.test(h)) add("S77", regH, "the policy hint must say that it is saved right after the opening is added");
+      const iRow = h.indexOf('id="policyRow"'), iRec = h.indexOf('id="recruiterToggle"'), iLinks = h.indexOf('id="linksSection"'), iBtn = h.indexOf('id="registerBtn"'), iDraft = h.indexOf('id="draftBtn"'), iEnd = h.indexOf("</form>");
+      if (!(iRow >= 0 && iRow < iRec)) add("S77", regH, "the policy box sits above the recruiter switch");
+      if (!(iBtn > iLinks && iBtn > iRow && iBtn > iRec && iDraft > iBtn && iEnd > iDraft)) add("S77", regH, "Add opening and Save draft must be the last controls of the form, after every section");
+      const tail = iEnd > iDraft ? h.slice(iDraft, iEnd) : "";
+      if (/<button|<a |<input|<select|<textarea/.test(tail.replace(/<button type="button" id="draftBtn"[^>]*>Save draft<\/button>/, ""))) add("S77", regH, "nothing may follow Save draft inside the form");
+      const form = iEnd > 0 ? h.slice(h.indexOf('<form id="form"'), iEnd) : "";
+      if (/>\s*Cancel\s*</i.test(form)) add("S77", regH, "the register form has no Cancel button");
+      if (!h.includes('>Add opening</button>') || !h.includes('>Save draft</button>')) add("S77", regH, "the buttons keep their words: Add opening and Save draft");
+      if (!/<input id="loctext" type="text" maxlength="100" /.test(h)) add("S77", regH, "the typed place box holds at most 100 characters");
+    }
+    if (fs.existsSync(editH)) { const h = read(editH); for (const id of ["loctextCount", "loctextLimit", "placeLine"]) if (h.split('id="' + id + '"').length !== 2) add("S77", editH, "edit.html must carry #" + id + " exactly once"); }
+    for (const f of [regH, editH]) if (fs.existsSync(f) && !read(f).includes('<div id="loctextHint" class="field-hint">Up to 100 characters. ')) add("S77", f, "the hint under the typed place box starts with its limit: Up to 100 characters.");
+    if (fs.existsSync(rgF)) {
+      const s = body(rgF);
+      if (!s.includes("mountLinkRowsById({ checkAddress: addressProblem })") || !s.includes("mountFirmRowsById({ checkAddress: addressProblem })")) add("S77", rgF, "the register page's rows judge each address as typed (checkAddress: addressProblem, the edit page's rule)");
+      if (!s.includes("const lp = linkProblems({ links: lc, firms: fc, policy: pc, firmsIgnored });")) add("S77", rgF, "every section is judged together before anything is created (linkProblems)");
+      const iCreate = s.indexOf("api.createPosting("), iPolicy = s.indexOf("savePolicy(pc)"), iLinks = s.indexOf("saveLinks(lc)"), iFirms = s.indexOf("saveFirms(fc)");
+      if (!(iCreate > 0 && iLinks > iCreate && iFirms > iLinks && iPolicy > iFirms)) add("S77", rgF, "the policy link is saved after the opening exists, after the links and the firms");
+      if (!s.includes("api.setPolicyLink(state.saved.id, pc.url)")) add("S77", rgF, "the policy link is saved with api.setPolicyLink on the created opening");
+      if (!s.includes("summarize: summarizeRegister") || !s.includes("mountUnsavedGuard({")) add("S77", rgF, "the register page uses the shared unsaved component with its own summary");
+      if (!s.includes("const firmsIgnored = !!state.firms && !state.recruiter && rowsTyped(state.firms.values());")) add("S77", rgF, "a firm typed while the recruiter switch is off is told to the person, never dropped silently");
+      if (/api\.createPosting\([^)]*policy/i.test(s)) add("S77", rgF, "the policy link is never part of the create call");
+    }
+    if (fs.existsSync(rfF)) {
+      const s = body(rfF);
+      if (!s.includes("export function linkProblems(")) add("S77", rfF, "linkProblems (all sections in one list) must exist");
+      if (!s.includes('items.push("the AI and hiring policy link (" + ')) add("S77", rfF, "the one list names the policy link");
+    }
+    if (fs.existsSync(lrF)) {
+      const s = body(lrF);
+      if (!s.includes('row.addr.addEventListener("blur", () => judge(row));')) add("S77", lrF, "an address box is judged when the person leaves it");
+      if (!s.includes("if (bad) { bad.addr.focus(); return; }")) add("S77", lrF, "a row is not added while an address above is malformed");
+    }
+    if (fs.existsSync(ugF) && !body(ugF).includes('typeof ctx.summarize === "function" ? ctx.summarize : summarize')) add("S77", ugF, "the shared unsaved component takes the page's own summary");
+    if (fs.existsSync(dsF)) {
+      const s = body(dsF);
+      if (!s.includes("export function registerSnapshot(") || !s.includes("export function summarizeRegister(")) add("S77", dsF, "the register page's unsaved snapshot and summary must exist");
+      if (!s.includes('HEAD: "This opening is not added yet"')) add("S77", dsF, "the bar's headline is: This opening is not added yet");
+    }
+    if (fs.existsSync(pcF)) {
+      const s = body(pcF);
+      if (!s.includes("PLACE_WORDS.COUNT(input.value.length)")) add("S77", pcF, "the typed place box counts its characters");
+      if (!s.includes("if (incoming.length > room) say(incoming.length > 1 ? PLACE_WORDS.CUT : PLACE_WORDS.FULL);")) add("S77", pcF, "typing or pasting past the limit says so");
+    }
+    if (fs.existsSync(ptF)) {
+      const s = body(ptF);
+      if (!s.includes('HINT: "Up to " + MAX_PLACE_TEXT + " characters. ')) add("S77", ptF, "the hint under the typed place box starts with its limit");
+      if (!s.includes("MAX_PLACE_TEXT = 100;")) add("S77", ptF, "the limit of the typed place is 100 characters");
+    }
+    // one place line: no page draws a place without js/place.js, and no page draws a stored history note raw
+    for (const rel of ["comments.js", "search.js", "dashboard.js", "edit.js"]) {
+      const f = P("js", "pages", rel);
+      if (!fs.existsSync(f)) continue;
+      const s = body(f);
+      if (/locationLine\(/.test(s)) add("S77", f, "a screen draws the place only through js/place.js placeNodes, never locationLine directly");
+      if (!/placeNodes\(h, (p|row)\)|placeNodes\(h, row\)/.test(s)) add("S77", f, "this screen must draw the place through placeNodes (one place line everywhere)");
+    }
+    if (fs.existsSync(edF) && !body(edF).includes("plainChangeNote(c.note)")) add("S77", edF, "the history of an opening goes through plainChangeNote (no function or column name is drawn)");
+    if (fs.existsSync(efF) && !body(efF).includes("export function plainChangeNote(")) add("S77", efF, "plainChangeNote must exist");
+    if (fs.existsSync(runF)) {
+      const r = read(runF);
+      for (const n of ["register-bj.unit.test.js", "register-bj.test.js"]) if (!r.includes('"' + n + '"')) add("S77", runF, n + " is not in the suite");
     }
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed

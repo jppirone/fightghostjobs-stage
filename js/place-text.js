@@ -14,7 +14,10 @@ export const MAX_PLACE_TEXT = 100;
 export const PLACE_WORDS = {
   CHOICE: "A place outside the US or not in the list",
   PLACEHOLDER: "For example: Lisbon, Portugal",
-  HINT: "Shown to candidates as you wrote it. It is not used to search, sort or filter, and it cannot hold a link or an email address.",
+  HINT: "Up to " + MAX_PLACE_TEXT + " characters. Shown to candidates as you wrote it. It is not used to search, sort or filter, and it cannot hold a link or an email address.",
+  COUNT: (n) => n + " of " + MAX_PLACE_TEXT,                                                 // prompt BJ: the small live count under the box
+  FULL: "That is all it can hold: " + MAX_PLACE_TEXT + " characters.",                      // typing hit the limit
+  CUT: "What you pasted was longer than " + MAX_PLACE_TEXT + " characters, so it was cut at " + MAX_PLACE_TEXT + ".",   // a paste hit the limit
   EMPTY: "Enter the place.",
   LONG: "Keep it to " + MAX_PLACE_TEXT + " characters or fewer.",
   CHARS: "Keep it to plain text on one line.",

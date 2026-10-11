@@ -1,7 +1,7 @@
 // place.test.js - the display-only place text in a real browser (October 9, 2026, prompt AZ3). The repo's own files and a fake backend (tests/fake-site.js; no real project, no key, no network).
 //
 // THE RULE: an opening with NO catalog place may carry source_location_text, the place as the employer's job board gave it. The page shows it ONLY while the opening has no catalog place, always followed by the small note
-// "as written by the employer", in the results card, in the details window and in the staff view, as plain text (a "<script>" in it is shown as characters), at most 200 characters, and never sends it anywhere or uses it to search.
+// "as provided by the employer", in the results card, in the details window and in the staff view, as plain text (a "<script>" in it is shown as characters), at most 200 characters, and never sends it anywhere or uses it to search.
 // Then negative controls: one defect at a time in the page code (the text shown with a catalog place, no length limit, no escaping); each must make a scenario fail.
 // A missing browser FAILS the test (set FGJ_BROWSER). Run: node --test tests/place.test.js
 import { test, before, after } from "node:test";
@@ -20,7 +20,7 @@ before(async () => { browser = await launchBrowser(); });
 after(async () => { if (browser) await browser.close(); });
 
 const STAFF = "staff@example.test", PLAIN = "cand@example.test";
-const NOTE = "as written by the employer";
+const NOTE = "as provided by the employer";
 async function openSearch(tab, site, email, query) {
   await tab.goto(site.url + "/404.html"); await tab.eval("try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}");
   await tab.goto(site.url + "/_dev/link?kind=candidate&email=" + encodeURIComponent(email));
@@ -47,15 +47,15 @@ const SCENARIOS = {
     if (!o.cards[0].meta.startsWith("São Paulo, Brazil") || !o.cards[0].note || !o.cards[0].meta.includes(NOTE)) bad.push("the card without a catalog place does not show the board's place with the note: " + o.cards[0].meta);
     if (!o.cards[1].meta.startsWith("Boston, MA") || o.cards[1].note || /Tokyo|as given by/.test(o.cards[1].meta)) bad.push("the card with a catalog place shows the board's text or the note: " + o.cards[1].meta);
     return bad; })); },
-  // the details window: the place and the note for the first, nothing for the second
+  // the details window: the place and the note for the first, the catalog place alone (no note) for the second (prompt BJ: the same place line as the card)
   async details(root) { return withSite(root, { placeOverrides: [{ locations: [], is_remote: false, source_location_text: "Tokyo, Japan" }, { locations: ["Boston, MA"], is_remote: false, source_location_text: "Berlin, Germany" }] }, (site) => withTab(async (tab) => { const bad = [];
     await openSearch(tab, site, PLAIN, ""); await runSearch(tab);
     for (const [i, want] of [[0, true], [1, false]]) {
       await tab.eval("document.querySelectorAll('#results .view-details')[" + i + "].click()");
       await tab.waitFor("document.querySelector('#modalBackdrop').classList.contains('open')", 8000); await sleep(500);
       const m = await tab.eval("(() => { const p = document.querySelector('#modalPlace'); return { hidden: p.hidden, text: p.innerText.replace(/\\s+/g, ' ').trim() }; })()");
-      if (want && (m.hidden || !m.text.startsWith("Tokyo, Japan") || !m.text.includes("as written by the employer"))) bad.push("the details window of the opening without a catalog place does not show the place and the note: " + JSON.stringify(m));
-      if (!want && (!m.hidden || m.text !== "")) bad.push("the details window of the opening with a catalog place shows a board text: " + JSON.stringify(m));
+      if (want && (m.hidden || !m.text.startsWith("Tokyo, Japan") || !m.text.includes("as provided by the employer"))) bad.push("the details window of the opening without a catalog place does not show the place and the note: " + JSON.stringify(m));
+      if (!want && (m.hidden || m.text !== "Boston, MA")) bad.push("the details window of the opening with a catalog place shows the catalog place and no note (one place line on every screen, prompt BJ): " + JSON.stringify(m));
       await tab.eval("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))"); await sleep(300);
     }
     return bad; })); },

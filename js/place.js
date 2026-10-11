@@ -8,7 +8,7 @@
 //   * shown with textContent only (the caller builds text nodes; nothing here makes markup), at most 200 characters, control characters removed.
 import { locationLine } from "./format.js?v=696f63b8";
 
-export const PLACE_NOTE = "as written by the employer";   // prompt BH (October 11, 2026): the text is the employer's own words, typed on the form or staged from its public job board; it was "as given by the employer's job board" (AZ3) before employers could type one
+export const PLACE_NOTE = "as provided by the employer";   // prompt BJ (October 11, 2026): the one note on every screen, for a place typed on the form and for one that came from an automated feed
 export const MAX_PLACE_CHARS = 200;
 
 // the text of a row's source place, cleaned, or "" when there is none (not a string, empty after cleaning)
@@ -27,4 +27,14 @@ export function placeParts(row) {
   // a remote opening whose board text is not itself "Remote" says Remote first, then the place
   const remote = row.is_remote === true && src.toLowerCase() !== "remote";
   return { text: (remote ? "Remote · " : "") + src, note: PLACE_NOTE };
+}
+
+// ONE PLACE LINE EVERYWHERE (prompt BJ, October 11, 2026): the candidate results card, the details window, the opening's comments page, the staff view, My openings (and any other screen that names the place)
+// draw the place through THIS function: the typed place when the row has one (with Remote first when the opening is remote), otherwise the list places in order with Remote, otherwise "Location not stated";
+// the small note follows only a typed place. h is the page's element builder (js/dom.js). -> an array of nodes (text and one span)
+export function placeNodes(h, row) {
+  const p = placeParts(row);
+  const out = [p.text];
+  if (p.note) out.push(" ", h("span", { class: "place-note", style: "font-size:12px;color:var(--faint);" }, p.note));
+  return out;
 }

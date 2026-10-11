@@ -1,7 +1,7 @@
 // comments-model.js - the comments page's pure logic (design brief 7.4, 13, 16): what the page checks before sending, what the server's refusals mean in words, relative times, the link choices
 // of a wrong-link report. The backend (candidate-post-comment and the database rule public.comment_problem) is the authority; these checks spare a round trip and a rate-limit token.
 
-import { describeError } from "./api.js?v=ea7866e7";
+import { describeError } from "./api.js?v=2b6638b4";
 import { waitText } from "./format.js?v=696f63b8";
 
 export const MIN_COMMENT = 10, MAX_COMMENT = 2000, MAX_REASON = 300, MAX_LINK_REPORT = 500, PAGE_SIZE = 25;

@@ -2,26 +2,27 @@
 // The server judges the rest (how much of the requirements text is kept, the location rule, duplicate req numbers) and this page shows its answer in words. Nothing here trusts the page for identity: the session token tells the server who is acting.
 // Unsaved work is never lost silently: a bar at the bottom of the window says what is not saved, the browser asks before the page is left, and the page's own links ask with a dialog (js/unsaved-guard.js; what counts as unsaved is js/dirty-state.js).
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=2edd398d";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=4c8c3f5c";
 import { rememberNext } from "../session.js?v=124260d8";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { fmtClose, fmtStamp, waitText, groupCode } from "../format.js?v=696f63b8";
 import { statusChip } from "../dashboard-model.js?v=7d5b30a5";
-import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js?v=80d9d54e";
+import { checkEdit, mapEditErrors, KIND_TEXT, plainChangeNote, checkLinks, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js?v=b5757c87";
 import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
-import { mountPlaceChoice } from "../place-choice.js?v=2089f0a5";
-import { storedPlaceText } from "../place-text.js?v=ff0ec9af";
+import { mountPlaceChoice } from "../place-choice.js?v=f65a1b27";
+import { storedPlaceText } from "../place-text.js?v=cb5d7506";
+import { placeNodes } from "../place.js?v=3ce4ad57";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js?v=b2985372";
 import { loadCatalog } from "../location-catalog.js?v=bb0c937e";
-import { mountLinkRowsById, mountLinkRows } from "../link-rows.js?v=42a146ec";
-import { mountLinkPanel } from "../link-panel.js?v=a5513579";
-import { mountFirmPanel } from "../firm-panel.js?v=8d981243";
-import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=d251344f";
-import { mountPolicyPanel } from "../policy-panel.js?v=ec1e1504";
-import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js?v=6491c7c9";
+import { mountLinkRowsById, mountLinkRows } from "../link-rows.js?v=a79f852e";
+import { mountLinkPanel } from "../link-panel.js?v=1c4bd3ea";
+import { mountFirmPanel } from "../firm-panel.js?v=1571c7d7";
+import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=f19a4799";
+import { mountPolicyPanel } from "../policy-panel.js?v=22622330";
+import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js?v=f2ea9573";
 import { wireInfoIcons } from "../info-icon.js?v=66958a58";
-import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL } from "../dirty-state.js?v=a7143233";
-import { mountUnsavedGuard } from "../unsaved-guard.js?v=2ce5c612";
+import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL } from "../dirty-state.js?v=9f2a6974";
+import { mountUnsavedGuard } from "../unsaved-guard.js?v=a7af949e";
 
 wireInfoIcons();
 
@@ -83,7 +84,7 @@ function noteLabel(isDraft) {
 function renderChanges(list) {
   const card = $("#changesCard"), ul = $("#changesList"); clear(ul);
   card.hidden = list.length === 0;
-  for (const c of list) ul.append(h("li", {}, h("div", { style: "font-weight:600;" }, KIND_TEXT[c.kind] || "Edit", h("span", { style: "font-weight:400;color:var(--muted);" }, " · " + fmtStamp(c.at))), h("div", { style: "color:#4A453F;margin-top:2px;overflow-wrap:anywhere;" }, c.note)));
+  for (const c of list) ul.append(h("li", {}, h("div", { style: "font-weight:600;" }, KIND_TEXT[c.kind] || "Edit", h("span", { style: "font-weight:400;color:var(--muted);" }, " · " + fmtStamp(c.at))), h("div", { style: "color:#4A453F;margin-top:2px;overflow-wrap:anywhere;" }, plainChangeNote(c.note))));
 }
 
 // ---- the go-live time: a draft (scheduled or not) can carry one; the 15-minute scheduler publishes it, and the window starts then
@@ -341,6 +342,8 @@ async function populate(doc, opts) {
   const chip = statusChip(p, Date.now());
   const line = $("#statusLine"); line.hidden = false; clear(line);
   line.append(h("span", { class: "status " + chip.cls }, chip.text), " ", p.stored_status === "draft" ? (p.go_live_at ? "Scheduled: not visible to candidates until it goes live." : "Not visible to candidates yet.") : (p.status === "live" || p.status === "paused") && p.expiration_date ? "Closes " + fmtClose(p.expiration_date) + "." : "");
+  // the place line: the same one every other screen draws (js/place.js), from what is STORED (the form's own place boxes show what is being edited)
+  const pl = $("#placeLine"); pl.hidden = false; clear(pl); pl.append("Place: ", ...placeNodes(h, p));
   noteLabel(p.stored_status === "draft");
   renderChanges(doc.recent_changes);
   if (!keepForm) { picker.set(await entriesFor(p), p.locations_attested); place.set((p.location_ids || []).length === 0 ? storedPlaceText(p) : ""); state.baseline = snapshotOf(collect()); }     // the snapshot every later edit is compared with

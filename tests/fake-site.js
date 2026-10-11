@@ -14,6 +14,10 @@ export const fakeJwt = (claims) => b64({ alg: "HS256", typ: "JWT" }) + "." + b64
 export const NOLINKS_REF = "m".repeat(20), CLOSED_REF = "c".repeat(20);   // a posting reference with no employer links, and one that is closed (detail answers 409 posting_not_open)
 export const LONG_NAME = "Bartholomew Featherstonehaugh-Wolverhampton", LONG_ORG = "Meridian Health Systems of the Greater Providence and Boston Region";
 const day = 864e5, inDays = (d) => new Date(Date.now() + d * day).toISOString();
+// prompt BJ: the rows of "My openings" are built from ONE moment (they used to read the clock once per row, so the order of rows that tie on the posted time depended on whether a millisecond ticked while the list was built)
+const T0 = Date.now(), inDaysAt = (d) => new Date(T0 + d * day).toISOString();
+// the plan the fake backend reports (opts.plan: "verified", "lapsed" or the default: not on the destination links tier), for get-my-posting AND, since prompt BJ, poster-session (the register page reads it there)
+const planFor = (o) => (o.plan === "verified" ? { verified: true, source: "pilot", expires_at: null, lapsed: false } : o.plan === "lapsed" ? { verified: false, source: "paid", expires_at: inDays(-3), lapsed: true } : { verified: false, source: null, expires_at: null, lapsed: false });
 const code = (c) => "****-****-" + c.slice(-4);
 const posting = (company, title, pcode, extra) => Object.assign({ company_name: company, title, locations: ["Austin, TX"], is_remote: false, posted_at: inDays(-12), closes_at: inDays(33), applicant_cap: null, status: "live", closed_reason: null, ai_filtering: false, ai_interview_other: false, ai_disclosure_shown: false, third_party_recruiter: false, masked_req: "4****71", masked_code: code(pcode), posting_ref: pcode.toLowerCase().padEnd(20, "x"), last_edited_at: null, is_registered: false }, extra || {});
 const RESULTS = [
@@ -36,7 +40,7 @@ const MINE = [
   ["Senior Data Analyst", "4471", "D21M48YBZQBF", "live", 17, 138], ["Nurse Practitioner", "R-2026-0451", "K7Q3W9ZT2XPM", "paused", 9, 52], ["Analytics Team Lead", "4390", "P4R9T2V6X8ZA", "scheduled", null, 0],
   ["Junior BI Developer", "4210", "A1B2C3D4E5F6", "draft", null, 0], ["Data Governance Analyst", "4118", "H7J8K9M1N2P3", "expired", -15, 12],
 ].map(([title, req, pc, status, exp, comments], i) => ({ id: "3f1d5b1e-0000-4000-8000-00000000000" + (i + 1), title, req_number: req, post_id: pc, status, closed_reason: status === "expired" ? "expired_no_action" : null, stored_status: status === "scheduled" ? "draft" : status === "expired" ? "live" : status, is_remote: false, locations: ["Austin, TX"], location_ids: [], locations_attested: false,
-  window_days: 45, posted_at: status === "draft" || status === "scheduled" ? null : inDays(-12), expiration_date: exp === null ? null : inDays(exp), publish_by: status === "draft" ? inDays(11) : null, go_live_at: status === "scheduled" ? inDays(20) : null, applicant_cap: i === 0 ? 250 : null, bump_used: false, bump_days: null, created_at: inDays(-20), last_edited_at: null, comment_count: comments }));
+  window_days: 45, posted_at: status === "draft" || status === "scheduled" ? null : inDaysAt(-12), expiration_date: exp === null ? null : inDaysAt(exp), publish_by: status === "draft" ? inDaysAt(11) : null, go_live_at: status === "scheduled" ? inDaysAt(20) : null, applicant_cap: i === 0 ? 250 : null, bump_used: false, bump_days: null, created_at: inDaysAt(-20), last_edited_at: null, comment_count: comments }));
 const ROSTER = [
   { poster_id: "00000000-0000-4000-8000-0000000000aa", full_name: "Dana Whitfield", email: "dana.whitfield@meridian-health-systems.example", is_org_admin: true, status: "active", added_at: inDays(-40), first_signin_at: inDays(-40), last_verified_at: inDays(-2) },
   { poster_id: "00000000-0000-4000-8000-0000000000ab", full_name: "Sam Owner", email: "sam@meridian.example", is_org_admin: false, status: "active", added_at: inDays(-20), first_signin_at: inDays(-19), last_verified_at: inDays(-5) },
@@ -87,7 +91,7 @@ export function startFakeSite(root, opts = {}) {
       const poster = c && typeof c.poster_id === "string", cand = c && typeof c.candidate_identity_id === "string";
       const unauth = () => send(401, { error: "unauthorized", code: "unauthorized" });
       if (name === "poster-login-intent") return send(202, { ok: true });
-      if (name === "poster-session") return poster ? send(200, { poster: { poster_id: c.poster_id, full_name: LONG_NAME, is_org_admin: true }, organization: { organization_id: "00000000-0000-4000-8000-0000000000bb", name: LONG_ORG }, verified_at: new Date().toISOString(), reverify_by: inDays(30), plan: { verified: false, source: null, expires_at: null, lapsed: false } }) : unauth();
+      if (name === "poster-session") return poster ? send(200, { poster: { poster_id: c.poster_id, full_name: LONG_NAME, is_org_admin: true }, organization: { organization_id: "00000000-0000-4000-8000-0000000000bb", name: LONG_ORG }, verified_at: new Date().toISOString(), reverify_by: inDays(30), plan: planFor(opts) }) : unauth();
       if (name === "list-my-postings") return poster ? send(200, { total: MINE.length, postings: body.offset ? [] : MINE.map((p, i) => (i === 0 && opts.placeText ? { ...p, locations: [], location_ids: [], source_location_text: opts.placeText } : p)), next_offset: null }) : unauth();
       if (name === "employer-analytics") return poster ? send(200, ANALYTICS) : unauth();
       if (name === "poster-roster-list") return poster ? send(200, { posters: ROSTER.map((p, i) => (i === 0 ? { ...p, poster_id: c.poster_id } : p)) }) : unauth();
@@ -159,10 +163,23 @@ export function startFakeSite(root, opts = {}) {
         policyState = { ...next, url: u };
         return send(200, { posting_id: body.posting_id, kind: "policy", changed, active_links: 1, links: [policyEntry()] });
       }
+      // prompt BJ: the whole-set replace of the application links (the register page saves them right after the opening is added). opts.applyCheck: "ok" (default) or "failed" (HTTP 404) for every address;
+      // opts.applyRefusal = { status, body } makes it refuse. The addresses are never sent back (position and label only), like the real one.
+      if (name === "set-destination-links" && poster && (body.kind === undefined || body.kind === "apply")) {
+        if (opts.plan !== "verified") return send(403, PLAN_REFUSAL);
+        if (opts.applyRefusal) return send(opts.applyRefusal.status, opts.applyRefusal.body);
+        const list = Array.isArray(body.links) ? body.links : [];
+        if (list.length > 10) return send(400, { error: "links must contain at most 10 entries", field: "links", errors: [{ field: "links", message: "links must contain at most 10 entries" }] });
+        const bad = list.findIndex((x) => !String((x && x.url) || "").toLowerCase().startsWith("https://"));
+        if (bad >= 0) return send(400, { error: "url must start with https://", field: "links[" + bad + "].url", errors: [{ field: "links[" + bad + "].url", message: "url must start with https://" }] });
+        const chk = opts.applyCheck || "ok";
+        const links = list.map((x, i) => ({ position: i + 1, kind: "apply", firm: null, label: typeof x.label === "string" && x.label !== "" ? x.label : null, shown_as: "Employer's own site", check_status: chk, check_http: chk === "failed" ? 404 : 200 }));
+        return send(200, { posting_id: body.posting_id, changed: true, active_links: links.length, links });
+      }
       if (name === "get-my-posting") {
         if (!poster) return unauth();
         return send(200, { posting: { id: body.posting_id, title: "Data Analyst", req_number: "4471", company_name: "Meridian Health", post_id: "ABCDEFGHJKMN", status: "live", closed_reason: null, stored_status: "live", is_remote: false, locations: opts.placeText ? [] : ["Austin, TX"], location_ids: opts.placeText ? [] : ["gn:4671654"], source_location_text: opts.placeText || null, locations_attested: false, ai_filtering: false, ai_interview_other: null, third_party_recruiter: opts.recruiter === true || firmsState.length > 0, req_searchable: true, destination_links_exclusive: false, applicant_cap: null, description_text: Array.from({ length: 60 }, (_, i) => "requirement" + i).join(" "), window_days: 45, posted_at: inDays(-10), expiration_date: inDays(35), publish_by: null, go_live_at: null, created_at: inDays(-10), last_edited_at: null },
-          destination_links: firmEntries().concat(policyEntry() ? [policyEntry()] : []), plan: planDoc(), recent_changes: [{ at: inDays(-2), note: "Fixed a typo in the third paragraph", kind: "text_correction", fields: ["description_text"] }, { at: inDays(-5), note: "Renamed the role", kind: "edit", fields: ["title"] }] });
+          destination_links: firmEntries().concat(policyEntry() ? [policyEntry()] : []), plan: planDoc(), recent_changes: opts.recentChanges || [{ at: inDays(-2), note: "Fixed a typo in the third paragraph", kind: "text_correction", fields: ["description_text"] }, { at: inDays(-5), note: "Renamed the role", kind: "edit", fields: ["title"] }] });
       }
       // prompt BH: create-posting answers with a draft (the request body is in site.calls); opts.createRefusal = { status, body } makes it refuse, opts.createDropsPlace answers without the typed place
       if (name === "create-posting") {
@@ -195,7 +212,8 @@ export function startFakeSite(root, opts = {}) {
         const apply = opts.policyDetail === "only" ? [] : [{ position: 1, label: "Careers site" }, { position: 2, label: "Apply on LinkedIn, the employer's own page" }];
         // opts.detailFirms: [{ firm, label }] named recruiter firms sent with the links (label null = a firm named without an address); prompt BG
         const firmLinks = (opts.detailFirms || []).map((f, i) => ({ position: i + 1, kind: "recruiter", firm: f.firm, label: f.label === undefined ? "Employer's own site" : f.label }));
-        return send(200, { posting: p, links: apply.concat(firmLinks, opts.policyDetail ? [POLICY_ENTRY] : []) });
+        // opts.detailOverride (prompt BJ): merged into the posting the comments page and the details call receive (for example { locations: [], source_location_text: "Berlin, Germany" })
+        return send(200, { posting: opts.detailOverride ? { ...p, ...opts.detailOverride } : p, links: apply.concat(firmLinks, opts.policyDetail ? [POLICY_ENTRY] : []) });
       }
       // with opts.policyDetail the one-time links are https addresses the page accepts (the page opens whatever it is given; the test replaces window.open and reads the address); without it the answer is as it always was
       if (name === "candidate-link-issue") return send(200, { expires_at: inDays(0.0014), links: [{ position: 1, label: "Careers site", go_url: opts.policyDetail || opts.detailFirms ? "https://go.example.invalid/f/apply-1" : SELF + "/404.html" }].concat(opts.detailFirms ? [{ position: 2, label: "Apply on LinkedIn, the employer's own page", go_url: "https://go.example.invalid/f/apply-2" }] : []).concat((opts.detailFirms || []).map((f, i) => ({ position: i + 1, kind: "recruiter", firm: f.firm, label: f.label === undefined ? "Employer's own site" : f.label, go_url: "https://go.example.invalid/f/firm-" + (i + 1) }))).concat(opts.policyDetail ? [{ position: 1, kind: "policy", label: "Employer's own site", go_url: "https://go.example.invalid/f/policy-1" }] : []) });

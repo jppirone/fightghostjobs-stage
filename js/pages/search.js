@@ -1,7 +1,7 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=2edd398d";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=4c8c3f5c";
 import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=124260d8";
 import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=68216be2";
 import { savePending, takePending } from "../signin-handoff.js?v=882122ed";
@@ -15,12 +15,12 @@ import { $, h, clear, alertBox, chip, safeHref } from "../dom.js?v=ff147636";
 import { waitText } from "../format.js?v=696f63b8";
 import { postingChips, notOpenMessage } from "../chips.js?v=f36dd73d";
 import { aiNotes } from "../ai-notes.js?v=35c5dc92";
-import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=6491c7c9";
+import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=f2ea9573";
 import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";
 import { openUnit } from "../open-link.js?v=454df0f2";
 import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js?v=7ea239bc";
 import { isRegistered } from "../registered.js?v=f191c8c2";
-import { placeParts } from "../place.js?v=4ae8b3ba";
+import { placeNodes } from "../place.js?v=3ce4ad57";
 import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=c7fcdca3";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
@@ -84,12 +84,8 @@ $("#signinForm").addEventListener("submit", async (ev) => {
   } finally { send.disabled = false; send.textContent = label; }
 });
 
-// the place of an opening: the catalog places (or Remote, or "Location not stated"), or, only while it has none, the place as the employer's job board gave it followed by the small note (js/place.js).
-// Built as text nodes only (h() never makes markup), so a "<script>" in the board's text is shown as the characters it is.
-function placeNodes(row) {
-  const p = placeParts(row);
-  return [p.text, p.note ? " " : null, p.note ? h("span", { class: "place-note", style: "font-size:12px;color:var(--faint);" }, p.note) : null];
-}
+// the place of an opening: ONE rule for every screen (js/place.js placeNodes): the typed place with its small note, otherwise the list places and Remote, otherwise "Location not stated"
+const placeNodesOf = (row) => placeNodes(h, row);
 
 // ---- search
 function renderCard(row) {
@@ -99,7 +95,7 @@ function renderCard(row) {
       h("div", {},
         h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
         h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
-        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, placeNodes(row), " · Opening ID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : ""))),
+        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, placeNodesOf(row), " · Opening ID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : ""))),
       // the check mark only for an opening the DATABASE says is registered (an active paid plan, or a pilot plan with an expiry date): one plain true in the row, nothing else about the plan (js/registered.js)
       isRegistered(row) ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }, "✓ Registered") : null),
     h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, chips),
@@ -148,7 +144,7 @@ function renderStaffCard(row) {
       h("div", {},
         h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
         h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
-        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, placeNodes(row), " · " + staffIdLine(row))),
+        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, placeNodesOf(row), " · " + staffIdLine(row))),
       h("div", { style: "flex-shrink:0;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;" },
         h("div", { class: "pill" }, staffStatusLabel(row)),
         isRegistered(row) ? h("div", { class: "pill badge-verified" }, "✓ Registered") : null)),   // the same rule as the public view
@@ -255,9 +251,9 @@ function openModal(row, opener) {
   $("#modalCompany").textContent = row.company_name;
   $("#modalTitle").textContent = row.title;
   $("#modalRefs").textContent = "Opening ID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : "");
-  // the place as the employer's job board gave it (only for an opening with no catalog place), with its small note; hidden for every other opening
-  const place = $("#modalPlace"); clear(place); const shown = placeParts(row).note !== null; place.hidden = !shown;
-  if (shown) place.append(...placeNodes(row).filter((x) => x !== null));
+  // the place line, the same words as the result card and the comments page (prompt BJ): the list places and Remote, or the employer's own text with its small note, or "Location not stated"
+  const place = $("#modalPlace"); clear(place); place.hidden = false;
+  place.append(...placeNodesOf(row));
   $("#modalIntro").textContent = "This opening was added through FightGhostJobs by the employer. The dates and disclosures are the employer's own. FightGhostJobs has not confirmed that the job exists, that the employer representative works for the company named, or that the employer will respond.";
   clear($("#modalLinks")); clear($("#modalPolicy")); $("#modalPolicy").hidden = true; const empty = $("#modalEmpty"); empty.hidden = true; empty.textContent = ""; $("#modalLinksNote").hidden = true; $("#modalMore").hidden = true; clear($("#modalMore"));
   backdrop.classList.add("open");

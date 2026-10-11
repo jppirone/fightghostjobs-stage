@@ -6,7 +6,7 @@
 // toggle is on, "one opening" counted only with two or more places), so a change followed by a revert to the same value is not a change, and neither is whitespace around a value.
 // The change note is not part of the snapshot: a note with nothing changed is not saveable ("Nothing has changed.").
 
-import { storedPlaceText } from "./place-text.js?v=ff0ec9af";
+import { storedPlaceText } from "./place-text.js?v=cb5d7506";
 
 const trim = (t) => String(t == null ? "" : t).trim();
 // the description as the browser hands it back: a text box reports line breaks as \n, whatever the stored text used
@@ -121,4 +121,42 @@ export function linkLeaves(ev, info) {
   if (target !== "" && target !== "_self") return false;
   if (info && info.download) return false;
   return true;
+}
+
+// ---- prompt BJ (October 11, 2026): the register page ("Add an opening") uses the same bar and the same leave-the-page question. Nothing exists on the server yet, so EVERYTHING typed is unsaved
+// until Add opening or Save draft: the page is compared with the blank form it started as (js/pages/register.js takes the snapshot at load and again after Add another opening / Discard).
+// v: what the page collects (the same keys as snapshotOf, plus win, closeout, goLater, goLive); rows: { links: [{url,label}], firms: [{name,url}], policy: "" } as typed
+export function registerSnapshot(v, rows) {
+  const r = rows || {};
+  const ids = (Array.isArray(v.locEntries) ? v.locEntries : []).map((e) => e.id);
+  const strip = (list, keys) => (Array.isArray(list) ? list : []).map((x) => keys.map((k) => trim(x && x[k]))).filter((x) => x.some((y) => y !== ""));
+  return JSON.stringify({
+    title: trim(v.title), req: trim(v.req), desc: lines(v.desc), loc: ids, place: v.outside === true ? trim(v.locText) : null, remote: v.remote === true, attested: ids.length >= 2 && v.attested === true,
+    appcap: capKey(v.appcap), win: trim(v.win), closeout: trim(v.closeout), goLater: v.goLater === true, goLive: v.goLater === true ? trim(v.goLive) : "",
+    aiFilter: v.aiFilter === true, aiInterview: v.aiInterview === true, aiFilterNote: v.aiFilter === true ? trim(v.aiFilterNote) : "", aiInterviewNote: v.aiInterview === true ? trim(v.aiInterviewNote) : "",
+    recruiter: v.recruiter === true, links: strip(r.links, ["url", "label"]), firms: strip(r.firms, ["name", "url"]), policy: trim(r.policy),
+  });
+}
+export const REGISTER_UNSAVED = {
+  HEAD: "This opening is not added yet",
+  DETAIL: "Nothing is kept until you press Add opening or Save draft. Discard clears the form.",
+  CONFIRM_DISCARD: "Discard what you typed? The form will be cleared.",
+  DISCARDED: "What you typed was discarded. The form is empty.",
+  CLEARED: "Nothing is unsaved.",
+  SAVE: "Save draft", DISCARD: "Discard",
+  LEAVE_SAVE: "Save draft and leave", LEAVE_DISCARD: "Discard and leave", LEAVE_STAY: "Stay on this page",
+};
+// m: { dirty: bool, sections: [names of the link sections that hold typed text] } -> the same shape summarize() answers, so js/unsaved-guard.js draws it unchanged
+export function summarizeRegister(m) {
+  const any = m && m.dirty === true;
+  const names = Array.isArray(m && m.sections) ? m.sections : [];
+  const out = { any, showSave: any, headline: "", detail: "", liveText: "", dialogTitle: "", dialogText: "", leaveCanSave: any, leaveSaveLabel: REGISTER_UNSAVED.LEAVE_SAVE, panelNames: names };
+  if (!any) return out;
+  const typed = names.length ? " Typed in: " + joinNames(names) + "." : "";
+  out.headline = REGISTER_UNSAVED.HEAD;
+  out.detail = REGISTER_UNSAVED.DETAIL + typed;
+  out.liveText = REGISTER_UNSAVED.HEAD + ". " + REGISTER_UNSAVED.DETAIL + typed;
+  out.dialogTitle = REGISTER_UNSAVED.HEAD;
+  out.dialogText = "If you leave this page now, what you typed is lost." + typed + " Save draft keeps it as a draft; Add opening is on the page.";
+  return out;
 }

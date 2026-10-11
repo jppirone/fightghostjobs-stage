@@ -3,14 +3,15 @@
 // Posting a comment: the page checks length and plain text, the backend applies the whole rule (no web address, no naming where the posting was found unless this posting already shows
 // that platform, no slurs or profanity) and says why in words. Wrong links go to a private report, not to the thread.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js?v=2edd398d";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js?v=4c8c3f5c";
 import { requestLink, watchOtherTabSignIn } from "../session.js?v=124260d8";
 import { $, h, clear, alertBox, chip } from "../dom.js?v=ff147636";
-import { locationLine, waitText, groupCode } from "../format.js?v=696f63b8";
+import { waitText, groupCode } from "../format.js?v=696f63b8";
+import { placeNodes } from "../place.js?v=3ce4ad57";
 import { postingChips, notOpenRecap } from "../chips.js?v=f36dd73d";
 import { aiNotes } from "../ai-notes.js?v=35c5dc92";
-import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js?v=091b153c";
-import { addContestPart } from "../contest-ui.js?v=97b9f735";
+import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js?v=fc0981ec";
+import { addContestPart } from "../contest-ui.js?v=331b7281";
 import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";   // the one comments switch: while false this page is only the wrong-link report
 
 const params = new URLSearchParams(location.search);
@@ -100,7 +101,8 @@ function renderRecap(d) {
   if (d.ok) {
     const p = d.data.posting;
     $("#recapCompany").textContent = p.company_name; $("#recapTitle").textContent = p.title;
-    $("#recapMeta").textContent = locationLine(p.is_remote, p.locations) + " · Opening ID " + p.masked_code + (p.masked_req ? " · Req " + p.masked_req : "");
+    // the place line is the same one every screen draws (js/place.js): the typed place with its small note, or the list places and Remote, or "Location not stated"
+    const meta = $("#recapMeta"); clear(meta); meta.append(...placeNodes(h, p), " · Opening ID " + p.masked_code + (p.masked_req ? " · Req " + p.masked_req : ""));
     const chips = $("#recapChips"); clear(chips); for (const c of postingChips(p)) chips.append(chip(c));
     const notes = $("#recapNotes"); clear(notes);
     for (const n of aiNotes(p)) notes.append(h("div", { style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text));

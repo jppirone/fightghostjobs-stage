@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="app.css?v=029b9c9e">
 </head>
 <body>
+<a id="skipToUnsaved" class="skip-link" href="#unsavedSave" hidden>Skip to unsaved changes</a>
 <a class="skip-link" href="#main">Skip to content</a>
 
 <header class="nav">
@@ -64,7 +65,9 @@
           <div id="locTyped" hidden style="margin-top:8px;">
             <input id="loctext" type="text" maxlength="100" autocomplete="off" spellcheck="false" aria-label="A place outside the US or not in the list" aria-describedby="loctextHint" placeholder="For example: Lisbon, Portugal">
             <div class="field-error" data-error-for="loctext" hidden></div>
-            <div id="loctextHint" class="field-hint">Shown to candidates as you wrote it. It is not used to search, sort or filter, and it cannot hold a link or an email address.</div>
+            <div id="loctextHint" class="field-hint">Up to 100 characters. Shown to candidates as you wrote it. It is not used to search, sort or filter, and it cannot hold a link or an email address.</div>
+            <div id="loctextCount" class="field-hint" aria-hidden="true">0 of 100</div>
+            <div id="loctextLimit" class="field-hint" role="status" hidden></div>
           </div>
         </div>
         <div><label for="livedays">Keep it live for (days)</label><input id="livedays" type="text" inputmode="numeric" maxlength="3" value="45" autocomplete="off"><div class="field-error" data-error-for="livedays" hidden></div><div class="field-hint">14 to 45 days. Never longer than 45.</div></div>
@@ -138,6 +141,17 @@
         <label for="aiInterviewNote" style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px;">In your own words (optional, shown to candidates): how AI interacts with candidates here. One paragraph, no web addresses.</label>
         <input id="aiInterviewNote" type="text" maxlength="300" autocomplete="off" placeholder="e.g. A recorded video interview is transcribed and summarised for the hiring manager.">
         <div class="field-error" data-error-for="aiInterviewNote" hidden></div>
+      </div>
+
+      <div id="policyRow" hidden style="display:flex;flex-direction:column;gap:8px;">
+        <label for="policyUrl" id="policyLabel" style="font-size:14px;font-weight:600;">Link to your AI and hiring policy (optional)</label>
+        <div id="policyHint" style="font-size:13px;color:var(--muted);line-height:1.6;">Shown to candidates as a link to your own page. FightGhostJobs checks only that the address answers; it does not read or judge what the page says. It is saved right after the opening is added.</div>
+        <div id="policyLocked" hidden style="font-size:13px;color:var(--muted);line-height:1.6;">Adding a link to your AI and hiring policy is part of the destination links tier. Your organization is not on it. <a href="mailto:sales@fightghostjobs.com?subject=Destination%20links%20tier" style="font-weight:600;">Write to sales@fightghostjobs.com →</a></div>
+        <div id="policyNote" hidden></div>
+        <div id="policyForm" style="display:flex;flex-direction:column;gap:8px;">
+          <input id="policyUrl" type="text" inputmode="url" maxlength="2048" autocomplete="off" spellcheck="false" aria-describedby="policyHint policyError" placeholder="https://">
+          <div id="policyError" class="field-error" hidden></div>
+        </div>
       </div>
 
       <div class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;">
@@ -215,8 +229,31 @@
 
 </main>
 
+<div id="unsavedLive" class="unsaved-sr" role="status" aria-live="polite" aria-atomic="true"></div>
+<div id="unsavedBar" class="unsaved-bar" role="region" aria-label="Unsaved opening" hidden>
+  <div class="unsaved-inner">
+    <div class="unsaved-text" aria-hidden="true"><strong id="unsavedHead"></strong> <span id="unsavedDetail"></span></div>
+    <div class="unsaved-actions">
+      <button type="button" id="unsavedSave" class="btn btn-dark btn-sm">Save draft</button>
+      <button type="button" id="unsavedDiscard" class="btn btn-outline btn-sm">Discard</button>
+    </div>
+  </div>
+</div>
+
+<div id="leaveOverlay" class="unsaved-overlay" hidden>
+  <div id="leaveDialog" class="unsaved-dialog" role="alertdialog" aria-modal="true" aria-labelledby="leaveTitle" aria-describedby="leaveText">
+    <h2 id="leaveTitle" class="unsaved-dialog-title"></h2>
+    <p id="leaveText" class="unsaved-dialog-text"></p>
+    <div class="unsaved-actions">
+      <button type="button" id="leaveSave" class="btn btn-dark btn-sm">Save draft and leave</button>
+      <button type="button" id="leaveDiscard" class="btn btn-outline btn-sm">Discard and leave</button>
+      <button type="button" id="leaveStay" class="btn btn-ghost btn-sm">Stay on this page</button>
+    </div>
+  </div>
+</div>
+
 <footer class="site-footer"><span>FightGhostJobs</span><a href="privacy.html">Privacy</a><a href="mailto:privacy@fightghostjobs.com">privacy@fightghostjobs.com</a></footer>
 
-<script type="module" src="js/pages/register.js?v=4ab649b3"></script>
+<script type="module" src="js/pages/register.js?v=1f74b164"></script>
 </body>
 </html>

@@ -10,7 +10,10 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "fgj-site-"));
 let n = 0, missed = 0;
 
+// FGJ_CONTROLS_ONLY=S68,S70 (a building aid, never evidence for a push): only the controls of the named rules run; the last line says so
+const ONLY = process.env.FGJ_CONTROLS_ONLY ? process.env.FGJ_CONTROLS_ONLY.split(",").map((x) => x.trim()).filter(Boolean) : null;
 function control(label, rule, mutate) {
+  if (ONLY && !ONLY.includes(rule)) return;
   const dir = path.join(tmpBase, "c" + ++n);
   fs.cpSync(ROOT, dir, { recursive: true, filter: (src) => !/[\\/](\.git|node_modules)([\\/]|$)/.test(src) });
   mutate(dir);
@@ -890,14 +893,14 @@ control("the staff note says read only again", "S65", edit("js/staff-scope.js", 
 // S68 (2026-10-09, prompt AZ3): the display-only place text
 control("the search input reads the source place text (matching)", "S68", edit("js/search-input.js", (s) => s + '\nexport const READS_PLACE = (row) => row.source_location_text;\n'));
 control("the chips read the source place text", "S68", edit("js/chips.js", (s) => s + '\nexport const READS_PLACE = (row) => row.source_location_text;\n'));
-control("the search page reads the source place text itself", "S68", edit("js/pages/search.js", (s) => s.replace("const p = placeParts(row);", "const p = placeParts(row); if (row.source_location_text) p.note = null;")));
+control("the search page reads the source place text itself", "S68", edit("js/pages/search.js", (s) => s.replace("const placeNodesOf = (row) => placeNodes(h, row);", "const placeNodesOf = (row) => (row.source_location_text ? [row.source_location_text] : placeNodes(h, row));")));
 control("a page names the source place field", "S68", edit("search.html", (s) => s.replace('<div id="modalPlace"', '<div data-field="source_location_text" id="modalPlace"')));
-control("the place note wording changes", "S68", edit("js/place.js", (s) => s.replace('export const PLACE_NOTE = "as written by the employer";', 'export const PLACE_NOTE = "from the employer\'s job board";')));
+control("the place note wording changes", "S68", edit("js/place.js", (s) => s.replace('export const PLACE_NOTE = "as provided by the employer";', 'export const PLACE_NOTE = "from the employer\'s job board";')));
 control("the place cap is removed", "S68", edit("js/place.js", (s) => s.replace(".slice(0, MAX_PLACE_CHARS)", "")));
 control("control characters are no longer removed from the place text", "S68", edit("js/place.js", (s) => s.replace('.replace(/[\\u0000-\\u001f\\u007f-\\u009f]/g, "")', "")));
 control("the source text is used even when the opening has a catalog place", "S68", edit("js/place.js", (s) => s.replace('locs.length === 0 ? sourcePlaceText(row) : ""', "sourcePlaceText(row)")));
 control("the place text is made into markup", "S68", edit("js/place.js", (s) => s.replace("const remote =", "const x = document.createElement('div'); x.innerHTML = src; const remote =")));
-control("the search page shows the place with locationLine again", "S68", edit("js/pages/search.js", (s) => s.replace("placeNodes(row), \" \u00b7 \" + staffIdLine(row)", "locationLine(row.is_remote, row.locations) + \" \u00b7 \" + staffIdLine(row)")));
+control("the search page shows the place with locationLine again", "S68", edit("js/pages/search.js", (s) => s.replace("placeNodesOf(row), \" \u00b7 \" + staffIdLine(row)", "locationLine(row.is_remote, row.locations) + \" \u00b7 \" + staffIdLine(row)")));
 control("the place line says registered", "S68", edit("js/place.js", (s) => s.replace("+ src, note: PLACE_NOTE };", "+ src + \" (registered)\", note: PLACE_NOTE };")));
 control("a script names a place of the employer boards", "S68", edit("js/pages/comments.js", (s) => s.replace("Reading and leaving comments here", "Tokyo: reading and leaving comments here")));
 
@@ -1018,7 +1021,7 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the edit page does not put the stored typed place in the box", "S76", edit(ED, (s) => s.replace('place.set((p.location_ids || []).length === 0 ? storedPlaceText(p) : "");', 'place.set("");')));
   control("the register page does not tell that the place was not saved", "S76", edit(RG, (s) => s.replace("state.placeProblem = values.outside === true && storedPlaceText(created.data) !== collapsePlaceText(values.locText) ? PLACE_WORDS.NOT_SAVED : null;", "state.placeProblem = null;")));
   control("the result does not show the place problem", "S76", edit(RG, (s) => s.replace('alertBox("error", state.placeProblem)', 'alertBox("error", "")')));
-  control("My openings calls locationLine", "S76", edit("js/pages/dashboard.js", (s) => s.replace("placeParts(p).text", "locationLine(p.is_remote, p.locations)")));
+  control("My openings calls locationLine", "S76", edit("js/pages/dashboard.js", (s) => s.replace("placeNodes(h, p)", "locationLine(p.is_remote, p.locations)")));
   control("the typed place is not part of the unsaved snapshot", "S76", edit("js/dirty-state.js", (s) => s.replace("place: v.outside === true ? trim(v.locText) : null, ", "")));
   control("a script other than the two place scripts names the field", "S68", append("js/format.js", 'export const _f = "source_location_text";'));
   control("a banned word is in the choice's words (rule S66)", "S66", edit(PT, (s) => s.replace('HINT: "Shown to candidates as you wrote it.', 'HINT: "Shown to candidates as the listing says it.')));
@@ -1107,7 +1110,8 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
 // S71 (2026-10-10, prompt BF): the stage SQL and edge function tools live outside this repository (C:\Users\jpiro\fightghostjobs\tools, next to it). Each control works on a COPY of that folder; the repository copy is only the host of the call.
 {
   const TOOLS_SRC = path.resolve(ROOT, "..", "fightghostjobs", "tools");
-  if (!fs.existsSync(TOOLS_SRC)) console.log("S71 controls skipped: no tools folder next to this repository");
+  if (ONLY && !ONLY.includes("S71")) { /* a restricted run: the tools controls are not part of it */ }
+  else if (!fs.existsSync(TOOLS_SRC)) console.log("S71 controls skipped: no tools folder next to this repository");
   else {
     const cleanRepo = path.join(tmpBase, "clean");
     const prep = () => {
@@ -1156,6 +1160,51 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   }
 }
 
+// S77 (prompt BJ, October 11, 2026): the register page, the place box's limit and one place line
+{
+  const RG = "js/pages/register.js", RH = "register.html", EH = "edit.html";
+  control("the register page has no policy row", "S77", edit(RH, (s) => s.replace('id="policyRow"', 'id="policyRowGone"')));
+  control("the policy box's label changes", "S77", edit(RH, (s) => s.replace(">Link to your AI and hiring policy (optional)</label>", ">Policy link</label>")));
+  control("the policy hint does not say when it is saved", "S77", edit(RH, (s) => s.replace(" It is saved right after the opening is added.", "")));
+  control("the policy box sits below the recruiter switch", "S77", edit(RH, (s) => {
+    const a = s.indexOf('      <div id="policyRow"'), b = s.indexOf('      <div class="toggle-row"', a);
+    const blk = s.slice(a, b), rest = s.slice(0, a) + s.slice(b);
+    const c = rest.indexOf('      <div style="height:1px;background:var(--line);"></div>\n      <div id="formAlert"');
+    return rest.slice(0, c) + blk + rest.slice(c);
+  }));
+  control("a Cancel link follows Save draft", "S77", edit(RH, (s) => s.replace('<button type="button" id="draftBtn" class="btn btn-ghost">Save draft</button>', '<button type="button" id="draftBtn" class="btn btn-ghost">Save draft</button>\n        <a href="dashboard.html" class="btn btn-ghost">Cancel</a>')));
+  control("another link follows the buttons inside the form", "S77", edit(RH, (s) => s.replace("    </form>", '      <a href="dashboard.html">Back</a>\n    </form>')));
+  control("the register page has no unsaved bar", "S77", edit(RH, (s) => s.replace('id="unsavedBar"', 'id="unsavedBarGone"')));
+  control("the register page has no leave dialog", "S77", edit(RH, (s) => s.replace('id="leaveOverlay"', 'id="leaveOverlayGone"')));
+  control("the register page's skip link is not the first thing in the body", "S31", edit(RH, (s) => s.replace('<a id="skipToUnsaved" class="skip-link" href="#unsavedSave" hidden>Skip to unsaved changes</a>\n', "")));
+  control("the register page's rows do not judge an address as typed", "S77", edit(RG, (s) => s.replace("mountLinkRowsById({ checkAddress: addressProblem })", "mountLinkRowsById()")));
+  control("the register page's firm rows do not judge an address as typed", "S77", edit(RG, (s) => s.replace("mountFirmRowsById({ checkAddress: addressProblem })", "mountFirmRowsById()")));
+  control("the sections are not judged together", "S77", edit(RG, (s) => s.replace("const lp = linkProblems({ links: lc, firms: fc, policy: pc, firmsIgnored });", "const lp = linkProblems({ links: lc, firms: none, policy: pc, firmsIgnored });")));
+  control("the policy link is saved before the opening is created", "S77", edit(RG, (s) => s.replace("const created = await api.createPosting(buildCreateBody(values));", "if (pc.used) await savePolicy(pc);\n    const created = await api.createPosting(buildCreateBody(values));")));
+  control("the policy link rides along with the create call", "S77", edit(RG, (s) => s.replace("api.createPosting(buildCreateBody(values))", "api.createPosting({ policy: pc, ...buildCreateBody(values) })")));
+  control("the policy link is saved on no opening", "S77", edit(RG, (s) => s.replace("api.setPolicyLink(state.saved.id, pc.url)", "api.setPolicyLink(null, pc.url)")));
+  control("the register page does not use the shared unsaved component's summary", "S77", edit(RG, (s) => s.replace("summarize: summarizeRegister", "summarize: undefined")));
+  control("a typed firm is dropped without a word", "S77", edit(RG, (s) => s.replace("const firmsIgnored = !!state.firms && !state.recruiter && rowsTyped(state.firms.values());", "const firmsIgnored = false;")));
+  control("the one list leaves out the policy link by name", "S77", edit("js/register-form.js", (s) => s.replace('items.push("the AI and hiring policy link (" + ', 'items.push("the link (" + ')));
+  control("an address is not judged when the person leaves the box", "S77", edit("js/link-rows.js", (s) => s.replace('row.addr.addEventListener("blur", () => judge(row));', "")));
+  control("a row is added while an address above is malformed", "S77", edit("js/link-rows.js", (s) => s.replace("if (bad) { bad.addr.focus(); return; }", "")));
+  control("the shared unsaved component ignores the page's summary", "S77", edit("js/unsaved-guard.js", (s) => s.replace('typeof ctx.summarize === "function" ? ctx.summarize : summarize', "summarize")));
+  control("the register bar's headline changes", "S77", edit("js/dirty-state.js", (s) => s.replace('HEAD: "This opening is not added yet"', 'HEAD: "Unsaved"')));
+  control("the register snapshot is gone", "S77", edit("js/dirty-state.js", (s) => s.replace("export function registerSnapshot(", "export function registerSnapshotGone(")));
+  control("the typed place box does not count", "S77", edit("js/place-choice.js", (s) => s.replace("PLACE_WORDS.COUNT(input.value.length)", '""')));
+  control("the limit is not said when typing or pasting meets it", "S77", edit("js/place-choice.js", (s) => s.replace("if (incoming.length > room) say(incoming.length > 1 ? PLACE_WORDS.CUT : PLACE_WORDS.FULL);", "")));
+  control("the register page's place hint loses its limit", "S77", edit(RH, (s) => s.replace('<div id="loctextHint" class="field-hint">Up to 100 characters. ', '<div id="loctextHint" class="field-hint">')));
+  control("the editor's place hint loses its limit", "S77", edit(EH, (s) => s.replace('<div id="loctextHint" class="field-hint">Up to 100 characters. ', '<div id="loctextHint" class="field-hint">')));
+  control("the editor has no place line", "S77", edit(EH, (s) => s.replace('id="placeLine"', 'id="placeLineGone"')));
+  control("the editor has no count under the place box", "S77", edit(EH, (s) => s.replace('id="loctextCount"', 'id="loctextCountGone"')));
+  control("the comments page draws the place with locationLine", "S77", edit("js/pages/comments.js", (s) => s.replace("placeNodes(h, p)", "locationLine(p.is_remote, p.locations)")));
+  control("My openings draws no place through placeNodes", "S77", edit("js/pages/dashboard.js", (s) => s.replace("placeNodes(h, p)", "p.title")));
+  control("the editor's history draws the stored note raw", "S77", edit("js/pages/edit.js", (s) => s.replace("plainChangeNote(c.note)", "c.note")));
+  control("plainChangeNote is gone", "S77", edit("js/edit-form.js", (s) => s.replace("export function plainChangeNote(", "export function plainChangeNoteGone(")));
+  control("the register page's unit tests are not in the suite", "S77", edit("tests/run-all.js", (s) => s.replace(', path.join(here, "register-bj.unit.test.js")', "")));
+  control("the register page's browser test is not in the suite", "S77", edit("tests/run-all.js", (s) => s.replace('path.join(here, "register-bj.test.js")', 'path.join(here, "unit.test.js")')));
+}
+
 fs.rmSync(tmpBase, { recursive: true, force: true });
-console.log("site-check controls: " + n + " defects, " + missed + " missed");
+console.log("site-check controls: " + n + " defects, " + missed + " missed" + (ONLY ? "   RESTRICTED RUN (rules " + ONLY.join(", ") + " only): NOT a full run, not evidence for a push" : ""));
 process.exit(missed ? 1 : 0);

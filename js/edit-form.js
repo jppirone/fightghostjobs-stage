@@ -6,7 +6,7 @@
 
 import { problems as locationProblems } from "./location-rules.js?v=d6656595";
 import { aiNoteProblem } from "./ai-notes.js?v=35c5dc92";
-import { PLACE_FIELD, collapsePlaceText, placeTextProblem, storedPlaceText } from "./place-text.js?v=ff0ec9af";
+import { PLACE_FIELD, collapsePlaceText, placeTextProblem, storedPlaceText } from "./place-text.js?v=cb5d7506";
 
 export const MAX_NOTE = 500, MAX_DESC = 20000, MAX_REQ = 100;
 export const MAX_APPLICANT_CAP = 2147483647;
@@ -113,6 +113,20 @@ export function mapEditErrors(err) {
 }
 
 // what an edit is called in the change list (the kind the backend logged)
+// prompt BJ (October 11, 2026): the automatic summary stored for a draft edit reads "edit-posting: changed title, source_location_text": a function and column names. An employer must never read those, so every
+// line of Recent changes goes through this before it is drawn (the stored text is not changed: older rows read the same way). Any other note is the employer's own words or one of the fixed plain sentences.
+const CHANGE_FIELD_WORDS = { title: "job title", req_number: "req number", description_text: "job description", location_ids: "place", locations: "place", [PLACE_FIELD]: "place", is_remote: "place", locations_attested: "place",
+  ai_filtering: "AI filtering answer", ai_interview_other: "AI interviewing answer", ai_filtering_note: "AI filtering note", ai_interview_note: "AI interviewing note", ai_disclosure_shown: "AI disclosure", third_party_recruiter: "recruiter involved",
+  req_searchable: "req number search", destination_links_exclusive: "applications only through the links", applicant_cap: "applicant cap" };
+export function plainChangeNote(note) {
+  const raw = String(note == null ? "" : note);
+  const m = /^edit-posting: changed (.+)$/.exec(raw.trim());
+  if (!m) return raw;
+  const words = [];
+  for (const f of m[1].split(",")) { const w = Object.prototype.hasOwnProperty.call(CHANGE_FIELD_WORDS, f.trim()) ? CHANGE_FIELD_WORDS[f.trim()] : "other details"; if (!words.includes(w)) words.push(w); }
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  return words.length === 1 ? cap(words[0]) + " changed" : "Changed: " + (words.length === 2 ? words.join(" and ") : words.slice(0, -1).join(", ") + " and " + words[words.length - 1]) + ".";
+}
 export const KIND_TEXT = { draft_edit: "Draft edit", edit: "Edit", text_correction: "Requirements text corrected", req_change: "Req number changed", location_change: "Location changed" };
 
 // ---- destination links (verified plan). set-destination-links replaces the WHOLE set (1 to 10 addresses); the addresses are write-only (never sent back), so the page asks for the full set again to change it.

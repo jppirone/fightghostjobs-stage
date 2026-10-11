@@ -4,10 +4,11 @@
 // offered); both AI disclosures are REQUIRED and are always sent as true or false (never omitted, never null); the acting employer and organization are never sent (the server reads them from the session).
 
 import { problems as locationProblems } from "./location-rules.js?v=d6656595";
-import { PLACE_FIELD, collapsePlaceText, placeTextProblem } from "./place-text.js?v=ff0ec9af";
+import { PLACE_FIELD, collapsePlaceText, placeTextProblem } from "./place-text.js?v=cb5d7506";
 import { checkGoLive } from "./schedule-form.js?v=b2985372";
-import { checkLinks, checkFirms } from "./edit-form.js?v=80d9d54e";
+import { checkLinks, checkFirms } from "./edit-form.js?v=b5757c87";
 import { aiNoteProblem } from "./ai-notes.js?v=35c5dc92";
+import { checkPolicyUrl, policySavedText, mapPolicyError, isPolicy } from "./policy-link.js?v=f2ea9573";
 
 // The recruiter-firm rows (pass C) are OPTIONAL too, and only matter while the "third-party recruiter involved" toggle is on: blank rows mean "no firms named".
 export function collectFirms(rows, recruiterOn) {
@@ -124,4 +125,50 @@ export function mapServerErrors(err) {
   }
   if (!list.length && err && err.message) general = err.message;
   return { byField, general };
+}
+
+// ---- prompt BJ (October 11, 2026): the AI and hiring policy link on the register page, the address checks, and what is told about them in ONE place
+// The policy address is OPTIONAL: nothing typed means no link. -> { used, ok, url?, error? } (the same rule as the edit page's box: js/policy-link.js checkPolicyUrl)
+export function collectPolicy(text) {
+  const t = String(text == null ? "" : text).trim();
+  if (t === "") return { used: false, ok: true };
+  const c = checkPolicyUrl(t);
+  return c.ok ? { used: true, ok: true, url: c.url } : { used: true, ok: false, error: c.error };
+}
+// what the result card says about the policy link once the opening exists. saved: the answer of set-destination-links ({ changed, links }) or null when none was sent; problem: mapPolicyError's answer or null
+export function policyOutcome(saved, problem) {
+  if (problem) return { kind: "error", text: (problem.general || "The AI and hiring policy link was not accepted.") + " The opening itself is saved. You can add the link from My openings (Edit)." };
+  if (saved === null || saved === undefined) return null;
+  const l = Array.isArray(saved.links) ? saved.links.find(isPolicy) : null;
+  return { kind: !l || l.check_status === "ok" ? "ok" : "notice", text: policySavedText(saved, false) };
+}
+export { mapPolicyError };
+
+// Everything that is wrong with the three link sections BEFORE anything is saved, as one list (never one section at a time).
+//   links / firms: the collect results (collectLinks / collectFirms); policy: collectPolicy's; firmsIgnored: true when firm rows hold text but the recruiter switch is off (they would not be saved)
+// -> { ok, items: [sentence], text } ; text is one plain sentence naming every section that needs fixing
+export function linkProblems({ links, firms, policy, firmsIgnored }) {
+  const items = [];
+  const rowErrors = (kind, collected, keys) => {
+    if (!collected || collected.ok) return;
+    for (const [row, e] of Object.entries(collected.errors || {})) for (const k of keys) if (e[k]) items.push(kind + " " + (Number(row) + 1) + " (" + e[k].replace(/[.]$/, "") + ")");
+    if (collected.form && Object.keys(collected.errors || {}).length === 0) items.push(kind + "s (" + collected.form.replace(/[.]$/, "") + ")");
+  };
+  rowErrors("destination link", links, ["url", "label"]);
+  rowErrors("recruiter firm", firms, ["name", "url"]);
+  if (policy && policy.used && !policy.ok) items.push("the AI and hiring policy link (" + String(policy.error || "not valid").replace(/[.]$/, "") + ")");
+  if (firmsIgnored) items.push("recruiter firms (a firm is typed, but \"Third-party recruiter involved\" is off, so it would not be saved: turn it on, or clear the firm)");
+  return { ok: items.length === 0, items, text: items.length ? "Nothing was saved. Please fix: " + items.join("; ") + "." : "" };
+}
+
+// What the check taken at save found, in one sentence for every address that did not answer (advisory: they are saved anyway). Each argument is the "links" list of that save's answer
+// ([{ position, kind, firm?, check_status, check_http }]) or null when that kind was not sent. -> { kind: "notice", text } or null when every address answered
+export function checkReport({ links, firms, policy }) {
+  const one = (l) => (Number.isInteger(l.check_http) ? " answered HTTP " + l.check_http : " could not be reached");
+  const items = [];
+  for (const l of (Array.isArray(links) ? links : [])) if (l && l.check_status === "failed" && l.kind !== "recruiter" && l.kind !== "policy") items.push("destination link " + l.position + one(l));
+  for (const l of (Array.isArray(firms) ? firms : [])) if (l && l.kind === "recruiter" && l.check_status === "failed") items.push("recruiter firm " + (typeof l.firm === "string" && l.firm !== "" ? l.firm : l.position) + one(l));
+  for (const l of (Array.isArray(policy) ? policy : [])) if (l && l.kind === "policy" && l.check_status === "failed") items.push("the AI and hiring policy link" + one(l));
+  if (!items.length) return null;
+  return { kind: "notice", text: "When we checked, " + items.join("; ") + ". " + (items.length === 1 ? "It is saved anyway. Make sure it is right." : "They are saved anyway. Make sure they are right.") };
 }

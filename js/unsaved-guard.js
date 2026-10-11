@@ -7,7 +7,7 @@
 //        go(url), activeElement(): the focused element, confirmDiscard(): boolean, rescueFocus(): where focus goes when the bar closes with focus inside it }
 //   win: needs addEventListener / removeEventListener (the window); root: the <html> element (gets the class unsaved-on while the bar shows)
 // -> { refresh, isDirty, summary, announce, hush, interceptClick, openDialog, dialogOpen, allowLeave }
-import { summarize, linkLeaves, UNSAVED } from "./dirty-state.js?v=a7143233";
+import { summarize, linkLeaves, UNSAVED } from "./dirty-state.js?v=9f2a6974";
 
 // is node inside ancestor (works on a real DOM and on the small fake the tests use)
 const within = (node, ancestor) => { for (let n = node; n; n = n.parentNode || n.parent) if (n === ancestor) return true; return false; };
@@ -17,7 +17,7 @@ export function mountUnsavedGuard(ctx) {
   const { win, root, bar, head, detail, live, saveBtn, discardBtn, dlg, skip } = ctx;
   let listening = false, leaving = false, lastLive = "", dialog = null, bypass = false, busy = false, hushed = false;
 
-  const summary = () => summarize(ctx.getModel());
+  const summary = () => (typeof ctx.summarize === "function" ? ctx.summarize : summarize)(ctx.getModel());   // prompt BJ: the register page passes its own summarize (js/dirty-state.js summarizeRegister)
   function onBeforeUnload(ev) { if (leaving) return undefined; ev.preventDefault(); ev.returnValue = ""; return ""; }
 
   // redraw the bar and the leave-page warning from the page's current state; call it after anything that can change it. { quiet: true }: the caller says something itself about the bar going away (a discard)

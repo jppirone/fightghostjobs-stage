@@ -1,14 +1,14 @@
 // dashboard.js - "My postings": the postings the signed-in employer OWNS (a colleague's do not appear), with the row actions: publish a draft, pause, resume, extend (once) and close.
 // Nothing here trusts the page for identity: the session token tells the server who is asking, and the server returns only that person's postings.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=2edd398d";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=4c8c3f5c";
 import { rememberNext } from "../session.js?v=124260d8";
 import { $, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { groupCode, waitText } from "../format.js?v=696f63b8";
-import { placeParts } from "../place.js?v=4ae8b3ba";
+import { placeNodes } from "../place.js?v=3ce4ad57";
 import { FILTERS, statusChip, matchesFilter, matchesText, sortByPosted, reqCell, postedCell, capCell, closesCell } from "../dashboard-model.js?v=7d5b30a5";
 import { actionsFor, publishWindowEnded } from "../dashboard-model.js?v=7d5b30a5";
-import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=58b88f83";
+import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=85922441";
 import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";
 
 if (!COMMENTS_VISIBLE) { const th = document.querySelector('th[data-col="comments"]'); if (th) th.remove(); }   // the one comments switch (js/config.js): no Comments column while it is off
@@ -50,7 +50,7 @@ function actionCells(p, now) {
 function row(p, now) {
   const chip = statusChip(p, now);
   return h("tr", { role: "row" },
-    h("td", { role: "cell", "data-label": "Title", style: "font-weight:600;" }, p.title, h("div", { style: "font-size:12px;font-weight:400;color:var(--muted);margin-top:3px;" }, placeParts(p).text)),
+    h("td", { role: "cell", "data-label": "Title", style: "font-weight:600;" }, p.title, h("div", { style: "font-size:12px;font-weight:400;color:var(--muted);margin-top:3px;" }, placeNodes(h, p))),
     h("td", { role: "cell", "data-label": "Req #", style: "color:var(--muted);" }, reqCell(p)),
     h("td", { role: "cell", "data-label": "Opening ID", class: "mono", style: "color:var(--muted);white-space:nowrap;" }, groupCode(p.post_id)),
     h("td", { role: "cell", "data-label": "Status" }, h("span", { class: "status " + chip.cls }, chip.text)),
