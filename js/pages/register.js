@@ -1,16 +1,16 @@
 // register.js - an employer registers a posting: create it (a draft), then publish it (standard tier goes live immediately).
 // "Save draft" stops after the first step: the draft is then found and published from My postings (dashboard.html). Nothing here trusts the page for identity: the session token tells the server who is acting.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js";
-import { rememberNext } from "../session.js";
-import { $, $$, h, clear, alertBox } from "../dom.js";
-import { fmtClose, groupCode, waitText } from "../format.js";
-import { checkGoLive, mapScheduleError } from "../schedule-form.js";
-import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome, collectFirms, firmsOutcome } from "../register-form.js";
-import { mapLinksErrors, planNotice, checkWarnings } from "../edit-form.js";
-import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js";
-import { mountLocationPicker } from "../location-picker.js";
-import { wireInfoIcons } from "../info-icon.js";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=b3915a14";
+import { rememberNext } from "../session.js?v=124260d8";
+import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
+import { fmtClose, groupCode, waitText } from "../format.js?v=696f63b8";
+import { checkGoLive, mapScheduleError } from "../schedule-form.js?v=b2985372";
+import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome, collectFirms, firmsOutcome } from "../register-form.js?v=aa09741d";
+import { mapLinksErrors, planNotice, checkWarnings } from "../edit-form.js?v=960d07a7";
+import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js?v=956aa806";
+import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
+import { wireInfoIcons } from "../info-icon.js?v=66958a58";
 
 wireInfoIcons();
 // links: the destination-link rows, mounted only when the organization's plan allows links (null otherwise); linksSaved / linksProblem: what happened to them after the posting was created

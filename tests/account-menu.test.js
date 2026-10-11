@@ -13,7 +13,7 @@ import { ACCOUNT, accountText, buildAccount, wireAccountMenu } from "../js/accou
 import { initials } from "../js/format.js";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const src = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
+const src = (f) => fs.readFileSync(path.join(ROOT, f), "utf8").replace(/\?v=[0-9a-f]{8}(?=["'])/g, "");   // the source as written, without the version markers of tests/stamp-versions.js (prompt BG): every pin below sees the text it always saw
 
 // ---- a tiny fake DOM: elements with attributes, a class list, children, listeners, focus
 class El {

@@ -66,6 +66,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { stripMarkers, problems as stampProblems } from "./stamp-versions.js";
 
 export const API_ORIGIN = "https://tpmvkjuhbbwftqoodzcn.supabase.co";
 export const EXPECTED_CSP = "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src " + API_ORIGIN + "; base-uri 'self'; form-action 'self'; object-src 'none'";
@@ -87,7 +88,8 @@ export function checkSite(root, opts = {}) {
   const files = walk(root);
   const html = files.filter((f) => f.endsWith(".html")), js = files.filter((f) => f.endsWith(".js") && !f.includes(path.sep + "tests" + path.sep) && !f.includes(path.sep + "vendor" + path.sep)), css = files.filter((f) => f.endsWith(".css"));
   const mjs = files.filter((f) => f.endsWith(".mjs"));
-  const read = (f) => fs.readFileSync(f, "utf8");
+  // every rule reads a page or a script WITHOUT its version markers (?v=xxxxxxxx on local references, tests/stamp-versions.js), so each rule and pin sees the text it always saw; rule S75 reads the markers themselves
+  const read = (f) => stripMarkers(fs.readFileSync(f, "utf8"));
   const idxCfg = path.join(root, "js", "config.js"), idxOn = fs.existsSync(idxCfg) && /^export const ALLOW_INDEXING = true;/m.test(stripJsComments(read(idxCfg)));   // ALLOW_INDEXING (2026-10-06, S60): false on stage
 
   for (const f of html) {
@@ -1509,6 +1511,19 @@ export function checkSite(root, opts = {}) {
     for (const t of ["policy-link.unit.test.js", "policy-link.test.js"]) if (!fs.existsSync(P("tests", t))) add("S70", P("tests", t), "the policy link's test must exist");
   }
 
+  // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
+  // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed
+  // file is a new address. This rule fails when a reference has no marker, or a marker that is not the current one (a changed file whose markers were not stamped again). Every other rule reads the pages and
+  // scripts with the markers taken out (the read helper above), so each pin still sees the text it always saw. The stamp runs by itself before every commit (.githooks/pre-commit, package.json "stamp").
+  {
+    const P = (...a) => path.join(root, ...a);
+    for (const p of stampProblems(root)) add("S75", P(...p.rel.split("/")), p.message);
+    const hook = P(".githooks", "pre-commit"), pkg = P("package.json"), runF = P("tests", "run-all.js");
+    if (!fs.existsSync(hook)) add("S75", hook, "the pre-commit hook that stamps the markers is missing");
+    else { const h = fs.readFileSync(hook, "utf8"); if (!h.includes("node tests/stamp-versions.js") || !h.includes("git add")) add("S75", hook, "the hook must run node tests/stamp-versions.js and add what it changed to the commit"); }
+    if (fs.existsSync(pkg)) { const j = fs.readFileSync(pkg, "utf8"); if (!/"stamp"\s*:\s*"node tests\/stamp-versions\.js"/.test(j)) add("S75", pkg, 'package.json must have the script "stamp": "node tests/stamp-versions.js"'); }
+    if (fs.existsSync(runF) && !fs.readFileSync(runF, "utf8").includes('"version-markers.test.js"')) add("S75", runF, "version-markers.test.js is not in the suite");
+  }
   // S74 (2026-10-10, prompt BG): the candidate's link rows say "Open" with the external link icon; every on/off switch is fixed in size and its sentence wraps; no ring on a non-interactive focus target.
   // Pinned: one unit (js/open-link.js) on every row of links in the details window, built with createElementNS (never HTML text), the icon hidden from assistive technology and the hidden text "opens in a new tab";
   // the unit never breaks across lines (white-space: nowrap) and a long label wraps in its own column; the rows that carry it really open a new tab (window.open "_blank" with noopener, or a link with target and rel);

@@ -4,8 +4,8 @@
 // NEW req number in the same edit; a changed requirements text must keep at least 90% of the stored wording (and 75% of the go-live text), a changed title 60%: those three are judged by the server, which answers 409.
 // Company name, dates, tier and the closeout condition are never editable.
 
-import { problems as locationProblems } from "./location-rules.js";
-import { aiNoteProblem } from "./ai-notes.js";
+import { problems as locationProblems } from "./location-rules.js?v=d6656595";
+import { aiNoteProblem } from "./ai-notes.js?v=b731ef47";
 
 export const MAX_NOTE = 500, MAX_DESC = 20000, MAX_REQ = 100;
 export const MAX_APPLICANT_CAP = 2147483647;

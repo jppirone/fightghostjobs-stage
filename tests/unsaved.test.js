@@ -13,7 +13,7 @@ import { snapshotOf, valuesFromPosting, formDirty, rowsTyped, earlyRules, summar
 import { mountUnsavedGuard } from "../js/unsaved-guard.js";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const src = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
+const src = (f) => fs.readFileSync(path.join(ROOT, f), "utf8").replace(/\?v=[0-9a-f]{8}(?=["'])/g, "");   // the source as written, without the version markers of tests/stamp-versions.js (prompt BG): every pin below sees the text it always saw
 
 const ID = "3f1d5b1e-0000-4000-8000-000000000001";
 const AUSTIN = { id: "gn:4671654", kind: "place", display: "Austin, TX" }, DALLAS = { id: "gn:4684888", kind: "place", display: "Dallas, TX" };

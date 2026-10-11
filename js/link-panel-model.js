@@ -4,9 +4,9 @@
 // The words are the owner-approved or proposed wording of PLAN-item-4-destination-links.md section 9 (plan sentences first), the page's existing sentences, and a short list of new sentences marked NEW below
 // (linkcheck\NOTES-frontend.md lists every one for the owner's review).
 
-import { applyLinks, MAX_URL, MAX_LABEL } from "./edit-form.js";
-import { waitText } from "./format.js";
-import { isAuthFailure } from "./api.js";
+import { applyLinks, MAX_URL, MAX_LABEL } from "./edit-form.js?v=960d07a7";
+import { waitText } from "./format.js?v=696f63b8";
+import { isAuthFailure } from "./api.js?v=71ed1680";
 
 const hasControl = (s) => Array.from(String(s)).some((ch) => { const c = ch.codePointAt(0); return c < 32 || c === 127; });
 

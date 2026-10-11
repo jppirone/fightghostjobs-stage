@@ -1,27 +1,27 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js";
-import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js";
-import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js";
-import { savePending, takePending } from "../signin-handoff.js";
-import { applyFragmentPrefill } from "../fragment-prefill.js";
-import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js";
-import { lockScroll } from "../scroll-lock.js";
-import { trapFocus } from "../dialog-focus.js";
-import { makeAnnouncer } from "../search-status.js";
-import { recapSentence } from "../search-recap.js";
-import { $, h, clear, alertBox, chip, safeHref } from "../dom.js";
-import { waitText } from "../format.js";
-import { postingChips, notOpenMessage } from "../chips.js";
-import { aiNotes } from "../ai-notes.js";
-import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js";
-import { COMMENTS_VISIBLE } from "../config.js";
-import { openUnit } from "../open-link.js";
-import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js";
-import { isRegistered } from "../registered.js";
-import { placeParts } from "../place.js";
-import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=b3915a14";
+import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=124260d8";
+import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=68216be2";
+import { savePending, takePending } from "../signin-handoff.js?v=882122ed";
+import { applyFragmentPrefill } from "../fragment-prefill.js?v=1c621d5c";
+import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js?v=f37507d8";
+import { lockScroll } from "../scroll-lock.js?v=b751eb4c";
+import { trapFocus } from "../dialog-focus.js?v=1dcc8c83";
+import { makeAnnouncer } from "../search-status.js?v=7497036c";
+import { recapSentence } from "../search-recap.js?v=467642b9";
+import { $, h, clear, alertBox, chip, safeHref } from "../dom.js?v=ff147636";
+import { waitText } from "../format.js?v=696f63b8";
+import { postingChips, notOpenMessage } from "../chips.js?v=f36dd73d";
+import { aiNotes } from "../ai-notes.js?v=b731ef47";
+import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=5ae45807";
+import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";
+import { openUnit } from "../open-link.js?v=454df0f2";
+import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js?v=7ea239bc";
+import { isRegistered } from "../registered.js?v=f191c8c2";
+import { placeParts } from "../place.js?v=16471013";
+import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=c7fcdca3";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");

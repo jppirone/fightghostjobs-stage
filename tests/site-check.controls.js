@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkSite } from "./site-check.js";
+import { stripMarkers } from "./stamp-versions.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "fgj-site-"));
@@ -18,7 +19,9 @@ function control(label, rule, mutate) {
   if (!ok) missed++;
   console.log((ok ? "caught  " : "MISSED  ") + rule + "  " + label);
 }
-const edit = (rel, fn) => (dir) => { const p = path.join(dir, rel); const before = fs.readFileSync(p, "utf8"), after = fn(before); if (after === before) throw new Error("control mutation changed nothing in " + rel); fs.writeFileSync(p, after); };
+// edit: the file WITHOUT its version markers (tests/stamp-versions.js), so each control's text is the text the rule's pin was written for; editRaw: the file as stored, for the rule that is about the markers (S75)
+const editRaw = (rel, fn) => (dir) => { const p = path.join(dir, rel); const before = fs.readFileSync(p, "utf8"), after = fn(before); if (after === before) throw new Error("control mutation changed nothing in " + rel); fs.writeFileSync(p, after); };
+const edit = (rel, fn) => (dir) => { const p = path.join(dir, rel); const before = stripMarkers(fs.readFileSync(p, "utf8")), after = fn(before); if (after === before) throw new Error("control mutation changed nothing in " + rel); fs.writeFileSync(p, after); };
 const append = (rel, text) => edit(rel, (s) => s + "\n" + text + "\n");
 
 // a clean copy must be clean
@@ -985,6 +988,26 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the shared panel's address box is given a value", "S38", edit(ROW, (s) => s.replace('const addr = h("input", { type: "text", inputmode: "url",', 'const addr = h("input", { type: "text", value: "x", inputmode: "url",')));
   control("the destination links profile builds its own row", "S72", append(WRAP, "const _row = () => document.createElement(\"li\");"));
   control("the destination links profile stops using the shared panel", "S72", edit(WRAP, (s) => s.replace("return mountRowPanel({ ...ctx, profile });", "return null;")));
+}
+
+// S75 (2026-10-10, prompt BG): version markers. Each control works on the files as stored (editRaw), because the markers are what the rule is about.
+{
+  const M = /\?v=[0-9a-f]{8}/;
+  control("a page script reference loses its marker", "S75", editRaw("search.html", (s) => s.replace(/(src="js\/pages\/search\.js)\?v=[0-9a-f]{8}"/, '$1"')));
+  control("the stage gate script loses its marker", "S75", editRaw("team.html", (s) => s.replace(/(src="js\/stage-gate\.js)\?v=[0-9a-f]{8}"/, '$1"')));
+  control("a style sheet reference loses its marker", "S75", editRaw("dashboard.html", (s) => s.replace(/(href="app\.css)\?v=[0-9a-f]{8}"/, '$1"')));
+  control("the not found page loses a marker", "S75", editRaw("404.html", (s) => s.replace(/(href="\/styles\.css)\?v=[0-9a-f]{8}"/, '$1"')));
+  control("a module import loses its marker", "S75", editRaw("js/pages/search.js", (s) => s.replace(/(from "\.\.\/open-link\.js)\?v=[0-9a-f]{8}"/, '$1"')));
+  control("a dynamic import loses its marker", "S75", editRaw("js/location-catalog.js", (s) => s.replace(/(import\("\.\/data\/locations-us\.js)\?v=[0-9a-f]{8}"/, '$1"')));
+  control("the vendor import loses its marker", "S75", editRaw("js/session.js", (s) => s.replace(/(from "\.\.\/vendor\/auth-js\.min\.mjs)\?v=[0-9a-f]{8}"/, '$1"')));
+  control("a marker is not the current one", "S75", editRaw("edit.html", (s) => s.replace(/(src="js\/pages\/edit\.js)\?v=[0-9a-f]{8}"/, '$1?v=00000000"')));
+  control("a module changed and its markers were not stamped again", "S75", editRaw("js/open-link.js", (s) => s + "\n// changed after the last stamp\n"));
+  control("a style sheet changed and its markers were not stamped again", "S75", editRaw("app.css", (s) => s + "\n/* changed after the last stamp */\n"));
+  control("a marker is one digit short", "S75", editRaw("register.html", (s) => s.replace(/(src="js\/pages\/register\.js\?v=[0-9a-f]{7})[0-9a-f]"/, '$1"')));
+  control("the pre-commit hook is missing", "S75", (dir) => fs.rmSync(path.join(dir, ".githooks", "pre-commit")));
+  control("the hook does not run the stamp", "S75", editRaw(".githooks/pre-commit", (s) => s.replace("node tests/stamp-versions.js", "true")));
+  control("package.json has no stamp script", "S75", editRaw("package.json", (s) => s.replace(/, "stamp": "node tests\/stamp-versions\.js"/, "")));
+  control("the marker test is out of the suite", "S75", editRaw("tests/run-all.js", (s) => s.replace(/\[path\.join\(here, "version-markers\.test\.js"\)\][^\]]*\],/, "")));
 }
 
 // S74 (2026-10-10, prompt BG): the candidate's Open unit, the switches, the focus ring.

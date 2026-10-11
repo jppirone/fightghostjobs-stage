@@ -2,10 +2,10 @@
 // this page then works out WHICH kind of session it got and sends the person on. An employer-intent link that did not produce an employer session (the address is not on a roster,
 // or the 10-minute consent window had passed) is explained, never silently treated as a candidate sign-in.
 
-import { api, go, signOut, describeError, posterInfo, forgetLocalState } from "../app.js";
-import { currentSession, takeNext } from "../session.js";
-import { $, h, clear } from "../dom.js";
-import { markLanded, landingKindForPage } from "../landing-notice.js";
+import { api, go, signOut, describeError, posterInfo, forgetLocalState } from "../app.js?v=b3915a14";
+import { currentSession, takeNext } from "../session.js?v=124260d8";
+import { $, h, clear } from "../dom.js?v=ff147636";
+import { markLanded, landingKindForPage } from "../landing-notice.js?v=f37507d8";
 
 const hashError = (() => {
   // read BEFORE the Auth client tidies the fragment away

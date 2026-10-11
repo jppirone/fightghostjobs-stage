@@ -1,7 +1,7 @@
 // location-catalog.js - turns the generated catalog module (js/data/locations-us.js, ~90 KB compressed) into the entries the picker searches. Loaded LAZILY, the first time the picker is used, by a dynamic import:
 // that is a script load from this site, so the Content-Security-Policy is unchanged and pages that never open the picker never download the list.
 // The database holds the SAME catalog (public.location_catalog) and refuses anything that is not in it; the display strings built here are exactly the ones it stores.
-import { normalize } from "./location-search.js";
+import { normalize } from "./location-search.js?v=37a4f60e";
 
 // -> { version, entries: [{ id, kind, display, key }], byId: Map }
 export function buildEntries(m) {
@@ -17,6 +17,6 @@ export function buildEntries(m) {
 
 let pending = null;
 export function loadCatalog() {
-  if (!pending) pending = import("./data/locations-us.js").then(buildEntries).catch((err) => { pending = null; throw err; });
+  if (!pending) pending = import("./data/locations-us.js?v=eb10334e").then(buildEntries).catch((err) => { pending = null; throw err; });
   return pending;
 }

@@ -7,7 +7,7 @@
 //        go(url), activeElement(): the focused element, confirmDiscard(): boolean, rescueFocus(): where focus goes when the bar closes with focus inside it }
 //   win: needs addEventListener / removeEventListener (the window); root: the <html> element (gets the class unsaved-on while the bar shows)
 // -> { refresh, isDirty, summary, announce, hush, interceptClick, openDialog, dialogOpen, allowLeave }
-import { summarize, linkLeaves, UNSAVED } from "./dirty-state.js";
+import { summarize, linkLeaves, UNSAVED } from "./dirty-state.js?v=2b26d816";
 
 // is node inside ancestor (works on a real DOM and on the small fake the tests use)
 const within = (node, ancestor) => { for (let n = node; n; n = n.parentNode || n.parent) if (n === ancestor) return true; return false; };

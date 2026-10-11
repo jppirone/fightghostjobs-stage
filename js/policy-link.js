@@ -4,7 +4,7 @@
 // What it is: a link to the employer's OWN page about how it uses AI in hiring. It is stored like every destination link (the address is write-only: the server keeps it encrypted and never sends it back),
 // checked when it is saved (the address answers or it does not) and gated by the same tier. It is NOT an application destination: the apply path never uses it, it is not counted in the ten, and a candidate who
 // opens it is not counted as an application click. FightGhostJobs checks only that the address answers; it does not read, judge or summarize the page.
-import { planNotice, MAX_URL } from "./edit-form.js";
+import { planNotice, MAX_URL } from "./edit-form.js?v=960d07a7";
 
 export const POLICY_LABEL = "Link to your AI and hiring policy (optional)";
 export const POLICY_HINT = "Shown to candidates as a link to your own page. FightGhostJobs checks only that the address answers; it does not read or judge what the page says.";

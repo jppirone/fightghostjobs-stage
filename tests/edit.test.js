@@ -213,7 +213,7 @@ test("pass C: recruiter-firm rows: the name is required, the link optional; blan
 
 // the postID on the edit page: the same 12-character code, shown with dashes through the same formatter as the dashboard row, the comments page and the create-success screen
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const src = (f) => fs.readFileSync(path.join(ROOT, f), "utf8");
+const src = (f) => fs.readFileSync(path.join(ROOT, f), "utf8").replace(/\?v=[0-9a-f]{8}(?=["'])/g, "");   // the source as written, without the version markers of tests/stamp-versions.js (prompt BG): every pin below sees the text it always saw
 
 test("the edit page has the Opening ID from the opening it already loads: the get-my-posting shape carries it, and the formatter groups it as XXXX-XXXX-XXXX", () => {
   const p = orig();

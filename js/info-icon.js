@@ -1,6 +1,6 @@
 // info-icon.js - the small "i" tooltips. The stylesheet shows a tooltip on mouse-over and on keyboard focus; this adds the third way, a tap or click,
 // which is the only one a touch screen has. One open at a time; Escape closes it.
-import { $$ } from "./dom.js";
+import { $$ } from "./dom.js?v=ff147636";
 
 export function wireInfoIcons(root = document) {
   const icons = $$(".info-icon", root);

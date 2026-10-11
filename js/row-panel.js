@@ -10,7 +10,7 @@
 //   * Remove and Edit ask first, in the row, in plain words; nothing is sent before the person confirms. One request at a time.
 // Everything is built with h() (text nodes only; no HTML is ever parsed).
 
-import { h, clear, alertBox } from "./dom.js";
+import { h, clear, alertBox } from "./dom.js?v=ff147636";
 
 // ctx: { host, hintEl, noteEl, profile, openBlank, schedule, now, isBlocked, onSessionEnded, onStale, onChanged }
 //   host: the element the rows go in; hintEl / noteEl: the panel's sentence and the address-bar note (shown only while there are rows);

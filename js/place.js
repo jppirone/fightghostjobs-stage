@@ -6,7 +6,7 @@
 //   * always followed by the small note PLACE_NOTE, so a reader knows it is the employer's board's wording and not one of our catalog places;
 //   * never read for searching, filtering or matching (rule S68 keeps every other script from touching it);
 //   * shown with textContent only (the caller builds text nodes; nothing here makes markup), at most 200 characters, control characters removed.
-import { locationLine } from "./format.js";
+import { locationLine } from "./format.js?v=696f63b8";
 
 export const PLACE_NOTE = "as given by the employer's job board";
 export const MAX_PLACE_CHARS = 200;

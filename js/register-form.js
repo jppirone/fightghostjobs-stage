@@ -3,10 +3,10 @@
 // Facts fixed by the backend: the tier is always "standard" in this build (live on registration; the window is the poster's choice from 14 to 45 days, 45 when left alone; the extended tier is not
 // offered); both AI disclosures are REQUIRED and are always sent as true or false (never omitted, never null); the acting employer and organization are never sent (the server reads them from the session).
 
-import { problems as locationProblems } from "./location-rules.js";
-import { checkGoLive } from "./schedule-form.js";
-import { checkLinks, checkFirms } from "./edit-form.js";
-import { aiNoteProblem } from "./ai-notes.js";
+import { problems as locationProblems } from "./location-rules.js?v=d6656595";
+import { checkGoLive } from "./schedule-form.js?v=b2985372";
+import { checkLinks, checkFirms } from "./edit-form.js?v=960d07a7";
+import { aiNoteProblem } from "./ai-notes.js?v=b731ef47";
 
 // The recruiter-firm rows (pass C) are OPTIONAL too, and only matter while the "third-party recruiter involved" toggle is on: blank rows mean "no firms named".
 export function collectFirms(rows, recruiterOn) {

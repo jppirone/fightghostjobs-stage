@@ -1,0 +1,9 @@
+#!/bin/sh
+# pre-commit: stamp the version markers on every local script, style and import (tests/stamp-versions.js, prompt BG) and add what it changed to this commit.
+# Installed with:  git config core.hooksPath .githooks     (rule S75 of tests/site-check.js fails the build when a marker is missing or stale, hook or no hook)
+node tests/stamp-versions.js || exit 1
+changed=$(git diff --name-only -- '*.html' 'js')
+if [ -n "$changed" ]; then
+  git add -- $changed
+fi
+exit 0

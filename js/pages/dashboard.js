@@ -1,14 +1,14 @@
 // dashboard.js - "My postings": the postings the signed-in employer OWNS (a colleague's do not appear), with the row actions: publish a draft, pause, resume, extend (once) and close.
 // Nothing here trusts the page for identity: the session token tells the server who is asking, and the server returns only that person's postings.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js";
-import { rememberNext } from "../session.js";
-import { $, h, clear, alertBox } from "../dom.js";
-import { groupCode, locationLine, waitText } from "../format.js";
-import { FILTERS, statusChip, matchesFilter, matchesText, sortByPosted, reqCell, postedCell, capCell, closesCell } from "../dashboard-model.js";
-import { actionsFor, publishWindowEnded } from "../dashboard-model.js";
-import { runAction, ACTION_LABEL } from "../dashboard-actions.js";
-import { COMMENTS_VISIBLE } from "../config.js";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=b3915a14";
+import { rememberNext } from "../session.js?v=124260d8";
+import { $, h, clear, alertBox } from "../dom.js?v=ff147636";
+import { groupCode, locationLine, waitText } from "../format.js?v=696f63b8";
+import { FILTERS, statusChip, matchesFilter, matchesText, sortByPosted, reqCell, postedCell, capCell, closesCell } from "../dashboard-model.js?v=7d5b30a5";
+import { actionsFor, publishWindowEnded } from "../dashboard-model.js?v=7d5b30a5";
+import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=3c1bc057";
+import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";
 
 if (!COMMENTS_VISIBLE) { const th = document.querySelector('th[data-col="comments"]'); if (th) th.remove(); }   // the one comments switch (js/config.js): no Comments column while it is off
 

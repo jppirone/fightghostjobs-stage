@@ -6,9 +6,9 @@
 //   candidate_identity_id -> a verified candidate
 // Reading those claims here only decides which page to show. It grants nothing: every function checks the token again on the server.
 
-import { GoTrueClient } from "../vendor/auth-js.min.mjs";
-import { SUPABASE_URL, PUBLISHABLE_KEY, STORAGE_KEY, NEXT_KEY, KIND_KEY } from "./config.js";
-import { saveLanding, takeLanding, clearHandoff, watchSignIn, isSafePage } from "./signin-handoff.js";
+import { GoTrueClient } from "../vendor/auth-js.min.mjs?v=e56ca995";
+import { SUPABASE_URL, PUBLISHABLE_KEY, STORAGE_KEY, NEXT_KEY, KIND_KEY } from "./config.js?v=f3dc1a31";
+import { saveLanding, takeLanding, clearHandoff, watchSignIn, isSafePage } from "./signin-handoff.js?v=882122ed";
 
 let client = null;
 // The client is created WITHOUT the library's cross-tab channel. The library opens a BroadcastChannel on every page and posts every sign-in event on it; a page the browser has kept for Back (its back/forward cache)

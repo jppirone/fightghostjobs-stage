@@ -2,7 +2,7 @@
 // Every row that uses it really does open a new tab (window.open(address, "_blank", "noopener,noreferrer"), or the fallback link with target="_blank" rel="noopener noreferrer"); a row that opens nothing
 // ("No link given") never gets the icon or the hidden text. The word and the icon are ONE unit that never breaks across lines (white-space: nowrap on .go-open in app.css).
 // The icon is an inline SVG made with createElementNS (never HTML text), hidden from assistive technology.
-import { h } from "./dom.js";
+import { h } from "./dom.js?v=ff147636";
 
 export const OPEN_WORD = "Open";
 export const OPEN_HIDDEN = "opens in a new tab";

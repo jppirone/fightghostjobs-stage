@@ -3,15 +3,15 @@
 // Posting a comment: the page checks length and plain text, the backend applies the whole rule (no web address, no naming where the posting was found unless this posting already shows
 // that platform, no slurs or profanity) and says why in words. Wrong links go to a private report, not to the thread.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js";
-import { requestLink, watchOtherTabSignIn } from "../session.js";
-import { $, h, clear, alertBox, chip } from "../dom.js";
-import { locationLine, waitText, groupCode } from "../format.js";
-import { postingChips, notOpenRecap } from "../chips.js";
-import { aiNotes } from "../ai-notes.js";
-import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js";
-import { addContestPart } from "../contest-ui.js";
-import { COMMENTS_VISIBLE } from "../config.js";   // the one comments switch: while false this page is only the wrong-link report
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js?v=b3915a14";
+import { requestLink, watchOtherTabSignIn } from "../session.js?v=124260d8";
+import { $, h, clear, alertBox, chip } from "../dom.js?v=ff147636";
+import { locationLine, waitText, groupCode } from "../format.js?v=696f63b8";
+import { postingChips, notOpenRecap } from "../chips.js?v=f36dd73d";
+import { aiNotes } from "../ai-notes.js?v=b731ef47";
+import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js?v=0650cc96";
+import { addContestPart } from "../contest-ui.js?v=7bd29062";
+import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";   // the one comments switch: while false this page is only the wrong-link report
 
 const params = new URLSearchParams(location.search);
 const ref = String(params.get("ref") || "").toLowerCase(), pid = String(params.get("id") || "").toLowerCase();

@@ -1,7 +1,7 @@
 // link-rows.js - the two-box rows the register form and the edit page share: destination links (Address | Label, up to 10) and, since pass C, recruiter firms (Name | Address, up to 3).
 // The rows are only inputs: what they hold is checked by checkLinks / checkFirms (edit-form.js) and sent by the page. One row is shown by default; the add button adds one, up to the cap.
-import { $, h, clear } from "./dom.js";
-import { MAX_LINKS, MAX_URL, MAX_LABEL, MAX_FIRMS, MAX_FIRM_NAME } from "./edit-form.js";
+import { $, h, clear } from "./dom.js?v=ff147636";
+import { MAX_LINKS, MAX_URL, MAX_LABEL, MAX_FIRMS, MAX_FIRM_NAME } from "./edit-form.js?v=960d07a7";
 
 const MODES = {
   links: { max: MAX_LINKS, keys: ["url", "label"], a: (i) => ({ type: "text", inputmode: "url", maxlength: MAX_URL, autocomplete: "off", spellcheck: "false", "aria-label": "Destination address " + (i + 1), placeholder: "Address, starting with https://" }), b: (i) => ({ type: "text", maxlength: MAX_LABEL, autocomplete: "off", "aria-label": "Label for link " + (i + 1) + " (optional)", placeholder: "Label (optional, for you only)" }), grid: "minmax(0,3fr) minmax(0,2fr)" },
