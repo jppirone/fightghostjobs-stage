@@ -108,6 +108,21 @@ export function startFakeSite(root, opts = {}) {
         return send(200, { go_url: "https://go.example.invalid/check/" + body.kind + "-" + body.position, expires_at: new Date(Date.now() + 60000).toISOString() });
       }
       // one-firm changes by stored position (edit: a new address and/or a new name; remove) and the whole-set replace of the firms
+      if (name === "set-destination-links" && poster && body.kind === "recruiter" && body.op === "add") {
+        // prompt BG: the one-firm add. The position is chosen here (the lowest free one of 1 to 3); the other firms are not touched. opts.addRefusal = { status, body } makes the server refuse it.
+        if (opts.plan !== "verified") return send(403, PLAN_REFUSAL);
+        if (opts.addRefusal) return send(opts.addRefusal.status, opts.addRefusal.body);
+        const nm = typeof body.name === "string" ? body.name.trim() : "";
+        if (nm === "") return send(400, { error: "name must not be empty", field: "name", errors: [{ field: "name", message: "name must not be empty" }] });
+        const has = typeof body.url === "string" && body.url.trim() !== "";
+        if (has && !/^https:\/\//i.test(body.url)) return send(400, { error: "url must start with https://", field: "url", errors: [{ field: "url", message: "url must start with https://" }] });
+        if (has && /blocked\.example/.test(body.url)) return send(400, { error: "url host is not allowed", field: "url", errors: [{ field: "url", message: "url host is not allowed" }] });
+        if (firmsState.length >= 3) return send(409, { error: "A posting can name at most 3 recruiter firms; nothing was changed. Remove one first.", code: "firm_limit" });
+        let pos = 1; while (firmsState.some((x) => x.position === pos)) pos++;
+        firmsState.push({ position: pos, firm: nm, has_url: has, shown_as: "Employer's own site", url: has ? body.url : undefined, check_status: has ? (opts.firmCheck || "ok") : null, check_http: has ? (opts.firmCheck === "failed" ? 404 : 200) : null });
+        firmsState.sort((x, y) => x.position - y.position);
+        return send(200, { posting_id: body.posting_id, kind: "recruiter", op: "add", position: pos, changed: true, active_links: firmsState.length, links: firmEntries() });
+      }
       if (name === "set-destination-links" && poster && body.kind === "recruiter" && body.op) {
         if (opts.plan !== "verified") return send(403, PLAN_REFUSAL);
         const f = firmsState.find((x) => x.position === body.position);
@@ -172,10 +187,12 @@ export function startFakeSite(root, opts = {}) {
         const p = RESULTS.find((x) => x.posting_ref === body.posting_ref);
         if (!p) return send(404, { error: "not_found", code: "not_found" });
         const apply = opts.policyDetail === "only" ? [] : [{ position: 1, label: "Careers site" }, { position: 2, label: "Apply on LinkedIn, the employer's own page" }];
-        return send(200, { posting: p, links: opts.policyDetail ? apply.concat([POLICY_ENTRY]) : apply });
+        // opts.detailFirms: [{ firm, label }] named recruiter firms sent with the links (label null = a firm named without an address); prompt BG
+        const firmLinks = (opts.detailFirms || []).map((f, i) => ({ position: i + 1, kind: "recruiter", firm: f.firm, label: f.label === undefined ? "Employer's own site" : f.label }));
+        return send(200, { posting: p, links: apply.concat(firmLinks, opts.policyDetail ? [POLICY_ENTRY] : []) });
       }
       // with opts.policyDetail the one-time links are https addresses the page accepts (the page opens whatever it is given; the test replaces window.open and reads the address); without it the answer is as it always was
-      if (name === "candidate-link-issue") return send(200, { expires_at: inDays(0.0014), links: [{ position: 1, label: "Careers site", go_url: opts.policyDetail ? "https://go.example.invalid/f/apply-1" : SELF + "/404.html" }].concat(opts.policyDetail ? [{ position: 1, kind: "policy", label: "Employer's own site", go_url: "https://go.example.invalid/f/policy-1" }] : []) });
+      if (name === "candidate-link-issue") return send(200, { expires_at: inDays(0.0014), links: [{ position: 1, label: "Careers site", go_url: opts.policyDetail || opts.detailFirms ? "https://go.example.invalid/f/apply-1" : SELF + "/404.html" }].concat(opts.detailFirms ? [{ position: 2, label: "Apply on LinkedIn, the employer's own page", go_url: "https://go.example.invalid/f/apply-2" }] : []).concat((opts.detailFirms || []).map((f, i) => ({ position: i + 1, kind: "recruiter", firm: f.firm, label: f.label === undefined ? "Employer's own site" : f.label, go_url: "https://go.example.invalid/f/firm-" + (i + 1) }))).concat(opts.policyDetail ? [{ position: 1, kind: "policy", label: "Employer's own site", go_url: "https://go.example.invalid/f/policy-1" }] : []) });
       if (name === "candidate-list-comments") return send(200, { comments: [{ id: "c1", body: "This role was filled last month, according to a friend who works there.", created_at: inDays(-3), is_mine: false }], total: 1, next_offset: null });
       return send(404, { error: "no such function", code: "not_found" });
     }

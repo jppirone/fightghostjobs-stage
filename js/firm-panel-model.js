@@ -37,6 +37,12 @@ export const FP = {
   FIRM_GONE: "That firm is no longer named, so nothing was changed.",
   openLabel: (n) => "Open firm " + n + " link",
   NAME_REQUIRED: "Enter the firm's name.",
+  // prompt BG (October 10, 2026): the add form under the rows
+  ADD: "Add firm",
+  added: (n) => "Firm " + n + " was added.",
+  LIMIT: "Three firms are named. That is the most one opening can have: remove one to add another.",
+  nameAddAria: "Name of the firm to add",
+  addressAddAria: "Address of the firm to add (optional)",
 };
 
 // get-my-posting's destination_links (or an answer's links) -> one row per named firm, in position order. Only position, firm, shown_as and the check result are read.
@@ -78,7 +84,19 @@ export function planFirmEdit(addressText, nameText, currentName) {
 }
 export const firmConfirmText = (position, plan, name) => plan.replacesAddress ? FP.confirmReplace(position, plan.changesName, name) : FP.confirmName(position, name);
 
-// what each answer of the server means on this panel. op: "check" | "edit" | "remove"; err: what js/api.js returned.
+// the add form's boxes -> { ok, errors: { name?, url? }, add: { name, url? } | null }. The name is required; a blank address means a firm named without an address.
+export function planFirmAdd(nameText, addressText) {
+  const name = String(nameText == null ? "" : nameText).trim(), url = String(addressText == null ? "" : addressText).trim();
+  const errors = {};
+  if (name === "") errors.name = FP.NAME_REQUIRED;
+  else if (Array.from(name).length > MAX_FIRM_NAME) errors.name = "Keep the name to " + MAX_FIRM_NAME + " characters or fewer.";
+  else if (hasControl(name)) errors.name = "Keep the name to plain text.";
+  if (url !== "") { const p = addressProblem(url); if (p) errors.url = p; }
+  const ok = Object.keys(errors).length === 0;
+  return { ok, errors, add: ok ? (url === "" ? { name } : { name, url }) : null };
+}
+
+// what each answer of the server means on this panel. op: "check" | "edit" | "remove" | "add"; err: what js/api.js returned.
 // -> { text, where: "url" | "second" | "row" | "panel", sessionEnded, stale }
 export function firmRefusal(op, err, isAuth) {
   const out = { text: "", where: "row", sessionEnded: false, stale: false };
@@ -89,9 +107,10 @@ export function firmRefusal(op, err, isAuth) {
   if (code === "recruiter_off") { out.text = FP.RECRUITER_OFF; out.stale = true; return out; }
   if (code === "posting_status" || err.field === "status") { out.stale = true; return out; }
   if (code === "link_not_found") { out.text = FP.FIRM_GONE; out.where = "panel"; out.stale = true; return out; }
+  if (code === "firm_limit") { out.text = FP.LIMIT; out.where = "panel"; out.stale = true; return out; }
   if (code === "not_found") { out.text = LP.POSTING_NOT_FOUND; return out; }
   if (code === "rate_limited") { out.text = op === "check" ? LP.rateLimitedCheck(err.retryAfter) : LP.rateLimited(err.retryAfter); return out; }
-  if (op === "edit") {
+  if (op === "edit" || op === "add") {
     const list = Array.isArray(err.errors) && err.errors.length ? err.errors : err.field ? [{ field: err.field, message: err.message || "Not accepted." }] : [];
     for (const x of list) {
       if (x.field === "url") { out.where = "url"; out.text = x.message; return out; }
@@ -114,6 +133,7 @@ function describe(err) {
 // what a successful edit or remove says. data: the (checked) answer; plan: what planFirmEdit decided to send (an edit only)
 export function firmSuccess(op, data, plan) {
   if (op === "remove") return FP.removed(data.position);
+  if (op === "add") return FP.added(data.position);
   if (data.changed === false) return plan && plan.replacesAddress ? FP.SAME_ADDRESS : FP.NOTHING_CHANGED;
   return plan && plan.replacesAddress ? FP.replaced(data.position) : FP.renamed(data.position);
 }

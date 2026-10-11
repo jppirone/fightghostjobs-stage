@@ -5,6 +5,8 @@ import { MAX_LINKS, MAX_URL, MAX_LABEL, MAX_FIRMS, MAX_FIRM_NAME } from "./edit-
 
 const MODES = {
   links: { max: MAX_LINKS, keys: ["url", "label"], a: (i) => ({ type: "text", inputmode: "url", maxlength: MAX_URL, autocomplete: "off", spellcheck: "false", "aria-label": "Destination address " + (i + 1), placeholder: "Address, starting with https://" }), b: (i) => ({ type: "text", maxlength: MAX_LABEL, autocomplete: "off", "aria-label": "Label for link " + (i + 1) + " (optional)", placeholder: "Label (optional, for you only)" }), grid: "minmax(0,3fr) minmax(0,2fr)" },
+  // prompt BG: the add form under the firm rows: ONE row (a name and an optional address) that adds one firm; the page's button does the adding
+  firmAdd: { max: 1, keys: ["name", "url"], a: () => ({ type: "text", maxlength: MAX_FIRM_NAME, autocomplete: "organization", "aria-label": "Name of the firm to add", placeholder: "Firm name" }), b: () => ({ type: "text", inputmode: "url", maxlength: MAX_URL, autocomplete: "off", spellcheck: "false", "aria-label": "Address of the firm to add (optional)", placeholder: "Address (optional), starting with https://" }), grid: "minmax(0,2fr) minmax(0,3fr)" },
   firms: { max: MAX_FIRMS, keys: ["name", "url"], a: (i) => ({ type: "text", maxlength: MAX_FIRM_NAME, autocomplete: "organization", "aria-label": "Recruiter firm " + (i + 1), placeholder: "Firm name" }), b: (i) => ({ type: "text", inputmode: "url", maxlength: MAX_URL, autocomplete: "off", spellcheck: "false", "aria-label": "Address of firm " + (i + 1) + " (optional)", placeholder: "Address (optional), starting with https://" }), grid: "minmax(0,2fr) minmax(0,3fr)" },
 };
 
@@ -19,9 +21,9 @@ export function mountLinkRows({ host, addBtn, mode = "links" }) {
     a.value = first || ""; b.value = second || "";
     host.append(h("div", { style: "display:grid;grid-template-columns:" + M.grid + ";gap:12px;" }, h("div", {}, a, ae), h("div", {}, b, be)));
     rows.push({ a, b, ae, be });
-    addBtn.disabled = rows.length >= M.max;
+    if (addBtn) addBtn.disabled = rows.length >= M.max;
   }
-  function reset() { clear(host); rows.length = 0; add(); addBtn.disabled = false; }
+  function reset() { clear(host); rows.length = 0; add(); if (addBtn) addBtn.disabled = false; }
   const values = () => rows.map((r) => ({ [M.keys[0]]: r.a.value, [M.keys[1]]: r.b.value }));
   function showErrors(byRow) {
     rows.forEach((r, i) => {
@@ -34,8 +36,8 @@ export function mountLinkRows({ host, addBtn, mode = "links" }) {
     const bad = Object.keys(errors || {})[0];
     if (bad !== undefined && rows[bad]) (errors[bad][M.keys[0]] ? rows[bad].a : rows[bad].b).focus(); else if (rows[0]) rows[0].a.focus();
   }
-  function setLocked(on) { for (const r of rows) { r.a.disabled = on; r.b.disabled = on; } addBtn.disabled = on || rows.length >= M.max; }
-  addBtn.addEventListener("click", () => { if (rows.length < M.max) { add(); rows[rows.length - 1].a.focus(); } });
+  function setLocked(on) { for (const r of rows) { r.a.disabled = on; r.b.disabled = on; } if (addBtn) addBtn.disabled = on || rows.length >= M.max; }
+  if (addBtn) addBtn.addEventListener("click", () => { if (rows.length < M.max) { add(); rows[rows.length - 1].a.focus(); } });
   add();
   return { rows, add, reset, values, showErrors, focus, setLocked };
 }

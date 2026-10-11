@@ -410,7 +410,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
 {
   const HTML = "edit.html", DS = "js/dirty-state.js", GD = "js/unsaved-guard.js", EJ = "js/pages/edit.js", CSS = "app.css";
   const BAR = /<div id="unsavedBar"[\s\S]*?<\/main>/;
-  const TOGGLE_BLOCK = /      <div style="display:flex;align-items:center;justify-content:space-between;">\n        <div>\n          <div style="font-size:14px;font-weight:600;">Third-party recruiter involved<\/div>[\s\S]*?<\/button>\n      <\/div>\n/;
+  const TOGGLE_BLOCK = /      <div class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;">\n        <div>\n          <div style="font-size:14px;font-weight:600;">Third-party recruiter involved<\/div>[\s\S]*?<\/button>\n      <\/div>\n/;
   const FIRMS_BLOCK = /      <div id="firmsPanel"[\s\S]*?\n      <\/div>\n    <\/div>\n\n    <div id="readonlyNote"/;
   control("the unsaved bar is removed", "S45", edit(HTML, (s) => s.replace('id="unsavedBar"', 'id="unsavedBarX"')));
   control("the bar is no longer a polite live region", "S45", edit(HTML, (s) => s.replace('role="status" aria-live="polite" aria-atomic="true"></div>\n<div id="unsavedBar"', 'role="status" aria-atomic="true"></div>\n<div id="unsavedBar"')));
@@ -967,7 +967,7 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("Check link is drawn for every row", "S72", edit(ROW, (s) => s.replace("const check = P.canCheck(row) ? h(", "const check = true ? h(")));
   control("the check call of a firm names no kind", "S72", edit("js/api.js", (s) => s.replace('call("check-destination-link", { posting_id: postingId, kind: "recruiter", position }', 'call("check-destination-link", { posting_id: postingId, position }')));
   control("the policy check call asks for kind apply", "S72", edit("js/api.js", (s) => s.replace('call("check-destination-link", { posting_id: postingId, kind: "policy", position: 1 }', 'call("check-destination-link", { posting_id: postingId, kind: "apply", position: 1 }')));
-  control("a firm's answer may be of another kind", "S72", edit("js/api.js", (s) => s.replace('d.kind === "recruiter" && (d.op === "edit" || d.op === "remove")', '(d.op === "edit" || d.op === "remove")')));
+  control("a firm's answer may be of another kind", "S72", edit("js/api.js", (s) => s.replace('d.kind === "recruiter" && (d.op === "edit" || d.op === "remove" || d.op === "add")', '(d.op === "edit" || d.op === "remove")')));
   control("the firm check call says who is asking", "S72", edit("js/api.js", (s) => s.replace('call("check-destination-link", { posting_id: postingId, kind: "recruiter", position }', 'call("check-destination-link", { posting_id: postingId, poster_id: postingId, kind: "recruiter", position }')));
   control("the candidate's page loads the firm rows", "S72", append("js/pages/search.js", 'import "../firm-panel.js";'));
   control("the extension's hand-off names the policy row call", "S72", append("js/fragment-prefill.js", "export const _p = (api) => api.checkPolicyLink;"));
@@ -985,6 +985,65 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the shared panel's address box is given a value", "S38", edit(ROW, (s) => s.replace('const addr = h("input", { type: "text", inputmode: "url",', 'const addr = h("input", { type: "text", value: "x", inputmode: "url",')));
   control("the destination links profile builds its own row", "S72", append(WRAP, "const _row = () => document.createElement(\"li\");"));
   control("the destination links profile stops using the shared panel", "S72", edit(WRAP, (s) => s.replace("return mountRowPanel({ ...ctx, profile });", "return null;")));
+}
+
+// S74 (2026-10-10, prompt BG): the candidate's Open unit, the switches, the focus ring.
+{
+  const SR = "js/pages/search.js", OL = "js/open-link.js";
+  control("a row brings back Continue", "S74", edit(SR, (s) => s.replace('const go_ = h("span", { class: "go" }, openUnit());', 'const go_ = h("span", { class: "go" }, "Continue →");')));
+  control("the fallback link brings back Open link", "S74", edit(SR, (s) => s.replace('h("span", { class: "go" }, openUnit())));', 'h("span", { class: "go" }, "Open link →")));')));
+  control("a row opens in the same tab", "S74", edit(SR, (s) => s.replace('window.open(url, "_blank", "noopener,noreferrer")', 'window.open(url, "_self")')));
+  control("the fallback link has no noopener", "S74", edit(SR, (s) => s.replace('target: "_blank", rel: "noopener noreferrer"', 'target: "_blank"')));
+  control("the unit does not come back after a state word", "S74", edit(SR, (s) => s.replace('if (go_.querySelector(".go-open") === null) go_.replaceChildren(openUnit());', "")));
+  control("the unit module is not imported", "S74", edit(SR, (s) => s.replace('import { openUnit } from "../open-link.js";', "")));
+  control("the icon is not hidden from assistive technology", "S74", edit(OL, (s) => s.replace('["aria-hidden", "true"], ', "")));
+  control("the hidden text is reworded", "S74", edit(OL, (s) => s.replace('export const OPEN_HIDDEN = "opens in a new tab";', 'export const OPEN_HIDDEN = "new tab";')));
+  control("the word is reworded", "S74", edit(OL, (s) => s.replace('export const OPEN_WORD = "Open";', 'export const OPEN_WORD = "Go";')));
+  control("the icon is made from HTML text", "S74", edit(OL, (s) => s.replace('document.createElementNS(SVG_NS, "svg")', 'document.createElement("svg")')));
+  control("the unit may break across lines", "S74", edit("app.css", (s) => s.replace(".source-row .go-open{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}", ".source-row .go-open{display:inline-flex;align-items:center;gap:4px}")));
+  control("the word cell may wrap", "S74", edit("app.css", (s) => s.replace("color:var(--ember);flex:0 0 auto;white-space:nowrap}", "color:var(--ember)}")));
+  control("a long label no longer wraps in its column", "S74", edit("app.css", (s) => s.replace("min-width:0;overflow-wrap:anywhere;margin-right:12px}", "margin-right:12px}")));
+  control("the switch may shrink again", "S74", edit("styles.css", (s) => s.replace(".toggle{width:52px;height:30px;flex:none;", ".toggle{width:52px;height:30px;")));
+  control("the sentence beside a switch may not wrap", "S74", edit("styles.css", (s) => s.replace(".toggle-row>div:first-child{min-width:0;flex:1 1 auto}", ".toggle-row>div:first-child{flex:none}")));
+  control("a switch on the edit page is outside a toggle row", "S74", edit("edit.html", (s) => s.replace('<div class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;">', '<div style="display:flex;align-items:center;justify-content:space-between;">')));
+  control("a switch on the register page is outside a toggle row", "S74", edit("register.html", (s) => s.replace('<div class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;">', '<div style="display:flex;align-items:center;justify-content:space-between;">')));
+  control("the rule that removes the focus ring from sentences is gone", "S74", edit("app.css", (s) => s.replace('[tabindex="-1"]:not(a):not(button):not(input):not(select):not(textarea):not(summary):focus-visible{outline:none}', "")));
+  control("the confirm question is given a ring again", "S74", edit("app.css", (s) => s + "\n.link-confirm-text:focus-visible{outline:2px solid var(--ember);outline-offset:2px}\n"));
+  control("the contest notice is given a ring again", "S74", edit("app.css", (s) => s + "\n.contest-notice:focus-visible{outline:2px solid var(--ember);outline-offset:2px}\n"));
+  control("a browser test is out of the suite", "S74", edit("tests/run-all.js", (s) => s.replace(/\[path\.join\(here, "focus-outline\.test\.js"\)\], true\],\n/, "")));
+  control("a banned word is in the Open unit's words (rule S66)", "S66", edit(OL, (s) => s.replace('export const OPEN_HIDDEN = "opens in a new tab";', 'export const OPEN_HIDDEN = "opens the listing in a new tab";')));
+}
+
+// S73 (2026-10-10, prompt BG): the one-firm add. Each control damages one pinned piece of the add form, its request, its words or its limit.
+{
+  const EJ = "js/pages/edit.js", API = "js/api.js", FMODEL = "js/firm-panel-model.js", ROWS = "js/link-rows.js", DIRTY = "js/dirty-state.js";
+  control("the whole-set button comes back to the firms area", "S73", edit("edit.html", (s) => s.replace('<button type="button" id="addFirmBtn" class="btn btn-dark btn-sm">Add firm</button>', '<button type="button" id="addFirmBtn" class="btn btn-dark btn-sm">Add firm</button><button type="button" id="saveFirmsBtn" class="btn btn-dark btn-sm">Replace recruiter firms</button>')));
+  control("Add another firm comes back to the firms area", "S73", edit("edit.html", (s) => s.replace('<div id="firmAddBox" style="display:flex;flex-direction:column;gap:12px;">', '<div id="firmAddBox" style="display:flex;flex-direction:column;gap:12px;"><span>Add another firm</span>')));
+  control("the replace sentence comes back to the firms area", "S73", edit("edit.html", (s) => s.replace("The firms stay with the opening; while the recruiter toggle above is off", "What you save replaces what is stored. The firms stay with the opening; while the recruiter toggle above is off")));
+  control("the add button is reworded", "S73", edit("edit.html", (s) => s.replace('id="addFirmBtn" class="btn btn-dark btn-sm">Add firm</button>', 'id="addFirmBtn" class="btn btn-dark btn-sm">Add</button>')));
+  control("the add box is gone", "S73", edit("edit.html", (s) => s.replace('<div id="firmAddBox" style="display:flex;flex-direction:column;gap:12px;">', '<div style="display:flex;flex-direction:column;gap:12px;">')));
+  control("the limit sentence is written into the page too", "S73", edit("edit.html", (s) => s.replace('<div id="firmsLimit" class="field-hint" style="margin-top:0;" hidden></div>', '<div id="firmsLimit" class="field-hint" style="margin-top:0;" hidden>Three firms are named.</div>')));
+  control("the add request carries a position", "S73", edit(API, (s) => s.replace('const body = { posting_id: postingId, kind: "recruiter", op: "add", name: c.name.trim() };', 'const body = { posting_id: postingId, kind: "recruiter", op: "add", position: 1, name: c.name.trim() };')));
+  control("the add request carries the whole list", "S73", edit(API, (s) => s.replace('const body = { posting_id: postingId, kind: "recruiter", op: "add", name: c.name.trim() };', 'const body = { posting_id: postingId, kind: "recruiter", op: "add", links: [], name: c.name.trim() };')));
+  control("the add answer need not be an add", "S73", edit(API, (s) => s.replace('shapes.firmOpAnswer(d) && d.op === "add" && d.changed === true', 'shapes.firmOpAnswer(d) && d.changed === true')));
+  control("the add answer need not have changed anything", "S73", edit(API, (s) => s.replace('d.op === "add" && d.changed === true && d.posting_id', 'd.op === "add" && d.posting_id')));
+  control("the add answer may be for another opening", "S73", edit(API, (s) => s.replace('d.op === "add" && d.changed === true && d.posting_id.toLowerCase() === postingId.toLowerCase()', 'd.op === "add" && d.changed === true')));
+  control("Add firm uses the whole-set call", "S73", edit(EJ, (s) => s.replace("api.addRecruiterFirm(postingId, plan.add)", "api.setRecruiterFirms(postingId, [plan.add])")));
+  control("Add firm reads the firms already named", "S73", edit(EJ, (s) => s.replace("const plan = planFirmAdd(v.name, v.url);", "const plan = planFirmAdd(v.name, v.url); void recruiterFirms(state.doc.destination_links);")));
+  control("Remove all firms is not the empty whole-set call", "S73", edit(EJ, (s) => s.replace("api.setRecruiterFirms(postingId, [])", "api.setRecruiterFirms(postingId, [{ name: \"x\" }])")));
+  control("the add button does nothing", "S73", edit(EJ, (s) => s.replace('$("#addFirmBtn").addEventListener("click", () => submitFirmAdd());', '$("#addFirmBtn").addEventListener("click", () => {});')));
+  control("three firms: the form is still offered", "S73", edit(EJ, (s) => s.replace('$("#firmAddBox").hidden = count >= 3;', '$("#firmAddBox").hidden = false;')));
+  control("three firms: the limit sentence is not drawn", "S73", edit(EJ, (s) => s.replace('lim.textContent = count >= 3 ? FP.LIMIT : "";', 'lim.textContent = "";')));
+  control("typed add-form text is not unsaved work", "S73", edit(EJ, (s) => s.replace('(shown("#firmsForm") && rowsTyped(firms.values())) || ', '')));
+  control("the unsaved model does not say what is not saved in the firms area", "S73", edit(EJ, (s) => s.replace('firmRows: shown("#firmsForm") && rowsTyped(firms.values()), firmEdit: shown("#firmsForm") && firmPanel.hasPending(), ', '')));
+  control("the limit sentence is reworded", "S73", edit(FMODEL, (s) => s.replace("remove one to add another.", "remove one first.")));
+  control("the after-add sentence is reworded", "S73", edit(FMODEL, (s) => s.replace('added: (n) => "Firm " + n + " was added.",', 'added: (n) => "Firm " + n + " is added.",')));
+  control("the button word is reworded", "S73", edit(FMODEL, (s) => s.replace('ADD: "Add firm",', 'ADD: "Add",')));
+  control("the add form grows to three rows", "S73", edit(ROWS, (s) => s.replace('firmAdd: { max: 1, keys: ["name", "url"]', 'firmAdd: { max: 3, keys: ["name", "url"]')));
+  control("an add box loses its accessible name", "S73", edit(ROWS, (s) => s.replace('"aria-label": "Name of the firm to add"', '"aria-label": "Firm"')));
+  control("the pending firm edit sentence is reworded", "S73", edit(DIRTY, (s) => s.replace('FIRMS_EDIT_DETAIL: "Press Save on the firm you are editing, or press Discard.",', 'FIRMS_EDIT_DETAIL: "Press Save on the firm, or press Discard.",')));
+  control("the bar never uses the firm sentence", "S73", edit(DIRTY, (s) => s.replace("firmsEditOnly ? UNSAVED.FIRMS_EDIT_DETAIL", "false ? UNSAVED.FIRMS_EDIT_DETAIL")));
+  control("a banned word is in the add words (the opening vocabulary, rule S66)", "S66", edit(FMODEL, (s) => s.replace('nameAddAria: "Name of the firm to add",', 'nameAddAria: "Name of the firm to add to the listing",')));
 }
 
 // S71 (2026-10-10, prompt BF): the stage SQL and edge function tools live outside this repository (C:\Users\jpiro\fightghostjobs\tools, next to it). Each control works on a COPY of that folder; the repository copy is only the host of the call.

@@ -7,7 +7,7 @@
 //   S5  no way to turn text into HTML or code (innerHTML, outerHTML, insertAdjacentHTML, document.write, eval, new Function, string timers)
 //   S6  every import resolves to a real file
 //   S7  every local href / src / stylesheet exists
-//   S8  no network address other than the project's API appears in code, markup or styles (no CDN, no analytics, no font host); the one exception is the pricing card's link to https://www.fightghostjobs.com/plans.html
+//   S8  no network address other than the project's API appears in code, markup or styles (no CDN, no analytics, no font host); the exceptions are the pricing card's link to https://www.fightghostjobs.com/plans.html and the SVG namespace NAME in js/open-link.js (a name that is never requested)
 //   S31 the brand and accessibility structure: skip link, header with the logo as the way home, main, footer, the darker palette, the shared accessibility rules
 //   S9  no secret: no secret key, no token, no database URL; the publishable key appears only in js/config.js
 //   S10 the vendored Auth client is byte-identical to the recorded hash
@@ -135,7 +135,7 @@ export function checkSite(root, opts = {}) {
       if (!spec.startsWith(".")) { add("S6", f, "bare import: " + spec); continue; }
       if (!fs.existsSync(path.resolve(path.dirname(f), spec))) add("S6", f, "import does not resolve: " + spec);
     }
-    for (const m of s.matchAll(/https?:\/\/[^\s"'`)<>]+/g)) if (!m[0].startsWith(API_ORIGIN)) add("S8", f, "network address in code: " + m[0]);
+    for (const m of s.matchAll(/https?:\/\/[^\s"'`)<>]+/g)) if (!m[0].startsWith(API_ORIGIN) && !(m[0] === "http://www.w3.org/2000/svg" && /js[\\/]open-link\.js$/.test(f))) add("S8", f, "network address in code: " + m[0]);   // the one XML namespace name of the external link icon (js/open-link.js): a name, never requested
     if (/_blank/.test(s) && !/noopener/.test(s)) add("S12", f, "a new-tab open without noopener");
   }
 
@@ -320,7 +320,7 @@ export function checkSite(root, opts = {}) {
       if (/coming soon/i.test(t)) add("S27", p, "the recruiter-firm placeholder must be gone (the editor exists)");
       if (!t.includes('Candidates see the name as "Recruiter firm:')) add("S27", p, name + " must say how a firm is shown to candidates");
     }
-    for (const rel of ["js/pages/register.js", "js/pages/edit.js"]) { const p = path.join(root, rel); if (!fs.existsSync(p)) continue; const c = read(p); if (!c.includes("mountFirmRowsById()")) add("S27", p, rel + " must mount the shared firm rows"); if (!c.includes("api.setRecruiterFirms(")) add("S27", p, rel + " must save the firms through api.setRecruiterFirms"); }
+    for (const rel of ["js/pages/register.js", "js/pages/edit.js"]) { const p = path.join(root, rel); if (!fs.existsSync(p)) continue; const c = read(p); const isEdit = rel.endsWith("edit.js"); if (!c.includes(isEdit ? 'mountLinkRows({ host: $("#firmRows"), addBtn: null, mode: "firmAdd" })' : "mountFirmRowsById()")) add("S27", p, rel + (isEdit ? " must mount the one-row add form for the firms" : " must mount the shared firm rows")); if (!c.includes("api.setRecruiterFirms(")) add("S27", p, rel + " must save the firms through api.setRecruiterFirms"); }
     const sj = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj) && !read(sj).includes('"Recruiter firm: " + link.firm')) add("S27", sj, "search.js must render a named firm as Recruiter firm: <name>");
   }
   // S28 (pass D): the employer's AI notes. Both pages carry a 300-character box under each AI toggle that says it is shown to candidates and refuses web addresses; the pages check the note with the
@@ -842,7 +842,7 @@ export function checkSite(root, opts = {}) {
       if (!e.includes("guard = mountUnsavedGuard({") || !e.includes('guard.interceptClick(ev, { kind: "link"') || !e.includes('"#navAccount button:not(.avatar-btn)"')) add("S45", eF, "edit.js must mount the unsaved-changes guard and hold back links and Sign out that leave the page");
       if (!e.includes("state.baseline = snapshotOf(collect());") || !e.includes("snapshotOf(collect()) !== state.baseline")) add("S45", eF, "edit.js must compare the form with the snapshot taken when it was loaded or saved");
       if (!e.includes("async function submit() {\n  if (state.busy || !state.orig) return false;")) add("S45", eF, "submit() must say whether it saved (the leave dialog and the bar need to know)");
-      if ((e.split("populate(reload.data, { keepForm: true, saved: PANEL.LINKS })").length - 1) !== 3 || (e.split("populate(reload.data, { keepForm: true, saved: PANEL.FIRMS })").length - 1) !== 2 || !e.includes("populate(reload.data, { keepForm: true, saved: PANEL.GOLIVE })")) add("S45", eF, "saving a section (links, firms, go-live) must not throw away what was typed in the rest of the page (populate keepForm)");
+      if ((e.split("populate(reload.data, { keepForm: true, saved: PANEL.LINKS })").length - 1) !== 3 || (e.split("populate(reload.data, { keepForm: true, saved: PANEL.FIRMS })").length - 1) !== 4 || !e.includes("populate(reload.data, { keepForm: true, saved: PANEL.GOLIVE })")) add("S45", eF, "saving a section (links, firms, go-live) must not throw away what was typed in the rest of the page (populate keepForm)");
     }
     if (fs.existsSync(cF)) {
       const c = read(cF);
@@ -1509,6 +1509,108 @@ export function checkSite(root, opts = {}) {
     for (const t of ["policy-link.unit.test.js", "policy-link.test.js"]) if (!fs.existsSync(P("tests", t))) add("S70", P("tests", t), "the policy link's test must exist");
   }
 
+  // S74 (2026-10-10, prompt BG): the candidate's link rows say "Open" with the external link icon; every on/off switch is fixed in size and its sentence wraps; no ring on a non-interactive focus target.
+  // Pinned: one unit (js/open-link.js) on every row of links in the details window, built with createElementNS (never HTML text), the icon hidden from assistive technology and the hidden text "opens in a new tab";
+  // the unit never breaks across lines (white-space: nowrap) and a long label wraps in its own column; the rows that carry it really open a new tab (window.open "_blank" with noopener, or a link with target and rel);
+  // the switch never shrinks (flex: none) and the sentence beside it may wrap, on the two pages that have switches; the one rule that removes the ring from tabindex -1 elements that are not controls, and no rule that
+  // gives such an element a ring again; the three browser tests run in the suite.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const body = (f) => (fs.existsSync(f) ? stripJsComments(read(f)) : "");
+    const searchF = P("js", "pages", "search.js"), openF = P("js", "open-link.js"), appCss = P("app.css"), stylesCss = P("styles.css"), editH = P("edit.html"), regH = P("register.html"), runF = P("tests", "run-all.js");
+    if (fs.existsSync(searchF)) {
+      const s = body(searchF);
+      if (!s.includes('import { openUnit } from "../open-link.js";')) add("S74", searchF, "the details window uses the one Open unit (js/open-link.js)");
+      if ((s.split('h("span", { class: "go" }, openUnit())').length - 1) !== 2) add("S74", searchF, "both the row's button and its fallback link carry the Open unit");
+      if (/Continue →|Open link →/.test(s)) add("S74", searchF, "the old words (Continue →, Open link →) are gone from the candidate's rows");
+      if (!s.includes('window.open(url, "_blank", "noopener,noreferrer")')) add("S74", searchF, 'a row opens its link in a new tab with noopener: window.open(url, "_blank", "noopener,noreferrer")');
+      if (!s.includes('target: "_blank", rel: "noopener noreferrer"')) add("S74", searchF, "the fallback link opens a new tab with noopener noreferrer");
+      if (!s.includes('go_.querySelector(".go-open") === null) go_.replaceChildren(openUnit())')) add("S74", searchF, "the Open unit comes back after a state word");
+    }
+    if (fs.existsSync(openF)) {
+      const o = body(openF);
+      for (const [needle, why] of [['export const OPEN_WORD = "Open";', "the word is Open"], ['export const OPEN_HIDDEN = "opens in a new tab";', 'the hidden text is "opens in a new tab"'], ['["aria-hidden", "true"]', "the icon is hidden from assistive technology"],
+        ['document.createElementNS(SVG_NS, "svg")', "the icon is made as an SVG element, never as HTML text"], ['h("span", { class: "go-open" }, OPEN_WORD, externalIcon(), h("span", { class: "sr-only" }, " " + OPEN_HIDDEN))', "the unit is the word, the icon and the hidden text, in one span"]]) if (!o.includes(needle)) add("S74", openF, "js/open-link.js: " + why);
+    }
+    if (fs.existsSync(appCss)) {
+      const c = read(appCss);
+      for (const [needle, why] of [[".source-row .go{font-size:13px;font-weight:700;color:var(--ember);flex:0 0 auto;white-space:nowrap}", "the word cell never wraps or shrinks"], [".source-row .go-open{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}", "the word and the icon are one unit that never breaks"],
+        [".source-row-label{font-size:14px;font-weight:600;min-width:0;overflow-wrap:anywhere;margin-right:12px}", "a long label wraps in its own column"],
+        ['[tabindex="-1"]:not(a):not(button):not(input):not(select):not(textarea):not(summary):focus-visible{outline:none}', "the one rule that removes the ring from non-interactive focus targets"]]) if (!c.includes(needle)) add("S74", appCss, "app.css: " + why);
+      for (const cls of [".link-confirm-text", ".contest-notice", ".contest-confirm-title"]) if (new RegExp(cls.replace(".", "\\.") + ":focus(-visible)?\\s*\\{[^}]*outline\\s*:\\s*[^n]").test(c)) add("S74", appCss, "app.css: " + cls + " is a sentence that script focus moves to: it is not given a ring");
+    }
+    if (fs.existsSync(stylesCss)) {
+      const c = read(stylesCss);
+      if (!c.includes(".toggle{width:52px;height:30px;flex:none;")) add("S74", stylesCss, "the switch never shrinks (flex: none)");
+      if (!c.includes(".toggle-row>div:first-child{min-width:0;flex:1 1 auto}")) add("S74", stylesCss, "the sentence beside a switch may wrap (min-width: 0)");
+    }
+    for (const f of [editH, regH]) if (fs.existsSync(f)) {
+      const t = read(f);
+      const rows = (t.match(/class="toggle-row"/g) || []).length, buttons = (t.match(/<button[^>]*class="toggle"/g) || []).length;
+      if (rows !== buttons || buttons === 0) add("S74", f, "every switch sits in a row of class toggle-row (" + rows + " rows for " + buttons + " switches)");
+    }
+    if (fs.existsSync(runF)) {
+      const r = read(runF);
+      for (const n of ["open-words.test.js", "toggles-fit.test.js", "focus-outline.test.js"]) if (!r.includes('"' + n + '"')) add("S74", runF, n + " is not in the suite");
+    }
+  }
+  // S73 (2026-10-10, prompt BG): the recruiter firms area adds ONE firm at a time, through the one-firm add (set-destination-links op "add"), never through the whole-set replace.
+  // Pinned: the add request is exactly { posting_id, kind: recruiter, op: add, name, url? } (no position, no list of firms), the answer must be an add that changed something; the add form is ONE name box and ONE optional
+  // address box with the button "Add firm"; the whole-set controls and the sentence "What you save replaces what is stored" are gone from the firms area; three firms: no form and the one limit sentence; the whole-set call
+  // is kept for Remove all firms only (an empty set); typed text in the add form counts as unsaved work; the pending-edit sentence for a firm names the Save on that firm and the bar's Discard.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const htmlF = P("edit.html"), apiF = P("js", "api.js"), editF = P("js", "pages", "edit.js"), modelF = P("js", "firm-panel-model.js"), rowsF = P("js", "link-rows.js"), dirtyF = P("js", "dirty-state.js");
+    const body = (f) => (fs.existsSync(f) ? stripJsComments(read(f)) : "");
+    if (fs.existsSync(htmlF)) {
+      const t = read(htmlF);
+      for (const id of ["firmAddBox", "firmRows", "addFirmBtn", "firmsLimit", "firmsAlert", "clearFirmsBtn"]) if (!t.includes('id="' + id + '"')) add("S73", htmlF, "the firms area is missing #" + id);
+      if (!/<button type="button" id="addFirmBtn" class="btn btn-dark btn-sm">Add firm<\/button>/.test(t)) add("S73", htmlF, 'the add button must read "Add firm"');
+      const fa = t.indexOf('id="firmsPanel"'), fb = t.indexOf('id="clearFirmsBtn"');
+      const area = fa >= 0 && fb > fa ? t.slice(fa, fb) : "";
+      if (area === "" || t.includes('id="saveFirmsBtn"') || area.includes("Replace recruiter firms") || area.includes("Add another firm")) add("S73", htmlF, "the whole-set controls (Replace recruiter firms, Add another firm) are gone from the edit page's firms area");
+      if (area.includes("What you save replaces what is stored")) add("S73", htmlF, 'the sentence "What you save replaces what is stored" is gone from the firms area');
+      if (!/<div id="firmsLimit"[^>]*hidden><\/div>/.test(t)) add("S73", htmlF, "the limit sentence is drawn by the page's script from the one sentence in js/firm-panel-model.js, not written twice");
+    }
+    if (fs.existsSync(apiF)) {
+      const a = body(apiF);
+      const i0 = a.indexOf("addRecruiterFirm:"), i1 = a.indexOf("removeRecruiterFirm:");
+      const seg = i0 >= 0 && i1 > i0 ? a.slice(i0, i1) : "";
+      if (!seg.includes('const body = { posting_id: postingId, kind: "recruiter", op: "add", name: c.name.trim() };')) add("S73", apiF, "the add request must be exactly posting_id, kind recruiter, op add and the name (and the address when one is typed)");
+      if (/\bposition\s*:|\blinks\s*:|body\.position|body\.links/.test(seg)) add("S73", apiF, "the add request never carries a position or a list of firms: the server picks the position");
+      if (!seg.includes('d.op === "add" && d.changed === true && d.posting_id.toLowerCase() === postingId.toLowerCase()')) add("S73", apiF, "the add answer must be an add that changed something, for this opening");
+    }
+    if (fs.existsSync(editF)) {
+      const e = body(editF);
+      const i0 = e.indexOf("async function submitFirmAdd()"), i1 = e.indexOf("async function removeAllFirms()");
+      const seg = i0 >= 0 && i1 > i0 ? e.slice(i0, i1) : "";
+      if (!seg.includes("api.addRecruiterFirm(postingId, plan.add)")) add("S73", editF, "Add firm must call api.addRecruiterFirm with the planned add");
+      if (seg.includes("setRecruiterFirms") || seg.includes("recruiterFirms(")) add("S73", editF, "Add firm never uses the whole-set call or reads the firms already named");
+      const j0 = e.indexOf("async function removeAllFirms()"), j1 = e.indexOf('$("#addFirmBtn").addEventListener');
+      const rem = j0 >= 0 && j1 > j0 ? e.slice(j0, j1) : "";
+      if (!rem.includes("api.setRecruiterFirms(postingId, [])")) add("S73", editF, "Remove all firms is the whole-set call with an empty set");
+      if (!e.includes('$("#addFirmBtn").addEventListener("click", () => submitFirmAdd());')) add("S73", editF, "the add button must run submitFirmAdd");
+      if (!e.includes('$("#firmAddBox").hidden = count >= 3;') || !e.includes("lim.textContent = count >= 3 ? FP.LIMIT : \"\";")) add("S73", editF, "three firms: the add form goes and the limit sentence shows");
+      if (!e.includes('(shown("#firmsForm") && rowsTyped(firms.values()))')) add("S73", editF, "text typed in the add form counts as unsaved work");
+      if (!e.includes("firmRows: shown(\"#firmsForm\") && rowsTyped(firms.values()), firmEdit: shown(\"#firmsForm\") && firmPanel.hasPending()")) add("S73", editF, "the unsaved model must say whether the add form or an open firm edit is what is not saved");
+    }
+    if (fs.existsSync(modelF)) {
+      const m = body(modelF);
+      if (!m.includes('LIMIT: "Three firms are named. That is the most one opening can have: remove one to add another.",')) add("S73", modelF, "the limit sentence is the approved one");
+      if (!m.includes('added: (n) => "Firm " + n + " was added.",')) add("S73", modelF, "the sentence after an add is the approved one");
+      if (!m.includes('ADD: "Add firm",')) add("S73", modelF, 'the button word is "Add firm"');
+    }
+    if (fs.existsSync(rowsF)) {
+      const r = body(rowsF);
+      if (!r.includes('firmAdd: { max: 1, keys: ["name", "url"]')) add("S73", rowsF, "the add form is ONE row");
+      if (!r.includes('"aria-label": "Name of the firm to add"') || !r.includes('"aria-label": "Address of the firm to add (optional)"')) add("S73", rowsF, "the add boxes carry their accessible names");
+    }
+    if (fs.existsSync(dirtyF)) {
+      const d = body(dirtyF);
+      if (!d.includes('FIRMS_EDIT_DETAIL: "Press Save on the firm you are editing, or press Discard.",')) add("S73", dirtyF, "the pending firm edit sentence is the approved one");
+      if (!d.includes("firmsEditOnly ? UNSAVED.FIRMS_EDIT_DETAIL")) add("S73", dirtyF, "the bar uses the firm sentence when only an open firm edit is not saved");
+    }
+  }
   // S72 (2026-10-10, prompts BC and BC1): the recruiter firms and the AI and hiring policy link as ROWS (Check link, Edit, Remove), on the ONE shared rows panel (js/row-panel.js) that the destination links use too.
   // Pinned: every row, box and button is built once, in js/row-panel.js, and the three profiles (link-panel.js, firm-panel.js, policy-panel.js) only name words, rows and calls; a firm without an address has no Check link;
   // each row action calls the call of ITS OWN kind and no other (a firm never an application link's call or the whole-set call, the policy link never a firm's or an application link's); the address never reaches a row
@@ -1576,7 +1678,7 @@ export function checkSite(root, opts = {}) {
     if (fs.existsSync(apiF)) {
       const a = body(apiF);
       for (const need of ['call("check-destination-link", { posting_id: postingId, kind: "recruiter", position }', 'const body = { posting_id: postingId, kind: "recruiter", op: "edit", position };', 'call("set-destination-links", { posting_id: postingId, kind: "recruiter", op: "remove", position }', 'call("check-destination-link", { posting_id: postingId, kind: "policy", position: 1 }',
-        'd.kind === "recruiter" && (d.op === "edit" || d.op === "remove")', 'l.kind === "recruiter" && isStr(l.firm) && l.label === null']) if (!a.includes(need)) add("S72", apiF, "api.js must make the call or keep the check: " + need);
+        'd.kind === "recruiter" && (d.op === "edit" || d.op === "remove" || d.op === "add")', 'l.kind === "recruiter" && isStr(l.firm) && l.label === null']) if (!a.includes(need)) add("S72", apiF, "api.js must make the call or keep the check: " + need);
       const i0 = a.indexOf("checkRecruiterFirm:"), i1 = a.indexOf("listMyPostings:");
       if (i0 < 0 || i1 < i0 || /poster_id|organization_id/.test(a.slice(i0, i1))) add("S72", apiF, "the rows' calls never send who is asking");
     }

@@ -158,7 +158,7 @@ const makeDom = () => {
 function makePage(o = {}) {
   const dom = makeDom(), p = o.posting || posting();
   const page = { dom, v: form(), baseline: baselineOf(p), panels: new Set(), status: p.stored_status, orig: p, saves: 0, saveOk: true, discarded: 0, went: [], confirm: true, rescued: 0 };
-  page.model = () => { const dirty = formDirty(page.baseline, page.v), r = earlyRules(p, page.v, dirty); return { form: dirty, panels: Array.from(page.panels), linkRows: page.linkRows !== false, linkEdit: page.linkEdit === true, status: page.status, noteMissing: r.noteMissing, noteRequired: r.noteRequired }; };
+  page.model = () => { const dirty = formDirty(page.baseline, page.v), r = earlyRules(p, page.v, dirty); return { form: dirty, panels: Array.from(page.panels), linkRows: page.linkRows !== false, linkEdit: page.linkEdit === true, firmRows: page.firmRows !== false, firmEdit: page.firmEdit === true, status: page.status, noteMissing: r.noteMissing, noteRequired: r.noteRequired }; };
   page.guard = mountUnsavedGuard({ win: dom.win, root: dom.root, bar: dom.bar, head: dom.head, detail: dom.detail, live: dom.live, saveBtn: dom.saveBtn, discardBtn: dom.discardBtn, skip: dom.skip, dlg: dom.dlg,
     getModel: page.model,
     save: async () => { page.saves++; if (page.gate) await page.gate; if (!page.saveOk) return false; page.baseline = snapshotOf(page.v); page.guard.refresh(); return true; },
@@ -245,6 +245,25 @@ test("the destination links bar names the right button: typed rows, an open Edit
   assert.equal(summarize({ form: false, panels: [PANEL.FIRMS] }).detail, "Save changes does not save it. Use the button in that section, or press Discard.");
   assert.equal(summarize({ form: false, panels: [PANEL.LINKS, PANEL.FIRMS], linkRows: false, linkEdit: true }).detail, "Save changes does not save them. Use the button in each section, or press Discard.");
   assert.equal(summarize({ form: true, panels: [PANEL.LINKS, PANEL.FIRMS], linkRows: true, linkEdit: false }).detail, "Destination links and recruiter firms not saved yet. Save changes does not save them: use the button in each section.");
+});
+
+test("the recruiter firms: a pending firm edit has its own sentence (prompt BG); typed add-form text and every other combination keep the generic wording", () => {
+  const EDIT = "Press Save on the firm you are editing, or press Discard.";
+  const GENERIC = "Save changes does not save it. Use the button in that section, or press Discard.";
+  // the open Edit of a named firm and nothing else: the bold lead stays, the text names the Save inside that firm's form
+  const e = summarize({ form: false, panels: [PANEL.FIRMS], firmRows: false, firmEdit: true });
+  assert.equal(e.headline, "Recruiter firms not saved yet"); assert.equal(e.detail, EDIT); assert.equal(e.liveText, "Recruiter firms not saved yet. " + EDIT); assert.equal(e.showSave, false);
+  assert.equal(e.dialogText, "If you leave this page now, what you typed in the recruiter firms section is lost. It is saved with its own button, not with Save changes.");
+  // text typed in the add form: the generic sentence, with or without the flags (the button in that section is now Add firm)
+  for (const m of [{ form: false, panels: [PANEL.FIRMS], firmRows: true, firmEdit: false }, { form: false, panels: [PANEL.FIRMS] }]) assert.equal(summarize(m).detail, GENERIC);
+  // typed add-form text and an open edit together: generic (not worded, so not guessed)
+  assert.equal(summarize({ form: false, panels: [PANEL.FIRMS], firmRows: true, firmEdit: true }).detail, GENERIC);
+  // the main form changed too: the form's lead and the existing generic wording for the section
+  assert.equal(summarize({ form: true, panels: [PANEL.FIRMS], firmRows: false, firmEdit: true }).detail, "Recruiter firms not saved yet. Save changes does not save it: use the button in that section.");
+  // two sections: generic
+  assert.equal(summarize({ form: false, panels: [PANEL.LINKS, PANEL.FIRMS], linkRows: false, linkEdit: true, firmRows: false, firmEdit: true }).detail, "Save changes does not save them. Use the button in each section, or press Discard.");
+  // the sentence names two real buttons: Save (second step of the edit form) and Discard (the bar's own)
+  assert.equal(UNSAVED.FIRMS_EDIT_DETAIL, EDIT);
 });
 
 test("the bar on the page shows the Edit-of-a-stored-link text while an Edit is open, and the main form text once the form changes too", () => {
@@ -378,7 +397,7 @@ test("edit.js: the guard is wired in, every save path says whether it saved, and
   for (const [call, label] of [["populate(reload.data, { keepForm: true, saved: PANEL.LINKS })", "links form"], ["populate(reload.data, { keepForm: true, saved: PANEL.FIRMS })", "firms"], ["populate(reload.data, { keepForm: true, saved: PANEL.GOLIVE })", "go-live"]]) assert.ok(js.includes(call), label);
   assert.ok(js.includes("populate(reload.data, { keepForm: true, saved: PANEL.LINKS }); },"), "the links panel's stale reload");
   assert.equal((js.match(/populate\((reload|same)\.data\)/g) || []).length, 2, "only the main Save (saved, or the server found nothing to change) reads the opening into the whole form");
-  assert.equal((js.match(/(await populate|function populate)\(/g) || []).length, 14, "populate: its definition and thirteen calls (load, the main Save twice, links form twice, links panel, firms, the recruiter firms' rows, the AI and hiring policy link twice, its row once (stale), go-live, Discard): a new call must decide what it keeps");
+  assert.equal((js.match(/(await populate|function populate)\(/g) || []).length, 16, "populate: its definition and fifteen calls (load, the main Save twice, links form twice, links panel, firms: the add form's stale answer, the add worked, Remove all firms; the recruiter firms' rows, the AI and hiring policy link twice, its row once (stale), go-live, Discard): a new call must decide what it keeps");
   assert.ok(js.includes("populate(reload.data, { keepForm: true, saved: PANEL.FIRMS }); },"), "the recruiter firms' rows read the opening again after a stale answer without wiping other typed work");
   assert.ok(js.includes("populate(reload.data, { keepForm: true, saved: PANEL.POLICY }); },"), "the policy link's row does the same");
   assert.ok(js.includes("populate(reload.data, { keepForm: true, saved: PANEL.POLICY })"), "the policy link's save keeps the main form's unsaved edits and the other sections' typed work");

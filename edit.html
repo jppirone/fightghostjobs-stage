@@ -76,7 +76,7 @@
       <div style="height:1px;background:var(--line);"></div>
       <div style="font-size:14px;font-weight:700;">Disclosures</div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;">
         <div>
           <div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">AI used for initial filtering<span class="info-icon" tabindex="0">i<span class="info-tooltip">Resume screening or keyword/ATS-style matching used to prioritize applications before a human reviews them.</span></span></div>
           <div id="aiFilterHint" style="font-size:13px;color:var(--muted);margin-top:2px;">Shown to candidates as a plain fact, never scored.</div>
@@ -89,7 +89,7 @@
         <div class="field-error" data-error-for="aiFilterNote" hidden></div>
       </div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;">
         <div>
           <div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">AI used for interviewing or other<span class="info-icon" tabindex="0">i<span class="info-tooltip">Any AI that interacts with a candidate directly, such as an AI-conducted interview or a chatbot screening call.</span></span></div>
           <div id="aiInterviewHint" style="font-size:13px;color:var(--muted);margin-top:2px;">Independent of filtering. An employer can have neither, either, or both on.</div>
@@ -120,7 +120,7 @@
         <div id="policyAlert" hidden></div>
       </div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;">
         <div>
           <div style="font-size:14px;font-weight:600;">Third-party recruiter involved</div>
           <div id="recruiterHint" style="font-size:13px;color:var(--muted);margin-top:2px;">Free for every employer: just say yes or no. Naming the recruiter firm and adding its links is optional. It belongs to the Destination links section below, which is part of the destination links tier.</div>
@@ -128,7 +128,7 @@
         <button type="button" id="recruiterToggle" class="toggle" role="switch" aria-checked="false" aria-label="Third-party recruiter involved" aria-describedby="recruiterHint"><span class="toggle-knob"></span></button>
       </div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;">
         <div>
           <div style="font-size:14px;font-weight:600;">Let candidates search for your openings by req number</div>
           <div style="font-size:13px;color:var(--muted);margin-top:2px;">On by default. Turning it off does not hide this opening: candidates can still find it by company name plus title. The req number stays required either way.</div>
@@ -137,7 +137,7 @@
       </div>
 
       <div id="exclusiveRow" hidden>
-        <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;">
           <div>
             <div style="font-size:14px;font-weight:600;">Applications only through the destination links</div>
             <div style="font-size:13px;color:var(--muted);margin-top:2px;">A plain statement from you that the links below are the only way to apply. It is recorded with the opening; we do not check it.</div>
@@ -205,11 +205,14 @@
         <div id="firmsForm" hidden style="display:flex;flex-direction:column;gap:12px;">
           <div id="firmsPanelHint" class="field-hint" style="margin-top:0;" hidden>These firm addresses are not shown on this page. Use Check link to open one in a new tab, Edit to change a firm's name or replace its address, or Remove to take one firm out. The other firms are not touched. The page you are taken to may show its own address in its tab; that is normal.</div>
           <div id="firmsList" class="link-list"></div>
-          <div class="field-hint" style="margin-top:0;">Up to 3 firms. Candidates see the name as "Recruiter firm: …". The address is optional and, like a destination link, is never shown to them: they see where it goes. What you save replaces what is stored. The firms stay with the opening; while the recruiter toggle above is off they are hidden from candidates, not deleted.</div>
-          <div id="firmRows" style="display:flex;flex-direction:column;gap:12px;"></div>
-          <div><button type="button" id="addFirmBtn" class="btn btn-outline btn-sm">Add another firm</button></div>
+          <div class="field-hint" style="margin-top:0;">Up to 3 firms. Candidates see the name as "Recruiter firm: …". The address is optional and, like a destination link, is never shown to them: they see where it goes. The firms stay with the opening; while the recruiter toggle above is off they are hidden from candidates, not deleted.</div>
+          <div id="firmAddBox" style="display:flex;flex-direction:column;gap:12px;">
+            <div id="firmRows" style="display:flex;flex-direction:column;gap:12px;"></div>
+            <div><button type="button" id="addFirmBtn" class="btn btn-dark btn-sm">Add firm</button></div>
+          </div>
+          <div id="firmsLimit" class="field-hint" style="margin-top:0;" hidden></div>
           <div id="firmsAlert" hidden></div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;"><button type="button" id="saveFirmsBtn" class="btn btn-dark btn-sm">Replace recruiter firms</button><button type="button" id="clearFirmsBtn" class="btn btn-outline btn-sm" hidden>Remove all firms</button></div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;"><button type="button" id="clearFirmsBtn" class="btn btn-outline btn-sm" hidden>Remove all firms</button></div>
         </div>
       </div>
     </div>

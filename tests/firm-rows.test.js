@@ -2,7 +2,7 @@
 //
 // One row per named firm ("Firm 1: <name>", the line "Candidates see: Recruiter firm: <name> · <where it goes>", and Check link, Edit and Remove), the same shared rows panel the Destination links use (js/row-panel.js).
 //   states: not on the tier (the locked notice, no rows, no form), lapsed (kept and hidden, said so), on the tier with no firm, one firm with an address, one without an address (no Check link, and the page says so), three firms,
-//   a check that did not answer. Check link opens a one-time link in a new tab and the address is never on the page; Edit changes one firm; Remove takes out one firm; Add another firm and Replace recruiter firms are as they were.
+//   a check that did not answer. Check link opens a one-time link in a new tab and the address is never on the page; Edit changes one firm; Remove takes out one firm; the add form under the rows adds one firm (prompt BG) and takes the lowest free position.
 // Then negative controls: one defect at a time in the page code; each must make a scenario fail.
 // A missing browser FAILS the test (set FGJ_BROWSER). Run: node --test tests/firm-rows.test.js
 import { test, before, after } from "node:test";
@@ -66,7 +66,11 @@ const SCENARIOS = {
     if (await visible(tab, "#firmsList .link-row")) bad.push("a row is drawn with no firm");
     if (await visible(tab, "#firmsPanelHint")) bad.push("the panel hint is shown with no rows");
     if (await visible(tab, "#clearFirmsBtn")) bad.push("Remove all firms is offered with no firm");
-    if (!(await visible(tab, "#addFirmBtn")) || !(await visible(tab, "#saveFirmsBtn"))) bad.push("Add another firm or Replace recruiter firms is gone");
+    if (!(await visible(tab, "#addFirmBtn")) || (await text(tab, "#addFirmBtn")) !== "Add firm") bad.push("the add button is not 'Add firm': " + (await text(tab, "#addFirmBtn")));
+    if (await tab.eval("!!document.querySelector('#saveFirmsBtn')") || /Replace recruiter firms|Add another firm|What you save replaces what is stored/.test(await tab.eval("document.querySelector('#firmsPanel').innerText"))) bad.push("the whole-set controls or sentence are still in the firms area");
+    const boxes = await tab.eval("[...document.querySelectorAll('#firmRows input')].map((i) => i.getAttribute('aria-label'))");
+    if (JSON.stringify(boxes) !== JSON.stringify(["Name of the firm to add", "Address of the firm to add (optional)"])) bad.push("the add boxes are " + JSON.stringify(boxes));
+    if (await visible(tab, "#firmsLimit")) bad.push("the limit sentence is shown with no firm");
     return bad; })); },
   async rows(root) { return withSite(root, { plan: "verified", recruiter: true, firms: THREE }, (site) => withTab(async (tab) => { const bad = [];
     await openEdit(tab, site);
@@ -105,7 +109,13 @@ const SCENARIOS = {
     if (JSON.stringify(prefilled) !== JSON.stringify(["", "Acme Staffing"])) bad.push("the edit boxes start as " + JSON.stringify(prefilled) + " (the address box must be empty, the name prefilled)");
     await tab.eval("(() => { const i = document.querySelectorAll('#firmsList .link-row[data-position=\"1\"] form input')[1]; i.value = 'Acme Talent Partners'; i.dispatchEvent(new Event('input', { bubbles: true })); })()");
     if (!(await visible(tab, "#unsavedBar")) || !/Recruiter firms not saved yet/.test((await text(tab, "#unsavedHead")) || "")) bad.push("a changed name does not show the unsaved bar: " + (await text(tab, "#unsavedHead")));
+    if ((await text(tab, "#unsavedDetail")) !== "Press Save on the firm you are editing, or press Discard.") bad.push("the bar's text for an open firm edit is '" + (await text(tab, "#unsavedDetail")) + "'");
+    const real = await tab.eval("[...document.querySelectorAll('#firmsList .link-row[data-position=\"1\"] form button')].map((b) => b.innerText.trim() + (b.offsetParent === null ? ' (hidden)' : ''))");
+    if (JSON.stringify(real) !== JSON.stringify(["Continue", "Cancel", "Save (hidden)", "Go back (hidden)"])) bad.push("the buttons of the open firm edit are " + JSON.stringify(real));
+    if (!(await visible(tab, "#unsavedDiscard"))) bad.push("the bar's own Discard is not on screen");
     await tab.eval("document.querySelector('#firmsList .link-row[data-position=\"1\"] form').requestSubmit()"); await sleep(300);
+    const step2 = await tab.eval("[...document.querySelectorAll('#firmsList .link-row[data-position=\"1\"] form button')].filter((b) => b.offsetParent !== null).map((b) => b.innerText.trim())");
+    if (JSON.stringify(step2) !== JSON.stringify(["Save", "Go back"])) bad.push("the buttons on the confirm step are " + JSON.stringify(step2));
     if (callsOf(site, "set-destination-links").length) bad.push("something was sent before the person confirmed");
     await tab.eval("[...document.querySelectorAll('#firmsList .link-row[data-position=\"1\"] form button')].find((b) => b.innerText.trim() === 'Save').click()");
     await tab.waitFor("document.querySelector('#firmsList .link-row-title').innerText.indexOf('Acme Talent Partners') >= 0", 8000); await sleep(500);
@@ -168,14 +178,94 @@ const SCENARIOS = {
     if (await visible(tab, "#firmsList .link-row form")) bad.push("the open edit form stayed after Discard");
     if (callsOf(site, "set-destination-links").length) bad.push("Discard sent something");
     return bad; })); },
-  async wholeSet(root) { return withSite(root, { plan: "verified", recruiter: true, firms: [{ firm: "Acme Staffing" }] }, (site) => withTab(async (tab) => { const bad = [];
+  async addFirst(root) { return withSite(root, { plan: "verified", recruiter: true, firms: [] }, (site) => withTab(async (tab) => { const bad = [];
     await openEdit(tab, site);
-    await tab.eval("(() => { const f = document.querySelector('#firmRows input'); f.value = 'Replacement Group'; f.dispatchEvent(new Event('input', { bubbles: true })); })()");
-    await clickIn(tab, "#saveFirmsBtn");
-    await tab.waitFor("document.querySelector('#firmsList .link-row-title') && document.querySelector('#firmsList .link-row-title').innerText.indexOf('Replacement Group') >= 0", 8000); await sleep(400);
+    await clickIn(tab, "#addFirmBtn"); await sleep(300);
+    if (!/Enter the firm's name\./.test((await text(tab, "#firmAddBox")) || "")) bad.push("an empty name is not refused in words");
+    if (callsOf(site, "set-destination-links").length) bad.push("an empty add sent something");
+    await tab.eval("(() => { const i = document.querySelectorAll('#firmRows input'); i[0].value = 'Replacement Group'; i[0].dispatchEvent(new Event('input', { bubbles: true })); i[1].value = 'https://own.example/apply'; i[1].dispatchEvent(new Event('input', { bubbles: true })); })()");
+    if (!(await visible(tab, "#unsavedBar")) || !/Recruiter firms not saved yet/.test((await text(tab, "#unsavedHead")) || "")) bad.push("text typed in the add form does not show the unsaved bar: " + (await text(tab, "#unsavedHead")));
+    await clickIn(tab, "#addFirmBtn");
+    await tab.waitFor("document.querySelector('#firmsList .link-row-title') && document.querySelector('#firmsList .link-row-title').innerText.indexOf('Replacement Group') >= 0", 8000); await sleep(500);
     const c = callsOf(site, "set-destination-links");
-    if (c.length !== 1 || JSON.stringify(c[0].body) !== JSON.stringify({ posting_id: PID, kind: "recruiter", links: [{ name: "Replacement Group" }] })) bad.push("the whole-set request was " + JSON.stringify(c.map((x) => x.body)));
-    if (JSON.stringify(await titles(tab)) !== JSON.stringify(["Firm 1: Replacement Group"])) bad.push("the rows after the replace are " + JSON.stringify(await titles(tab)));
+    if (c.length !== 1 || JSON.stringify(c[0].body) !== JSON.stringify({ posting_id: PID, kind: "recruiter", op: "add", name: "Replacement Group", url: "https://own.example/apply" })) bad.push("the add request was " + JSON.stringify(c.map((x) => x.body)));
+    if (JSON.stringify(await titles(tab)) !== JSON.stringify(["Firm 1: Replacement Group"])) bad.push("the rows after the add are " + JSON.stringify(await titles(tab)));
+    if (!/Firm 1 was added\./.test((await text(tab, "#firmsAlert")) || "")) bad.push("the sentence after the add is '" + (await text(tab, "#firmsAlert")) + "'");
+    const boxes = await tab.eval("[...document.querySelectorAll('#firmRows input')].map((i) => i.value)");
+    if (JSON.stringify(boxes) !== JSON.stringify(["", ""])) bad.push("the add boxes were not emptied: " + JSON.stringify(boxes));
+    if (await visible(tab, "#unsavedBar")) bad.push("the unsaved bar stayed after the add");
+    if (/own\.example/.test(await tab.eval("document.body.innerText + [...document.querySelectorAll('input')].map((i) => i.value).join(' ')"))) bad.push("the address is on the page");
+    if (!(await visible(tab, "#clearFirmsBtn"))) bad.push("Remove all firms is not offered after the first firm");
+    return bad; })); },
+  async addSecond(root) { return withSite(root, { plan: "verified", recruiter: true, firms: [{ firm: "Acme Staffing" }] }, (site) => withTab(async (tab) => { const bad = [];
+    await openEdit(tab, site);
+    if (!(await visible(tab, "#firmAddBox"))) bad.push("with one firm the add form is not offered");
+    await tab.eval("(() => { const i = document.querySelectorAll('#firmRows input'); i[0].value = 'Beta Partners'; i[0].dispatchEvent(new Event('input', { bubbles: true })); })()");
+    await clickIn(tab, "#addFirmBtn");
+    await tab.waitFor("document.querySelectorAll('#firmsList .link-row').length === 2", 8000); await sleep(500);
+    const c = callsOf(site, "set-destination-links");
+    if (c.length !== 1 || JSON.stringify(c[0].body) !== JSON.stringify({ posting_id: PID, kind: "recruiter", op: "add", name: "Beta Partners" })) bad.push("the request was " + JSON.stringify(c.map((x) => x.body)) + " (only the new firm may be sent)");
+    if (JSON.stringify(await titles(tab)) !== JSON.stringify(["Firm 1: Acme Staffing", "Firm 2: Beta Partners"])) bad.push("the rows are " + JSON.stringify(await titles(tab)));
+    const b1 = await rowButtons(tab, 1), b2 = await rowButtons(tab, 2);
+    if (JSON.stringify(b1.map((x) => x[0])) !== JSON.stringify(["Check link", "Edit", "Remove"])) bad.push("firm 1 lost a button: " + JSON.stringify(b1));
+    if (JSON.stringify(b2.map((x) => x[0])) !== JSON.stringify(["Edit", "Remove"])) bad.push("the new firm with no address has " + JSON.stringify(b2));
+    if (!(await visible(tab, "#firmAddBox"))) bad.push("with two firms the add form is not offered");
+    return bad; })); },
+  async limit(root) { return withSite(root, { plan: "verified", recruiter: true, firms: THREE }, (site) => withTab(async (tab) => { const bad = [];
+    await openEdit(tab, site);
+    if (await visible(tab, "#firmAddBox") || await visible(tab, "#addFirmBtn")) bad.push("with three firms the add form is offered");
+    if (!(await visible(tab, "#firmsLimit")) || (await text(tab, "#firmsLimit")) !== "Three firms are named. That is the most one opening can have: remove one to add another.") bad.push("the limit sentence is '" + (await text(tab, "#firmsLimit")) + "'");
+    if (!(await visible(tab, "#clearFirmsBtn"))) bad.push("Remove all firms is not offered with three firms");
+    await clickIn(tab, "#firmsList button[aria-label=\"Remove firm 2\"]"); await sleep(300);
+    await clickIn(tab, "#firmsList .link-row[data-position=\"2\"] .link-remove button.btn-dark");
+    await tab.waitFor("document.querySelectorAll('#firmsList .link-row').length === 2", 8000); await sleep(400);
+    if (!(await visible(tab, "#firmAddBox")) || await visible(tab, "#firmsLimit")) bad.push("after a removal the add form did not come back");
+    await tab.eval("(() => { const i = document.querySelectorAll('#firmRows input'); i[0].value = 'Fresh Firm'; i[0].dispatchEvent(new Event('input', { bubbles: true })); })()");
+    await clickIn(tab, "#addFirmBtn");
+    await tab.waitFor("document.querySelectorAll('#firmsList .link-row').length === 3", 8000); await sleep(400);
+    if (JSON.stringify(await titles(tab)) !== JSON.stringify(["Firm 1: Acme Staffing", "Firm 2: Fresh Firm", "Firm 3: Third Search Group"])) bad.push("the new firm did not take the free position 2: " + JSON.stringify(await titles(tab)));
+    if (await visible(tab, "#firmAddBox")) bad.push("the form is offered again at three firms");
+    return bad; })); },
+  async addRefused(root) { return withSite(root, { plan: "verified", recruiter: true, firms: [{ firm: "Acme Staffing" }] }, (site) => withTab(async (tab) => { const bad = [];
+    await openEdit(tab, site);
+    await tab.eval("(() => { const i = document.querySelectorAll('#firmRows input'); i[0].value = 'Late Firm'; i[0].dispatchEvent(new Event('input', { bubbles: true })); i[1].value = 'http://insecure.example/a'; i[1].dispatchEvent(new Event('input', { bubbles: true })); })()");
+    await clickIn(tab, "#addFirmBtn"); await sleep(300);
+    if (callsOf(site, "set-destination-links").length) bad.push("an address that does not start with https:// was sent");
+    if (!/The address must start with https:\/\//.test((await text(tab, "#firmAddBox")) || "")) bad.push("the address is not refused in words");
+    await tab.eval("(() => { const i = document.querySelectorAll('#firmRows input'); i[1].value = 'https://blocked.example/apply'; i[1].dispatchEvent(new Event('input', { bubbles: true })); })()");
+    await clickIn(tab, "#addFirmBtn");
+    await tab.waitFor("/not allowed/.test(document.querySelector('#firmAddBox').innerText)", 8000); await sleep(300);
+    if (JSON.stringify(await titles(tab)) !== JSON.stringify(["Firm 1: Acme Staffing"])) bad.push("a refused add changed the rows: " + JSON.stringify(await titles(tab)));
+    const typed = await tab.eval("[...document.querySelectorAll('#firmRows input')].map((i) => i.value)");
+    if (typed[0] !== "Late Firm") bad.push("the name that was typed was lost after a refusal: " + JSON.stringify(typed));
+    return bad; })); },
+  async addLimitRefused(root) { return withSite(root, { plan: "verified", recruiter: true, firms: [{ firm: "Acme Staffing" }], addRefusal: { status: 409, body: { error: "A posting can name at most 3 recruiter firms; nothing was changed. Remove one first.", code: "firm_limit" } } }, (site) => withTab(async (tab) => { const bad = [];
+    await openEdit(tab, site);
+    await tab.eval("(() => { const i = document.querySelectorAll('#firmRows input'); i[0].value = 'Fourth Firm'; i[0].dispatchEvent(new Event('input', { bubbles: true })); })()");
+    await clickIn(tab, "#addFirmBtn");
+    await tab.waitFor("/most one opening can have/.test(document.querySelector('#firmsAlert').innerText)", 8000).catch(() => null); await sleep(300);
+    const said = (await text(tab, "#firmsAlert")) || "";
+    if (said !== "Three firms are named. That is the most one opening can have: remove one to add another.") bad.push("a refused add says '" + said + "'");
+    if (JSON.stringify(await titles(tab)) !== JSON.stringify(["Firm 1: Acme Staffing"])) bad.push("a refused add changed the rows: " + JSON.stringify(await titles(tab)));
+    return bad; })); },
+  async removeAll(root) { return withSite(root, { plan: "verified", recruiter: true, firms: THREE }, (site) => withTab(async (tab) => { const bad = [];
+    await openEdit(tab, site);
+    await clickIn(tab, "#clearFirmsBtn");
+    await tab.waitFor("document.querySelectorAll('#firmsList .link-row').length === 0", 8000); await sleep(400);
+    const c = callsOf(site, "set-destination-links");
+    if (c.length !== 1 || JSON.stringify(c[0].body) !== JSON.stringify({ posting_id: PID, kind: "recruiter", links: [] })) bad.push("the request was " + JSON.stringify(c.map((x) => x.body)));
+    if (!/Removed\. No recruiter firm is named on this opening\./.test((await text(tab, "#firmsAlert")) || "")) bad.push("the sentence after Remove all firms is '" + (await text(tab, "#firmsAlert")) + "'");
+    if (!(await visible(tab, "#firmAddBox")) || await visible(tab, "#clearFirmsBtn")) bad.push("after Remove all firms the form is not the empty one");
+    return bad; })); },
+  async addDiscard(root) { return withSite(root, { plan: "verified", recruiter: true, firms: [{ firm: "Acme Staffing" }] }, (site) => withTab(async (tab) => { const bad = [];
+    await openEdit(tab, site);
+    await tab.eval("(() => { const i = document.querySelectorAll('#firmRows input'); i[0].value = 'Typed Only'; i[0].dispatchEvent(new Event('input', { bubbles: true })); })()");
+    if (!(await visible(tab, "#unsavedBar"))) bad.push("text typed in the add form does not show the bar");
+    await clickIn(tab, "#unsavedDiscard"); await sleep(700);
+    if (await visible(tab, "#unsavedBar")) bad.push("the bar stayed after Discard");
+    const typed = await tab.eval("[...document.querySelectorAll('#firmRows input')].map((i) => i.value)");
+    if (JSON.stringify(typed) !== JSON.stringify(["", ""])) bad.push("Discard left the add boxes as " + JSON.stringify(typed));
+    if (callsOf(site, "set-destination-links").length) bad.push("Discard sent something");
     return bad; })); },
 };
 
@@ -197,6 +287,14 @@ const DEFECTS = [
   ["a lapsed tier is treated as an active one (the rows and the form are drawn)", [["js/pages/edit.js", (s) => s.replace("$(\"#firmsForm\").hidden = !(notice.state === \"active\" && savedOn && state.recruiter);", "$(\"#firmsForm\").hidden = !(notice.state !== \"locked\" && savedOn && state.recruiter);")]], ["lapsed"]],
   ["Discard leaves an open firm edit", [["js/pages/edit.js", (s) => s.replace("    if (shown(\"#firmsForm\")) firmPanel.discard();             // the same for the recruiter firms' rows and for the policy link's row\n", "")]], ["discard"]],
   ["a changed firm name is not counted as unsaved work", [["js/pages/edit.js", (s) => s.replace(" || (shown(\"#firmsForm\") && firmPanel.hasPending())", "")]], ["editName", "discard"]],
+  ["Add firm replaces the whole set (the whole-set call with only the new firm)", [["js/pages/edit.js", (s) => s.replace("api.addRecruiterFirm(postingId, plan.add)", "api.setRecruiterFirms(postingId, [plan.add])")]], ["addFirst", "addSecond"]],
+  ["the add form is still offered at three firms", [["js/pages/edit.js", (s) => s.replace("$(\"#firmAddBox\").hidden = count >= 3;", "$(\"#firmAddBox\").hidden = false;")]], ["limit"]],
+  ["the limit sentence is never shown", [["js/pages/edit.js", (s) => s.replace("lim.hidden = count < 3;", "lim.hidden = true;")]], ["limit"]],
+  ["text typed in the add form is not counted as unsaved work", [["js/pages/edit.js", (s) => s.replace("(shown(\"#firmsForm\") && rowsTyped(firms.values())) || ", "")]], ["addFirst", "addDiscard"]],
+  ["the add boxes keep what was typed after the add worked", [["js/pages/edit.js", (s) => s.replace("if (!state.firmsBusy && !state.keepPanels.has(PANEL.FIRMS)) firms.reset();", "")]], ["addFirst"]],
+  ["a refused add is not told to the person", [["js/pages/edit.js", (s) => s.replace("      say(box, \"error\", f.text || failureText(r.error));\n      return;\n    }\n    state.firmsBusy = false;\n    const reload = await api.getMyPosting(postingId);\n    if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.FIRMS });\n    const warn = firmWarn", "      return;\n    }\n    state.firmsBusy = false;\n    const reload = await api.getMyPosting(postingId);\n    if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.FIRMS });\n    const warn = firmWarn")]], ["addLimitRefused"]],
+  ["Remove all firms sends a one-firm remove instead of the empty set", [["js/pages/edit.js", (s) => s.replace("api.setRecruiterFirms(postingId, [])", "api.removeRecruiterFirm(postingId, 1)")]], ["removeAll"]],
+  ["the bar uses the generic sentence for an open firm edit", [["js/pages/edit.js", (s) => s.replace("firmEdit: shown(\"#firmsForm\") && firmPanel.hasPending(), ", "")]], ["editName"]],
   ["the limit of three rows is not kept (a fourth firm is drawn)", [["js/firm-panel-model.js", (s) => s.replace("x.position > 3 ||", "x.position > 30 ||")]], ["__unit"]],
 ];
 test("negative controls: each defect in the recruiter firms page code makes a scenario fail", { timeout: 1800000 }, async () => {

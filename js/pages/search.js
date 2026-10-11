@@ -17,6 +17,7 @@ import { postingChips, notOpenMessage } from "../chips.js";
 import { aiNotes } from "../ai-notes.js";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js";
 import { COMMENTS_VISIBLE } from "../config.js";
+import { openUnit } from "../open-link.js";
 import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js";
 import { isRegistered } from "../registered.js";
 import { placeParts } from "../place.js";
@@ -317,7 +318,7 @@ async function openDetails(row, button) {
 const rowText = (link) => link.kind === "recruiter" ? "Recruiter firm: " + link.firm + (link.label ? " · " + link.label : "") : link.kind === "policy" ? POLICY_LINE_LABEL + " " + link.label : (link.label || "Application link " + link.position);
 function linkRow(row, link) {
   if (link.kind === "recruiter" && link.label === null) return h("div", { class: "source-row", style: "cursor:default;" }, h("span", { class: "source-row-label" }, rowText(link)), h("span", { class: "go", style: "color:var(--faint);" }, "No link given"));
-  const go_ = h("span", { class: "go" }, "Continue →");
+  const go_ = h("span", { class: "go" }, openUnit());          // "Open" + the external link icon + "opens in a new tab" for a screen reader (prompt BG): the same on every row that opens a new tab
   const el = h("button", { type: "button", class: "source-row" }, h("span", { class: "source-row-label" }, rowText(link)), go_);
   el.addEventListener("click", async () => {
     if (el.disabled) return;
@@ -333,12 +334,12 @@ function linkRow(row, link) {
       const w = url ? window.open(url, "_blank", "noopener,noreferrer") : null;
       if (w === null && url) {
         // the browser held back the new tab: give a real link the person can click themselves (it stays valid for 2 minutes)
-        el.replaceWith(h("a", { class: "source-row", href: url, target: "_blank", rel: "noopener noreferrer", style: "text-decoration:none;" }, h("span", { class: "source-row-label" }, rowText(link)), h("span", { class: "go" }, "Open link →")));
+        el.replaceWith(h("a", { class: "source-row", href: url, target: "_blank", rel: "noopener noreferrer", style: "text-decoration:none;" }, h("span", { class: "source-row-label" }, rowText(link)), h("span", { class: "go" }, openUnit())));
         return;
       }
       go_.textContent = "Opened ✓";
     } finally {
-      setTimeout(() => { if (el.isConnected) { el.disabled = false; if (go_.textContent !== "Continue →") go_.textContent = "Continue →"; } }, 4000);
+      setTimeout(() => { if (el.isConnected) { el.disabled = false; if (go_.querySelector(".go-open") === null) go_.replaceChildren(openUnit()); } }, 4000);
     }
   });
   return el;

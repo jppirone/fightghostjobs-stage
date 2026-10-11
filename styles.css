@@ -74,7 +74,9 @@ th.sortable{cursor:pointer;user-select:none}
 label{font-size:13px;font-weight:600;display:block;margin-bottom:6px}
 input[type="text"]{border:1px solid var(--line);border-radius:8px;padding:11px 14px;font-size:14px;width:100%;font-family:'Work Sans',sans-serif}
 
-.toggle{width:52px;height:30px;border-radius:999px;border:none;position:relative;padding:0;background:#D8D2C6}
+.toggle{width:52px;height:30px;flex:none;border-radius:999px;border:none;position:relative;padding:0;background:#D8D2C6}   /* flex: none: the switch is never squeezed by the sentence beside it (prompt BG: a squeezed switch left its knob outside it) */
+.toggle-row{gap:16px}
+.toggle-row>div:first-child{min-width:0;flex:1 1 auto}   /* the sentence wraps instead of pushing the switch out */
 .toggle.on{background:var(--ember)}
 .toggle-knob{width:24px;height:24px;border-radius:999px;background:#fff;position:absolute;top:3px;left:3px;transition:left .15s}
 .toggle.on .toggle-knob{left:25px}

@@ -53,6 +53,7 @@ export const UNSAVED = {
   LINKS_EDIT_DETAIL: "Press Save on the link you are editing, or press Discard.",   // the bar when the only thing not saved is the open Edit of a stored link (its own Save is inside that link)
   LINKS_FORM_EDIT_DETAIL: "Save changes does not save the link you are editing. Press Save on that link, or press Discard.",   // the bar when the main form and the open Edit of a stored link are both not saved (nothing else)
   LINKS_BOTH_DETAIL: "Save changes does not save the links. Press Save destination links in that section and Save on the link you are editing, or press Discard.",   // the bar when typed new link rows and the open Edit of a stored link are both not saved (the main form is saved)
+  FIRMS_EDIT_DETAIL: "Press Save on the firm you are editing, or press Discard.",   // prompt BG: the bar when the only thing not saved is the open Edit of a named firm (its own Save is inside that firm's form, on the second step; Discard is the bar's own button)
   LINKS_FORM_DETAIL: "Save changes does not save the destination links. Press Save destination links in that section, or press Discard.",   // the bar when the main form and typed new link rows are both not saved
   SAVE: "Save changes", DISCARD: "Discard",
   CONFIRM_DISCARD: "Discard your unsaved changes? The saved values will be put back.",
@@ -85,6 +86,9 @@ export function summarize(m) {
   // which kind of unsaved links work it is (js/pages/edit.js passes both flags): typed NEW link rows, or the open Edit of a STORED link. A caller that passes neither is read as typed rows.
   const linksOnly = n === 1 && panels[0] === PANEL.LINKS, rowsTyped = m.linkRows !== false, editOpen = m.linkEdit === true;
   const linksEditOnly = linksOnly && editOpen && !rowsTyped, linksRowsOnly = linksOnly && rowsTyped && !editOpen, linksBoth = linksOnly && editOpen && rowsTyped;
+  // the same split for the recruiter firms (prompt BG): typed text in the add form, or the open Edit of a named firm
+  const firmsOnly = n === 1 && panels[0] === PANEL.FIRMS, firmTyped = m.firmRows !== false, firmEditOpen = m.firmEdit === true;
+  const firmsEditOnly = firmsOnly && firmEditOpen && !firmTyped;
   const panelsLine = linksRowsOnly && form ? UNSAVED.LINKS_FORM_DETAIL : linksEditOnly && form ? UNSAVED.LINKS_FORM_EDIT_DETAIL : cap(named) + " not saved yet. Save changes does not save " + itThem + ": use the button in " + section + ".";
   if (form) {
     out.headline = UNSAVED.HEAD;
@@ -95,7 +99,7 @@ export function summarize(m) {
       : "If you leave this page now, your changes to this opening are lost.";
   } else {
     out.headline = cap(named) + " not saved yet";
-    out.detail = linksEditOnly ? UNSAVED.LINKS_EDIT_DETAIL : linksBoth ? UNSAVED.LINKS_BOTH_DETAIL : linksOnly ? UNSAVED.LINKS_DETAIL : "Save changes does not save " + itThem + ". Use the button in " + section + ", or press Discard.";
+    out.detail = linksEditOnly ? UNSAVED.LINKS_EDIT_DETAIL : linksBoth ? UNSAVED.LINKS_BOTH_DETAIL : linksOnly ? UNSAVED.LINKS_DETAIL : firmsEditOnly ? UNSAVED.FIRMS_EDIT_DETAIL : "Save changes does not save " + itThem + ". Use the button in " + section + ", or press Discard.";
     out.liveText = out.headline + ". " + out.detail;
     out.dialogTitle = out.headline;
     out.dialogText = "If you leave this page now, what you typed in the " + named + (n === 1 ? " section" : " sections") + " is lost. " + (n === 1 ? "It is" : "They are") + " saved with " + (n === 1 ? "its own button" : "their own buttons") + ", not with Save changes.";

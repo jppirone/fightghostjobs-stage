@@ -110,7 +110,7 @@ export const shapes = {
     && Number.isInteger(d.active_links) && Array.isArray(d.links) && d.links.length <= 10 && d.links.length === d.active_links && d.links.every(shapes.linkRow) && d.links.every((l, i) => i === 0 || d.links[i - 1].position < l.position),
   // prompt BC (October 10, 2026): the answer of an edit or a remove of ONE recruiter firm: the firms after the change by their stored positions (1 to 3, ascending, gaps allowed), each with only the seven fields a stored link carries
   firmRow: (l) => isObj(l) && Object.keys(l).every((k) => LINK_ROW_KEYS.includes(k)) && Number.isInteger(l.position) && l.position >= 1 && l.position <= 3 && l.kind === "recruiter" && isStr(l.firm) && l.label === null && shapes.linkExtras(l),
-  firmOpAnswer: (d) => isObj(d) && Object.keys(d).every((k) => LINK_OP_KEYS.includes(k)) && UUID_RE.test(d.posting_id) && d.kind === "recruiter" && (d.op === "edit" || d.op === "remove") && Number.isInteger(d.position) && d.position >= 1 && d.position <= 3 && isBool(d.changed)
+  firmOpAnswer: (d) => isObj(d) && Object.keys(d).every((k) => LINK_OP_KEYS.includes(k)) && UUID_RE.test(d.posting_id) && d.kind === "recruiter" && (d.op === "edit" || d.op === "remove" || d.op === "add") && Number.isInteger(d.position) && d.position >= 1 && d.position <= 3 && isBool(d.changed)
     && Number.isInteger(d.active_links) && Array.isArray(d.links) && d.links.length <= 3 && d.links.length === d.active_links && d.links.every(shapes.firmRow) && d.links.every((l, i) => i === 0 || d.links[i - 1].position < l.position),
   openAnswer: (d) => isObj(d) && shapes.openPosting(d.posting) && shapes.storedLinks(d.destination_links) && shapes.plan(d.plan) && Array.isArray(d.recent_changes) && d.recent_changes.length <= 5
     && d.recent_changes.every((c) => isObj(c) && isStr(c.at) && isStr(c.note) && isNullable(c.kind, isStr) && Array.isArray(c.fields) && c.fields.every(isStr)),
@@ -242,6 +242,14 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
       if (hasUrl) body.url = c.url.trim();
       if (hasName) body.name = c.name.trim();
       return call("set-destination-links", body, { validate: (d) => shapes.firmOpAnswer(d) && d.op === "edit" && d.position === position && d.posting_id.toLowerCase() === postingId.toLowerCase() });
+    },
+    // prompt BG (October 10, 2026): add ONE firm without replacing the others. change = { name, url? }: the name is required, a blank or missing address means a firm named without an address. The server picks the position (the lowest free one of 1 to 3).
+    addRecruiterFirm: async (postingId, change) => {
+      const c = isObj(change) ? change : {}, hasUrl = isStr(c.url) && c.url.trim() !== "";
+      if (!UUID_RE.test(postingId) || !isStr(c.name) || c.name.trim() === "" || (c.url !== undefined && c.url !== null && !isStr(c.url))) return { ok: false, status: 0, error: { code: "invalid_request" } };
+      const body = { posting_id: postingId, kind: "recruiter", op: "add", name: c.name.trim() };
+      if (hasUrl) body.url = c.url.trim();
+      return call("set-destination-links", body, { validate: (d) => shapes.firmOpAnswer(d) && d.op === "add" && d.changed === true && d.posting_id.toLowerCase() === postingId.toLowerCase() });
     },
     removeRecruiterFirm: async (postingId, position) => {
       if (!UUID_RE.test(postingId) || !Number.isInteger(position) || position < 1 || position > 3) return { ok: false, status: 0, error: { code: "invalid_request" } };

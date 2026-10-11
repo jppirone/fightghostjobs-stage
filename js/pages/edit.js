@@ -7,13 +7,14 @@ import { rememberNext } from "../session.js";
 import { $, $$, h, clear, alertBox } from "../dom.js";
 import { fmtClose, fmtStamp, waitText, groupCode } from "../format.js";
 import { statusChip } from "../dashboard-model.js";
-import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, checkFirms, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js";
+import { checkEdit, mapEditErrors, KIND_TEXT, checkLinks, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js";
 import { mountLocationPicker } from "../location-picker.js";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js";
 import { loadCatalog } from "../location-catalog.js";
-import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js";
+import { mountLinkRowsById, mountLinkRows } from "../link-rows.js";
 import { mountLinkPanel } from "../link-panel.js";
 import { mountFirmPanel } from "../firm-panel.js";
+import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js";
 import { mountPolicyPanel } from "../policy-panel.js";
 import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js";
 import { wireInfoIcons } from "../info-icon.js";
@@ -165,7 +166,8 @@ function renderLinks(doc, editable) {
 // ---- recruiter firms (pass C): the same plan gate as the links; the rows are usable only while the SAVED posting says a recruiter is involved (the toggle above, saved).
 // The panel sits in the Destination links card, below Save changes: the toggle (free) is above it, naming a firm and its links is the verified plan's part, and it saves with its own button.
 // Why "saved first": set-destination-links reads the STORED third_party_recruiter flag inside its transaction and refuses with 409 recruiter_off when it is not true (and a database trigger refuses the insert too), so the toggle must be saved by Save changes before a firm can be stored.
-const firms = mountFirmRowsById();
+// the add form under the rows (prompt BG): ONE name box and ONE optional address box; "Add firm" adds that one firm and never sends the firms already named
+const firms = mountLinkRows({ host: $("#firmRows"), addBtn: null, mode: "firmAdd" });
 // the rows panel (prompt BC): Check link, Edit and Remove on ONE named firm, the same shared rows panel the destination links use. It draws from position, name, what candidates see and the check result; it never receives or shows an address.
 const firmPanel = mountFirmPanel({
   host: $("#firmsList"), hintEl: $("#firmsPanelHint"), api, getPostingId: () => postingId,
@@ -174,7 +176,7 @@ const firmPanel = mountFirmPanel({
   onStale: async () => { const reload = await api.getMyPosting(postingId); if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.FIRMS }); },
   onChanged: async (list) => {                                                                                                // an edit or a remove worked: keep what this page holds in step, then refresh the change list
     if (state.doc) state.doc.destination_links = applyLinks(state.doc.destination_links).concat(list, policyLink(state.doc.destination_links) ? [policyLink(state.doc.destination_links)] : []);
-    $("#clearFirmsBtn").hidden = list.length === 0;
+    syncFirmAdd(list.length);
     const reload = await api.getMyPosting(postingId);
     if (reload.ok) { state.doc.recent_changes = reload.data.recent_changes; renderChanges(reload.data.recent_changes); }
     refreshUnsaved();
@@ -193,35 +195,64 @@ function renderFirms(doc, editable) {
   else if (notice.state === "active" && state.recruiter && !savedOn) { note.hidden = false; note.append(alertBox("notice", "Naming a firm is optional. To name one here, first save this opening with the recruiter toggle on (Save changes, above); then come back to this section.")); }
   if (!$("#firmsForm").hidden) {
     firmPanel.render(doc.destination_links);      // one row per named firm (or the sentence that none is named yet)
-    $("#clearFirmsBtn").hidden = stored.length === 0;
+    syncFirmAdd(stored.length);
     if (!state.firmsBusy && !state.keepPanels.has(PANEL.FIRMS)) firms.reset();
   }
 }
-async function submitFirms(clearAll) {
-  if (state.firmsBusy || !state.orig) return;
+// three firms: the add form goes and one plain sentence says the limit; none: Remove all firms goes
+function syncFirmAdd(count) {
+  $("#firmAddBox").hidden = count >= 3;
+  const lim = $("#firmsLimit"); lim.hidden = count < 3; lim.textContent = count >= 3 ? FP.LIMIT : "";
+  $("#clearFirmsBtn").hidden = count === 0;
+}
+// Add firm (prompt BG): one firm through the one-firm add. The server picks the position; the other firms are neither sent nor changed.
+async function submitFirmAdd() {
+  if (state.firmsBusy || firmPanel.isBusy() || !state.orig) return;
   const box = $("#firmsAlert"); say(box, "error", "");
-  const check = clearAll ? { ok: true, links: [], rowOf: [], errors: {} } : checkFirms(firms.values());
-  firms.showErrors(check.errors);
-  if (!check.ok) { if (check.form) say(box, "error", check.form); firms.focus(check.errors); return; }
-  state.firmsBusy = true; $("#saveFirmsBtn").disabled = true;
+  const v = firms.values()[0] || { name: "", url: "" };
+  const plan = planFirmAdd(v.name, v.url);
+  firms.showErrors(plan.ok ? {} : { 0: plan.errors });
+  if (!plan.ok) { firms.focus({ 0: plan.errors }); return; }
+  state.firmsBusy = true; $("#addFirmBtn").disabled = true;
   try {
-    const r = await api.setRecruiterFirms(postingId, check.links);
+    const r = await api.addRecruiterFirm(postingId, plan.add);
     if (!r.ok) {
       if (isAuthFailure(r.error)) return sessionEnded();
-      const m = mapLinksErrors(r.error, check.rowOf);
-      firms.showErrors(m.rows);
-      say(box, "error", m.general || (Object.keys(m.rows).length ? "Nothing was saved. See the message under the firm." : failureText(r.error)));
+      const f = firmRefusal("add", r.error, isAuthFailure);
+      if (f.where === "second") { firms.showErrors({ 0: { name: f.text } }); firms.focus({ 0: { name: f.text } }); return; }
+      if (f.where === "url") { firms.showErrors({ 0: { url: f.text } }); firms.focus({ 0: { url: f.text } }); return; }
+      if (f.stale) { state.firmsBusy = false; const reload = await api.getMyPosting(postingId); if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.FIRMS }); }
+      say(box, "error", f.text || failureText(r.error));
       return;
     }
     state.firmsBusy = false;
     const reload = await api.getMyPosting(postingId);
     if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.FIRMS });
-    const warn = clearAll ? null : checkWarnings(r.data.links);
-    say($("#firmsAlert"), warn ? "notice" : "ok", (r.data.changed === false ? (clearAll ? "No firm was named, so nothing was changed." : "These are the firms already named, so nothing was changed.") : clearAll ? "Removed. No recruiter firm is named on this opening." : "Saved. " + (r.data.active_links === 1 ? "1 recruiter firm is" : r.data.active_links + " recruiter firms are") + " now named.") + (warn ? " " + warn : ""));
-  } finally { state.firmsBusy = false; $("#saveFirmsBtn").disabled = false; }
+    const warn = firmWarn(r.data, r.data.position);
+    say($("#firmsAlert"), warn ? "notice" : "ok", firmSuccess("add", r.data, null) + (warn ? " " + warn : ""));
+  } finally { state.firmsBusy = false; $("#addFirmBtn").disabled = false; }
 }
-$("#saveFirmsBtn").addEventListener("click", () => submitFirms(false));
-$("#clearFirmsBtn").addEventListener("click", () => { if (window.confirm("Remove every recruiter firm from this opening? You can name them again at any time.")) submitFirms(true); });
+// Remove all firms (the whole-set call with none: the only use this page still makes of it)
+async function removeAllFirms() {
+  if (state.firmsBusy || firmPanel.isBusy() || !state.orig) return;
+  const box = $("#firmsAlert"); say(box, "error", "");
+  state.firmsBusy = true; $("#clearFirmsBtn").disabled = true;
+  try {
+    const r = await api.setRecruiterFirms(postingId, []);
+    if (!r.ok) {
+      if (isAuthFailure(r.error)) return sessionEnded();
+      const m = mapLinksErrors(r.error, []);
+      say(box, "error", m.general || failureText(r.error));
+      return;
+    }
+    state.firmsBusy = false;
+    const reload = await api.getMyPosting(postingId);
+    if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.FIRMS });
+    say($("#firmsAlert"), "ok", r.data.changed === false ? "No firm was named, so nothing was changed." : "Removed. No recruiter firm is named on this opening.");
+  } finally { state.firmsBusy = false; $("#clearFirmsBtn").disabled = false; }
+}
+$("#addFirmBtn").addEventListener("click", () => submitFirmAdd());
+$("#clearFirmsBtn").addEventListener("click", () => { if (window.confirm("Remove every recruiter firm from this opening? You can name them again at any time.")) removeAllFirms(); });
 
 // ---- the AI and hiring policy link (prompt BA, October 10, 2026): one more destination link, in the Disclosures area next to the AI toggles. The same tier gate as the links and the firms; its own Save and Remove buttons
 // (Save changes does not save it); the address is write-only (the box starts empty and is never filled from the server). The words and the states are in js/policy-link.js.
@@ -427,7 +458,7 @@ function unsavedModel() {
   if (!state.orig || state.loading) return { form: false, panels: [], status: "live", noteMissing: false, noteRequired: false, rules: { titleRule: false } };
   const dirty = formUnsaved(), rules = earlyRules(state.orig, collect(), dirty);
   // linkRows / linkEdit: which kind of destination links work is unsaved (typed new rows, or the open Edit of a stored link): the bar names the right button for each (js/dirty-state.js)
-  return { form: dirty, panels: panelsUnsaved(), linkRows: shown("#linksForm") && rowsTyped(links.values()), linkEdit: shown("#linksPanel") && linkPanel.hasPending(), status: state.orig.stored_status, noteMissing: rules.noteMissing, noteRequired: rules.noteRequired, rules };
+  return { form: dirty, panels: panelsUnsaved(), linkRows: shown("#linksForm") && rowsTyped(links.values()), linkEdit: shown("#linksPanel") && linkPanel.hasPending(), firmRows: shown("#firmsForm") && rowsTyped(firms.values()), firmEdit: shown("#firmsForm") && firmPanel.hasPending(), status: state.orig.stored_status, noteMissing: rules.noteMissing, noteRequired: rules.noteRequired, rules };
 }
 function refreshUnsaved() {
   if (!guard) return;

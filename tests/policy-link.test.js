@@ -255,7 +255,7 @@ const SCENARIOS = {
   async candidateLine(root) { return withSite(root, { policyDetail: true }, (site) => withTab(async (tab) => { const bad = [];
     await openSearch(tab, site); await runSearch(tab); await openDetails(tab);
     const w = await tab.eval(WINDOW);
-    if (w.policyHidden || w.policy.length !== 1 || w.policy[0] !== "AI and hiring policy: Employer's own site Continue →") bad.push("the line is " + JSON.stringify(w.policy) + " (hidden " + w.policyHidden + ")");
+    if (w.policyHidden || w.policy.length !== 1 || w.policy[0] !== "AI and hiring policy: Employer's own site Open opens in a new tab") bad.push("the line is " + JSON.stringify(w.policy) + " (hidden " + w.policyHidden + ")");
     if (w.apply.length !== 2 || w.apply.some((t) => /AI and hiring policy/.test(t))) bad.push("the application links are " + JSON.stringify(w.apply));
     if (!w.noteShown) bad.push("the note about the one-time links is not shown");
     if (!w.more.some((t) => /Report a wrong link/.test(t))) bad.push("the report link is gone");
