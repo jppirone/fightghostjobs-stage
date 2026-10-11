@@ -20,8 +20,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const MARK = /\?v=[0-9a-f]{8}/;
 
+const made = [];   // every temporary tree this file makes: removed when the file is done (nothing is left in the temp folder)
 function makeTree(files) {
-  const d = fs.mkdtempSync(path.join(os.tmpdir(), "fgj-stamp-"));
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "fgj-stamp-")); made.push(d);
   for (const [rel, text] of Object.entries(files)) { const p = path.join(d, rel); fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, text); }
   return d;
 }
@@ -116,7 +117,7 @@ test("the repository itself: every local script, style and import carries a curr
 // ---- the browser: a changed module reaches the person without a hard refresh, because its marker changed
 let browser;
 before(async () => { browser = await launchBrowser(); });
-after(async () => { if (browser) await browser.close(); });
+after(async () => { if (browser) await browser.close(); for (const d of made) fs.rmSync(d, { recursive: true, force: true }); });
 
 test("in a real browser with Cache-Control max-age=600: a stamped change shows on the next visit; the same change without a stamp is served from the cache", { timeout: 180000 }, async () => {
   const d = makeTree({
