@@ -232,7 +232,7 @@ test("edit.html and edit.js show the Opening ID at the top, with the same label 
 });
 
 test("the pages that already showed the Opening ID still do, through the same formatter", () => {
-  assert.ok(src("js/pages/dashboard.js").includes("groupCode(p.post_id)") && src("dashboard.html").includes("<th role=\"columnheader\">Opening ID</th>"));
+  assert.ok(src("js/pages/dashboard.js").includes("groupCode(p.post_id)") && src("js/pages/dashboard.js").includes('"Title", "Req #", "Opening ID"'));      // prompt BP: the headings are drawn by the page script
   assert.ok(src("js/pages/comments.js").includes('"Opening ID " + groupCode(p.post_id)'));
   assert.ok(src("js/pages/register.js").includes("groupCode(p.public_code)") && src("js/pages/register.js").includes('"Your Opening ID"'));
 });

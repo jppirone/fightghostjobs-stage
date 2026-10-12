@@ -189,7 +189,7 @@ for (const [name, run] of Object.entries(SCENARIOS)) {
 const DEFECTS = [
   ["the card's width cap is back at 1440", [["dashboard.html", (s) => s.replace("max-width:1800px;margin:0 auto;padding:44px 32px;", "max-width:1440px;margin:0 auto;padding:44px 32px;")]], ["layoutZoomedOut"]],
   ["the page has no width cap at all", [["dashboard.html", (s) => s.replace("max-width:1800px;margin:0 auto;padding:44px 32px;", "margin:0 auto;padding:44px 32px;")]], ["layoutZoomedOut"]],
-  ["the Actions cell is back to one line (nowrap)", [["js/pages/dashboard.js", (s) => s.replace('h("td", { role: "cell", "data-label": "Actions" }, actionCells(p, now))', 'h("td", { role: "cell", "data-label": "Actions", style: "white-space:nowrap;" }, actionCells(p, now))')]], ["layout1366", "layoutNarrow"]],
+  // prompt BP: the control "the Actions cell is back to one line (nowrap)" is gone: the Actions cell IS a no-wrap cell now, by design (the roomiest layout), and the page falls back to wrapping when it does not fit
   ["the note is back to one line inline pieces", [["js/pages/dashboard.js", (s) => s.replace('h("div", { class: "row-note act-note" },', 'h("span", { class: "row-note", style: "white-space:nowrap;" },')]], ["layout1366"]],
   ["the note has no width cap", [["app.css", (s) => s.replace(".my-openings .act-note{max-width:24ch;white-space:normal;overflow-wrap:break-word}", ".my-openings .act-note{white-space:nowrap}")]], ["layout1366"]],
   ["the Title column has no minimum", [["app.css", (s) => s.replace(".my-openings thead th:first-child,.my-openings td[data-label=\"Title\"]{min-width:11rem}", "")]], ["layoutNarrow"]],

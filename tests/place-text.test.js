@@ -187,8 +187,9 @@ const SCENARIOS = {
     await signIn(tab, site);
     await tab.goto(site.url + "/dashboard.html");
     await tab.waitFor("document.querySelectorAll('tbody tr').length > 0", 10000); await sleep(600);
-    const first = await text(tab, "tbody tr");
-    if (!/Zürich, Switzerland/.test(first || "")) bad.push("the first opening's place line is not the typed place: '" + first + "'");
+    // prompt BP: the rows are in the order of the day they were added (with ties by title), so the row that carries the typed place is found by its place line, not by its position
+    const lines = await tab.eval("Array.from(document.querySelectorAll('tbody [data-part=\"place\"]')).map((e) => e.innerText.replace(/\\s+/g, ' ').trim())");
+    if (!lines.includes("Zürich, Switzerland")) bad.push("no opening's place line is the typed place: " + JSON.stringify(lines));
     return bad; })); },
 };
 

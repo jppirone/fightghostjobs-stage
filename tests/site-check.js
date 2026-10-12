@@ -994,13 +994,13 @@ export function checkSite(root, opts = {}) {
       "employer-signin.html": ['class="pg pg-top cols"', 'class="h-big"'],
       "register.html": ['class="pg pg-top cols"', 'class="grid2"'], "edit.html": ['class="pg pg-top cols"', 'class="grid2"'],
       "search.html": ['<div class="pg" style="padding:56px 64px 32px 64px;">', 'id="signinWrap" class="pg"', 'id="roleNotice" class="pg"', 'id="landedNotice" class="pg"'],
-      "dashboard.html": ['class="pg"', 'class="fill"', 'class="card flush" data-scroll-area="My openings table"', 'class="dash-table rtable my-openings" role="table"', 'role="columnheader">Title<'],      // prompt BL: the class my-openings scopes the layout rules to this table
+      "dashboard.html": ['class="pg"', 'class="fill"', 'class="card flush" data-scroll-area="My openings table"', 'class="dash-table rtable my-openings" role="table"', 'id="headRow"'],      // prompt BL: the class my-openings scopes the layout rules to this table; prompt BP: the headings are drawn by js/pages/dashboard.js (the Status column comes and goes)
       "team.html": ['class="pg"', 'class="grid2"', 'class="card flush" data-scroll-area="Team table"', 'class="dash-table rtable" role="table"', '<th role="columnheader">Name</th><th role="columnheader">Work email</th><th role="columnheader">Role</th><th role="columnheader">Status</th><th role="columnheader">Actions</th>'],
       "analytics.html": ['class="pg"', 'class="grid2"', 'class="card flush" data-scroll-area="Traffic by opening table"', 'id="postingTable" class="rtable" role="table"', '<th role="columnheader">Opening</th><th role="columnheader">Searches</th><th role="columnheader">Detail views</th><th role="columnheader">Link clicks</th><th role="columnheader">Click-through</th>'],
       "comments.html": ['class="pg"'], "privacy.html": ['class="pg"'], "404.html": ['class="pg pg-top"'], "auth-callback.html": ['class="pg pg-top"'],
     };
     for (const [f, needles] of Object.entries(classes)) { const p = path.join(root, f); if (!fs.existsSync(p)) continue; const t = read(p); for (const n of needles) if (!t.includes(n)) add("S48", p, "the phone layout needs " + n + " on this page"); }
-    const labels = { "dashboard.js": 9, "analytics.js": 5, "team.js": 5 };
+    const labels = { "dashboard.js": 7, "analytics.js": 5, "team.js": 5 };      // prompt BP: My openings has seven columns at most (Title, Req #, Opening ID, Status, Actions, Closes, Comments)
     for (const [f, n] of Object.entries(labels)) { const p = path.join(root, "js", "pages", f); if (!fs.existsSync(p)) continue; const t = read(p); if ((t.match(/"data-label":/g) || []).length !== n || !t.includes('h("tr", { role: "row" }') || (t.match(/role: "cell"/g) || []).length !== n) add("S48", p, "each table row must carry role row, and each of its " + n + " cells role cell and a data-label (the visible label of the cell on a phone)"); }
     const sp = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sp) && read(sp).split('class: "res-head"').length - 1 !== 2) add("S48", sp, "a result card's heading row carries res-head (the candidate card and the staff card: exactly two)");
     if (!fs.existsSync(testF)) add("S48", testF, "tests/phone-layout.test.js (the browser test of every page at phone widths) is missing");
@@ -1229,7 +1229,7 @@ export function checkSite(root, opts = {}) {
     need(ixF, [["if (!COMMENTS_VISIBLE) { const c = $(\"#cardComments\"); if (c) c.hidden = true; }", "hide the example card's Comments link"]]);
     need(srF, [["if (COMMENTS_VISIBLE) more.append(", "the details window's Comments link"], ["if (withReport) more.append(", "keep Report a wrong link"], ["more.hidden = more.children.length === 0;", "hide an empty links line"]]);
     need(cmF, [["if (COMMENTS_VISIBLE) { $(\"#threadWrap\").hidden = false;", "show the thread and the form only when on"], ["if (COMMENTS_VISIBLE) await loadThread(0);", "ask for the thread only when on"], ["notOpenRecap(d.data.status, d.data.closed_reason || null, COMMENTS_VISIBLE)", "the Comments stay open line"], ["if (!COMMENTS_VISIBLE) return;", "the employer's thread"]]);
-    need(dbF, [["if (!COMMENTS_VISIBLE) { const th", "remove the column header"], ["COMMENTS_VISIBLE ? h(\"td\"", "the Comments cell and row link"]]);
+    need(dbF, [['...(COMMENTS_VISIBLE ? ["Comments"] : [])', "remove the column header"], ["COMMENTS_VISIBLE ? h(\"td\"", "the Comments cell and row link"]]);
     if (!fs.existsSync(tf)) add("S58", tf, "the test comments-switch.test.js must exist"); else if (fs.existsSync(raF) && !read(raF).includes("comments-switch.test.js")) add("S58", raF, "tests/run-all.js must run comments-switch.test.js");
   }
 
@@ -1832,18 +1832,16 @@ export function checkSite(root, opts = {}) {
         ['.my-openings td[data-label="Actions"] .row-action{margin:0 14px 0 0}', "the action words keep a gap on their right and no left margin (a wrapped word is not indented)"],
         ['.my-openings td[data-label="Actions"] .row-action:last-child{margin-right:0}', "the last action word has no gap after it"],
         [".my-openings .nb{white-space:nowrap}", "a date and its time are no-wrap pieces (a line breaks only between them)"],
-        ['.my-openings td[data-label="Actions"],.my-openings td[data-label="Closes"],.my-openings td[data-label="Added"],.my-openings td[data-label="Opening ID"],.my-openings td[data-label="Comments"]{width:1%;white-space:nowrap}', "a wide window lets the five columns take what their words need"],
-        [".my-openings .act-note{min-width:36ch}", "the expired-draft note keeps a block about 36 characters wide in a wide window"],
-        ['.my-openings th:first-child,.my-openings td[data-label="Title"]{width:18%}', "the Title column's share is limited so the others keep their words on one line"],
+        ['.my-openings td[data-label="Actions"],.my-openings td[data-label="Closes"],.my-openings td[data-label="Opening ID"],.my-openings td[data-label="Comments"]{width:1%;white-space:nowrap}', "the four columns take what their words need (prompt BP: drawn at the roomiest, fitted by the page)"],
+        [".my-openings .act-note{min-width:36ch}", "the expired-draft note keeps a block about 36 characters wide while it fits"],
       ]) if (!c.includes(pin)) add("S81", cssF, "app.css: " + why);
       if (!/@media \(min-width:641px\)\{\s*\.my-openings thead th,\.my-openings td\{padding-left:8px;padding-right:8px\}/.test(c)) add("S81", cssF, "the tidy table rules apply above the phone width only (the phone layout is the card list of S48)");
-      if (!/@media \(min-width:1320px\)\{\s*\.my-openings td\[data-label="Actions"\]/.test(c)) add("S81", cssF, "the wide window rule applies from 1320 pixels (the narrowest window that fits every value on one line)");
+      if (!/@media \(min-width:641px\)\{\s*\.my-openings td\[data-label="Actions"\],/.test(c)) add("S81", cssF, "the roomiest-layout rule applies above the phone width only (prompt BP)");
     }
     if (fs.existsSync(dashJ)) {
       const s = body(dashJ);
       for (const [pin, why] of [
         ['return h("span", { class: "dt" }, ...out);', "the pieces of a date sit in ONE wrapper (a phone card's cell is a grid: each direct child is an item)"],
-        ["dateBits(postedCell(p))", "the Added value is drawn in no-wrap pieces"],
         ["dateBits(closesCell(p))", "the Closes value is drawn in no-wrap pieces"],
         ["place.length ? h(\"div\"", "the place line is left out when there is no place to show (no empty block)"],
       ]) if (!s.includes(pin)) add("S81", dashJ, "dashboard.js: " + why);
@@ -1873,6 +1871,56 @@ export function checkSite(root, opts = {}) {
       if (!s.includes("pl.hidden = placeKids.length === 0;")) add("S81", editJ, "edit.js: the place line (and its label) is hidden when nothing is set");
     }
     if (fs.existsSync(runF) && !read(runF).includes('"follow-up-bn.test.js"')) add("S81", runF, "follow-up-bn.test.js is not in the suite");
+  }
+  // S82 (2026-10-11, prompt BP): My openings reworked. Pinned: no Applicant cap column or cell (the editor's cap box stays: S-rules of the edit page), no Added column (the day it was added is a line under the title), the
+  // Sort by box between the search box and the table (a native select with its label), the headings drawn by the page (the Status column comes and goes), ONE constant for the flag and the Expiring pill (7 days),
+  // the pills in order, the sort words, the flag drawn in words with a dark colour whose contrast on the white card is at least 4.5 to 1, the live sentence for a changed sort, the table fitted to the card by asking the
+  // browser (fitTable), and the browser test (my-openings-bp.test.js) in the suite.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const body = (f) => (fs.existsSync(f) ? stripJsComments(read(f)) : "");
+    const dashH = P("dashboard.html"), dashJ = P("js", "pages", "dashboard.js"), modJ = P("js", "dashboard-model.js"), cssF = P("app.css"), runF = P("tests", "run-all.js");
+    if (fs.existsSync(dashH)) {
+      const h = read(dashH);
+      if (/Applicant cap|sortHead|sortArrow/.test(h)) add("S82", dashH, "My openings has no Applicant cap column and no Added arrow (the sort box replaced it)");
+      const iText = h.indexOf('id="textFilter"'), iSort = h.indexOf('id="sortBox"'), iCard = h.indexOf('class="card flush"');
+      if (h.split('id="sortBox"').length !== 2 || !(iText >= 0 && iSort > iText && iCard > iSort)) add("S82", dashH, "the Sort by box comes after the search box and before the table (the Tab order)");
+      if (!h.includes('<label for="sortBox">Sort by</label><select id="sortBox"></select>')) add("S82", dashH, "the sort box is a native select with the visible label Sort by");
+      if (!h.includes('id="headRow"')) add("S82", dashH, "the table headings are drawn by the page into #headRow");
+    }
+    if (fs.existsSync(modJ)) {
+      const s = body(modJ);
+      if (s.split("EXPIRY_FLAG_DAYS = ").length !== 2 || !s.includes("export const EXPIRY_FLAG_DAYS = 7;")) add("S82", modJ, "the flag and the Expiring pill have ONE constant, EXPIRY_FLAG_DAYS = 7, assigned once");
+      if (!s.includes("left > 0 && left <= EXPIRY_FLAG_DAYS * DAY_MS ? left : null")) add("S82", modJ, "the flag window is read from the one constant");
+      if (!s.includes('["closing", "Closing soon"], ["expiring", "Expiring"], ["paused", "Paused"]')) add("S82", modJ, "the pills are in order: All, Live, Closing soon, Expiring, Paused, Scheduled, Draft, Closed");
+      for (const w of ["Added, newest first", "Added, oldest first", "Closes, soonest first", "Closes, furthest first", "Title, A to Z", "Title, Z to A"]) if (!s.includes('"' + w + '"')) add("S82", modJ, "the sort option '" + w + "' is missing");
+      if (!s.includes("SAMPLE_ROWS.filter((r) => matchesFilter(r, filterKey, SAMPLE_NOW))")) add("S82", modJ, "which views mix statuses is worked out from matchesFilter itself");
+      if (/capCell|Applicant cap|No cap set/.test(s)) add("S82", modJ, "the model has no cap cell");
+    }
+    if (fs.existsSync(dashJ)) {
+      const s = body(dashJ);
+      if (/capCell|Applicant cap|No cap set|postedCell|sortByPosted/.test(s)) add("S82", dashJ, "My openings has no cap cell, no posted cell and no old Added sort");
+      for (const [pin, why] of [
+        ["showsStatusColumn(state.filter)", "the Status column follows the chosen pill"],
+        ["h(\"div\", { class: \"row-flag\", \"data-part\": \"flag\" }, flag)", "the flag is drawn as words under the date"],
+        ["state.announce = SORT_ANNOUNCE(item[1]);", "a changed sort is announced"],
+        ["(state.announce ? state.announce + \". \" : \"\") + count", "the announcement goes into the one live region"],
+        ["if (state.sortBoxStatus !== showStatus) {", "the sort box keeps its element (and its focus) when the table is drawn again"],
+        ["for (const level of [\"\", \"snug\", \"tight\"]) {", "the table is fitted to the card by asking the browser"],
+        ["h(\"div\", { class: \"row-sub\", \"data-part\": \"added\" }, addedCell(p))", "the day it was added is a line under the title"],
+      ]) if (!s.includes(pin)) add("S82", dashJ, "dashboard.js: " + why);
+    }
+    if (fs.existsSync(cssF)) {
+      const c = read(cssF), m = /\.row-flag\{[^}]*color:(#[0-9A-Fa-f]{6})/.exec(c);
+      if (!m) add("S82", cssF, "the flag has a colour (.row-flag)");
+      else {
+        const lum = (hex) => { const v = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((x) => (x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4))); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+        const ratio = (1 + 0.05) / (lum(m[1]) + 0.05);
+        if (ratio < 4.5) add("S82", cssF, "the flag's colour " + m[1] + " has a contrast of " + ratio.toFixed(2) + " to 1 on the white card (at least 4.5)");
+      }
+      for (const pin of [".my-openings.snug .act-note{min-width:0}", ".my-openings.tight td[data-label=\"Actions\"]", ".sort-box select{"]) if (!c.includes(pin)) add("S82", cssF, "app.css lacks " + pin);
+    }
+    if (fs.existsSync(runF) && !read(runF).includes('"my-openings-bp.test.js"')) add("S82", runF, "my-openings-bp.test.js is not in the suite");
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed

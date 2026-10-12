@@ -881,7 +881,7 @@ control("the register page title says Register an Opening again", "S66", edit("r
 control("the register button says Register opening again", "S66", edit("js/pages/register.js", (s) => s.replace('"Add and schedule" : "Add opening"', '"Register and schedule" : "Register opening"')));
 control("the success heading says Registered again", "S66", edit("js/pages/register.js", (s) => s.replace('"Added. It is live now."', '"Registered. It is live now."')));
 control("the details window says registered through again", "S66", edit("js/pages/search.js", (s) => s.replace("This opening was added through FightGhostJobs by the employer.", "This opening was registered through FightGhostJobs by an employer.")));
-control("the My openings column says Registered again", "S66", edit("dashboard.html", (s) => s.replace('aria-label="Sort by date added">Added <span', 'aria-label="Sort by date added">Registered <span')));
+control("the My openings column says Registered again", "S66", edit("js/pages/dashboard.js", (s) => s.replace('["Title", "Req #", "Opening ID", ...', '["Title", "Registered", "Opening ID", ...')));
 control("the team page says who can register openings", "S66", edit("team.html", (s) => s.replace("who can add openings for your organization.", "who can register openings for your organization.")));
 control("a search result chip says Registered with a date again", "S66", edit("js/chips.js", (s) => s.replace('text: "Added " + fmtDateTz(p.posted_at, tz)', 'text: "Registered " + fmtDateTz(p.posted_at, tz)')));
 control("the privacy heading says register openings again", "S66", edit("privacy.html", (s) => s.replace("If you add openings", "If you register openings")));
@@ -1304,11 +1304,9 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the last action word keeps a gap after it", "S81", edit(CSS, (s) => s.replace('  .my-openings td[data-label="Actions"] .row-action:last-child{margin-right:0}\n', "")));
   control("a date and its time may break in the middle", "S81", edit(CSS, (s) => s.replace("  .my-openings .nb{white-space:nowrap}\n", "")));
   control("the wide window rule is gone", "S81", edit(CSS, (s) => s.replace("{width:1%;white-space:nowrap}", "{}")));
-  control("the wide window rule starts at any width", "S81", edit(CSS, (s) => s.replace("@media (min-width:1320px){", "@media (min-width:1px){")));
+  control("the roomiest-layout rule applies on a phone too", "S81", edit(CSS, (s) => s.replace('@media (min-width:641px){\n  .my-openings td[data-label="Actions"],', '@media (min-width:1px){\n  .my-openings td[data-label="Actions"],')));
   control("the expired-draft note has no width of its own", "S81", edit(CSS, (s) => s.replace("  .my-openings .act-note{min-width:36ch}", "")));
-  control("the Title column has no share limit", "S81", edit(CSS, (s) => s.replace('  .my-openings th:first-child,.my-openings td[data-label="Title"]{width:18%}\n', "")));
   control("the date pieces sit straight in the cell", "S81", edit(DJ, (s) => s.replace('return h("span", { class: "dt" }, ...out);', "return out;")));
-  control("the Added value is plain text again", "S81", edit(DJ, (s) => s.replace("dateBits(postedCell(p))", "postedCell(p)")));
   control("the Closes value is plain text again", "S81", edit(DJ, (s) => s.replace("dateBits(closesCell(p))", "closesCell(p)")));
   control("My openings leaves an empty block for no place", "S81", edit(DJ, (s) => s.replace('place.length ? h("div"', 'true ? h("div"')));
   control("the place rule hides every place", "S81", edit(PJ, (s) => s.replace("if (!p.stated && opts && opts.hideNone === true) return [];", "if (opts && opts.hideNone === true) return [];")));
@@ -1321,6 +1319,31 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the error under the note box stays after a note is typed", "S81", edit(EJ, (s) => s.replace('noteInput.addEventListener("input", () =>', 'noteInput.addEventListener("keyup", () =>')));
   control("the editor keeps the Place label with nothing after it", "S81", edit(EJ, (s) => s.replace("pl.hidden = placeKids.length === 0;", "pl.hidden = false;")));
   control("the follow-up browser test is not in the suite", "S81", edit("tests/run-all.js", (s) => s.replace('path.join(here, "follow-up-bn.test.js")', 'path.join(here, "unit.test.js")')));
+}
+
+// S82 (prompt BP, October 11, 2026): My openings reworked (no cap column, Added under the title, the Status column only where it mixes, the sort box, the flag, the Expiring pill, the table fitted to the card)
+{
+  const DH = "dashboard.html", DJ = "js/pages/dashboard.js", MJ = "js/dashboard-model.js", CSS = "app.css";
+  control("the Applicant cap heading is back", "S82", edit(DH, (s) => s.replace('<tr role="row" id="headRow"></tr>', '<tr role="row" id="headRow"><th role="columnheader">Applicant cap</th></tr>')));
+  control("the sort box is before the search box", "S82", edit(DH, (s) => { const box = '    <div class="sort-box"><label for="sortBox">Sort by</label><select id="sortBox"></select></div>\n'; return s.replace(box, "").replace('  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">\n    <div id="filters"', '  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">\n' + box + '    <div id="filters"'); }));
+  control("the sort box has no visible label", "S82", edit(DH, (s) => s.replace('<label for="sortBox">Sort by</label>', '<label for="sortBox"></label>')));
+  control("the headings are not drawn by the page", "S82", edit(DH, (s) => s.replace('id="headRow"', 'id="headRowGone"')));
+  control("the flag has a second constant", "S82", edit(MJ, (s) => s.replace("export const EXPIRY_FLAG_DAYS = 7;", "export const EXPIRY_FLAG_DAYS = 7;\nexport const EXPIRY_FLAG_DAYS_DRAFT = 7;\nconst _x = EXPIRY_FLAG_DAYS = 7;")));
+  control("the flag window is a number in the code", "S82", edit(MJ, (s) => s.replace("left > 0 && left <= EXPIRY_FLAG_DAYS * DAY_MS ? left : null", "left > 0 && left <= 7 * DAY_MS ? left : null")));
+  control("the Expiring pill is not next to Closing soon", "S82", edit(MJ, (s) => s.replace('["closing", "Closing soon"], ["expiring", "Expiring"], ["paused", "Paused"]', '["closing", "Closing soon"], ["paused", "Paused"], ["expiring", "Expiring"]')));
+  control("a sort option is renamed", "S82", edit(MJ, (s) => s.replace('"Closes, soonest first"', '"Closes, first"')));
+  control("the mixed views are a list written by hand", "S82", edit(MJ, (s) => s.replace("SAMPLE_ROWS.filter((r) => matchesFilter(r, filterKey, SAMPLE_NOW))", 'SAMPLE_ROWS.filter((r) => filterKey === "all")')));
+  control("the cap cell is back in the page script", "S82", edit(DJ, (s) => s.replace('h("td", { role: "cell", "data-label": "Closes"', 'h("td", { role: "cell", "data-label": "Applicant cap" }, "No cap set"),\n    h("td", { role: "cell", "data-label": "Closes"')));
+  control("the Status column ignores the pill", "S82", edit(DJ, (s) => s.replace("const showStatus = showsStatusColumn(state.filter), key", "const showStatus = true, key")));
+  control("the flag is dropped from the page", "S82", edit(DJ, (s) => s.replace('flag ? h("div", { class: "row-flag", "data-part": "flag" }, flag) : null,', "null,")));
+  control("a changed sort is not announced", "S82", edit(DJ, (s) => s.replace("state.announce = SORT_ANNOUNCE(item[1]);", "")));
+  control("the sort box is rebuilt at every draw", "S82", edit(DJ, (s) => s.replace("if (state.sortBoxStatus !== showStatus) {", "if (true) {")));
+  control("the table is never fitted to the card", "S82", edit(DJ, (s) => s.replace('for (const level of ["", "snug", "tight"]) {', 'for (const level of [""]) {')));
+  control("the day added is no longer under the title", "S82", edit(DJ, (s) => s.replace('h("div", { class: "row-sub", "data-part": "added" }, addedCell(p))', "null")));
+  control("the flag colour is pale", "S82", edit(CSS, (s) => s.replace("color:#8A4B00;margin-top:2px}", "color:#D9A35B;margin-top:2px}")));
+  control("the tight layout is gone", "S82", edit(CSS, (s) => s.replace('.my-openings.tight td[data-label="Actions"]', '.my-openings.tightGone td[data-label="Actions"]')));
+  control("the note stays wide when it does not fit", "S82", edit(CSS, (s) => s.replace(".my-openings.snug .act-note{min-width:0}", "")));
+  control("the browser test is not in the suite", "S82", edit("tests/run-all.js", (s) => s.replace('path.join(here, "my-openings-bp.test.js")', 'path.join(here, "unit.test.js")')));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });

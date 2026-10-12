@@ -9,7 +9,7 @@
 <script src="js/stage-gate.js?v=d48925c1"></script>
 <title>FightGhostJobs | My Openings</title>
 <link rel="stylesheet" href="styles.css?v=4cea5b1e">
-<link rel="stylesheet" href="app.css?v=742fa6ae">
+<link rel="stylesheet" href="app.css?v=1b3644ed">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -43,16 +43,14 @@
     <div id="filters" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
     <div style="flex:1;"></div>
     <input id="textFilter" type="text" placeholder="Filter by title, req # or Opening ID" aria-label="Filter by title, req number or Opening ID" class="fill" style="width:280px;" autocomplete="off">
+    <!-- prompt BP: the sort box. It sits after the search box and before the table in the Tab order; its options are drawn by js/pages/dashboard.js from js/dashboard-model.js (SORTS) -->
+    <div class="sort-box"><label for="sortBox">Sort by</label><select id="sortBox"></select></div>
   </div>
 
   <div class="card flush" data-scroll-area="My openings table" style="padding:0;overflow-x:auto;">
     <table class="dash-table rtable my-openings" role="table">
       <thead role="rowgroup">
-        <tr role="row">
-          <th role="columnheader">Title</th><th role="columnheader">Req #</th><th role="columnheader">Opening ID</th><th role="columnheader">Status</th><th role="columnheader">Actions</th>
-          <th id="sortHead" class="sortable" tabindex="0" role="button" aria-label="Sort by date added">Added <span id="sortArrow">↓</span></th>
-          <th role="columnheader">Closes</th><th role="columnheader">Applicant cap</th><th role="columnheader" data-col="comments">Comments</th>
-        </tr>
+        <tr role="row" id="headRow"></tr>
       </thead>
       <tbody id="rows" role="rowgroup"></tbody>
     </table>
@@ -66,6 +64,6 @@
 
 <footer class="site-footer"><span>FightGhostJobs</span><a href="privacy.html">Privacy</a><a href="mailto:privacy@fightghostjobs.com">privacy@fightghostjobs.com</a></footer>
 
-<script type="module" src="js/pages/dashboard.js?v=8451a0f1"></script>
+<script type="module" src="js/pages/dashboard.js?v=136bedf3"></script>
 </body>
 </html>

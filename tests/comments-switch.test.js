@@ -95,12 +95,12 @@ const DEFECTS = [
   ["the comments page still loads the thread", ["off"], [["js/pages/comments.js", (s) => s.replace("if (COMMENTS_VISIBLE) await loadThread(0);", "await loadThread(0);")]]],
   ["the closed opening keeps the line Comments stay open", ["off"], [["js/pages/comments.js", (s) => s.replace("d.data.closed_reason || null, COMMENTS_VISIBLE)", "d.data.closed_reason || null, true)")]]],
   ["the employer's comments page keeps the thread", ["off"], [["js/pages/comments.js", (s) => s.replace("  if (!COMMENTS_VISIBLE) return;   // comments are switched off", "  // comments are switched off")]]],
-  ["My openings keeps the Comments column header", ["off"], [["js/pages/dashboard.js", (s) => s.replace("if (!COMMENTS_VISIBLE) { const th", "if (false) { const th")]]],
+  ["My openings keeps the Comments column header", ["off"], [["js/pages/dashboard.js", (s) => s.replace('...(COMMENTS_VISIBLE ? ["Comments"] : [])', '...["Comments"]')]]],
   ["My openings keeps the Comments cell and link", ["off"], [["js/pages/dashboard.js", (s) => s.replace("    COMMENTS_VISIBLE ? h(\"td\"", "    true ? h(\"td\"")]]],
   ["switched on, the home page card has no Comments link", ["on"], [["js/pages/index.js", (s) => s.replace("if (!COMMENTS_VISIBLE) { const c", "if (true) { const c")]]],
   ["switched on, the details window has no Comments link", ["on"], [["js/pages/search.js", (s) => s.replace("if (COMMENTS_VISIBLE) more.append(", "if (false) more.append(")]]],
   ["switched on, the comments page has no thread", ["on"], [["js/pages/comments.js", (s) => s.replace("if (COMMENTS_VISIBLE) { $(\"#threadWrap\")", "if (false) { $(\"#threadWrap\")")]]],
-  ["switched on, My openings has no Comments column", ["on"], [["js/pages/dashboard.js", (s) => s.replace("if (!COMMENTS_VISIBLE) { const th", "if (true) { const th")]]],
+  ["switched on, My openings has no Comments column", ["on"], [["js/pages/dashboard.js", (s) => s.replace('...(COMMENTS_VISIBLE ? ["Comments"] : [])', "...[]")]]],
 ];
 async function withSite(root, fn) { const site = await startFakeSite(root); try { return await fn(site); } finally { await site.close(); } }
 test("negative controls: each defect in the comments switch makes a check fail", { timeout: 3000000 }, async () => {

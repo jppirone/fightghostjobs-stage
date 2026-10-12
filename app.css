@@ -112,14 +112,26 @@ a.row-action:hover{text-decoration:underline}
   .my-openings td[data-label="Actions"] .row-action:last-child{margin-right:0}
   .my-openings .nb{white-space:nowrap}
   .my-openings .act-note{max-width:36ch}
-  .my-openings th:first-child,.my-openings td[data-label="Title"]{width:18%}
 }
-/* a window wide enough for every value on one line (1320 pixels and wider): the Actions, Closes, Added, Opening ID and Comments columns take exactly what their words need (a no-wrap cell with a tiny preferred width
-   shrinks to its content), and Title, Req #, Status and Applicant cap share what is left. Below that the pieces above wrap between words and between a date and its time instead. */
-@media (min-width:1320px){
-  .my-openings td[data-label="Actions"],.my-openings td[data-label="Closes"],.my-openings td[data-label="Added"],.my-openings td[data-label="Opening ID"],.my-openings td[data-label="Comments"]{width:1%;white-space:nowrap}
-  .my-openings .act-note{min-width:36ch}            /* the expired-draft note keeps a block about 36 characters wide here (four lines); below this window width it takes what the column has */
+/* My openings reworked (prompt BP, October 11, 2026): the table has seven columns at most (Title, Req #, Opening ID, Status, Actions, Closes, Comments). Drawn at its roomiest: the Actions, Closes, Opening ID and Comments
+   columns take exactly what their words need (a no-wrap cell with a tiny preferred width shrinks to its content), Title, Req # and Status share what is left, and the expired-draft note keeps a block about 36 characters
+   wide. js/pages/dashboard.js fitTable() asks the browser whether that fits the card and, if not, adds "snug" (the note takes only the width the column has) and then "tight" (the columns share the width and the
+   pieces wrap between words and between a date and its time). The table is at most this wide because the browser says so, not because of a window size worked out elsewhere. */
+@media (min-width:641px){
+  .my-openings td[data-label="Actions"],.my-openings td[data-label="Closes"],.my-openings td[data-label="Opening ID"],.my-openings td[data-label="Comments"]{width:1%;white-space:nowrap}
+  .my-openings .act-note{min-width:36ch}
+  .my-openings.snug .act-note{min-width:0}
+  .my-openings.tight td[data-label="Actions"],.my-openings.tight td[data-label="Closes"],.my-openings.tight td[data-label="Opening ID"],.my-openings.tight td[data-label="Comments"]{width:auto;white-space:normal}
+  .my-openings.tight .act-note{min-width:0}
+  .my-openings td{padding-top:10px;padding-bottom:10px}
 }
+/* the small lines under a title and under a date: the place, the day it was added, the flag. The flag is dark amber (contrast 6.7 to 1 on white) and always carries words, never colour alone. */
+.row-sub{font-size:12px;font-weight:400;color:var(--muted);margin-top:2px}
+.row-flag{font-size:12px;font-weight:600;color:#8A4B00;margin-top:2px}
+.sort-box{display:flex;align-items:center;gap:8px}
+.sort-box label{font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap}
+.sort-box select{border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14px;font-family:'Work Sans',sans-serif;background:#fff;color:var(--ink);min-height:40px}
+.sort-box select:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
 
 /* contested comments (item A): the notice block (shown to candidates and to the owner) and the owner's contest form. Ink on white inside a dark-ember border: far above 4.5:1; the border carries the meaning for forced-colors too. */
 .contest-notice{border:2px solid var(--ember-dark);border-left-width:8px;border-radius:10px;background:#fff;color:var(--ink);padding:12px 16px;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
@@ -328,7 +340,6 @@ select{min-height:24px}
   .rtable,.rtable thead,.rtable tbody,.rtable tr,.rtable th,.rtable td{display:block}
   .rtable{width:100%}
   .rtable thead th{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-  .rtable thead th.sortable{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;display:flex;align-items:center;min-height:44px;padding:0 16px;border-bottom:1px solid var(--line);background:#F8F5EF;color:var(--ink);cursor:pointer}
   .rtable tbody tr{padding:14px 16px;border-bottom:1px solid var(--line)}
   .rtable tbody tr:last-child{border-bottom:0}
   .rtable td{padding:6px 0!important;border:0!important;white-space:normal!important;width:auto!important;display:grid;grid-template-columns:104px minmax(0,1fr);gap:4px 12px;align-items:center;justify-items:start;overflow-wrap:anywhere}
@@ -342,5 +353,8 @@ select{min-height:24px}
   #postingTable td>div{width:100%}
   #postingTable .bar-track{width:auto!important;flex:1 1 60px;min-width:60px}
   #postingTable td span{white-space:nowrap}
+  /* prompt BP: the Sort by box on My openings fills its row and is a 44 pixel target */
+  .sort-box{width:100%}
+  .sort-box select{flex:1 1 auto;min-width:0;min-height:44px}
 }
 @media (max-width:360px){.rtable td{grid-template-columns:92px minmax(0,1fr)}}

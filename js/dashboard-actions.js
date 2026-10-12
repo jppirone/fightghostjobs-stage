@@ -2,7 +2,7 @@
 // then calls the backend (which has already been verified: it decides who may do what to which posting and refuses anything else). Everything shown is text (dom.js), never HTML.
 import { h } from "./dom.js?v=ff147636";
 import { isAuthFailure, describeError } from "./api.js?v=2b6638b4";
-import { checkBump, checkClose, MAX_BUMP_DAYS, MAX_REASON, MAX_CLOSE_DETAIL } from "./dashboard-model.js?v=77fc1e4e";
+import { checkBump, checkClose, MAX_BUMP_DAYS, MAX_REASON, MAX_CLOSE_DETAIL } from "./dashboard-model.js?v=4121704d";
 import { fmtClose } from "./format.js?v=0631812a";
 import { focusWithRing } from "./focus-ring.js?v=98307f3f";
 const DAY_MS = 86400000;

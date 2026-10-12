@@ -136,7 +136,8 @@ export const openBrowserCount = () => live.size;
 // a test file that left a browser open still ends clean: node --test sets NODE_TEST_CONTEXT in the process it starts for a file
 if (process.env.NODE_TEST_CONTEXT) { try { after(async () => { await closeAllBrowsers(); }); } catch { /* not inside the test runner */ } }
 
-export async function launchBrowser() {
+// opts.args (prompt BP): more command line flags for this browser. johnsBrowser() in tests/johns-screen.js uses it to turn overlay scroll bars off, so the page has the classic 15 pixel bar a real Chrome on Windows has.
+export async function launchBrowser(opts = {}) {
   installHandlers();
   const exe = candidates().find((p) => fs.existsSync(p));
   if (!exe) throw new Error("no Chrome or Edge found (set FGJ_BROWSER to the browser executable): a missing browser is a failed check, never a skipped one");
@@ -146,7 +147,7 @@ export async function launchBrowser() {
   const tabs = [];
   let first;
   try {
-    const proc = spawn(exe, ["--headless=new", "--remote-debugging-port=0", "--user-data-dir=" + dir, "--no-first-run", "--no-default-browser-check", "--disable-gpu", "--disable-extensions", "--window-size=1200,900", "about:blank"], { stdio: "ignore", windowsHide: true });
+    const proc = spawn(exe, ["--headless=new", "--remote-debugging-port=0", "--user-data-dir=" + dir, "--no-first-run", "--no-default-browser-check", "--disable-gpu", "--disable-extensions", "--window-size=1200,900", ...(Array.isArray(opts.args) ? opts.args : []), "about:blank"], { stdio: "ignore", windowsHide: true });
     r.pid = proc.pid;   // recorded the moment the process exists, before anything else can fail
     r.exitedP = new Promise((res) => { proc.once("exit", () => { r.exited = true; res(); }); proc.once("error", () => { r.exited = true; res(); }); });
     const portFile = path.join(dir, "DevToolsActivePort");
