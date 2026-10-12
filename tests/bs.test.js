@@ -52,9 +52,9 @@ const SCENARIOS = {
   async recap(root) { return asCand(root, async (site, tab) => { const bad = [];
     await openSearch(tab, site);
     const cases = [
-      ["an ID alone", "", FIRST.shown, "", "You searched for: Opening ID " + FIRST.shown + ". Your results are below."],
-      ["an ID typed in lower case without dashes", "", FIRST.stored.toLowerCase(), "", "You searched for: Opening ID " + FIRST.shown + ". Your results are below."],
-      ["an ID with a company", "Meridian Health", FIRST.shown, "", "You searched for: company Meridian Health, Opening ID " + FIRST.shown + ". Your results are below."],
+      ["an ID alone", "", FIRST.shown, "", "You searched for: KIO ID: " + FIRST.shown + ". Your results are below."],
+      ["an ID typed in lower case without dashes", "", FIRST.stored.toLowerCase(), "", "You searched for: KIO ID: " + FIRST.shown + ". Your results are below."],
+      ["an ID with a company", "Meridian Health", FIRST.shown, "", "You searched for: company Meridian Health, KIO ID: " + FIRST.shown + ". Your results are below."],
       ["a req number (never shown)", "Meridian", "", REQ, "You searched for: company Meridian, a req number was entered. Your results are below."],
       ["part of a title", "Meridian", "Nurse", "", "You searched for: company Meridian, title Nurse. Your results are below."],
     ];
@@ -73,7 +73,7 @@ const SCENARIOS = {
     await fill(tab, "Zzyzx Staffing", FIRST.shown); await pressSearch(tab); await settle();
     let n = await t(tab, "#mismatchNotice");
     if (n !== "This ID is not registered to the company you entered (Zzyzx Staffing)." + TAIL) bad.push("the company notice says '" + n + "'");
-    if (!(await t(tab, "#results")).includes("Opening ID " + FIRST.shown)) bad.push("the opening is not shown beside the notice");
+    if (!(await t(tab, "#results")).includes("KIO ID: " + FIRST.shown)) bad.push("the opening is not shown beside the notice");
     // a company with markup characters is text
     await tab.eval("document.getElementById('recapEdit').click()");
     const odd = '<b>Acme</b> & "Co" <img src=x onerror=window.__xss=1>';
@@ -141,7 +141,7 @@ const SCENARIOS = {
     const o = await leftovers(tab);
     if (o.cards || o.recap) bad.push("something shows before Search is pressed");
     await pressSearch(tab); await settle();
-    if ((await t(tab, "#recapText")) !== "You searched for: Opening ID " + FIRST.shown + ". Your results are below.") bad.push("the recap after the short link says '" + (await t(tab, "#recapText")) + "'");
+    if ((await t(tab, "#recapText")) !== "You searched for: KIO ID: " + FIRST.shown + ". Your results are below.") bad.push("the recap after the short link says '" + (await t(tab, "#recapText")) + "'");
     return bad; }); },
 };
 

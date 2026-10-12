@@ -62,10 +62,10 @@ const SCENARIOS = {
     const s = searches(site);
     if (s.length !== 1 || JSON.stringify(s[0].body) !== JSON.stringify({ kio: FIRST.stored })) bad.push("an ID with no company sent " + JSON.stringify(s.map((c) => c.body)));
     const r = await results(tab);
-    if (!r.includes("Opening ID " + FIRST.shown)) bad.push("the card does not show the whole ID: " + r.slice(0, 220));
+    if (!r.includes("KIO ID: " + FIRST.shown)) bad.push("the card does not show the whole ID: " + r.slice(0, 220));
     if (/\*{4}-\*{4}/.test(r)) bad.push("the card still shows a masked code: " + r.slice(0, 220));
     if (r.includes(MISMATCH)) bad.push("a notice with nothing to compare");
-    if ((await text(tab, "#recapText")) !== "You searched for: Opening ID " + FIRST.shown + ". Your results are below.") bad.push("the recap says: " + (await text(tab, "#recapText")));
+    if ((await text(tab, "#recapText")) !== "You searched for: KIO ID: " + FIRST.shown + ". Your results are below.") bad.push("the recap says: " + (await text(tab, "#recapText")));
     if ((await boxes(tab)) !== "||") bad.push("the boxes were not emptied: " + (await boxes(tab)));
     if (await tab.eval("document.documentElement.innerHTML.includes(" + q(FIRST.stored) + ")")) bad.push("the stored form of the ID is on the page");
     // every typed form reads the same
@@ -86,7 +86,7 @@ const SCENARIOS = {
     await fill(tab, "Zzyzx Unknown Staffing", FIRST.shown); await pressSearch(tab); await settle(tab);
     const r = await results(tab);
     if (!r.includes(MISMATCH)) bad.push("no notice for another company");
-    if (!r.includes("Opening ID " + FIRST.shown)) bad.push("the opening is not shown beside the notice");
+    if (!r.includes("KIO ID: " + FIRST.shown)) bad.push("the opening is not shown beside the notice");
     const idx = await tab.eval("(() => { const n = document.getElementById('mismatchNotice'), c = document.querySelector('#results .card'); return n && c ? (n.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING ? 'above' : 'below') : 'missing'; })()");
     if (idx !== "above") bad.push("the notice is " + idx + " the opening");
     if (!(await tab.eval("(window.__said = 1, true)"))) bad.push("x");
@@ -177,7 +177,7 @@ const SCENARIOS = {
       for (const [width, phone] of [[JOHN_WIDTH, false], [SPARE_WIDTH, false], [1100, false], [1366, false], [375, true]]) {
         if (phone) await tab.viewport(width, true, 800); else await johnsWindow(tab, width, 500);
         await tab.goto(site.url + "/dashboard.html"); await tab.waitFor("document.querySelectorAll('tbody tr').length > 0", 10000); await tab.waitFor("document.fonts.status === 'loaded'", 10000); await sleep(400);
-        const ids = await tab.eval("Array.from(document.querySelectorAll('tbody td[data-label=\"Opening ID\"]')).map((td) => ({ t: td.textContent.trim(), over: td.scrollWidth > td.clientWidth + 1 }))");
+        const ids = await tab.eval("Array.from(document.querySelectorAll('tbody td[data-label=\"KIO ID\"]')).map((td) => ({ t: td.textContent.trim(), over: td.scrollWidth > td.clientWidth + 1 }))");
         if (ids.length === 0 || ids.some((x) => !/^KIO-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(x.t))) bad.push(width + ": the ID column shows " + JSON.stringify(ids.map((x) => x.t)));
         if (ids.some((x) => x.over)) bad.push(width + ": an ID is cut off in its cell");
         const m = await tab.eval(MEASURE);
@@ -222,7 +222,7 @@ const SCENARIOS = {
       await openSearch(tab, site);
       await fill(tab, "Meridian", "Nurse"); await pressSearch(tab); await settle(tab);
       const r = await results(tab);
-      if (!/Opening ID \*{4}-\*{4}-[0-9A-Z]{4}/.test(r)) bad.push("an answer without a whole ID does not show the masked code: " + r.slice(0, 200));
+      if (!/KIO ID: \*{4}-\*{4}-[0-9A-Z]{4}/.test(r)) bad.push("an answer without a whole ID does not show the masked code: " + r.slice(0, 200));
     } finally { await tab.close(); await site.close(); }
     return bad; },
 };

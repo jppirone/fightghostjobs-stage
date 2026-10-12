@@ -10,7 +10,7 @@ import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js?v=f37507d8";
 import { lockScroll } from "../scroll-lock.js?v=b751eb4c";
 import { trapFocus } from "../dialog-focus.js?v=1dcc8c83";
 import { makeAnnouncer } from "../search-status.js?v=7497036c";
-import { recapSentence } from "../search-recap.js?v=ae06c9fd";
+import { recapSentence } from "../search-recap.js?v=bd8e2e91";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js?v=ff147636";
 import { waitText } from "../format.js?v=032c6fc5";
 import { postingChips, notOpenMessage } from "../chips.js?v=7a1dc776";
@@ -18,10 +18,10 @@ import { aiNotes } from "../ai-notes.js?v=35c5dc92";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=f2ea9573";
 import { COMMENTS_VISIBLE } from "../config.js?v=9bf25cae";
 import { openUnit } from "../open-link.js?v=454df0f2";
-import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, kioMismatchMessage } from "../search-input.js?v=61d86e5f";
+import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, kioMismatchMessage } from "../search-input.js?v=b3ef517f";
 import { isRegistered } from "../registered.js?v=f191c8c2";
 import { placeNodes } from "../place.js?v=915c680a";
-import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=54075273";
+import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=6f2976ed";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
@@ -101,7 +101,7 @@ function renderCard(row) {
       h("div", {},
         h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
         h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
-        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, placeNodesOf(row), " · Opening ID " + openingIdText(row) + (row.masked_req ? " · Req " + row.masked_req : ""))),
+        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, placeNodesOf(row), " · KIO ID: " + openingIdText(row) + (row.masked_req ? " · Req " + row.masked_req : ""))),
       // the check mark only for an opening the DATABASE says is registered (an active paid plan, or a pilot plan with an expiry date): one plain true in the row, nothing else about the plan (js/registered.js)
       isRegistered(row) ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }, "✓ Registered") : null),
     h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, chips),
@@ -291,7 +291,7 @@ reqToggle.addEventListener("click", () => {
 function openModal(row, opener) {
   $("#modalCompany").textContent = row.company_name;
   $("#modalTitle").textContent = row.title;
-  $("#modalRefs").textContent = "Opening ID " + openingIdText(row) + (row.masked_req ? " · Req " + row.masked_req : "");
+  $("#modalRefs").textContent = "KIO ID: " + openingIdText(row) + (row.masked_req ? " · Req " + row.masked_req : "");
   // the place line, the same words as the result card and the comments page (prompt BJ): the list places and Remote, or the employer's own text with its small note, or "Location not stated"
   const place = $("#modalPlace"); clear(place); place.hidden = false;
   place.append(...placeNodesOf(row));

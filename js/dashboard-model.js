@@ -125,8 +125,9 @@ export function sortRows(rows, key, nowMs) {
     case "title_desc": return list.sort((a, b) => byTitle(b, a) || tie(a, b));
     case "closes_asc": case "closes_desc": {
       const sign = key === "closes_asc" ? 1 : -1;
-      // prompt BR: closed and expired rows go after every open row in BOTH directions (the same place a row with no date goes); among themselves they follow the direction by the day they really ended
-      return list.sort((a, b) => { if (isOver(a) !== isOver(b)) return isOver(a) ? 1 : -1; const x = closesAt(a), y = closesAt(b); if (x === null && y === null) return tie(a, b); if (x === null) return 1; if (y === null) return -1; return sign * (x - y) || tie(a, b); });
+      // prompt BR: closed and expired rows go after every open row in BOTH directions (the same place a row with no date goes); among themselves they follow the direction by the day they really ended.
+      // prompt BU: a draft whose publish window has ended is one of them (isEnded), ordered among them by its publish-by day
+      return list.sort((a, b) => { const ea = isEnded(a, nowMs), eb = isEnded(b, nowMs); if (ea !== eb) return ea ? 1 : -1; const x = closesAt(a), y = closesAt(b); if (x === null && y === null) return tie(a, b); if (x === null) return 1; if (y === null) return -1; return sign * (x - y) || tie(a, b); });
     }
     case "status": return list.sort((a, b) => statusChip(a, nowMs).text.localeCompare(statusChip(b, nowMs).text) || tie(a, b));
     default: return list.sort(tie);                                         // added_desc
@@ -151,6 +152,9 @@ export const MIN_BUMP_DAYS = 1, MAX_BUMP_DAYS = 15, MAX_REASON = 300, MAX_CLOSE_
 
 // A draft can be published for 14 days after it was ADDED (publish_by = created_at + 14 days); after that publish-posting refuses it. (prompt BR: it said "saved"; saving does not move it.)
 export const publishWindowEnded = (p, nowMs) => p.status === "draft" && typeof p.publish_by === "string" && Date.parse(p.publish_by) <= nowMs;
+// prompt BU (October 12, 2026): an ENDED row is a closed or expired opening or a draft whose publish window has ended (such a draft can only be added again as a new opening). The Closes sort puts every ended row after
+// every open one, in both directions, and orders them by the day each one ended (the closing day, the expiration day, the publish-by day). The same instant as the "Publish window ended" note and the actions.
+export const isEnded = (p, nowMs) => isOver(p) || publishWindowEnded(p, nowMs);
 
 // -> the action keys a row offers, in display order. Based on the EFFECTIVE status too: a live or paused posting whose clock has run out reads as expired and offers nothing.
 export function actionsFor(p, nowMs) {

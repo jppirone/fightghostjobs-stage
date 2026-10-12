@@ -6,9 +6,9 @@ import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFai
 import { rememberNext } from "../session.js?v=c0af4232";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { fmtClose, fmtStamp, waitText } from "../format.js?v=032c6fc5";
-import { kioBlock } from "../kio-block.js?v=8007f4da";
-import { statusChip, actionsFor } from "../dashboard-model.js?v=62183447";
-import { runAction } from "../dashboard-actions.js?v=db14b538";
+import { kioBlock } from "../kio-block.js?v=6a7d21f6";
+import { statusChip, actionsFor } from "../dashboard-model.js?v=b3715dc3";
+import { runAction } from "../dashboard-actions.js?v=2e4990c2";
 import { mountLimitHint } from "../limit-hint.js?v=1cfa5987";
 import { checkEdit, mapEditErrors, KIND_TEXT, plainChangeNote, checkLinks, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js?v=b5757c87";
 import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";

@@ -41,8 +41,8 @@ test("a staff card's chips are the dates that apply, then the disclosures; the s
   assert.ok(words(BASE).includes("Third-party recruiter involved") && words(BASE).includes("No applicant cap set"));
   const all = [BASE, { ...BASE, status: "draft", stored_status: "draft" }, { ...BASE, status: "paused", stored_status: "paused" }].map((r) => staffChips(r).map((c) => c.text).join(" | ")).join(" ");
   for (const bad of [/\bcomment/i, /\bwatch/i, /\bapply\b/i, /tell the employer/i, /\bposting/i, /\blisting/i, /verif/i, /certif/i, /complian/i]) assert.doesNotMatch(all, bad, String(bad));
-  assert.equal(staffIdLine(BASE), "Acme Org · Opening ID D21M-48YB-ZQBF · Req 4471");
-  assert.equal(staffIdLine({ ...BASE, req_number: null }), "Acme Org · Opening ID D21M-48YB-ZQBF");
+  assert.equal(staffIdLine(BASE), "Acme Org · KIO ID: D21M-48YB-ZQBF · Req 4471");
+  assert.equal(staffIdLine({ ...BASE, req_number: null }), "Acme Org · KIO ID: D21M-48YB-ZQBF");
   assert.equal(staffCountText(0, false), "No matching openings"); assert.equal(staffCountText(1, false), "1 matching opening"); assert.match(staffCountText(25, true), /^25 matching openings: showing the first 25/);
 });
 

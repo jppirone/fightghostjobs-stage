@@ -156,18 +156,18 @@ test("when the backend refuses a short title, the page says so calmly: a plain e
 });
 
 test("the local messages for the lookup boxes name what to enter, and nothing says the opening does not exist", () => {
-  assert.equal(classifyQuery("").message, "Enter an Opening ID or part of the job title.");
-  assert.equal(classifyQuery("--").message, "Enter some letters or digits from the job title, or an Opening ID.");
+  assert.equal(classifyQuery("").message, "Enter a KIO ID or part of the job title.");
+  assert.equal(classifyQuery("--").message, "Enter some letters or digits from the job title, or a KIO ID.");
   assert.equal(classifyQuery("x".repeat(81)).message, "That title is too long (80 characters at most).");
-  assert.equal(resolveSearch("", "").message, "Enter a req number, an Opening ID or part of the job title.");
-  assert.equal(resolveSearch("Analyst", "R-1").message, "Fill in the req number, or the Opening ID / title box, not both.");
+  assert.equal(resolveSearch("", "").message, "Enter a req number, a KIO ID or part of the job title.");
+  assert.equal(resolveSearch("Analyst", "R-1").message, "Fill in the req number, or the KIO ID / title box, not both.");
   for (const n of [NO_MATCH_NOTE, NO_MATCH_NOTE_REQ]) assert.doesNotMatch(n, /does not exist|doesn't exist|no such|never existed|fake/i);
 });
 
 test("the empty-result message echoes exactly what was searched, then says closed or expired openings appear only by Opening ID", () => {
-  assert.ok(NO_MATCH_NOTE.endsWith("A title search finds only openings that are live: closed or expired openings are found only by Opening ID or req number."));
+  assert.ok(NO_MATCH_NOTE.endsWith("A title search finds only openings that are live: closed or expired openings are found only by KIO ID or req number."));
   assert.ok(NO_MATCH_NOTE.includes("A missing opening may simply not be added; it says nothing about whether the job exists."));
-  assert.ok(NO_MATCH_NOTE.includes("check the ID exactly as it is printed in the job ad") && NO_MATCH_NOTE.includes("try a different part of the title"));
+  assert.ok(NO_MATCH_NOTE.includes("check the KIO ID exactly as it is printed in the job ad") && NO_MATCH_NOTE.includes("try a different part of the title"));
   const m = noMatchMessage("Fight Ghost Jobs", "Senior Product Manager", "phrase");
   assert.ok(m.startsWith("No openings found for \"Fight Ghost Jobs\" + \"Senior Product Manager\". "), m);
   assert.ok(m.endsWith(NO_MATCH_NOTE));
@@ -266,7 +266,7 @@ test("resolveSearch: exactly one of the two boxes; each keeps its own rules; the
   assert.equal(resolveSearch("", "---").focus, "req");
   assert.equal(resolveSearch("ab", "").ok, true);                                         // a 2 letter title goes to the backend now (it knows VP, SR, JR)
   assert.equal(resolveSearch("--", "").focus, "title");                                   // no letter or digit at all is still the title box's problem
-  assert.ok(NO_MATCH_NOTE_REQ.includes("If the job ad shows an Opening ID, try that instead."));
+  assert.ok(NO_MATCH_NOTE_REQ.includes("If the job ad shows a KIO ID, try that instead."));
 });
 
 test("a req lookup that finds nothing never echoes the req (it was typed into a masked box) and tells the person what to check", () => {

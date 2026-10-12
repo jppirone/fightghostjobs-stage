@@ -291,21 +291,21 @@ const SCENARIOS = {
     await tab.goto(site.url + "/comments.html?ref=" + WITH_LINKS);
     await tab.waitFor("!document.querySelector('#threadWrap').hidden || !document.querySelector('#pageAlert').hidden", 10000); await sleep(500);
     const m = (await text(tab, "#recapMeta")) || "";
-    if (!/^Berlin, Germany as provided by the employer · Opening ID /.test(m)) bad.push("a typed place on the comments page reads '" + m + "'");
+    if (!/^Berlin, Germany as provided by the employer · KIO ID: /.test(m)) bad.push("a typed place on the comments page reads '" + m + "'");
     return bad; })); },
   async commentsPlaceRemote(root) { return withSite(root, { detailOverride: { locations: ["Boston, MA"], is_remote: true, source_location_text: null } }, (site) => withTab(async (tab) => { const bad = [];
     await signIn(tab, site, "candidate");
     await tab.goto(site.url + "/comments.html?ref=" + WITH_LINKS);
     await tab.waitFor("!document.querySelector('#threadWrap').hidden || !document.querySelector('#pageAlert').hidden", 10000); await sleep(500);
     const m = (await text(tab, "#recapMeta")) || "";
-    if (!/^Remote · Boston, MA · Opening ID /.test(m) || /as provided/.test(m)) bad.push("a list place with Remote on the comments page reads '" + m + "'");
+    if (!/^Remote · Boston, MA · KIO ID: /.test(m) || /as provided/.test(m)) bad.push("a list place with Remote on the comments page reads '" + m + "'");
     return bad; })); },
   async commentsPlaceNone(root) { return withSite(root, { detailOverride: { locations: [], is_remote: false, source_location_text: null } }, (site) => withTab(async (tab) => { const bad = [];
     await signIn(tab, site, "candidate");
     await tab.goto(site.url + "/comments.html?ref=" + WITH_LINKS);
     await tab.waitFor("!document.querySelector('#threadWrap').hidden || !document.querySelector('#pageAlert').hidden", 10000); await sleep(500);
     const m = (await text(tab, "#recapMeta")) || "";
-    if (!/^Location not stated · Opening ID /.test(m)) bad.push("no place on the comments page reads '" + m + "'");
+    if (!/^Location not stated · KIO ID: /.test(m)) bad.push("no place on the comments page reads '" + m + "'");
     return bad; })); },
   async editPlaceLine(root) { return withSite(root, { plan: "verified", placeText: "Zürich, Switzerland" }, (site) => withTab(async (tab) => { const bad = [];
     await openEdit(tab, site);

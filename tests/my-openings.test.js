@@ -165,7 +165,7 @@ const SCENARIOS = {
     await tab.waitFor("document.querySelectorAll('#results .card').length > 0 && !document.querySelector('#searchBtn').disabled", 12000); await sleep(500);
     const metas = await tab.eval("[...document.querySelectorAll('#results .card')].slice(0, 2).map((c) => { const m = c.querySelector('.res-head > div > div:nth-child(3)'); return m ? m.innerText.replace(/\\s+/g, ' ').trim() : ''; })");
     if (!metas[0] || !metas[0].startsWith("Remote · Paris, France " + NOTE)) bad.push("the candidate card reads '" + metas[0] + "'");
-    if (!metas[1] || !/^Remote · Opening ID /.test(metas[1]) || metas[1].includes(NOTE)) bad.push("a remote opening with no place reads '" + metas[1] + "' on the candidate card");
+    if (!metas[1] || !/^Remote · KIO ID: /.test(metas[1]) || metas[1].includes(NOTE)) bad.push("a remote opening with no place reads '" + metas[1] + "' on the candidate card");
     await tab.eval("document.querySelectorAll('#results .view-details')[0].click()");
     await tab.waitFor("document.querySelector('#modalBackdrop').classList.contains('open')", 8000); await sleep(500);
     const win = await text(tab, "#modalPlace");

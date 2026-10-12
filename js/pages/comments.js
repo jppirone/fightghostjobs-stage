@@ -102,7 +102,7 @@ function renderRecap(d) {
     const p = d.data.posting;
     $("#recapCompany").textContent = p.company_name; $("#recapTitle").textContent = p.title;
     // the place line is the same one every screen draws (js/place.js): the typed place with its small note, or the list places and Remote, or "Location not stated"
-    const meta = $("#recapMeta"); clear(meta); meta.append(...placeNodes(h, p), " · Opening ID " + p.masked_code + (p.masked_req ? " · Req " + p.masked_req : ""));
+    const meta = $("#recapMeta"); clear(meta); meta.append(...placeNodes(h, p), " · KIO ID: " + p.masked_code + (p.masked_req ? " · Req " + p.masked_req : ""));
     const chips = $("#recapChips"); clear(chips); for (const c of postingChips(p)) chips.append(chip(c));
     const notes = $("#recapNotes"); clear(notes);
     for (const n of aiNotes(p)) notes.append(h("div", { style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text));
@@ -187,7 +187,7 @@ async function employerMode() {
   }
   const p = g.data.posting; const recap = $("#recap"); recap.hidden = false;
   $("#recapCompany").textContent = p.company_name; $("#recapTitle").textContent = p.title;
-  $("#recapMeta").textContent = "Opening ID " + groupCode(p.post_id) + " · " + p.status;
+  $("#recapMeta").textContent = "KIO ID: " + groupCode(p.post_id) + " · " + p.status;
   if (!COMMENTS_VISIBLE) return;   // comments are switched off: the employer sees the posting's identity and nothing else here
   $("#recapNote").textContent = "What candidates wrote about this opening. You are told by email when there is something new (at most once every six hours).";
   $("#threadIntro").textContent = "Written by candidates, newest first, anonymous to everyone. A comment is about the opening, never about a person. You can contest a comment on this opening once; it stays visible, with a notice, while it is under review.";

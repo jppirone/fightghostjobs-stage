@@ -49,7 +49,7 @@ function johnsBr() {
   r.mineExtra = r.mineExtra.map((x) => (x.title === "Closed Opening" ? { ...x, closed_at: iso(Date.now() - 3 * DAY) } : x));
   return r;
 }
-const TITLES_AFTER_OPEN = ["Alpha Live", "Foxtrot Paused Soon", "Golf In Review", "Hotel Expired Draft"];
+const TITLES_OPEN = ["Alpha Live", "Foxtrot Paused Soon", "Golf In Review"];        // the rows that are still open (prompt BU: the expired draft is not one of them)
 
 async function withSite(root, opts, fn) { const site = await startFakeSite(root, opts); try { return await fn(site); } finally { await site.close(); } }
 async function withTab(fn) { const tab = await browser.newTab(); try { return await fn(tab); } finally { await tab.close(); } }
@@ -117,20 +117,21 @@ const SCENARIOS = {
   // ---- 2. the sort
   async sorting(root) { return withSite(root, rows(), (site) => withTab(async (tab) => { const bad = [];
     await openDash(tab, site, 1093);
-    const OVER = ["Bravo Closed Filled", "Delta Expired", "Charlie Closed Withdrawn", "Echo Closed Undated"];        // by the day they really ended, asc: -5, -4, -2, none
+    // prompt BU (October 12, 2026): the draft whose publish window ended ("Hotel Expired Draft", publish by 3 days ago) is one of the ended rows now, ordered among them by its publish-by day; BR had it among the open rows
+    const OVER = ["Bravo Closed Filled", "Delta Expired", "Hotel Expired Draft", "Charlie Closed Withdrawn", "Echo Closed Undated"];        // by the day they really ended, asc: -5, -4, -3, -2, none
     await pickSort(tab, "closes_asc"); await sleep(250);
     let t = await titles(tab);
-    const tail = t.slice(-4);
-    if (JSON.stringify(tail) !== JSON.stringify(OVER)) bad.push("Closes soonest first: the last four are " + JSON.stringify(tail) + " (wanted " + JSON.stringify(OVER) + ")");
-    if (JSON.stringify(t.slice(0, 4).sort()) !== JSON.stringify(TITLES_AFTER_OPEN.slice().sort())) bad.push("Closes soonest first: the first four are " + JSON.stringify(t.slice(0, 4)));
+    const tail = t.slice(-5);
+    if (JSON.stringify(tail) !== JSON.stringify(OVER)) bad.push("Closes soonest first: the last five are " + JSON.stringify(tail) + " (wanted " + JSON.stringify(OVER) + ")");
+    if (JSON.stringify(t.slice(0, 3).sort()) !== JSON.stringify(TITLES_OPEN.slice().sort())) bad.push("Closes soonest first: the first three are " + JSON.stringify(t.slice(0, 3)));
     await pickSort(tab, "closes_desc"); await sleep(250);
     t = await titles(tab);
-    const OVER_DESC = ["Charlie Closed Withdrawn", "Delta Expired", "Bravo Closed Filled", "Echo Closed Undated"];
-    if (JSON.stringify(t.slice(-4)) !== JSON.stringify(OVER_DESC)) bad.push("Closes furthest first: the last four are " + JSON.stringify(t.slice(-4)) + " (wanted " + JSON.stringify(OVER_DESC) + ")");
+    const OVER_DESC = ["Charlie Closed Withdrawn", "Hotel Expired Draft", "Delta Expired", "Bravo Closed Filled", "Echo Closed Undated"];
+    if (JSON.stringify(t.slice(-5)) !== JSON.stringify(OVER_DESC)) bad.push("Closes furthest first: the last five are " + JSON.stringify(t.slice(-5)) + " (wanted " + JSON.stringify(OVER_DESC) + ")");
     if (t[0] !== "Alpha Live") bad.push("Closes furthest first: the first is " + t[0]);
     await pill(tab, "Closed"); await pickSort(tab, "closes_asc"); await sleep(250);
     t = await titles(tab);
-    if (JSON.stringify(t) !== JSON.stringify(OVER)) bad.push("the Closed pill, soonest first: " + JSON.stringify(t));
+    if (JSON.stringify(t) !== JSON.stringify(OVER.filter((x) => x !== "Hotel Expired Draft"))) bad.push("the Closed pill, soonest first: " + JSON.stringify(t));
     // the other sorts are as they were
     await pill(tab, "All"); await pickSort(tab, "title_asc"); await sleep(250);
     t = await titles(tab);
@@ -194,9 +195,9 @@ const DEFECTS = [
   ["a closed row shows its scheduled date again", ["closesCell"], [["js/dashboard-model.js", (s) => s.replace('if (p.status === "closed") return typeof p.closed_at === "string" && fmtDate(p.closed_at) !== "" ? "Closed " + fmtDate(p.closed_at) : "Closed";', 'if (p.status === "closed") return p.expiration_date ? fmtDate(p.expiration_date) : "None";')]]],
   ["an expired row has no word", ["closesCell"], [["js/dashboard-model.js", (s) => s.replace('return p.expiration_date ? "Expired " + fmtDate(p.expiration_date) : "Expired";', 'return p.expiration_date ? fmtDate(p.expiration_date) : "None";')]]],
   ["the real closing day is ignored", ["closesCell"], [["js/dashboard-model.js", (s) => s.replace('typeof p.closed_at === "string" && fmtDate(p.closed_at) !== "" ? "Closed " + fmtDate(p.closed_at) : "Closed"', '"Closed"')]]],
-  ["closed rows sort by their scheduled date again", ["sorting"], [["js/dashboard-model.js", (s) => s.replace('if (isOver(p)) return endedAt(p);', 'if (false) return endedAt(p);').replace('return list.sort((a, b) => { if (isOver(a) !== isOver(b)) return isOver(a) ? 1 : -1; const x', 'return list.sort((a, b) => { const x')]]],
-  ["closed rows are mixed in by their real day instead of going last", ["sorting"], [["js/dashboard-model.js", (s) => s.replace("if (isOver(a) !== isOver(b)) return isOver(a) ? 1 : -1; const x", "const x")]]],
-  ["closed rows go first in the descending order", ["sorting"], [["js/dashboard-model.js", (s) => s.replace("if (isOver(a) !== isOver(b)) return isOver(a) ? 1 : -1; const x", "if (isOver(a) !== isOver(b)) return isOver(a) ? -1 : 1; const x")]]],
+  ["closed rows sort by their scheduled date again", ["sorting"], [["js/dashboard-model.js", (s) => s.replace('if (isOver(p)) return endedAt(p);', 'if (false) return endedAt(p);').replace('return list.sort((a, b) => { const ea = isEnded(a, nowMs), eb = isEnded(b, nowMs); if (ea !== eb) return ea ? 1 : -1; const x', 'return list.sort((a, b) => { const x')]]],
+  ["closed rows are mixed in by their real day instead of going last", ["sorting"], [["js/dashboard-model.js", (s) => s.replace("const ea = isEnded(a, nowMs), eb = isEnded(b, nowMs); if (ea !== eb) return ea ? 1 : -1; const x", "const x")]]],
+  ["closed rows go first in the descending order", ["sorting"], [["js/dashboard-model.js", (s) => s.replace("const ea = isEnded(a, nowMs), eb = isEnded(b, nowMs); if (ea !== eb) return ea ? 1 : -1; const x", "const ea = isEnded(a, nowMs), eb = isEnded(b, nowMs); if (ea !== eb) return ea ? -1 : 1; const x")]]],
   ["the pill is a run of text again", ["pills"], [["app.css", (s) => s.replace('.my-openings td[data-label="Status"] .status{display:inline-block;border-radius:14px}', "")]]],
   ["the table has no level where the pills wrap before the dates do", ["pills"], [["js/pages/dashboard.js", (s) => s.replace('for (const level of ["", "snug", "wrap-status", "tight"]) {', 'for (const level of ["", "snug", "tight"]) {')]]],
   ["the saved line is never taken away", ["savedLine"], [["js/pages/edit.js", (s) => s.replace('if (anyUnsaved() && document.querySelector("[data-result]")) clearResults();', "")]]],

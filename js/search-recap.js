@@ -8,8 +8,8 @@ export const RECAP = {
   LEAD: "You searched for: company ",
   TAIL: " Your results are below.",
   REQ: "a req number was entered",
-  CODE: "an Opening ID was entered",
-  KIO: "Opening ID ",              // prompt BS (October 12, 2026): a KIO ID is public by design, so the recap shows it, in the shown form (KIO-XXXX-XXXX-XXXX) however it was typed
+  CODE: "a KIO ID was entered",
+  KIO: "KIO ID: ",            // prompt BS (October 12, 2026): a KIO ID is public by design, so the recap shows it, in the shown form (KIO-XXXX-XXXX-XXXX) however it was typed
 };
 
 const oneLine = (t) => String(t == null ? "" : t).replace(/\s+/g, " ").trim();

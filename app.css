@@ -128,12 +128,12 @@ a.row-action:hover{text-decoration:underline}
    wide. js/pages/dashboard.js fitTable() asks the browser whether that fits the card and, if not, adds "snug" (the note takes only the width the column has) and then "tight" (the columns share the width and the
    pieces wrap between words and between a date and its time). The table is at most this wide because the browser says so, not because of a window size worked out elsewhere. */
 @media (min-width:641px){
-  .my-openings td[data-label="Actions"],.my-openings td[data-label="Closes"],.my-openings td[data-label="Opening ID"],.my-openings td[data-label="Comments"],.my-openings td[data-label="Status"]{width:1%;white-space:nowrap}
+  .my-openings td[data-label="Actions"],.my-openings td[data-label="Closes"],.my-openings td[data-label="KIO ID"],.my-openings td[data-label="Comments"],.my-openings td[data-label="Status"]{width:1%;white-space:nowrap}
   /* prompt BR (October 12, 2026): the Status pill is ONE box (inline-block with a modest radius), not a run of text with a background: when the column was narrow its words wrapped and the background was cut into
      two clipped pieces. Now the Status column takes what the words need like Actions and Closes do; only at the "tight" level may the pill wrap, between words, and it stays one clean rounded box. */
   .my-openings .act-note{min-width:36ch}
   .my-openings.snug .act-note{min-width:0}
-  .my-openings.tight td[data-label="Actions"],.my-openings.tight td[data-label="Closes"],.my-openings.tight td[data-label="Opening ID"],.my-openings.tight td[data-label="Comments"]{width:auto;white-space:normal}
+  .my-openings.tight td[data-label="Actions"],.my-openings.tight td[data-label="Closes"],.my-openings.tight td[data-label="KIO ID"],.my-openings.tight td[data-label="Comments"]{width:auto;white-space:normal}
   /* prompt BR: the level between snug and tight. The note has given up its width and the Status pills may wrap between words (each stays one rounded box); the dates still do not break. */
   .my-openings.wrap-status thead th,.my-openings.wrap-status td{padding-left:6px;padding-right:6px}
   .my-openings.wrap-status td[data-label="Status"] .status{padding-left:9px;padding-right:9px}

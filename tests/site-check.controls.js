@@ -78,8 +78,8 @@ control("the current page loses aria-current", "S31", edit("search.html", (s) =>
 control("a new tab opened without noopener", "S12", append("js/pages/index.js", "window.open('x.html', '_blank');"));
 control("app.css loaded before styles.css", "S13", edit("register.html", (s) => s.replace('<link rel="stylesheet" href="styles.css">\n<link rel="stylesheet" href="app.css">', '<link rel="stylesheet" href="app.css">\n<link rel="stylesheet" href="styles.css">')));
 
-control("the closed-or-expired sentence removed from the note", "S14", edit("js/search-input.js", (s) => s.replace(" A title search finds only openings that are live: closed or expired openings are found only by Opening ID or req number.", "")));
-control("the sentence reworded", "S14", edit("js/search-input.js", (s) => s.replace("are found only by Opening ID or req number.", "may be found by Opening ID or req number.")));
+control("the closed-or-expired sentence removed from the note", "S14", edit("js/search-input.js", (s) => s.replace(" A title search finds only openings that are live: closed or expired openings are found only by KIO ID or req number.", "")));
+control("the sentence reworded", "S14", edit("js/search-input.js", (s) => s.replace("are found only by KIO ID or req number.", "may be found by KIO ID or req number.")));
 control("search.js goes back to its own hand-written message", "S14", edit("js/pages/search.js", (s) => s.replace("noMatchMessage(searched.company, searched.query, searched.kind))", "\"No openings found. Check the name.\")")));
 control("search.js no longer imports the message builder", "S14", edit("js/pages/search.js", (s) => s.replace("resolveSearch, noMatchMessage, searchErrorMessage", "resolveSearch, searchErrorMessage")));
 control("the message stops echoing what was searched", "S14", edit("js/search-input.js", (s) => s.split("return \"No openings found for").join("return \"Nothing for")));
@@ -331,7 +331,7 @@ control("the home page says free, forever", "S32", edit("index.html", (s) => s.r
 control("the register page label goes back to Free, always", "S32", edit("register.html", (s) => s.replace(">Free on every tier</div>", ">Free, always</div>")));
 control("the search page signup line says no cost again", "S32", edit("search.html", (s) => s.replace("No password, no account form. Free for job seekers.", "No password, no account form, no cost.")));
 control("the search page says company and title always works", "S32", edit("search.html", (s) => s.replace("<li>The most exact way to search:", "<li>Company and title always works:")));
-control("the Opening ID help says verified opening again", "S32", edit("search.html", (s) => s.replace("this specific opening", "this specific verified opening")));
+control("the KIO ID help says verified opening again", "S32", edit("search.html", (s) => s.replace("this specific opening", "this specific verified opening")));
 control("the no-match note says a missing opening is worth knowing", "S32", edit("js/search-input.js", (s) => s.replace("A missing opening may simply not be added; it says nothing about whether the job exists.", "A real employer registers it, so a missing opening is itself worth knowing.")));
 control("the paused message says the employer confirmed it", "S32", edit("js/chips.js", (s) => s.replace("The employer has paused it, so it is not accepting", "The employer has confirmed it, but it is not accepting")));
 control("the no-link message says not any less real", "S32", edit("js/pages/search.js", (s) => s.replace("That's their choice to make.\"", "That's their choice to make, not a sign the opening is any less real.\"")));
@@ -389,14 +389,14 @@ control("the comment button gets a one-second timer again", "S37", append("js/pa
 control("the reportLink element is removed from the markup", "S29", edit("comments.html", (s) => s.replace('<select id="reportLink" aria-label="Which link"></select>', "")));
 // S40: the candidate search screen (one specific job; exact IDs first; title is the labelled fallback; guidance is real text wired to the inputs; a short title is left to the backend)
 control("the search page loses its one-specific-job sentence", "S40", edit("search.html", (s) => s.replace("Search for one specific job you already know about.", "Search for jobs.")));
-control("the search page loses the easiest-and-most-exact sentence", "S40", edit("search.html", (s) => s.replace("Easiest and most exact: the Opening ID from the employer's job ad (no company name needed), or the company name plus the requisition (req) number.", "Search by the Opening ID, or by the company name plus the requisition (req) number.")));
-control("the search page loses the no-ID title fallback sentence", "S40", edit("search.html", (s) => s.replace("No ID? Use the company name plus part of the job title, copied from the job ad if you can.", "Or use a job title.")));
+control("the search page loses the easiest-and-most-exact sentence", "S40", edit("search.html", (s) => s.replace("Easiest and most exact: the KIO ID from the employer's job ad (no company name needed), or the company name plus the requisition (req) number.", "Search by the KIO ID, or by the company name plus the requisition (req) number.")));
+control("the search page loses the no-ID title fallback sentence", "S40", edit("search.html", (s) => s.replace("No KIO ID? Use the company name plus part of the job title, copied from the job ad if you can.", "Or use a job title.")));
 control("the search page loses the company-name sentence", "S40", edit("search.html", (s) => s.replace("We ignore endings like Inc., Co. and LLC.", "")));
-control("the search page loses the title-search limits sentence", "S40", edit("search.html", (s) => s.replace("and it will not show openings that are not live. Closed or expired openings are found only by Opening ID or req number.", "and it shows every opening.")));
-control("the search page loses the one-lookup-box sentence", "S40", edit("search.html", (s) => s.replace("Company is required, unless you type an Opening ID. Then fill in one of the other two boxes:", "Fill in the boxes:")));
+control("the search page loses the title-search limits sentence", "S40", edit("search.html", (s) => s.replace("and it will not show openings that are not live. Closed or expired openings are found only by KIO ID or req number.", "and it shows every opening.")));
+control("the search page loses the one-lookup-box sentence", "S40", edit("search.html", (s) => s.replace("Company is required, unless you type a KIO ID. Then fill in one of the other two boxes:", "Fill in the boxes:")));
 control("the search form gains a fourth box (a way to browse)", "S40", edit("search.html", (s) => s.replace('<button type="submit" id="searchBtn"', '<input id="browse" type="text"><button type="submit" id="searchBtn"')));
 control("the search form puts the title box before the req number", "S40", edit("search.html", (s) => { const L = s.split(String.fromCharCode(10)), pair = L.findIndex((l) => l.includes('class="srch-pair"')), or = L.findIndex((l) => l.includes('class="srch-or"')), btn = L.findIndex((l) => l.includes('<button type="submit" id="searchBtn"')); if (pair < 0 || or < pair || btn < or + 3) throw new Error("form shape changed"); return [...L.slice(0, pair + 1), ...L.slice(or + 1, btn - 2), L[or], ...L.slice(pair + 1, or), ...L.slice(btn - 2)].join(String.fromCharCode(10)); }));
-control("the title box label goes back to Title or Opening ID", "S40", edit("search.html", (s) => s.replace(">Opening ID, or part of the title\n", ">Title or Opening ID\n")));
+control("the title box label goes back to Title or KIO ID", "S40", edit("search.html", (s) => s.replace(">KIO ID, or part of the title\n", ">Title or KIO ID\n")));
 control("the company box is no longer described by its hint", "S40", edit("search.html", (s) => s.replace(' aria-describedby="companyHint"', "")));
 control("the title box is no longer described by the title note", "S40", edit("search.html", (s) => s.replace('aria-describedby="titleHint reqHint titleNote"', 'aria-describedby="titleHint reqHint"')));
 control("the title box points at a note that is not on the page", "S40", edit("search.html", (s) => s.replace('id="titleNote"', 'id="titleNoteGone"')));
@@ -409,8 +409,8 @@ control("a title over 80 characters is no longer refused locally", "S40", edit("
 control("the too-short-title message is reworded", "S40", edit("js/search-input.js", (s) => s.replace("That part of the title is too short to search on its own.", "Title too short.")));
 control("the too-short-title message loses the short-forms hint", "S40", edit("js/search-input.js", (s) => s.replace("or a short form like VP, SR or JR if the employer used one.", "")));
 control("the page shows the raw backend refusal again", "S40", edit("js/pages/search.js", (s) => s.replace("setFormError(searchErrorMessage(r.error));", 'setFormError(r.error.message || "That search was not accepted.");')));
-control("the empty-result note stops saying to check the ID and try another part of the title", "S14", edit("js/search-input.js", (s) => s.replace("Check the company name, and check the ID exactly as it is printed in the job ad. If you searched by title, try a different part of the title.", "Check the company name.")));
-control("the empty-result note stops saying closed or expired openings are found by Opening ID or req number", "S14", edit("js/search-input.js", (s) => s.replace("closed or expired openings are found only by Opening ID or req number.", "closed or expired openings are not shown.")));
+control("the empty-result note stops saying to check the ID and try another part of the title", "S14", edit("js/search-input.js", (s) => s.replace("Check the company name, and check the KIO ID exactly as it is printed in the job ad. If you searched by title, try a different part of the title.", "Check the company name.")));
+control("the empty-result note stops saying closed or expired openings are found by KIO ID or req number", "S14", edit("js/search-input.js", (s) => s.replace("closed or expired openings are found only by KIO ID or req number.", "closed or expired openings are not shown.")));
 control("the dashboard loses the place-your-postID-on-your-site sentence", "S40", edit("dashboard.html", (s) => s.replace("it lets candidates find the opening exactly.", "")));
 // S45 (2026-10-03): the edit page's unsaved-changes bar, the leave dialog, and the recruiter toggle's wording and place.
 {
@@ -632,8 +632,8 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the landing note ignores the page", "S50", edit("js/app.js", (s) => s.replace("landingKindForPage(location.pathname, location.search) || flag", "flag")));
   control("the landing note ignores the role check", "S50", edit("js/app.js", (s) => s.replace("kind === \"poster\" && session.isPoster ? landingText(\"poster\")", "kind === \"poster\" ? landingText(\"poster\")")));
   control("the home button says Search a company again", "S50", edit("index.html", (s) => s.replace("<a class=\"btn btn-dark\" href=\"search.html\">Look up an opening</a>", "<a class=\"btn btn-dark\" href=\"search.html\">Search a company</a>")));
-  control("the home sentence goes back to the old wording", "S50", edit("index.html", (s) => s.replace("Look up an opening by company and req number, or by company and Opening ID or title, before applying. No account or password, just a quick email check.", "Search by company and title before applying. No account required to look up an opening.")));
-  control("the home sentence is reworded", "S50", edit("index.html", (s) => s.replace("or by company and Opening ID or title, before applying.", "or by title, before applying.")));
+  control("the home sentence goes back to the old wording", "S50", edit("index.html", (s) => s.replace("Look up an opening by company and req number, or by company and KIO ID or title, before applying. No account or password, just a quick email check.", "Search by company and title before applying. No account required to look up an opening.")));
+  control("the home sentence is reworded", "S50", edit("index.html", (s) => s.replace("or by company and KIO ID or title, before applying.", "or by title, before applying.")));
   control("the old wording appears on another page", "S50", edit("privacy.html", (s) => s.replace("<h1", "<p>Search a company</p><h1")));
   control("the report section is shown whatever the opening has", "S50", edit("js/pages/comments.js", (s) => s.replace("$(\"#reportWrap\").hidden = !picker;", "$(\"#reportWrap\").hidden = false;")));
   control("the report section is shown again somewhere", "S50", edit("js/pages/comments.js", (s) => s.replace("async function sessionEnded() {", "async function sessionEnded() { if (false) $(\"#reportWrap\").hidden = false;")));
@@ -660,7 +660,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
 // S51 (2026-10-05): home step 3, the search form's boxes, the callback without the flash on employer pages.
 {
   control("the home heading goes back to Candidates verify", "S51", edit("index.html", (s) => s.replace("Candidates look up</h3>", "Candidates verify</h3>")));
-  control("the home step 3 sentence goes back to the earlier wording", "S51", edit("index.html", (s) => s.replace("Look up an opening by company and req number, or by company and Opening ID or title, before applying. No account or password, just a quick email check.", "Look up an opening by company and req number, or by company and title, before applying. No account required.")));
+  control("the home step 3 sentence goes back to the earlier wording", "S51", edit("index.html", (s) => s.replace("Look up an opening by company and req number, or by company and KIO ID or title, before applying. No account or password, just a quick email check.", "Look up an opening by company and req number, or by company and title, before applying. No account required.")));
   control("the old heading appears on another page", "S51", edit("privacy.html", (s) => s.replace("<h1", "<h3>Candidates verify</h3><h1")));
   control("the Company label loses (required)", "S51", edit("search.html", (s) => s.replace(" <span class=\"srch-req\">(required)</span>", "")));
   control("the company box is no longer aria-required", "S51", edit("search.html", (s) => s.replace(" type=\"text\" aria-required=\"true\" maxlength=\"200\"", " type=\"text\" maxlength=\"200\"")));
@@ -668,7 +668,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the group loses its label link", "S51", edit("search.html", (s) => s.replace(" role=\"group\" aria-labelledby=\"oneOfHead\"", " role=\"group\"")));
   control("the heading Then one of these is gone", "S51", edit("search.html", (s) => s.replace("<div id=\"oneOfHead\" class=\"srch-then\">Then one of these</div>", "<div id=\"oneOfHead\" class=\"srch-then\"></div>")));
   control("the visible or is gone", "S51", edit("search.html", (s) => s.replace("<div class=\"srch-or\">or</div>", "<div class=\"srch-or\"></div>")));
-  control("the old sentence is back", "S51", edit("search.html", (s) => s.replace("Company is required, unless you type an Opening ID. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.", "Fill in only one of the two lookup boxes: the req number, or the Opening ID / title box. The req number is hidden as you type; press Show to check it.")));
+  control("the old sentence is back", "S51", edit("search.html", (s) => s.replace("Company is required, unless you type a KIO ID. Then fill in one of the other two boxes: the req number, or the KIO ID / title box, not both. The req number is hidden as you type; press Show to check it.", "Fill in only one of the two lookup boxes: the req number, or the KIO ID / title box. The req number is hidden as you type; press Show to check it.")));
   control("the new sentence is reworded", "S51", edit("search.html", (s) => s.replace("not both.", "not both!")));
   control("the required word loses its ember color", "S51", edit("app.css", (s) => s.replace(".srch-req{text-transform:none;letter-spacing:0;font-weight:700;color:var(--ember)}", ".srch-req{text-transform:none;letter-spacing:0;font-weight:700}")));
   control("the or loses its rule", "S51", edit("app.css", (s) => s.replace(".srch-or{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700;color:var(--muted)}", ".srch-or{display:none}")));
@@ -706,7 +706,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the req number is printed in the recap", "S53", edit("js/search-recap.js", (s) => s.replace("search.kind === \"req\" ? RECAP.REQ", "search.kind === \"req\" ? search.value")));
   control("a KIO ID is no longer shown in the recap (prompt BS)", "S53", edit("js/search-recap.js", (s) => s.replace('search.kind === "kio" && typeof search.shown === "string" && search.shown !== "" ? RECAP.KIO + search.shown : ', "")));
   control("the recap shows the ID as it was typed, not in the shown form (prompt BS)", "S53", edit("js/search-recap.js", (s) => s.replace("RECAP.KIO + search.shown :", "RECAP.KIO + search.value :")));
-  control("an Opening ID is printed in the recap", "S53", edit("js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" || search.kind === \"kio\" ? search.value : RECAP.CODE")));
+  control("a KIO ID entered as an old code is printed in the recap", "S53", edit("js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" || search.kind === \"kio\" ? search.value : RECAP.CODE")));
   control("the boxes are not emptied", "S53", edit("js/pages/search.js", (s) => s.replace("companyIn.value = \"\"; queryIn.value = \"\"; reqIn.value = \"\";", "void 0;")));
   control("a new search does not hide the recap", "S53", edit("js/pages/search.js", (s) => s.replace("setFormError(\"\"); hideRecap();", "setFormError(\"\");")));
   control("Edit this search does not move the cursor", "S53", edit("js/pages/search.js", (s) => s.replace("lastSearch = null; hideRecap(); companyIn.focus();", "lastSearch = null; hideRecap();")));
@@ -883,7 +883,7 @@ control("the register page title says Register an Opening again", "S66", edit("r
 control("the register button says Register opening again", "S66", edit("js/pages/register.js", (s) => s.replace('"Add and schedule" : "Add opening"', '"Register and schedule" : "Register opening"')));
 control("the success heading says Registered again", "S66", edit("js/pages/register.js", (s) => s.replace('"Added. It is live now."', '"Registered. It is live now."')));
 control("the details window says registered through again", "S66", edit("js/pages/search.js", (s) => s.replace("This opening was added through FightGhostJobs by the employer.", "This opening was registered through FightGhostJobs by an employer.")));
-control("the My openings column says Registered again", "S66", edit("js/pages/dashboard.js", (s) => s.replace('["Title", "Req #", "Opening ID", ...', '["Title", "Registered", "Opening ID", ...')));
+control("the My openings column says Registered again", "S66", edit("js/pages/dashboard.js", (s) => s.replace('["Title", "Req #", "KIO ID", ...', '["Title", "Registered", "KIO ID", ...')));
 control("the team page says who can register openings", "S66", edit("team.html", (s) => s.replace("who can add openings for your organization.", "who can register openings for your organization.")));
 control("a search result chip says Registered with a date again", "S66", edit("js/chips.js", (s) => s.replace('text: "Added " + fmtDateTz(p.posted_at, tz)', 'text: "Registered " + fmtDateTz(p.posted_at, tz)')));
 control("the privacy heading says register openings again", "S66", edit("privacy.html", (s) => s.replace("If you add openings", "If you register openings")));
@@ -1376,7 +1376,8 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   const MJ = "js/dashboard-model.js", CSS = "app.css", EJ = "js/pages/edit.js", DJ = "js/pages/dashboard.js", RJ = "js/pages/register.js", AJ = "js/dashboard-actions.js", RUN = "tests/run-all.js";
   control("an expired row loses its word", "S84", edit(MJ, (s) => s.replace('"Expired " + fmtDate(p.expiration_date) : "Expired";', 'fmtDate(p.expiration_date) : "Expired";')));
   control("a closed row shows its scheduled date", "S84", edit(MJ, (s) => s.replace('? "Closed " + fmtDate(p.closed_at) : "Closed";', '? "Closed " + fmtDate(p.closed_at) : fmtDate(p.expiration_date);')));
-  control("closed rows are not sorted last", "S84", edit(MJ, (s) => s.replace("if (isOver(a) !== isOver(b)) return isOver(a) ? 1 : -1; const x", "const x")));
+  control("closed rows are not sorted last", "S84", edit(MJ, (s) => s.replace("const ea = isEnded(a, nowMs), eb = isEnded(b, nowMs); if (ea !== eb) return ea ? 1 : -1; const x", "const x")));
+  control("a draft whose window ended is not sorted with the ended rows (only closed and expired are)", "S84", edit(MJ, (s) => s.replace("const ea = isEnded(a, nowMs), eb = isEnded(b, nowMs);", "const ea = isOver(a), eb = isOver(b);")));
   control("a second definition of a row that is over", "S84", edit(MJ, (s) => s.replace('export const isOver = (p) => p.status === "closed" || p.status === "expired";', 'export const isOver = (p) => p.status === "closed";')));
   control("the Status pill is a run of text", "S84", edit(CSS, (s) => s.replace('.my-openings td[data-label="Status"] .status{display:inline-block;border-radius:14px}', "")));
   control("the saved line is not taken away at the next change", "S84", edit(EJ, (s) => s.replace('if (anyUnsaved() && document.querySelector("[data-result]")) clearResults();', "")));
@@ -1387,6 +1388,21 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the confirmation counts the days from saved", "S84", edit(RJ, (s) => s.replace("14 days after it was added, and the opening window", "14 days after it was saved, and the opening window")));
   control("the schedule confirmation counts the days from saved", "S84", edit(AJ, (s) => s.replace("can only be published for 14 days after it was added.", "can only be published for 14 days after it was saved.")));
   control("the BR browser test is not in the suite", "S84", edit(RUN, (s) => s.replace('path.join(here, "br.test.js")', 'path.join(here, "unit.test.js")')));
+  // S85 (prompt BU): the label KIO ID everywhere, and the dead draft in the Closes sort
+  control("a page says Opening ID again (the search box label)", "S85", edit("search.html", (s) => s.replace(">KIO ID, or part of the title\n", ">Opening ID, or part of the title\n")));
+  control("a script says Opening ID again (the My openings header)", "S85", edit("js/pages/dashboard.js", (s) => s.replace('["Title", "Req #", "KIO ID", ...', '["Title", "Req #", "Opening ID", ...')));
+  control("a style selector says Opening ID (the column rule no longer matches the label)", "S85", edit("app.css", (s) => s.replace('.my-openings.tight td[data-label="KIO ID"]', '.my-openings.tight td[data-label="Opening ID"]')));
+  control("a no-break space between the words", "S85", edit("index.html", (s) => s.replace("and a KIO ID. Included on every tier.", "and an Opening&nbsp;ID. Included on every tier.")));
+  control("lower case words in a script message", "S85", edit("js/search-input.js", (s) => s.replace('message: "Enter a KIO ID or part of the job title."', 'message: "Enter an opening ID or part of the job title."')));
+  control("the employer's ID block is labelled Opening ID again", "S85", edit("js/kio-block.js", (s) => s.replace('h("span", { class: "kio-label" }, "KIO ID"),', 'h("span", { class: "kio-label" }, "Opening ID"),')));
+  control("a result card line has no colon after KIO ID", "S85", edit("js/pages/search.js", (s) => s.replace('" · KIO ID: " + openingIdText(row)', '" · KIO ID " + openingIdText(row)')));
+  control("the staff card line has no colon after KIO ID", "S85", edit("js/staff-scope.js", (s) => s.replace('" · KIO ID: " + row.opening_id', '" · KIO ID " + row.opening_id')));
+  control("the comments page's employer line has no colon", "S85", edit("js/pages/comments.js", (s) => s.replace('"KIO ID: " + groupCode(p.post_id)', '"KIO ID " + groupCode(p.post_id)')));
+  control("the filter box's accessible name does not say KIO ID", "S85", edit("dashboard.html", (s) => s.replace('aria-label="Filter by title, req number or KIO ID"', 'aria-label="Filter by title, req number or ID"')));
+  control("the free tier line loses the ID", "S85", edit("register.html", (s) => s.replace("<li>Title, location, dates, KIO ID</li>", "<li>Title, location, dates</li>")));
+  control("a draft whose window ended is counted as time left in the Expiring pill", "S85", edit(MJ, (s) => s.replace('p.status === "draft" && leftWithinFlag(p, nowMs) !== null && !isClosingSoon(p, nowMs);', 'p.status === "draft" && !isClosingSoon(p, nowMs);')));
+  control("an ended row is only a closed or expired one", "S85", edit(MJ, (s) => s.replace("export const isEnded = (p, nowMs) => isOver(p) || publishWindowEnded(p, nowMs);", "export const isEnded = (p, nowMs) => isOver(p);")));
+  control("the BU browser test is not in the suite", "S85", edit(RUN, (s) => s.replace('path.join(here, "bu.test.js")', 'path.join(here, "unit.test.js")')));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });

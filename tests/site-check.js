@@ -57,6 +57,7 @@
 //   S62 the search page opened with the company and one other value in the URL fragment (extension hand-off): only c, p, r, t, the site's limits, plain text, refuse on doubt, fragment removed at once, never an automatic search
 //   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
 //   S60 search engines (Phase 3): the flag ALLOW_INDEXING in js/config.js (false on stage) agrees with every page's robots tag and with robots.txt; sign-in pages are noindex in every environment; the tool and the test exist and run
+//   S85 the label of the public code is KIO ID everywhere a person sees it (never Opening ID), the Closes sort puts a draft whose publish window ended with the ended rows (prompt BU)
 //   S53 the search recap (Part C): sentence, never the req number or postID, Edit this search, memory only, one spoken message
 //   S52 the accessibility round: header Tab order, one polite search status, the details window's focus handling, the unsaved bar's closing message, 24 pixel hit areas, and the four tests that prove them
 //   S51 the home page's step 3 (Candidates look up), the search form's three boxes (Company required, Then one of these, a visible or, the approved sentence) and the callback without the flash on employer pages
@@ -166,8 +167,8 @@ export function checkSite(root, opts = {}) {
   const si = path.join(root, "js", "search-input.js"), sp = path.join(root, "js", "pages", "search.js");
   if (fs.existsSync(si) && fs.existsSync(sp)) {
     const note = (read(si).match(/export const NO_MATCH_NOTE = "([^"]*)";/) || [])[1] || "";
-    if (!note.endsWith("A title search finds only openings that are live: closed or expired openings are found only by Opening ID or req number.")) add("S14", si, "NO_MATCH_NOTE must end with the closed-or-expired-by-postID-or-req sentence");
-    if (!note.includes("Check the company name, and check the ID exactly as it is printed in the job ad. If you searched by title, try a different part of the title.")) add("S14", si, "NO_MATCH_NOTE must tell the person to check the ID and to try a different part of the title");
+    if (!note.endsWith("A title search finds only openings that are live: closed or expired openings are found only by KIO ID or req number.")) add("S14", si, "NO_MATCH_NOTE must end with the closed-or-expired-by-KIO-ID-or-req sentence");
+    if (!note.includes("Check the company name, and check the KIO ID exactly as it is printed in the job ad. If you searched by title, try a different part of the title.")) add("S14", si, "NO_MATCH_NOTE must tell the person to check the KIO ID and to try a different part of the title");
     const src = read(si);
     const fn = (src.match(/export function noMatchMessage\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1] || "";
     if (!/\+\s*NO_MATCH_NOTE;\s*$/.test(fn.trim())) add("S14", si, "noMatchMessage must end with NO_MATCH_NOTE");
@@ -763,16 +764,16 @@ export function checkSite(root, opts = {}) {
       const t = read(sh).replace(/<!--[\s\S]*?-->/g, ""), src = read(si), page = read(sp);
       for (const s of [
         "Search for one specific job you already know about.",
-        "Easiest and most exact: the Opening ID from the employer's job ad (no company name needed), or the company name plus the requisition (req) number.",
-        "No ID? Use the company name plus part of the job title, copied from the job ad if you can.",
+        "Easiest and most exact: the KIO ID from the employer's job ad (no company name needed), or the company name plus the requisition (req) number.",
+        "No KIO ID? Use the company name plus part of the job title, copied from the job ad if you can.",
         "Must match the employer's name. We ignore endings like Inc., Co. and LLC.",
-        "A title search will not list all of a company's jobs, and it will not show openings that are not live. Closed or expired openings are found only by Opening ID or req number.",
-        "Company is required, unless you type an Opening ID. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.",
+        "A title search will not list all of a company's jobs, and it will not show openings that are not live. Closed or expired openings are found only by KIO ID or req number.",
+        "Company is required, unless you type a KIO ID. Then fill in one of the other two boxes: the req number, or the KIO ID / title box, not both. The req number is hidden as you type; press Show to check it.",
       ]) if (!t.includes(s)) add("S40", sh, "the search guidance must say: " + s);
       const form = (t.match(/<form id="searchForm"[\s\S]*?<\/form>/) || [""])[0];
       const inputs = [...form.matchAll(/<input\b[^>]*\bid="([^"]*)"/g)].map((m) => m[1]);
-      if (inputs.join(",") !== "company,reqq,titleq") add("S40", sh, "the search form must have exactly three inputs, in this order: company, req number, Opening ID / title (the exact IDs come first, and there is no way to browse); found: " + inputs.join(","));
-      if (!/<label for="titleq"[^>]*>Opening ID, or part of the title/.test(form)) add("S40", sh, "the title box label must say \"Opening ID, or part of the title\" (the title is the fallback, named as such)");
+      if (inputs.join(",") !== "company,reqq,titleq") add("S40", sh, "the search form must have exactly three inputs, in this order: company, req number, KIO ID / title (the exact IDs come first, and there is no way to browse); found: " + inputs.join(","));
+      if (!/<label for="titleq"[^>]*>KIO ID, or part of the title/.test(form)) add("S40", sh, "the title box label must say \"KIO ID, or part of the title\" (the title is the fallback, named as such)");
       for (const id of ["company", "reqq", "titleq"]) if (!new RegExp('<label for="' + id + '"').test(form)) add("S40", sh, "the " + id + " input has no label");
       const ids = new Set([...t.matchAll(/\bid="([^"]*)"/g)].map((m) => m[1]));
       const describedBy = (id) => ((form.match(new RegExp('<input id="' + id + '"[^>]*aria-describedby="([^"]*)"')) || [])[1] || "").split(/\s+/).filter(Boolean);
@@ -786,7 +787,7 @@ export function checkSite(root, opts = {}) {
       if (!src.includes('export const PHRASE_TOO_SHORT_MESSAGE = "That part of the title is too short to search on its own. Use at least 3 letters or digits, or a short form like VP, SR or JR if the employer used one.";')) add("S40", si, "the too-short-title message must be the approved wording");
       if (!/searchErrorMessage\(r\.error\)/.test(page)) add("S40", sp, "the page must show the backend's refusal through searchErrorMessage (the calm too-short wording)");
       const dh = path.join(root, "dashboard.html");
-      if (fs.existsSync(dh) && !read(dh).includes('<div id="postIdNote" class="field-hint">You may place an opening\'s Opening ID on your own site: it lets candidates find the opening exactly.</div>')) add("S40", dh, "the dashboard must tell employers they may place the Opening ID on their own site (it lets candidates find the opening exactly)");
+      if (fs.existsSync(dh) && !read(dh).includes('<div id="postIdNote" class="field-hint">You may place an opening\'s KIO ID on your own site: it lets candidates find the opening exactly.</div>')) add("S40", dh, "the dashboard must tell employers they may place the KIO ID on their own site (it lets candidates find the opening exactly)");
     } else add("S40", root, "search.html, js/search-input.js or js/pages/search.js is missing");
   }
 
@@ -1060,7 +1061,7 @@ export function checkSite(root, opts = {}) {
     }
     if (fs.existsSync(ixF)) {
       const t = read(ixF);
-      if (!t.includes('<a class="btn btn-dark" href="search.html">Look up an opening</a>') || !t.includes("Look up an opening by company and req number, or by company and Opening ID or title, before applying. No account or password, just a quick email check.")) add("S50", ixF, "the home page must carry the approved wording: the button Look up an opening and the sentence " + "Look up an opening by company and req number, or by company and Opening ID or title, before applying. No account or password, just a quick email check.");
+      if (!t.includes('<a class="btn btn-dark" href="search.html">Look up an opening</a>') || !t.includes("Look up an opening by company and req number, or by company and KIO ID or title, before applying. No account or password, just a quick email check.")) add("S50", ixF, "the home page must carry the approved wording: the button Look up an opening and the sentence " + "Look up an opening by company and req number, or by company and KIO ID or title, before applying. No account or password, just a quick email check.");
     }
     for (const f of html.concat(js)) { const t = read(f); if (/Search a company|Search by company and title before applying/.test(t)) add("S50", f, "the old wording that says a company is what is searched (Search a company; Search by company and title before applying) must not come back"); }
     if (fs.existsSync(cmF)) {
@@ -1094,14 +1095,14 @@ export function checkSite(root, opts = {}) {
   // does not flash "Email confirmed / You can search now." on the way to an employer page.
   {
     const ixF = path.join(root, "index.html"), shF = path.join(root, "search.html"), cssF = path.join(root, "app.css"), cbF = path.join(root, "js", "pages", "auth-callback.js"), uiF = path.join(root, "tests", "search-ui.test.js");
-    if (fs.existsSync(ixF)) { const t = read(ixF); if (!t.includes('<h3 style="font-size:19px;font-weight:700;">Candidates look up</h3>') || !t.includes("Look up an opening by company and req number, or by company and Opening ID or title, before applying. No account or password, just a quick email check." + "</p>")) add("S51", ixF, "home step 3 must read Candidates look up, with the approved sentence"); }
+    if (fs.existsSync(ixF)) { const t = read(ixF); if (!t.includes('<h3 style="font-size:19px;font-weight:700;">Candidates look up</h3>') || !t.includes("Look up an opening by company and req number, or by company and KIO ID or title, before applying. No account or password, just a quick email check." + "</p>")) add("S51", ixF, "home step 3 must read Candidates look up, with the approved sentence"); }
     for (const f of html.concat(js)) { if (/Candidates verify/.test(read(f))) add("S51", f, "the old heading Candidates verify must not come back on an app page"); }
     if (fs.existsSync(shF)) {
       const t = read(shF);
       if (!t.includes('>Company <span class="srch-req">(required)</span></label>') || !/<input id="company" class="srch-input" type="text" aria-required="true"/.test(t)) add("S51", shF, "the Company label must say (required) as real text, and the company box must be aria-required");
       const g = t.indexOf('<div class="srch-group" role="group" aria-labelledby="oneOfHead"'), h = t.indexOf('<div id="oneOfHead" class="srch-then">Then one of these</div>'), a = t.indexOf('<input id="reqq"'), o = t.indexOf('<div class="srch-or">or</div>'), b = t.indexOf('<input id="titleq"'), c = t.indexOf('<input id="company"');
-      if (!(c >= 0 && c < g && g < h && h < a && a < o && o < b)) add("S51", shF, "the req number box and the Opening ID / title box must sit in a labelled group (role=group, aria-labelledby=oneOfHead) under the heading Then one of these, with a visible or between them, after the company box");
-      if (!t.includes("Company is required, unless you type an Opening ID. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.")) add("S51", shF, "the sentence under the form must be the approved one: " + "Company is required, unless you type an Opening ID. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.");   // prompt BQ: the ID alone is enough, so the sentence says so
+      if (!(c >= 0 && c < g && g < h && h < a && a < o && o < b)) add("S51", shF, "the req number box and the KIO ID / title box must sit in a labelled group (role=group, aria-labelledby=oneOfHead) under the heading Then one of these, with a visible or between them, after the company box");
+      if (!t.includes("Company is required, unless you type a KIO ID. Then fill in one of the other two boxes: the req number, or the KIO ID / title box, not both. The req number is hidden as you type; press Show to check it.")) add("S51", shF, "the sentence under the form must be the approved one: " + "Company is required, unless you type a KIO ID. Then fill in one of the other two boxes: the req number, or the KIO ID / title box, not both. The req number is hidden as you type; press Show to check it.");   // prompt BQ: the ID alone is enough, so the sentence says so
       if (t.includes("Fill in only one of the two lookup boxes")) add("S51", shF, "the old sentence (Fill in only one of the two lookup boxes) must not come back");
     }
     if (fs.existsSync(cssF)) {
@@ -1167,8 +1168,8 @@ export function checkSite(root, opts = {}) {
     if (!fs.existsSync(rcF)) add("S53", rcF, "js/search-recap.js must exist");
     else {
       const t = stripJsComments(read(rcF));
-      for (const [needle, why] of [['LEAD: "You searched for: company "', "the approved opening"], ['TAIL: " Your results are below."', "the approved ending"], ['REQ: "a req number was entered"', "the req number wording"], ['CODE: "an Opening ID was entered"', "the Opening ID wording"], ['search.kind === "req" ? RECAP.REQ : search.kind === "kio" && typeof search.shown === "string" && search.shown !== "" ? RECAP.KIO + search.shown : search.kind === "code" || search.kind === "kio" || search.alsoTryCode ? RECAP.CODE : "title " + oneLine(search.value)', "a req number, an old code and twelve plain letters are never printed, only a plain title; a KIO ID (public by design, prompt BS) is shown in its shown form"],
-        ['KIO: "Opening ID ",', "the words that go before a shown KIO ID"]]) if (!t.includes(needle)) add("S53", rcF, "search-recap.js must keep " + why);
+      for (const [needle, why] of [['LEAD: "You searched for: company "', "the approved opening"], ['TAIL: " Your results are below."', "the approved ending"], ['REQ: "a req number was entered"', "the req number wording"], ['CODE: "a KIO ID was entered"', "the KIO ID wording"], ['search.kind === "req" ? RECAP.REQ : search.kind === "kio" && typeof search.shown === "string" && search.shown !== "" ? RECAP.KIO + search.shown : search.kind === "code" || search.kind === "kio" || search.alsoTryCode ? RECAP.CODE : "title " + oneLine(search.value)', "a req number, an old code and twelve plain letters are never printed, only a plain title; a KIO ID (public by design, prompt BS) is shown in its shown form"],
+        ['KIO: "KIO ID: ",', "the words that go before a shown KIO ID"]]) if (!t.includes(needle)) add("S53", rcF, "search-recap.js must keep " + why);
     }
     if (fs.existsSync(srF)) {
       const t = stripJsComments(read(srF));
@@ -1837,7 +1838,7 @@ export function checkSite(root, opts = {}) {
         ['.my-openings td[data-label="Actions"] .row-action{margin:0 14px 0 0}', "the action words keep a gap on their right and no left margin (a wrapped word is not indented)"],
         ['.my-openings td[data-label="Actions"] .row-action:last-child{margin-right:0}', "the last action word has no gap after it"],
         [".my-openings .nb{white-space:nowrap}", "a date and its time are no-wrap pieces (a line breaks only between them)"],
-        ['.my-openings td[data-label="Actions"],.my-openings td[data-label="Closes"],.my-openings td[data-label="Opening ID"],.my-openings td[data-label="Comments"],.my-openings td[data-label="Status"]{width:1%;white-space:nowrap}', "the five columns take what their words need (prompt BP: drawn at the roomiest, fitted by the page; prompt BR: Status joins them so its pill stays one line)"],
+        ['.my-openings td[data-label="Actions"],.my-openings td[data-label="Closes"],.my-openings td[data-label="KIO ID"],.my-openings td[data-label="Comments"],.my-openings td[data-label="Status"]{width:1%;white-space:nowrap}', "the five columns take what their words need (prompt BP: drawn at the roomiest, fitted by the page; prompt BR: Status joins them so its pill stays one line)"],
         [".my-openings .act-note{min-width:36ch}", "the expired-draft note keeps a block about 36 characters wide while it fits"],
       ]) if (!c.includes(pin)) add("S81", cssF, "app.css: " + why);
       if (!/@media \(min-width:641px\)\{\s*\.my-openings thead th,\.my-openings td\{padding-left:8px;padding-right:8px\}/.test(c)) add("S81", cssF, "the tidy table rules apply above the phone width only (the phone layout is the card list of S48)");
@@ -1980,7 +1981,7 @@ export function checkSite(root, opts = {}) {
       const m = read(modF);
       for (const [pin, why] of [['if (p.status === "expired") return p.expiration_date ? "Expired " + fmtDate(p.expiration_date) : "Expired";', "an expired row says Expired and the day it ran out"],
         ['typeof p.closed_at === "string" && fmtDate(p.closed_at) !== "" ? "Closed " + fmtDate(p.closed_at) : "Closed"', "a closed row says Closed and the day it was closed, or Closed alone: never its scheduled date"],
-        ["if (isOver(a) !== isOver(b)) return isOver(a) ? 1 : -1;", "closed and expired rows go after every open row in both Closes directions"],
+        ["const ea = isEnded(a, nowMs), eb = isEnded(b, nowMs); if (ea !== eb) return ea ? 1 : -1;", "closed and expired rows, and a draft whose publish window ended (prompt BU), go after every open row in both Closes directions"],
         ['export const isOver = (p) => p.status === "closed" || p.status === "expired";', "one definition of a row that is over"]]) if (!m.includes(pin)) add("S84", modF, "dashboard-model.js: " + why);
     }
     if (fs.existsSync(cssF)) {
@@ -2002,6 +2003,41 @@ export function checkSite(root, opts = {}) {
       if (fs.existsSync(f) && !read(f).includes(pin)) add("S84", f, "must say the 14 days are counted from when it was added: " + pin);
     }
     if (fs.existsSync(runF) && !read(runF).includes('"br.test.js"')) add("S84", runF, "br.test.js is not in the suite");
+  }
+  // S85 (2026-10-12, prompt BU): the label of the public code is "KIO ID" everywhere a person sees it, never "Opening ID" (the ad line and the extension already say KIO ID). No page text, no script string and no
+  // style selector says "Opening ID" (any case; a space, a line break or a no-break space between the words): the identifiers of the code (opening_id, openingIdText, postId) do not match the words, so the allow
+  // list is empty and comments are left out. A draft whose publish window ended is an ended row in the Closes sort (isEnded), the same place the closed and expired rows go.
+  {
+    const OLD = /opening(?:\s|&nbsp;|&#160;|&#xa0;|\\u00a0| )+id\b/i;
+    for (const f of html) { const t = read(f).replace(/<!--[\s\S]*?-->/g, ""); if (OLD.test(t)) add("S85", f, "a page says Opening ID: the label of the public code is KIO ID"); }
+    for (const f of js) { const t = stripJsComments(read(f)); if (OLD.test(t)) add("S85", f, "a script says Opening ID: the label of the public code is KIO ID"); }
+    for (const f of css) { const t = read(f).replace(/\/\*[\s\S]*?\*\//g, ""); if (OLD.test(t)) add("S85", f, "a style says Opening ID (a data-label selector must follow the label KIO ID)"); }
+    const P = (...a) => path.join(root, ...a);
+    const body = (f) => (fs.existsSync(f) ? stripJsComments(read(f)) : "");
+    for (const [rel, pin, why] of [
+      [["js", "kio-block.js"], 'h("span", { class: "kio-label" }, "KIO ID"),', "the employer's ID block is labelled KIO ID"],
+      [["js", "pages", "register.js"], '}, "Your KIO ID"),', "the confirmation says Your KIO ID"],
+      [["js", "pages", "search.js"], '" · KIO ID: " + openingIdText(row)', "a result card's line reads KIO ID: then the ID"],
+      [["js", "pages", "search.js"], 'textContent = "KIO ID: " + openingIdText(row)', "the details window's line reads KIO ID: then the ID"],
+      [["js", "pages", "comments.js"], '" · KIO ID: " + p.masked_code', "the comments page's candidate line reads KIO ID: then the ID"],
+      [["js", "pages", "comments.js"], '"KIO ID: " + groupCode(p.post_id)', "the comments page's employer line reads KIO ID: then the ID"],
+      [["js", "staff-scope.js"], '" · KIO ID: " + row.opening_id', "the staff card's line reads KIO ID: then the ID"],
+      [["js", "pages", "dashboard.js"], '"data-label": "KIO ID"', "the My openings cell is labelled KIO ID (the phone card list shows this label)"],
+      [["js", "analytics-model.js"], 'code: "Company name + KIO ID (from a job ad)"', "the analytics page names the lookup by KIO ID"],
+      [["js", "search-input.js"], 'message: "Enter a KIO ID or part of the job title."', "the empty search box says KIO ID"],
+    ]) { const f = P(...rel); if (fs.existsSync(f) && !body(f).includes(pin)) add("S85", f, "must keep: " + why); }
+    for (const [rel, pin, why] of [
+      [["dashboard.html"], 'aria-label="Filter by title, req number or KIO ID"', "the filter box's accessible name says KIO ID (the same word as its placeholder)"],
+      [["register.html"], "<li>Title, location, dates, KIO ID</li>", "the free tier line says KIO ID"],
+      [["privacy.html"], "These emails carry the opening's title and KIO ID, never", "the emails sentence says KIO ID"],
+    ]) { const f = P(...rel); if (fs.existsSync(f) && !read(f).includes(pin)) add("S85", f, "must keep: " + why); }
+    const modF = P("js", "dashboard-model.js"), runF = P("tests", "run-all.js");
+    if (fs.existsSync(modF)) {
+      const m = read(modF);
+      if (!m.includes("export const isEnded = (p, nowMs) => isOver(p) || publishWindowEnded(p, nowMs);")) add("S85", modF, "an ended row is a closed or expired opening or a draft whose publish window ended (one definition)");
+      if (!m.includes('export const isExpiring = (p, nowMs) => p.status === "draft" && leftWithinFlag(p, nowMs) !== null && !isClosingSoon(p, nowMs);')) add("S85", modF, "the Expiring pill holds only a draft with time left (a draft whose window ended is not in it)");
+    }
+    if (fs.existsSync(runF) && !read(runF).includes('"bu.test.js"')) add("S85", runF, "bu.test.js is not in the suite");
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed

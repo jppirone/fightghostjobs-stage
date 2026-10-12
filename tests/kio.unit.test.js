@@ -136,12 +136,12 @@ test("the words of the answers are John's", () => {
 test("the recap of an ID search shows the ID in its shown form, however it was typed; a req number, an old code and twelve plain letters are still never printed", () => {
   const shown = classifyQuery("kio7k3m9q2xw4t9");
   assert.equal(shown.shown, "KIO-7K3M-9Q2X-W4T9");
-  assert.equal(recapSentence("Meridian", shown), "You searched for: company Meridian, Opening ID KIO-7K3M-9Q2X-W4T9. Your results are below.");
-  assert.equal(recapSentence("", shown), "You searched for: Opening ID KIO-7K3M-9Q2X-W4T9. Your results are below.");
-  assert.equal(recapSentence("Meridian", { kind: "kio", value: "KIO7K3M9Q2XW4T9" }), "You searched for: company Meridian, an Opening ID was entered. Your results are below.", "no shown form given: the old words");
+  assert.equal(recapSentence("Meridian", shown), "You searched for: company Meridian, KIO ID: KIO-7K3M-9Q2X-W4T9. Your results are below.");
+  assert.equal(recapSentence("", shown), "You searched for: KIO ID: KIO-7K3M-9Q2X-W4T9. Your results are below.");
+  assert.equal(recapSentence("Meridian", { kind: "kio", value: "KIO7K3M9Q2XW4T9" }), "You searched for: company Meridian, a KIO ID was entered. Your results are below.", "no shown form given: the old words");
   assert.equal(recapSentence("Meridian", { kind: "req", value: "R-2026-0451" }), "You searched for: company Meridian, a req number was entered. Your results are below.");
-  assert.equal(recapSentence("Meridian", { kind: "code", value: "D21M-48YB-ZQBF" }), "You searched for: company Meridian, an Opening ID was entered. Your results are below.");
-  assert.equal(recapSentence("Meridian", { kind: "phrase", value: "Receptionist", alsoTryCode: true, alsoTryKio: "KIO7K3M9Q2XW4T9" }), "You searched for: company Meridian, an Opening ID was entered. Your results are below.");
+  assert.equal(recapSentence("Meridian", { kind: "code", value: "D21M-48YB-ZQBF" }), "You searched for: company Meridian, a KIO ID was entered. Your results are below.");
+  assert.equal(recapSentence("Meridian", { kind: "phrase", value: "Receptionist", alsoTryCode: true, alsoTryKio: "KIO7K3M9Q2XW4T9" }), "You searched for: company Meridian, a KIO ID was entered. Your results are below.");
   assert.equal(recapSentence("Meridian", { kind: "phrase", value: "Data Analyst" }), "You searched for: company Meridian, title Data Analyst. Your results are below.");
 });
 

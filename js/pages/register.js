@@ -5,7 +5,7 @@ import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFai
 import { rememberNext } from "../session.js?v=c0af4232";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { fmtClose, waitText } from "../format.js?v=032c6fc5";
-import { kioBlock } from "../kio-block.js?v=8007f4da";
+import { kioBlock } from "../kio-block.js?v=6a7d21f6";
 import { checkGoLive, mapScheduleError } from "../schedule-form.js?v=b2985372";
 import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome, collectFirms, firmsOutcome, collectPolicy, policyOutcome, mapPolicyError, linkProblems, checkReport } from "../register-form.js?v=baec0d26";
 import { mapLinksErrors, planNotice, addressProblem } from "../edit-form.js?v=b5757c87";
@@ -268,7 +268,7 @@ function showResult(p, kind, problem, goLiveAt) {
   if (cr) result.append(h("div", { style: "margin-top:12px;", id: "checkReport" }, alertBox(cr.kind, cr.text)));
   if (state.placeProblem) result.append(h("div", { style: "margin-top:12px;", id: "placeProblem" }, alertBox("error", state.placeProblem)));
   result.append(h("div", { style: "margin-top:20px;" },
-    h("div", { style: "font-size:13px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;" }, "Your Opening ID"),
+    h("div", { style: "font-size:13px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;" }, "Your KIO ID"),
     // prompt BQ: the ID, its short link and the lines for a job ad, each with a copy button (js/kio-block.js); the ID keeps the big "code-box" look it has always had here
     kioBlock(p.public_code, { idClass: "code-box" }),
     h("p", { style: "font-size:13px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;" }, "Candidates can look this opening up with its ID alone, or with your company name plus the job title. The whole ID is shown to them.")));

@@ -8,9 +8,9 @@ import { rememberNext } from "../session.js?v=c0af4232";
 import { $, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { groupCode, waitText } from "../format.js?v=032c6fc5";
 import { placeNodes } from "../place.js?v=915c680a";
-import { FILTERS, SORTS, SORT_ANNOUNCE, defaultSort, sortRows, showsStatusColumn, statusChip, matchesFilter, matchesText, reqCell, addedCell, closesCell, expiryFlag } from "../dashboard-model.js?v=62183447";
-import { actionsFor, publishWindowEnded } from "../dashboard-model.js?v=62183447";
-import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=db14b538";
+import { FILTERS, SORTS, SORT_ANNOUNCE, defaultSort, sortRows, showsStatusColumn, statusChip, matchesFilter, matchesText, reqCell, addedCell, closesCell, expiryFlag } from "../dashboard-model.js?v=b3715dc3";
+import { actionsFor, publishWindowEnded } from "../dashboard-model.js?v=b3715dc3";
+import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=2e4990c2";
 import { COMMENTS_VISIBLE } from "../config.js?v=9bf25cae";
 
 const PAGE_CAP = 20;                       // 20 pages of 50: a hard stop, never an endless loop
@@ -63,7 +63,7 @@ function dateBits(text) {
 
 // the columns of the table right now: Status is there only while the chosen pill can hold more than one status (js/dashboard-model.js showsStatusColumn)
 function columnNames(showStatus) {
-  return ["Title", "Req #", "Opening ID", ...(showStatus ? ["Status"] : []), "Actions", "Closes", ...(COMMENTS_VISIBLE ? ["Comments"] : [])];
+  return ["Title", "Req #", "KIO ID", ...(showStatus ? ["Status"] : []), "Actions", "Closes", ...(COMMENTS_VISIBLE ? ["Comments"] : [])];
 }
 function renderHead(showStatus) {
   const tr = $("#headRow"); clear(tr);
@@ -80,7 +80,7 @@ function row(p, now, showStatus) {
       place.length ? h("div", { class: "row-sub", "data-part": "place" }, place) : null,
       h("div", { class: "row-sub", "data-part": "added" }, addedCell(p))),                      // prompt BP: the day it was added, a small grey line under the place
     h("td", { role: "cell", "data-label": "Req #", style: "color:var(--muted);" }, reqCell(p)),
-    h("td", { role: "cell", "data-label": "Opening ID", class: "mono", style: "color:var(--muted);white-space:nowrap;" }, groupCode(p.post_id)),
+    h("td", { role: "cell", "data-label": "KIO ID", class: "mono", style: "color:var(--muted);white-space:nowrap;" }, groupCode(p.post_id)),
     showStatus ? h("td", { role: "cell", "data-label": "Status" }, h("span", { class: "status " + chip.cls }, chip.text)) : null,
     h("td", { role: "cell", "data-label": "Actions" }, actionCells(p, now)),          // right after the status: the actions must never be pushed off the edge of a narrow window (each action word stays on one line and the note wraps: css .my-openings)
     h("td", { role: "cell", "data-label": "Closes", style: "color:var(--muted);" }, dateBits(closesCell(p)),

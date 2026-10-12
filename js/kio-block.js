@@ -41,7 +41,7 @@ export function kioBlock(stored, { live = KIO_SHORT_LINK_LIVE, win = window, idA
   };
   const rows = [
     h("div", { class: "kio-row" },
-      h("span", { class: "kio-label" }, "Opening ID"),
+      h("span", { class: "kio-label" }, "KIO ID"),
       h("span", { class: idClass, id: idAttr }, shown),
       isKio ? copyButton("Copy ID", "id", shown) : null),
   ];

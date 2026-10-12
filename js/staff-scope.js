@@ -47,7 +47,7 @@ export function staffChips(row, tz) {
 }
 
 // the second line of a staff card: who owns it and how to find it
-export function staffIdLine(row) { return row.organization_name + " · Opening ID " + row.opening_id + (row.req_number ? " · Req " + row.req_number : ""); }
+export function staffIdLine(row) { return row.organization_name + " · KIO ID: " + row.opening_id + (row.req_number ? " · Req " + row.req_number : ""); }
 
 // the count line above the results
 export function staffCountText(n, truncated) {

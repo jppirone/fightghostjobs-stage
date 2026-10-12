@@ -69,7 +69,7 @@ const SCENARIOS = {
   // at most 200 characters, control characters out
   async limit(root) { return withSite(root, { placeOverrides: [{ locations: [], is_remote: false, source_location_text: "x".repeat(300) + "\u0007" }] }, (site) => withTab(async (tab) => { const bad = [];
     await openSearch(tab, site, PLAIN, ""); await runSearch(tab); const o = await tab.eval(SNAP);
-    const line = o.cards[0].meta.split(" · Opening ID")[0].replace(NOTE, "").trim();
+    const line = o.cards[0].meta.split(" · KIO ID")[0].replace(NOTE, "").trim();
     if (line.length > 200) bad.push("more than 200 characters of the board's text are shown (" + line.length + ")");
     if (/\u0007/.test(o.cards[0].meta)) bad.push("a control character is shown");
     return bad; })); },

@@ -59,8 +59,8 @@ const SCENARIOS = {
         const cases = [
           ["a title", "Meridian", "Nurse", "", sentence("Meridian", "title Nurse"), "2 matching openings"],
           ["a req number", "Meridian", "", REQ, sentence("Meridian", "a req number was entered"), "2 matching openings"],
-          ["an Opening ID", "Meridian", CODE, "", sentence("Meridian", "an Opening ID was entered"), "2 matching openings"],
-          ["twelve plain letters (could be an Opening ID)", "Meridian", PLAIN12, "", sentence("Meridian", "an Opening ID was entered"), "2 matching openings"],
+          ["an old 12 character code", "Meridian", CODE, "", sentence("Meridian", "a KIO ID was entered"), "2 matching openings"],
+          ["twelve plain letters (could be an ID)", "Meridian", PLAIN12, "", sentence("Meridian", "a KIO ID was entered"), "2 matching openings"],
           ["a search that finds nothing", "Zzyzx Unknown", "Nurse", "", sentence("Zzyzx Unknown", "title Nurse"), "No matching openings"],
         ];
         for (const [what, company, title, req, want, wantCount] of cases) {
@@ -146,7 +146,7 @@ test("search recap: boxes emptied, read-only recap between form and results, req
 const DEFECTS = [
   ["the boxes are not emptied after a search", ["kinds"], [["js/pages/search.js", (s) => s.replace('companyIn.value = ""; queryIn.value = ""; reqIn.value = "";\n  const text', "const text")]]],
   ["the req number is shown in clear", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"req\" ? RECAP.REQ", "search.kind === \"req\" ? \"req \" + search.value")]]],
-  ["the Opening ID is shown in clear", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" ? \"Opening ID \" + search.value : search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE")]]],   // prompt BQ: the search-recap.js text now also names the kio kind; the defect is the same
+  ["the old code is shown in clear", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" ? \"KIO ID: \" + search.value : search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE")]]],   // prompt BQ: the search-recap.js text now also names the kio kind; the defect is the same
   ["twelve plain letters are printed as a title", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" || search.kind === \"kio\" ? RECAP.CODE")]]],
   ["the recap repeats the count", ["kinds"], [["js/search-recap.js", (s) => s.replace('"." + RECAP.TAIL', '"." + RECAP.TAIL + " 2 matching openings"')]]],
   ["the recap sentence is reworded", ["kinds"], [["js/search-recap.js", (s) => s.replace('TAIL: " Your results are below."', 'TAIL: " The results are below."')]]],

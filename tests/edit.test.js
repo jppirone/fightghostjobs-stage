@@ -234,9 +234,9 @@ test("edit.html and edit.js show the Opening ID at the top, with the same label 
 });
 
 test("the pages that already showed the Opening ID still do, through the same formatter", () => {
-  assert.ok(src("js/pages/dashboard.js").includes("groupCode(p.post_id)") && src("js/pages/dashboard.js").includes('"Title", "Req #", "Opening ID"'));      // prompt BP: the headings are drawn by the page script
-  assert.ok(src("js/pages/comments.js").includes('"Opening ID " + groupCode(p.post_id)'));
-  assert.ok(src("js/pages/register.js").includes('kioBlock(p.public_code, { idClass: "code-box" })') && src("js/pages/register.js").includes('"Your Opening ID"'));   // prompt BQ: the confirmation draws the same block (js/kio-block.js)
+  assert.ok(src("js/pages/dashboard.js").includes("groupCode(p.post_id)") && src("js/pages/dashboard.js").includes('"Title", "Req #", "KIO ID"'));      // prompt BP: the headings are drawn by the page script (prompt BU: the label is "KIO ID")
+  assert.ok(src("js/pages/comments.js").includes('"KIO ID: " + groupCode(p.post_id)'));
+  assert.ok(src("js/pages/register.js").includes('kioBlock(p.public_code, { idClass: "code-box" })') && src("js/pages/register.js").includes('"Your KIO ID"'));   // prompt BQ: the confirmation draws the same block (js/kio-block.js)
 });
 
 // ---- the recruiter toggle and the destination links section (edit page layout and wording)

@@ -337,7 +337,7 @@ const SCENARIOS = {
     if ((await tab.eval("document.querySelectorAll('#results .card').length")) !== had) bad.push("a different refusal cleared the results");
     // both the req number and the title: the refusal, and nothing from the earlier search under it
     await fill("Meridian", "Nurse", "R-2026-0451"); await run();
-    if ((await text(tab, "#formError")) !== "Fill in the req number, or the Opening ID / title box, not both.") bad.push("the refusal reads '" + (await text(tab, "#formError")) + "'");
+    if ((await text(tab, "#formError")) !== "Fill in the req number, or the KIO ID / title box, not both.") bad.push("the refusal reads '" + (await text(tab, "#formError")) + "'");
     if ((await tab.eval("document.querySelectorAll('#results > *').length")) !== 0) bad.push("the earlier results are still under the refusal");
     if (await visible(tab, "#resultCount")) bad.push("the earlier count is still above the refusal");
     if (await visible(tab, "#recap")) bad.push("a recap is shown");
@@ -384,7 +384,7 @@ const DEFECTS = [
   ["the team dialog's button has no ring", [["js/pages/team.js", (s) => s.replace("focusWithRing(confirm);", "confirm.focus();")]], ["ringTeamDialog"]],
   ["the ring is too thin", [["app.css", (s) => s.replace("button.focus-ring,a.focus-ring{outline:2px solid var(--ember);outline-offset:2px}", "button.focus-ring,a.focus-ring{outline:1px solid var(--ember);outline-offset:2px}")]], ["ringLeaveDialog"]],
   ["the refusal leaves the earlier results", [["js/pages/search.js", (s) => s.replace("if (q.clearResults) { clear(resultsEl); countEl.hidden = true; hideRecap(); lastSearch = null; status.clear(); }", "")]], ["searchRefusal"]],
-  ["every refusal clears the results", [["js/search-input.js", (s) => s.replace("if (!hasTitle && !hasReq) return { ok: false, message: \"Enter a req number, an Opening ID or part of the job title.\", focus: \"req\" };", "if (!hasTitle && !hasReq) return { ok: false, message: \"Enter a req number, an Opening ID or part of the job title.\", focus: \"req\", clearResults: true };")]], ["searchRefusal"]],
+  ["every refusal clears the results", [["js/search-input.js", (s) => s.replace("if (!hasTitle && !hasReq) return { ok: false, message: \"Enter a req number, a KIO ID or part of the job title.\", focus: \"req\" };", "if (!hasTitle && !hasReq) return { ok: false, message: \"Enter a req number, a KIO ID or part of the job title.\", focus: \"req\", clearResults: true };")]], ["searchRefusal"]],
 ];
 test("negative controls: each defect in the editor's and the register page's code makes a scenario fail", { timeout: 5400000 }, async () => {
   const missed = [];
