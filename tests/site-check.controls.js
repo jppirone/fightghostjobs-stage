@@ -1418,6 +1418,13 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the bar's own save does not say it comes from the bar", "S87", edit("js/pages/register.js", (s) => s.replace('await submit("draft", { viaBar: true });', 'await submit("draft");')));
   control("the redraw does not hand its options to the guard", "S87", edit("js/pages/register.js", (s) => s.replace("if (state.guard) state.guard.refresh(opts); }", "if (state.guard) state.guard.refresh(); }")));
   control("the BW browser test is not in the suite", "S87", edit(RUN, (s) => s.replace('path.join(here, "bw.test.js")', 'path.join(here, "unit.test.js")')));
+  // S88 (prompt BX): the cursor goes to the confirmation heading when an opening is added
+  control("the cursor is no longer moved to the confirmation heading", "S88", edit("js/pages/register.js", (s) => s.replace("  headingEl.focus({ preventScroll: true });", "")));
+  control("the confirmation heading is a Tab stop", "S88", edit("js/pages/register.js", (s) => s.replace('id: "resultHeading", tabindex: "-1"', 'id: "resultHeading", tabindex: "0"')));
+  control("the focus call may scroll the page", "S88", edit("js/pages/register.js", (s) => s.replace("headingEl.focus({ preventScroll: true });", "headingEl.focus();")));
+  control("the confirmation becomes a live region as well", "S88", append("js/pages/register.js", 'result.setAttribute("aria-live", "polite");'));
+  control("the confirmation element carries a role in the page", "S88", edit("register.html", (s) => s.replace('<div id="result" class="card" hidden>', '<div id="result" class="card" role="status" hidden>')));
+  control("the BX browser test is not in the suite", "S88", edit(RUN, (s) => s.replace('path.join(here, "bx.test.js")', 'path.join(here, "unit.test.js")')));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });

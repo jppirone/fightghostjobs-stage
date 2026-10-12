@@ -221,6 +221,12 @@ export function startFakeSite(root, opts = {}) {
         state.published = true;
         return send(200, { posting: { id: body.posting_id, status: "live", title: "Data Analyst", expiration_date: inDays(45), public_code: opts.kio ? kioOf("ABCDEFGHJKMN").stored : "ABCDEFGHJKMN", posting_ref: "abcdefghjkmnpqrstvwx", closed_reason: null } });
       }
+      // prompt BX: schedule-posting answers like the real one (changed, the instant, status "scheduled"); opts.scheduleRefusal = { status, body } makes it refuse
+      if (name === "schedule-posting") {
+        if (!poster) return unauth();
+        if (opts.scheduleRefusal) return send(opts.scheduleRefusal.status, opts.scheduleRefusal.body);
+        return send(200, { changed: true, go_live_at: body.go_live_at === undefined ? null : body.go_live_at, status: body.go_live_at ? "scheduled" : "draft" });
+      }
       if (name === "edit-posting") return poster ? send(200, { edited: true, changed_fields: ["title"], similarity_pct: null }) : unauth();   // the saved posting reads back as it was (the fake keeps nothing), so a save ends with nothing unsaved
       if (name === "list-posting-comments") return poster ? send(200, { posting_id: body.posting_id, comments: [{ id: "c1", body: "This role was filled last month, according to a friend who works there.", created_at: inDays(-3), is_mine: false }], total: 1, next_offset: null }) : unauth();   // the employer reads the thread of their own posting
       if (name === "candidate-session") return cand ? send(200, { ok: true }) : unauth();

@@ -57,6 +57,7 @@
 //   S62 the search page opened with the company and one other value in the URL fragment (extension hand-off): only c, p, r, t, the site's limits, plain text, refuse on doubt, fragment removed at once, never an automatic search
 //   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
 //   S60 search engines (Phase 3): the flag ALLOW_INDEXING in js/config.js (false on stage) agrees with every page's robots tag and with robots.txt; sign-in pages are noindex in every environment; the tool and the test exist and run
+//   S88 after an opening is added the keyboard focus is on the confirmation heading (tabindex -1, no live region as well) (prompt BX)
 //   S87 the "This opening is not added yet" bar is redrawn at the moment the opening exists, not by a later key, click or input (prompt BW)
 //   S86 no masked KIO ID in any visible string, the candidate comments page shows the whole ID, a valid sample ID on the home page, Ended on a dead draft, the filter finds an ID typed with hyphens (prompt BV)
 //   S85 the label of the public code is KIO ID everywhere a person sees it (never Opening ID), the Closes sort puts a draft whose publish window ended with the ended rows (prompt BU)
@@ -2083,6 +2084,21 @@ export function checkSite(root, opts = {}) {
       if (!s.includes("function refreshUnsaved(opts) { for (const x of limitHints) x.refresh(); if (state.guard) state.guard.refresh(opts); }")) add("S87", rgF, "refreshUnsaved must hand its options to the guard (quiet)");
     }
     if (fs.existsSync(runF) && !read(runF).includes('"bw.test.js"')) add("S87", runF, "bw.test.js is not in the suite");
+  }
+  // S88 (2026-10-12, prompt BX): when an opening is added the keyboard focus goes to the confirmation heading (tabindex -1, focused once, no scroll of its own), so it is announced and the person is not left on
+  // the page body; the confirmation is not made a live region as well.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const rgF = P("js", "pages", "register.js"), runF = P("tests", "run-all.js");
+    if (fs.existsSync(rgF)) {
+      const s = stripJsComments(read(rgF));
+      if (!s.includes('const headingEl = h("h2", { id: "resultHeading", tabindex: "-1", style: "font-size:22px;font-weight:700;" }, heading);')) add("S88", rgF, "the confirmation heading must be focusable by script and never a Tab stop (id resultHeading, tabindex -1)");
+      if (!s.includes("headingEl.focus({ preventScroll: true });")) add("S88", rgF, "showResult must move the cursor to the confirmation heading, without a scroll of its own");
+      if (/result\.setAttribute\("(role|aria-live)"/.test(s) || /\$\("#result"\)\.setAttribute\("(role|aria-live)"/.test(s)) add("S88", rgF, "the confirmation must not be made a live region as well (the focus is the announcement)");
+    }
+    const html = P("register.html");
+    if (fs.existsSync(html) && /id="result"[^>]*\b(role|aria-live)=/.test(read(html))) add("S88", html, "the confirmation element must not carry a role or aria-live (the focus is the announcement)");
+    if (fs.existsSync(runF) && !read(runF).includes('"bx.test.js"')) add("S88", runF, "bx.test.js is not in the suite");
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed

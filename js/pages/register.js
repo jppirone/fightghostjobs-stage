@@ -247,7 +247,10 @@ function unlockForm() { for (const el of $$("input, textarea", form)) el.disable
 function showResult(p, kind, problem, goLiveAt) {
   result.hidden = false; clear(result);
   const heading = kind === "live" ? "Added. It is live now." : kind === "draft" ? "Saved as a draft" : kind === "scheduled" ? "Added. It is scheduled." : kind === "schedule-failed" ? "Saved as a draft. The go-live time was not set." : kind === "publish-failed" ? "Saved as a draft. Publishing did not finish." : "Added";
-  result.append(h("h2", { style: "font-size:22px;font-weight:700;" }, heading));
+  // prompt BX (October 12, 2026): the heading takes keyboard focus when the confirmation shows (tabindex -1: a script can focus it, the Tab key never stops on it), so a screen reader reads it and a keyboard user
+  // is not left on the page body (the Add button that had the focus is hidden by the lock). It is the only announcement: the confirmation is not a live region as well.
+  const headingEl = h("h2", { id: "resultHeading", tabindex: "-1", style: "font-size:22px;font-weight:700;" }, heading);
+  result.append(headingEl);
   if (kind === "publish-failed") {
     result.append(h("div", { style: "margin-top:12px;" }, alertBox("error", problem + " Your opening is saved as a draft; nothing is visible to candidates yet.")),
       h("div", { style: "margin-top:16px;display:flex;gap:12px;" }, h("button", { type: "button", class: "btn btn-dark btn-sm", id: "retryPublish", onclick: async (ev) => { ev.currentTarget.disabled = true; await publish(); } }, "Try publishing again")));
@@ -284,6 +287,7 @@ function showResult(p, kind, problem, goLiveAt) {
   actions.append(h("a", { class: "btn btn-outline btn-sm", href: "dashboard.html" }, "View my openings"));
   actions.append(h("button", { type: "button", class: "btn btn-outline btn-sm", onclick: registerAnother }, "Add another opening"));
   result.append(actions);
+  headingEl.focus({ preventScroll: true });      // no scroll of its own: the smooth scroll below keeps the confirmation in view, as before
   result.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
