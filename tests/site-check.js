@@ -57,6 +57,7 @@
 //   S62 the search page opened with the company and one other value in the URL fragment (extension hand-off): only c, p, r, t, the site's limits, plain text, refuse on doubt, fragment removed at once, never an automatic search
 //   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
 //   S60 search engines (Phase 3): the flag ALLOW_INDEXING in js/config.js (false on stage) agrees with every page's robots tag and with robots.txt; sign-in pages are noindex in every environment; the tool and the test exist and run
+//   S87 the "This opening is not added yet" bar is redrawn at the moment the opening exists, not by a later key, click or input (prompt BW)
 //   S86 no masked KIO ID in any visible string, the candidate comments page shows the whole ID, a valid sample ID on the home page, Ended on a dead draft, the filter finds an ID typed with hyphens (prompt BV)
 //   S85 the label of the public code is KIO ID everywhere a person sees it (never Opening ID), the Closes sort puts a draft whose publish window ended with the ended rows (prompt BU)
 //   S53 the search recap (Part C): sentence, never the req number or postID, Edit this search, memory only, one spoken message
@@ -2069,6 +2070,19 @@ export function checkSite(root, opts = {}) {
       if (!m.includes('return typeof p.post_id === "string" && norm(p.post_id).replace(/ /g, "").includes(n.replace(/ /g, ""));')) add("S86", mdF, "the My openings filter compares the ID without its hyphens and spaces too");
     }
     if (fs.existsSync(runF) && !read(runF).includes('"bv.test.js"')) add("S86", runF, "bv.test.js is not in the suite");
+  }
+  // S87 (2026-10-12, prompt BW): the "This opening is not added yet" bar on the Add page is redrawn AT THE MOMENT the opening exists (not by a later key, click or input): the redraw sits right after the created
+  // opening is kept and the form is locked, quiet (the confirmation is not a live region), and not for the bar's own Save draft (the guard redraws that one itself, out loud); the bar's save passes viaBar.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const rgF = P("js", "pages", "register.js"), runF = P("tests", "run-all.js");
+    if (fs.existsSync(rgF)) {
+      const s = stripJsComments(read(rgF));
+      if (!/state\.saved = created\.data;\s*\n\s*lockForm\(\);\s*\n\s*if \(!opts\.viaBar\) refreshUnsaved\(\{ quiet: true \}\);/.test(s)) add("S87", rgF, "register.js must redraw the unsaved bar right after the created opening is kept and the form is locked (quiet, and not for the bar's own save)");
+      if (!s.includes('save: async () => { await submit("draft", { viaBar: true }); return state.saved !== null; },')) add("S87", rgF, "the bar's and the dialog's save must pass viaBar (the guard redraws itself when that save ends)");
+      if (!s.includes("function refreshUnsaved(opts) { for (const x of limitHints) x.refresh(); if (state.guard) state.guard.refresh(opts); }")) add("S87", rgF, "refreshUnsaved must hand its options to the guard (quiet)");
+    }
+    if (fs.existsSync(runF) && !read(runF).includes('"bw.test.js"')) add("S87", runF, "bw.test.js is not in the suite");
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed

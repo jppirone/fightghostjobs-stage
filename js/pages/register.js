@@ -94,7 +94,8 @@ function failureText(err) {
   return describeError(err, { what: "That" });
 }
 
-async function submit(mode) {
+// opts.viaBar: the unsaved bar's own Save draft (or the leave dialog's) called this; the bar then redraws itself when the save ends (js/unsaved-guard.js), saying so
+async function submit(mode, opts = {}) {
   if (state.busy) return;
   say(formAlert, "error", "");
   const values = collect();
@@ -132,6 +133,10 @@ async function submit(mode) {
     }
     state.saved = created.data;
     lockForm();
+    // prompt BW (October 12, 2026): the opening exists now, so "This opening is not added yet" is no longer true. The bar is redrawn AT THIS MOMENT. It used to be redrawn only by a later input, click or keyup, so after
+    // Add opening by the Enter key (the keyup comes before the answer) it stayed on the screen, with Save draft and Discard still working, until the next key or click. Quiet: the confirmation is not a live region, so
+    // a closing sentence ("No unsaved changes.") would be the only thing a screen reader said about the add; the bar's own Save draft keeps its closing sentence (the guard redraws it, out loud, when the save ends).
+    if (!opts.viaBar) refreshUnsaved({ quiet: true });
     // prompt BH: a server that does not know the typed place yet answers without it: the result says so, so nobody believes the place was saved
     state.placeProblem = values.outside === true && storedPlaceText(created.data) !== collapsePlaceText(values.locText) ? PLACE_WORDS.NOT_SAVED : null;
     // 2. the destination links, if any were entered: the posting exists now, so a refusal here is reported with the result, never as a failed registration
@@ -313,14 +318,14 @@ function unsavedModel() {
   if (state.baseline === null || state.saved) return { dirty: false, sections: [] };
   return { dirty: registerSnapshot(collect(), rowsNow()) !== state.baseline, sections: SECTIONS() };
 }
-function refreshUnsaved() { for (const x of limitHints) x.refresh(); if (state.guard) state.guard.refresh(); }      // the counts follow a value a script put in a box (Discard, Add another opening)
+function refreshUnsaved(opts) { for (const x of limitHints) x.refresh(); if (state.guard) state.guard.refresh(opts); }      // the counts follow a value a script put in a box (Discard, Add another opening)
 const toNext = (url) => go(url);
 state.guard = mountUnsavedGuard({
   win: window, root: document.documentElement,
   bar: $("#unsavedBar"), head: $("#unsavedHead"), detail: $("#unsavedDetail"), live: $("#unsavedLive"), saveBtn: $("#unsavedSave"), discardBtn: $("#unsavedDiscard"), skip: $("#skipToUnsaved"),
   dlg: { overlay: $("#leaveOverlay"), title: $("#leaveTitle"), text: $("#leaveText"), save: $("#leaveSave"), discard: $("#leaveDiscard"), stay: $("#leaveStay") },
   getModel: unsavedModel, summarize: summarizeRegister,
-  save: async () => { await submit("draft"); return state.saved !== null; },        // the bar and the dialog keep it as a draft (nothing goes live from a leave prompt)
+  save: async () => { await submit("draft", { viaBar: true }); return state.saved !== null; },        // the bar and the dialog keep it as a draft (nothing goes live from a leave prompt)
   discard: () => { state.guard.hush(true); try { resetForm(); unlockForm(); showErrors({}); } finally { state.guard.hush(false); } state.guard.refresh(); state.guard.announce(REGISTER_UNSAVED.DISCARDED); },
   go: toNext,
   activeElement: () => document.activeElement, confirmDiscard: () => window.confirm(REGISTER_UNSAVED.CONFIRM_DISCARD), rescueFocus: () => $("#jtitle").focus(),

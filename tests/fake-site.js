@@ -62,6 +62,7 @@ const ANALYTICS = { live_postings: 4, searches: 1284, detail_views: 406, link_cl
 export function startFakeSite(root, opts = {}) {
   root = path.resolve(root);
   const calls = [], hits = []; let SELF = "";      // hits (prompt BM): every request the browser made, "METHOD /path", whatever it was for
+  const createGate = {}; createGate.promise = new Promise((r) => { createGate.release = r; });      // opts.createHold (prompt BW): create-posting is answered only when the test calls site.releaseCreate()
   const state = { published: false };   // prompt BK: what a call changed that a later read must show (the opening is live after Publish)
   let policyState = opts.policy === undefined ? null : opts.policy;   // the AI and hiring policy link the fake backend holds for the one opening (see opts.plan, opts.policy, opts.policyCheck, opts.policyDetail below)
   // the recruiter firms the fake backend holds for the one opening (prompt BC, October 10, 2026): opts.firms = [{ firm, with_address (default true), check_status, check_http, shown_as }] in position order; opts.recruiter: the saved toggle is on
@@ -209,6 +210,7 @@ export function startFakeSite(root, opts = {}) {
       // prompt BH: create-posting answers with a draft (the request body is in site.calls); opts.createRefusal = { status, body } makes it refuse, opts.createDropsPlace answers without the typed place
       if (name === "create-posting") {
         if (!poster) return unauth();
+        if (opts.createHold) await createGate.promise;      // prompt BW: the request is held open until site.releaseCreate()
         if (opts.createRefusal) return send(opts.createRefusal.status, opts.createRefusal.body);
         return send(201, { id: "3f1d5b1e-0000-4000-8000-0000000000aa", status: "draft", title: String(body.title || ""), expiration_date: inDays(30), public_code: opts.kio ? kioOf("ABCDEFGHJKMN").stored : "ABCDEFGHJKMN", posting_ref: "abcdefghjkmnpqrstvwx", closed_reason: null, source_location_text: opts.createDropsPlace ? null : (typeof body.source_location_text === "string" ? body.source_location_text : null) });   // the real one answers with the whole row (returning *); opts.createDropsPlace: a server that does not know the typed place yet
       }
@@ -301,5 +303,5 @@ export function startFakeSite(root, opts = {}) {
     if (rel === "/js/config.js" && opts.codeOn) data = Buffer.from(data.toString("utf8").replace("EMAIL_CODE_ENTRY = false", "EMAIL_CODE_ENTRY = true"));   // opts.codeOn: the emailed-code field switched ON (it ships OFF, so every other test sees the sign-in pages as shipped)
     res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": opts.pageCache || "no-store" }); res.end(data);   // opts.pageCache: the Cache-Control the real stage serves (max-age=600), for the test that needs the browser's back/forward cache to be allowed; the default is unchanged
   });
-  return new Promise((resolve) => server.listen(0, "127.0.0.1", () => { SELF = "http://127.0.0.1:" + server.address().port; resolve({ url: SELF, calls, hits, close: () => new Promise((r) => { server.close(r); if (server.closeAllConnections) server.closeAllConnections(); }) }); }));
+  return new Promise((resolve) => server.listen(0, "127.0.0.1", () => { SELF = "http://127.0.0.1:" + server.address().port; resolve({ url: SELF, calls, hits, releaseCreate: () => createGate.release(), close: () => new Promise((r) => { server.close(r); if (server.closeAllConnections) server.closeAllConnections(); }) }); }));
 }

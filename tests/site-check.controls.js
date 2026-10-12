@@ -1412,6 +1412,12 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("a draft whose window ended says Publish by again", "S86", edit(MJ, (s) => s.replace('(nowMs !== undefined && publishWindowEnded(p, nowMs) ? "Ended " : "Publish by ")', '"Publish by "')));
   control("the filter compares only the stored form of the ID", "S86", edit(MJ, (s) => s.replace('return typeof p.post_id === "string" && norm(p.post_id).replace(/ /g, "").includes(n.replace(/ /g, ""));', "return false;")));
   control("the BV browser test is not in the suite", "S86", edit(RUN, (s) => s.replace('path.join(here, "bv.test.js")', 'path.join(here, "unit.test.js")')));
+  // S87 (prompt BW): the unsaved bar of the Add page is redrawn when the opening exists
+  control("the bar is no longer redrawn when the opening exists", "S87", edit("js/pages/register.js", (s) => s.replace("    if (!opts.viaBar) refreshUnsaved({ quiet: true });\n", "")));
+  control("the bar is redrawn out loud at the add", "S87", edit("js/pages/register.js", (s) => s.replace("if (!opts.viaBar) refreshUnsaved({ quiet: true });", "if (!opts.viaBar) refreshUnsaved();")));
+  control("the bar's own save does not say it comes from the bar", "S87", edit("js/pages/register.js", (s) => s.replace('await submit("draft", { viaBar: true });', 'await submit("draft");')));
+  control("the redraw does not hand its options to the guard", "S87", edit("js/pages/register.js", (s) => s.replace("if (state.guard) state.guard.refresh(opts); }", "if (state.guard) state.guard.refresh(); }")));
+  control("the BW browser test is not in the suite", "S87", edit(RUN, (s) => s.replace('path.join(here, "bw.test.js")', 'path.join(here, "unit.test.js")')));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });
