@@ -6,7 +6,7 @@
 //   * always followed by the small note PLACE_NOTE, so a reader knows it is the employer's board's wording and not one of our catalog places;
 //   * never read for searching, filtering or matching (rule S68 keeps every other script from touching it);
 //   * shown with textContent only (the caller builds text nodes; nothing here makes markup), at most 200 characters, control characters removed.
-import { locationLine, LOCATION_NOT_STATED } from "./format.js?v=0631812a";
+import { locationLine, LOCATION_NOT_STATED } from "./format.js?v=032c6fc5";
 
 export const PLACE_NOTE = "as provided by the employer";   // prompt BJ (October 11, 2026): the one note on every screen, for a place typed on the form and for one that came from an automated feed
 export const MAX_PLACE_CHARS = 200;

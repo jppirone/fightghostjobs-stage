@@ -14,6 +14,8 @@ export const RECAP = {
 const oneLine = (t) => String(t == null ? "" : t).replace(/\s+/g, " ").trim();
 
 export function recapSentence(company, search) {
-  const what = search.kind === "req" ? RECAP.REQ : search.kind === "code" || search.alsoTryCode ? RECAP.CODE : "title " + oneLine(search.value);
-  return RECAP.LEAD + oneLine(company) + ", " + what + "." + RECAP.TAIL;
+  const what = search.kind === "req" ? RECAP.REQ : search.kind === "code" || search.kind === "kio" || search.alsoTryCode ? RECAP.CODE : "title " + oneLine(search.value);
+  // prompt BQ: a lookup by the ID alone has no company to name (the ID is never printed)
+  const lead = search.kind === "kio" && oneLine(company) === "" ? "You searched for: " : RECAP.LEAD + oneLine(company) + ", ";
+  return lead + what + "." + RECAP.TAIL;
 }

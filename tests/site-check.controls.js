@@ -389,11 +389,11 @@ control("the comment button gets a one-second timer again", "S37", append("js/pa
 control("the reportLink element is removed from the markup", "S29", edit("comments.html", (s) => s.replace('<select id="reportLink" aria-label="Which link"></select>', "")));
 // S40: the candidate search screen (one specific job; exact IDs first; title is the labelled fallback; guidance is real text wired to the inputs; a short title is left to the backend)
 control("the search page loses its one-specific-job sentence", "S40", edit("search.html", (s) => s.replace("Search for one specific job you already know about.", "Search for jobs.")));
-control("the search page loses the easiest-and-most-exact sentence", "S40", edit("search.html", (s) => s.replace("Easiest and most exact: the company name plus the requisition (req) number or the Opening ID", "Search by the company name plus the requisition (req) number or the Opening ID")));
+control("the search page loses the easiest-and-most-exact sentence", "S40", edit("search.html", (s) => s.replace("Easiest and most exact: the Opening ID from the employer's job ad (no company name needed), or the company name plus the requisition (req) number.", "Search by the Opening ID, or by the company name plus the requisition (req) number.")));
 control("the search page loses the no-ID title fallback sentence", "S40", edit("search.html", (s) => s.replace("No ID? Use the company name plus part of the job title, copied from the job ad if you can.", "Or use a job title.")));
 control("the search page loses the company-name sentence", "S40", edit("search.html", (s) => s.replace("We ignore endings like Inc., Co. and LLC.", "")));
 control("the search page loses the title-search limits sentence", "S40", edit("search.html", (s) => s.replace("and it will not show openings that are not live. Closed or expired openings are found only by Opening ID or req number.", "and it shows every opening.")));
-control("the search page loses the one-lookup-box sentence", "S40", edit("search.html", (s) => s.replace("Company is required. Then fill in one of the other two boxes:", "Fill in the boxes:")));
+control("the search page loses the one-lookup-box sentence", "S40", edit("search.html", (s) => s.replace("Company is required, unless you type an Opening ID. Then fill in one of the other two boxes:", "Fill in the boxes:")));
 control("the search form gains a fourth box (a way to browse)", "S40", edit("search.html", (s) => s.replace('<button type="submit" id="searchBtn"', '<input id="browse" type="text"><button type="submit" id="searchBtn"')));
 control("the search form puts the title box before the req number", "S40", edit("search.html", (s) => { const L = s.split(String.fromCharCode(10)), pair = L.findIndex((l) => l.includes('class="srch-pair"')), or = L.findIndex((l) => l.includes('class="srch-or"')), btn = L.findIndex((l) => l.includes('<button type="submit" id="searchBtn"')); if (pair < 0 || or < pair || btn < or + 3) throw new Error("form shape changed"); return [...L.slice(0, pair + 1), ...L.slice(or + 1, btn - 2), L[or], ...L.slice(pair + 1, or), ...L.slice(btn - 2)].join(String.fromCharCode(10)); }));
 control("the title box label goes back to Title or Opening ID", "S40", edit("search.html", (s) => s.replace(">Opening ID, or part of the title\n", ">Title or Opening ID\n")));
@@ -668,7 +668,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the group loses its label link", "S51", edit("search.html", (s) => s.replace(" role=\"group\" aria-labelledby=\"oneOfHead\"", " role=\"group\"")));
   control("the heading Then one of these is gone", "S51", edit("search.html", (s) => s.replace("<div id=\"oneOfHead\" class=\"srch-then\">Then one of these</div>", "<div id=\"oneOfHead\" class=\"srch-then\"></div>")));
   control("the visible or is gone", "S51", edit("search.html", (s) => s.replace("<div class=\"srch-or\">or</div>", "<div class=\"srch-or\"></div>")));
-  control("the old sentence is back", "S51", edit("search.html", (s) => s.replace("Company is required. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.", "Fill in only one of the two lookup boxes: the req number, or the Opening ID / title box. The req number is hidden as you type; press Show to check it.")));
+  control("the old sentence is back", "S51", edit("search.html", (s) => s.replace("Company is required, unless you type an Opening ID. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.", "Fill in only one of the two lookup boxes: the req number, or the Opening ID / title box. The req number is hidden as you type; press Show to check it.")));
   control("the new sentence is reworded", "S51", edit("search.html", (s) => s.replace("not both.", "not both!")));
   control("the required word loses its ember color", "S51", edit("app.css", (s) => s.replace(".srch-req{text-transform:none;letter-spacing:0;font-weight:700;color:var(--ember)}", ".srch-req{text-transform:none;letter-spacing:0;font-weight:700}")));
   control("the or loses its rule", "S51", edit("app.css", (s) => s.replace(".srch-or{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700;color:var(--muted)}", ".srch-or{display:none}")));
@@ -704,7 +704,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the Edit this search button becomes a span", "S53", edit("search.html", (s) => s.replace("<button type=\"button\" id=\"recapEdit\" class=\"btn btn-outline btn-sm\">Edit this search</button>", "<span id=\"recapEdit\" class=\"btn\">Edit this search</span>")));
   control("the recap sentence loses its ending", "S53", edit("js/search-recap.js", (s) => s.replace("TAIL: \" Your results are below.\"", "TAIL: \"\"")));
   control("the req number is printed in the recap", "S53", edit("js/search-recap.js", (s) => s.replace("search.kind === \"req\" ? RECAP.REQ", "search.kind === \"req\" ? search.value")));
-  control("an Opening ID is printed in the recap", "S53", edit("js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" ? search.value : RECAP.CODE")));
+  control("an Opening ID is printed in the recap", "S53", edit("js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" || search.kind === \"kio\" ? search.value : RECAP.CODE")));
   control("the boxes are not emptied", "S53", edit("js/pages/search.js", (s) => s.replace("companyIn.value = \"\"; queryIn.value = \"\"; reqIn.value = \"\";", "void 0;")));
   control("a new search does not hide the recap", "S53", edit("js/pages/search.js", (s) => s.replace("setFormError(\"\"); hideRecap();", "setFormError(\"\");")));
   control("Edit this search does not move the cursor", "S53", edit("js/pages/search.js", (s) => s.replace("lastSearch = null; hideRecap(); companyIn.focus();", "lastSearch = null; hideRecap();")));
@@ -714,7 +714,7 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("a hidden recap shows", "S53", edit("app.css", (s) => s.replace(".recap[hidden]{display:none}", "")));
   control("the recap test is not run", "S53", edit("tests/run-all.js", (s) => s.replace("search-recap.test.js", "search-recap-old.test.js")));
 }
-  control("the count is left out of the spoken message", "S52", edit("js/pages/search.js", (s) => s.replace('const spoken = text + " " + countEl.textContent + ".";', "const spoken = text;")));
+  control("the count is left out of the spoken message", "S52", edit("js/pages/search.js", (s) => s.replace('const spoken = text + " " + countEl.textContent + "." + (extra ? " " + extra : "");', "const spoken = text;")));
 
 // S54 (2026-10-05): the edit page's skip link.
 {
@@ -804,9 +804,9 @@ control("the new test is not part of the full run", "S63", edit("tests/run-all.j
 // S62: the search page opened with the company and one other value in the URL fragment (extension hand-off)
 {
   control("the fragment is no longer taken out of the address bar", "S62", edit("js/fragment-prefill.js", (s) => s.replace("win.history.replaceState(", "win.history.pushState(")));
-  control("the search page never reads the fragment", "S62", edit("js/pages/search.js", (s) => s.replace("if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn })) takePending(localStorage);", "")));
-  control("the fragment starts the search by itself", "S62", edit("js/pages/search.js", (s) => s.replace("reqEl: reqIn })) takePending(localStorage);", "reqEl: reqIn })) { takePending(localStorage); runSearch(); }")));
-  control("the title limit is raised", "S62", edit("js/fragment-prefill.js", (s) => s.replace("req: 100, title: 80 };", "req: 100, title: 8000 };")));
+  control("the search page never reads the fragment", "S62", edit("js/pages/search.js", (s) => s.replace("if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onKio: (k) => { heldKio = k.title ? { stored: k.stored, title: k.title } : null; } })) takePending(localStorage);", "")));
+  control("the fragment starts the search by itself", "S62", edit("js/pages/search.js", (s) => s.replace("title: k.title } : null; } })) takePending(localStorage);", "title: k.title } : null; } })) { takePending(localStorage); runSearch(); }")));
+  control("the title limit is raised", "S62", edit("js/fragment-prefill.js", (s) => s.replace("req: 100, title: 80, kio: 24 };", "req: 100, title: 8000, kio: 24 };")));
   control("a key given twice is accepted", "S62", edit("js/fragment-prefill.js", (s) => s.replace("if (found.has(key)) { bad = true; continue; }", "if (found.has(key)) { continue; }")));
   control("a control character is accepted", "S62", edit("js/fragment-prefill.js", (s) => s.replace("if (hasControl(value)) { bad = true; continue; }", "")));
   control("more than one second value is accepted", "S62", edit("js/fragment-prefill.js", (s) => s.replace("seconds.length !== 1", "seconds.length < 1")));
@@ -1344,6 +1344,29 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the tight layout is gone", "S82", edit(CSS, (s) => s.replace('.my-openings.tight td[data-label="Actions"]', '.my-openings.tightGone td[data-label="Actions"]')));
   control("the note stays wide when it does not fit", "S82", edit(CSS, (s) => s.replace(".my-openings.snug .act-note{min-width:0}", "")));
   control("the browser test is not in the suite", "S82", edit("tests/run-all.js", (s) => s.replace('path.join(here, "my-openings-bp.test.js")', 'path.join(here, "unit.test.js")')));
+}
+
+// S83 (prompt BQ, October 12, 2026): the KIO ID (settings in js/config.js, the marked check, the employer's block as text with copy buttons, the receiving page, an ID alone needs no company, the tests are in the suite)
+{
+  const CFG = "js/config.js", KIO = "js/kio.js", BLK = "js/kio-block.js", RCV = "js/kio-receive.js", SJ = "js/pages/search.js", EJ = "js/pages/edit.js", F404 = "404.html", RUN = "tests/run-all.js";
+  control("the short link ships live", "S83", edit(CFG, (s) => s.replace("export const KIO_SHORT_LINK_LIVE = false;", "export const KIO_SHORT_LINK_LIVE = true;")));
+  control("the prefix is two constants", "S83", edit(CFG, (s) => s.replace('export const KIO_PREFIX = "KIO";', 'export const KIO_PREFIX = "KIO";\nexport const KIO_PREFIX_OLD = "KIX";')));
+  control("the prefix is a literal in kio.js", "S83", edit(KIO, (s) => s.replace("export const kioStored = (code12) => KIO_PREFIX + code12;", 'export const kioStored = (code12) => "KIO" + code12;')));
+  control("the alphabet changed", "S83", edit(KIO, (s) => s.replace('"0123456789ABCDEFGHJKMNPQRSTVWXYZ"', '"0123456789ABCDEFGHJKMNPQRSTVWXYU"')));
+  control("the check is not Luhn any more", "S83", edit(KIO, (s) => s.replace("return KIO_ALPHABET[(N - (lunSum(b, 2) % N)) % N];", "return KIO_ALPHABET[lunSum(b, 2) % N];")));
+  control("the Check this opening line is always there", "S83", edit(KIO, (s) => s.replace("if (live === true) lines.push(", "if (true) lines.push(")));
+  control("the ID line is not always there", "S83", edit(KIO, (s) => s.replace('const lines = ["KIO ID: " + shown];', "const lines = [];")));
+  control("the block has an input", "S83", edit(BLK, (s) => s.replace('h("span", { class: "mono kio-value", id: "kioShortLink" }, link)', 'h("input", { class: "mono kio-value", id: "kioShortLink", value: link })')));
+  control("the block has no Copy link button", "S83", edit(BLK, (s) => s.replace('copyButton("Copy link", "link", link)', 'null')));
+  control("the block writes its own ad lines", "S83", edit(BLK, (s) => s.replace("const lines = adLines(shown, live);", 'const lines = ["KIO ID: " + shown];')));
+  control("the receiving page calls the backend", "S83", edit(RCV, (s) => s.replace('location.replace("/search.html#k=" + stored);', 'fetch("/x"); location.replace("/search.html#k=" + stored);')));
+  control("the receiving page reads the path itself", "S83", edit(RCV, (s) => s.replace("kioFromPath(location.pathname)", "location.pathname.slice(1)")));
+  control("404.html does not load the receiving script", "S83", edit(F404, (s) => s.replace('<script type="module" src="/js/kio-receive.js"></script>', "")));
+  control("an ID alone is asked for a company", "S83", edit(SJ, (s) => s.replace("const idAlone = !staffMode && q.ok && q.kind === \"kio\"", "const idAlone = false && q.kind === \"kio\"")));
+  control("an ID that fails the check is not refused on the page", "S83", edit(SJ, (s) => s.replace("if (!q.ok && q.message === KIO_INVALID_MESSAGE) { setFormError(q.message); queryIn.focus(); return; }", "")));
+  control("the edit page does not draw the block", "S83", edit(EJ, (s) => s.replace('import { kioBlock } from "../kio-block.js";', "")));
+  control("the KIO test is not in the suite", "S83", edit(RUN, (s) => s.replace('path.join(here, "kio-id.test.js")', 'path.join(here, "unit.test.js")')));
+  control("the KIO unit test is not in the suite", "S83", edit(RUN, (s) => s.replace('path.join(here, "kio.unit.test.js")', 'path.join(here, "unit.test.js")')));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });

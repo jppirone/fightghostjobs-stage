@@ -70,7 +70,7 @@ import { stripMarkers, problems as stampProblems } from "./stamp-versions.js";
 
 export const API_ORIGIN = "https://tpmvkjuhbbwftqoodzcn.supabase.co";
 export const EXPECTED_CSP = "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src " + API_ORIGIN + "; base-uri 'self'; form-action 'self'; object-src 'none'";
-export const EXPECTED_CSP_404 = "default-src 'none'; style-src 'self' 'unsafe-inline'; font-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'";
+export const EXPECTED_CSP_404 = "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'";   // prompt BQ: script-src 'self' added for the short link receiving script (js/kio-receive.js); still no connect-src, no image, nothing else
 
 const walk = (dir, out = []) => {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -106,8 +106,9 @@ export function checkSite(root, opts = {}) {
         const src = (attrs.match(/\bsrc="([^"]*)"/) || [])[1] || "";
         // the one non-module script allowed is the STAGE-ONLY gate (S30), which must run before the page renders
         if (src === "js/stage-gate.js" && !/\btype="module"/.test(attrs)) { if (!fs.existsSync(path.join(root, src))) add("S4", f, "script does not exist: " + src); }
-        else if (!/\btype="module"/.test(attrs) || !/^js\/[a-z0-9\/-]+\.js$/i.test(src)) add("S4", f, "script must be a module from js/: " + src);
-        else if (!fs.existsSync(path.join(root, src))) add("S4", f, "script does not exist: " + src);
+        // prompt BQ: 404.html is served at ANY path, so its own references begin with a slash (its style sheets always did); the script is the same kind of file, a module of js/
+        else if (!/\btype="module"/.test(attrs) || !/^js\/[a-z0-9\/-]+\.js$/i.test(name === "404.html" ? src.replace(/^\//, "") : src)) add("S4", f, "script must be a module from js/: " + src);
+        else if (!fs.existsSync(path.join(root, name === "404.html" ? src.replace(/^\//, "") : src))) add("S4", f, "script does not exist: " + src);
       }
     }
     if (/\son[a-z]+\s*=\s*["']/i.test(s.replace(/<script[\s\S]*?<\/script>/gi, ""))) add("S3", f, "inline event handler attribute");
@@ -762,11 +763,11 @@ export function checkSite(root, opts = {}) {
       const t = read(sh).replace(/<!--[\s\S]*?-->/g, ""), src = read(si), page = read(sp);
       for (const s of [
         "Search for one specific job you already know about.",
-        "Easiest and most exact: the company name plus the requisition (req) number or the Opening ID from the employer's job ad.",
+        "Easiest and most exact: the Opening ID from the employer's job ad (no company name needed), or the company name plus the requisition (req) number.",
         "No ID? Use the company name plus part of the job title, copied from the job ad if you can.",
         "Must match the employer's name. We ignore endings like Inc., Co. and LLC.",
         "A title search will not list all of a company's jobs, and it will not show openings that are not live. Closed or expired openings are found only by Opening ID or req number.",
-        "Company is required. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.",
+        "Company is required, unless you type an Opening ID. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.",
       ]) if (!t.includes(s)) add("S40", sh, "the search guidance must say: " + s);
       const form = (t.match(/<form id="searchForm"[\s\S]*?<\/form>/) || [""])[0];
       const inputs = [...form.matchAll(/<input\b[^>]*\bid="([^"]*)"/g)].map((m) => m[1]);
@@ -1100,7 +1101,7 @@ export function checkSite(root, opts = {}) {
       if (!t.includes('>Company <span class="srch-req">(required)</span></label>') || !/<input id="company" class="srch-input" type="text" aria-required="true"/.test(t)) add("S51", shF, "the Company label must say (required) as real text, and the company box must be aria-required");
       const g = t.indexOf('<div class="srch-group" role="group" aria-labelledby="oneOfHead"'), h = t.indexOf('<div id="oneOfHead" class="srch-then">Then one of these</div>'), a = t.indexOf('<input id="reqq"'), o = t.indexOf('<div class="srch-or">or</div>'), b = t.indexOf('<input id="titleq"'), c = t.indexOf('<input id="company"');
       if (!(c >= 0 && c < g && g < h && h < a && a < o && o < b)) add("S51", shF, "the req number box and the Opening ID / title box must sit in a labelled group (role=group, aria-labelledby=oneOfHead) under the heading Then one of these, with a visible or between them, after the company box");
-      if (!t.includes("Company is required. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.")) add("S51", shF, "the sentence under the form must be the approved one: " + "Company is required. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.");
+      if (!t.includes("Company is required, unless you type an Opening ID. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.")) add("S51", shF, "the sentence under the form must be the approved one: " + "Company is required, unless you type an Opening ID. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.");   // prompt BQ: the ID alone is enough, so the sentence says so
       if (t.includes("Fill in only one of the two lookup boxes")) add("S51", shF, "the old sentence (Fill in only one of the two lookup boxes) must not come back");
     }
     if (fs.existsSync(cssF)) {
@@ -1134,7 +1135,7 @@ export function checkSite(root, opts = {}) {
     }
     if (fs.existsSync(srF)) {
       const t = stripJsComments(read(srF));
-      for (const [needle, why] of [['import { makeAnnouncer } from "../search-status.js";', "the search status announcer"], ['import { trapFocus } from "../dialog-focus.js";', "the details window's focus handling"], ["status.announce(spoken);", "announce the recap sentence and the count as the one spoken message of a search"], ['const spoken = text + " " + countEl.textContent + ".";', "build the spoken message from the recap sentence and the count"], ["status.clear();", "clear the status when a search starts"], ["releaseFocus = trapFocus({", "trap focus in the details window"], ["releaseFocus();", "give focus back when it closes"], ["openModal(row, button)", "the exact opener button"], ["hadFocus", "give the Search button its focus back"]]) if (!t.includes(needle)) add("S52", srF, "search.js must use " + why); if (/status\.announce\(countEl/.test(t)) add("S52", srF, "search.js must not speak the count as well as the recap sentence (one spoken message per search)");
+      for (const [needle, why] of [['import { makeAnnouncer } from "../search-status.js";', "the search status announcer"], ['import { trapFocus } from "../dialog-focus.js";', "the details window's focus handling"], ["status.announce(spoken);", "announce the recap sentence and the count as the one spoken message of a search"], ['const spoken = text + " " + countEl.textContent + "." + (extra ? " " + extra : "");', "build the spoken message from the recap sentence and the count (and, prompt BQ, the mismatch notice when there is one)"], ["status.clear();", "clear the status when a search starts"], ["releaseFocus = trapFocus({", "trap focus in the details window"], ["releaseFocus();", "give focus back when it closes"], ["openModal(row, button)", "the exact opener button"], ["hadFocus", "give the Search button its focus back"]]) if (!t.includes(needle)) add("S52", srF, "search.js must use " + why); if (/status\.announce\(countEl/.test(t)) add("S52", srF, "search.js must not speak the count as well as the recap sentence (one spoken message per search)");
     }
     if (!fs.existsSync(ssF)) add("S52", ssF, "js/search-status.js must exist");
     if (!fs.existsSync(dfF)) add("S52", dfF, "js/dialog-focus.js must exist");
@@ -1166,7 +1167,7 @@ export function checkSite(root, opts = {}) {
     if (!fs.existsSync(rcF)) add("S53", rcF, "js/search-recap.js must exist");
     else {
       const t = stripJsComments(read(rcF));
-      for (const [needle, why] of [['LEAD: "You searched for: company "', "the approved opening"], ['TAIL: " Your results are below."', "the approved ending"], ['REQ: "a req number was entered"', "the req number wording"], ['CODE: "an Opening ID was entered"', "the Opening ID wording"], ['search.kind === "req" ? RECAP.REQ : search.kind === "code" || search.alsoTryCode ? RECAP.CODE : "title " + oneLine(search.value)', "a req number and an Opening ID (and twelve plain letters) are never printed, only a plain title"]]) if (!t.includes(needle)) add("S53", rcF, "search-recap.js must keep " + why);
+      for (const [needle, why] of [['LEAD: "You searched for: company "', "the approved opening"], ['TAIL: " Your results are below."', "the approved ending"], ['REQ: "a req number was entered"', "the req number wording"], ['CODE: "an Opening ID was entered"', "the Opening ID wording"], ['search.kind === "req" ? RECAP.REQ : search.kind === "code" || search.kind === "kio" || search.alsoTryCode ? RECAP.CODE : "title " + oneLine(search.value)', "a req number and an Opening ID (a KIO ID too, and twelve plain letters) are never printed, only a plain title"]]) if (!t.includes(needle)) add("S53", rcF, "search-recap.js must keep " + why);
     }
     if (fs.existsSync(srF)) {
       const t = stripJsComments(read(srF));
@@ -1275,12 +1276,13 @@ export function checkSite(root, opts = {}) {
   {
     const fpF = path.join(root, "js", "fragment-prefill.js"), srF = path.join(root, "js", "pages", "search.js"), raF = path.join(root, "tests", "run-all.js"), t1 = path.join(root, "tests", "fragment-prefill.unit.test.js"), t2 = path.join(root, "tests", "fragment-prefill.test.js");
     const need = (f, list) => { if (!fs.existsSync(f)) { add("S62", f, "this file is part of the fragment hand-off and must exist"); return; } const t = stripJsComments(read(f)); for (const [needle, why] of list) if (!t.includes(needle)) add("S62", f, "the fragment hand-off needs: " + why); };
-    need(fpF, [['export const FRAGMENT_KEYS = { c: "company", p: "postid", r: "req", t: "title" };', "only the keys c, p, r, t"], ["export const FRAGMENT_MAX = { company: 200, postid: 14, req: 100, title: 80 };", "the site's own length limits"], ["MAX_TOTAL = 700, MAX_PARTS = 12", "a limit on the whole fragment"],
+    need(fpF, [['export const FRAGMENT_KEYS = { c: "company", p: "postid", r: "req", t: "title", k: "kio" };', "only the keys c, p, r, t and (prompt BQ) k"], ["export const FRAGMENT_MAX = { company: 200, postid: 14, req: 100, title: 80, kio: 24 };", "the site's own length limits"],
+      ['if (found.has("p") || found.has("r")) return { ours: true, result: null };', "a KIO ID never rides with a postID or a req number"], ["if (read.kind !== \"kio\") return { ours: true, result: null };", "a k that is not a KIO ID passing the check refuses the fragment"], ["MAX_TOTAL = 700, MAX_PARTS = 12", "a limit on the whole fragment"],
       ["Object.prototype.hasOwnProperty.call(FRAGMENT_KEYS, key)", "unknown keys ignored"], ["if (found.has(key)) { bad = true; continue; }", "a key given twice refuses the fragment"], ["if (hasControl(value)) { bad = true; continue; }", "a control character refuses the fragment"],
       ["catch { bad = true; continue; }", "a bad percent escape refuses the fragment"], ["seconds.length !== 1", "exactly one second value"], ["win.history.replaceState(", "the fragment taken out of the address bar"], ["companyEl.value = result.company;", "text into the box with .value"],
       ["if (result.kind === \"req\") reqEl.value = result.value; else queryEl.value = result.value;", "the req number into the req box only"]]);
     if (fs.existsSync(fpF)) { const t = stripJsComments(read(fpF)); if (/innerHTML|insertAdjacentHTML|outerHTML|document\.write|\beval\b|new Function|createContextualFragment/.test(t)) add("S62", fpF, "the fragment text must only ever go into a box with .value, never into the page as markup"); }
-    need(srF, [["import { applyFragmentPrefill } from \"../fragment-prefill.js\";", "the import"], ["if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn })) takePending(localStorage);", "the fragment read once, at the start, dropping a saved search, with no search run by it"]]);
+    need(srF, [["import { applyFragmentPrefill } from \"../fragment-prefill.js\";", "the import"], ["if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onKio: (k) => { heldKio = k.title ? { stored: k.stored, title: k.title } : null; } })) takePending(localStorage);", "the fragment read once, at the start, dropping a saved search, with no search run by it (the KIO title words kept in memory only)"]]);
     for (const tf of [t1, t2]) { if (!fs.existsSync(tf)) add("S62", tf, "the test " + path.basename(tf) + " must exist"); else if (fs.existsSync(raF) && !read(raF).includes(path.basename(tf))) add("S62", raF, "tests/run-all.js must run " + path.basename(tf)); }
   }
 
@@ -1344,7 +1346,8 @@ export function checkSite(root, opts = {}) {
       const raw = read(f), parts = f.endsWith(".html") ? [pageText(raw), ...[...raw.matchAll(/<title>([^<]*)<\/title>/g)].map((m) => m[1])] : strings(stripJsComments(raw));
       for (const p of parts) { const hit = p.split("\n").find((l) => BANNED.test(l)); if (hit) { add("S66", f, "people read this: it uses a word or a dash the opening vocabulary does not allow: " + hit.trim().slice(0, 110)); break; } }
       // "Registered" is the PAID status word (the check mark): the free employer action is "Add an opening" (prompt AZ, October 9, 2026). The register family is refused in anything a person reads, except the check mark's own label and a page file name (register.html).
-      for (const p of parts) { const hit = p.replace(/✓ Registered/g, "").split("\n").find((l) => REG.test(l) && !/^[a-z0-9_\-./]+$/.test(l.trim())); if (hit) {   // a lower case single token with no space is a code name or a path (submit("register"), "../registered.js"), not text
+      // prompt BQ (October 12, 2026): the two sentences John's KIO ID spec words with "registered" (an ID that no opening holds; an ID held by another company or title) are his own approved wording and are let through, exactly
+      for (const p of parts) { const hit = p.replace(/✓ Registered/g, "").replace(/No opening is registered under that ID\./g, "").replace(/This ID is registered to a different company or title \(see results below\) than the job ad where you found it\./g, "").split("\n").find((l) => REG.test(l) && !/^[a-z0-9_\-./]+$/.test(l.trim())); if (hit) {   // a lower case single token with no space is a code name or a path (submit("register"), "../registered.js"), not text
  add("S66", f, "people read this: register, registered or registration is the paid status word only (the check mark); the free action is Add an opening: " + hit.trim().slice(0, 110)); break; } }
     }
   }
@@ -1921,6 +1924,51 @@ export function checkSite(root, opts = {}) {
       for (const pin of [".my-openings.snug .act-note{min-width:0}", ".my-openings.tight td[data-label=\"Actions\"]", ".sort-box select{"]) if (!c.includes(pin)) add("S82", cssF, "app.css lacks " + pin);
     }
     if (fs.existsSync(runF) && !read(runF).includes('"my-openings-bp.test.js"')) add("S82", runF, "my-openings-bp.test.js is not in the suite");
+  }
+  // S83 (2026-10-12, prompt BQ): the KIO ID. Pinned: the prefix and the short link settings live in js/config.js and nowhere else (js/kio.js imports them); the short link ships OFF; the check is the marked Luhn mod 32 block; the
+  // employer's block is text with a copy button for each line (no field); the ad lines come from kio.js adLines only; the receiving page reads a path only through kioFromPath and sends on with the ID alone; the search page
+  // asks no company for an ID alone and never searches by itself from the fragment; the edit page and the confirmation page draw the one block; the two browser tests are in the suite.
+  {
+    const cfgF = path.join(root, "js", "config.js"), kioF = path.join(root, "js", "kio.js"), blkF = path.join(root, "js", "kio-block.js"), recvF = path.join(root, "js", "kio-receive.js"), fourF = path.join(root, "404.html");
+    const editF = path.join(root, "js", "pages", "edit.js"), regF = path.join(root, "js", "pages", "register.js"), srchF = path.join(root, "js", "pages", "search.js"), runF = path.join(root, "tests", "run-all.js");
+    if (fs.existsSync(cfgF)) {
+      const c = stripJsComments(read(cfgF));
+      if (!/^export const KIO_PREFIX = "[A-Z]{3}";$/m.test(c) || (c.match(/^export const KIO_PREFIX\w* =/gm) || []).length !== 1) add("S83", cfgF, "the KIO prefix is ONE constant in js/config.js");
+      if (!/^export const KIO_SHORT_LINK_LIVE = false;$/m.test(c)) add("S83", cfgF, "KIO_SHORT_LINK_LIVE ships false (it is set to true in its own commit, once knowitsopen.com really forwards)");
+      if (!/^export const KIO_SHORT_LINK_HOST = "[a-z.]+";$/m.test(c)) add("S83", cfgF, "the short link host is one constant in js/config.js");
+    } else add("S83", cfgF, "js/config.js is missing");
+    if (fs.existsSync(kioF)) {
+      const k = stripJsComments(read(kioF));
+      for (const [pin, why] of [['import { KIO_PREFIX, KIO_SHORT_LINK_HOST, KIO_SHORT_LINK_LIVE } from "./config.js";', "the prefix and the short link settings come from js/config.js"], ['export const KIO_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";', "the 32 character alphabet"],
+        ["const N = KIO_ALPHABET.length;", "Luhn mod N with N = the alphabet's length"], ["addend = Math.floor(addend / N) + (addend % N);", "the Luhn step"], ["return KIO_ALPHABET[(N - (lunSum(b, 2) % N)) % N];", "the check character"],
+        ["if (live === true) lines.push(", "the Check this opening line only while the short link is live"], ['const lines = ["KIO ID: " + shown];', "the ID line is always there"]]) if (!k.includes(pin)) add("S83", kioF, "js/kio.js: " + why);
+      if (/["']KIO["']/.test(k)) add("S83", kioF, "js/kio.js names the prefix as a literal: it comes from js/config.js");
+    } else add("S83", kioF, "js/kio.js is missing");
+    if (fs.existsSync(blkF)) {
+      const b = stripJsComments(read(blkF));
+      if (/h\("(input|textarea|select)"|contenteditable/.test(b)) add("S83", blkF, "the employer's ID block is text: no field, nothing to edit");
+      for (const w of ['"Copy ID"', '"Copy link"', '"Copy these lines"']) if (!b.includes(w)) add("S83", blkF, "the block has the button " + w);
+      if (!b.includes('const lines = adLines(shown, live);')) add("S83", blkF, "the ad lines come from kio.js adLines");
+      if (/api\.|fetch\(|localStorage|sessionStorage/.test(b)) add("S83", blkF, "the block calls no backend and stores nothing");
+    } else add("S83", blkF, "js/kio-block.js is missing");
+    if (fs.existsSync(recvF)) {
+      const r = stripJsComments(read(recvF));
+      if (!r.includes("kioFromPath(location.pathname)") || !r.includes('location.replace("/search.html#k=" + stored);')) add("S83", recvF, "the receiving page reads the path with kioFromPath and sends on with the ID alone");
+      if (/fetch\(|api\.|XMLHttpRequest|sendBeacon|localStorage|sessionStorage/.test(r)) add("S83", recvF, "the receiving page calls nothing and stores nothing");
+    } else add("S83", recvF, "js/kio-receive.js is missing");
+    if (fs.existsSync(fourF)) {
+      const t = read(fourF);
+      if (!t.includes('<script type="module" src="/js/kio-receive.js"></script>')) add("S83", fourF, "404.html loads the receiving script");
+    }
+    for (const [f, why] of [[editF, "the edit page draws the ID block"], [regF, "the confirmation page draws the ID block"]]) if (fs.existsSync(f) && !read(f).includes('import { kioBlock } from "../kio-block.js";')) add("S83", f, why + " (kioBlock)");
+    if (fs.existsSync(srchF)) {
+      const s = read(srchF);
+      if (!s.includes('const idAlone = !staffMode && q.ok && q.kind === "kio"')) add("S83", srchF, "an ID alone needs no company");
+      if (!s.includes("if (!q.ok && q.message === KIO_INVALID_MESSAGE) { setFormError(q.message); queryIn.focus(); return; }")) add("S83", srchF, "an ID that fails the check is refused on the page, nothing sent");
+      if (/applyFragmentPrefill\([^)]*\)[^;]*\.then|requestSubmit\(\)|runSearch\(\)[^;]*applyFragmentPrefill/.test(s.split("function setFormError")[0])) add("S83", srchF, "the fragment never runs a search");
+    }
+    if (fs.existsSync(runF) && !read(runF).includes('"kio-id.test.js"')) add("S83", runF, "kio-id.test.js is not in the suite");
+    if (fs.existsSync(runF) && !read(runF).includes('"kio.unit.test.js"')) add("S83", runF, "kio.unit.test.js is not in the suite");
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed

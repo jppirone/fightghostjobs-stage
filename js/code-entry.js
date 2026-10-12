@@ -4,7 +4,7 @@
 // Nothing here stores the code or the address anywhere: they live in the form for as long as the page is open. The wording says "confirm", never "verify".
 
 import { h } from "./dom.js?v=ff147636";
-import { EMAIL_CODE_ENTRY } from "./config.js?v=f3dc1a31";
+import { EMAIL_CODE_ENTRY } from "./config.js?v=9bf25cae";
 
 export const CODE_ENABLED = EMAIL_CODE_ENTRY === true;
 

@@ -60,6 +60,16 @@ input[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--embe
 .empty-note{font-size:14px;color:var(--muted);line-height:1.6;background:var(--panel);border-radius:10px;padding:14px 16px;margin-top:16px}
 .result-count{font-size:13px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
 .code-box{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;letter-spacing:.06em;background:var(--panel);border-radius:10px;padding:14px 18px;display:inline-block}
+/* the employer's ID block (prompt BQ): the ID, the short link and the job ad lines, each with a copy button; text only, never a field */
+.kio-block{display:flex;flex-direction:column;gap:10px;margin-top:12px;max-width:640px}
+.kio-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.kio-label{font-size:12px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;min-width:96px}
+.kio-value{font-size:15px;font-weight:600;color:var(--ink);overflow-wrap:anywhere;min-width:0}
+.kio-copy{min-height:36px;padding:8px 14px}
+.kio-ad{display:flex;flex-direction:column;align-items:flex-start;gap:8px;background:var(--panel);border-radius:10px;padding:12px 14px}
+.kio-adlines{font-size:14px;line-height:1.6;color:var(--ink);overflow-wrap:anywhere;user-select:all}
+.kio-note{font-size:13px;line-height:1.6;color:var(--muted);margin:0}
+@media (max-width:760px){.kio-copy{min-height:44px}.kio-label{min-width:0;flex:0 0 100%}}
 
 /* location picker (register form) */
 .loc-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}

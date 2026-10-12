@@ -159,8 +159,9 @@ test("the request: exactly { posting_id, kind policy, links } with one address, 
 });
 
 test("the extension's hand-off carries the company and one other value only: nothing about a policy link can ride in it", () => {
-  assert.deepEqual(Object.keys(FRAGMENT_KEYS).sort(), ["c", "p", "r", "t"]);
-  assert.deepEqual(Object.values(FRAGMENT_KEYS).sort(), ["company", "postid", "req", "title"]);
+  // prompt BQ (October 12, 2026): the fifth key k carries the KIO ID (an ID, never a policy link)
+  assert.deepEqual(Object.keys(FRAGMENT_KEYS).sort(), ["c", "k", "p", "r", "t"]);
+  assert.deepEqual(Object.values(FRAGMENT_KEYS).sort(), ["company", "kio", "postid", "req", "title"]);
 });
 
 test("the unsaved bar names the policy link section by its own words and says Save changes does not save it", () => {

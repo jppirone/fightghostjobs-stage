@@ -7,7 +7,15 @@
 //   code    : 12 characters of 0-9 A-Z minus I L O U (I and L read as 1, O as 0); spaces and hyphens ignored; at most 40 typed characters, printable ASCII only
 // The people-facing lookup boxes are "Req number" and ONE box for "PostID, or part of the title", so this decides which of the two the text in that box is.
 
+import { readKio, looksLikeKio } from "./kio.js?v=80867368";
+
 const CODE_RE = /^[0-9A-HJKMNP-TV-Z]{12}$/;
+
+// the KIO ID (prompt BQ, October 12, 2026): what the page says for each answer of a lookup by ID. The ID alone is enough: no company is asked for.
+export const KIO_INVALID_MESSAGE = "That ID is not valid. Check it and try again.";
+export const KIO_NOT_REGISTERED_MESSAGE = "No opening is registered under that ID.";
+export const KIO_GONE_MESSAGE = "This opening is no longer on FightGhostJobs.";
+export const KIO_MISMATCH_MESSAGE = "This ID is registered to a different company or title (see results below) than the job ad where you found it.";
 
 // What the page says when a search finds nothing: an echo of exactly what was searched, then the note. The last sentence of the note is deliberate: a title search lists only live or
 // paused postings (candidate_search_postings_v2), so a posting that has closed or expired is found only by its postID, and without that sentence "no match" would read as "never registered".
@@ -18,6 +26,7 @@ const clip = (s, n) => { const t = String(s == null ? "" : s).replace(/\s+/g, " 
 
 // kind: "phrase" | "code"  ->  No postings found for "Acme Inc" + "Senior Analyst". <note>
 export function noMatchMessage(company, query, kind) {
+  if (kind === "kio") return KIO_NOT_REGISTERED_MESSAGE;
   if (kind === "req") return "No openings found for \"" + clip(company, 80) + "\" with that req number. " + NO_MATCH_NOTE_REQ;
   const what = kind === "code" ? "code \"" + clip(query, 40) + "\"" : "\"" + clip(query, 80) + "\"";
   return "No openings found for \"" + clip(company, 80) + "\" + " + what + ". " + NO_MATCH_NOTE;
@@ -42,6 +51,15 @@ export function checkCompany(text) {
 export function classifyQuery(text) {
   const t = String(text || "").trim();
   if (t === "") return { ok: false, message: "Enter an Opening ID or part of the job title." };
+  // the KIO ID first (prompt BQ): an ID that passes the check is searched by itself; a text that has the shape of an ID but fails the check is refused at once (nothing is sent: it costs no search)
+  const k = readKio(t);
+  if (k.kind === "kio") {
+    const groupsK = /^[A-Za-z0-9]{4}([ -][A-Za-z0-9]{4}){2}$/.test(t);
+    if (k.hadPrefix || groupsK || /[0-9]/.test(t)) return { ok: true, kind: "kio", value: k.stored, shown: k.display };
+    // twelve plain letters that happen to pass the check could be a word: searched as a title, and as an ID only if the title finds nothing
+    if (alnumCount(t) >= 3) return { ok: true, kind: "phrase", value: t, alsoTryCode: true, alsoTryKio: k.stored };
+  }
+  if (k.kind === "none" && looksLikeKio(t)) return { ok: false, message: KIO_INVALID_MESSAGE };
   const printable = /^[ -~]+$/.test(t);
   const norm = printable && t.length <= 40 ? normalizeCode(t) : "";
   const isCodeShape = CODE_RE.test(norm);
@@ -88,5 +106,5 @@ export function searchErrorMessage(error) {
 // which box a refusal is about, so the page can put the cursor there: "company" | "req" | "title" | null
 export function searchErrorFocus(error) {
   const f = error && error.field;
-  return f === "company" ? "company" : f === "req" ? "req" : f === "phrase" || f === "code" ? "title" : null;
+  return f === "company" ? "company" : f === "req" ? "req" : f === "phrase" || f === "code" || f === "kio" ? "title" : null;
 }

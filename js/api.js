@@ -8,6 +8,7 @@
 //   * the session's access token goes in the Authorization header, the publishable key in apikey; the identity is NEVER sent in a body (the backend refuses poster_id / organization_id and reads who you are from the token).
 
 import { PLACE_FIELD } from "./place-text.js?v=cb5d7506";
+import { POST_ID_RE, isKioShown } from "./kio.js?v=80867368";
 // the typed place of an opening (prompt BH): absent, null or text of 1 to 200 characters (the table holds board text up to 200); never read for anything but display
 const placeFieldOk = (p) => p[PLACE_FIELD] === undefined || p[PLACE_FIELD] === null || (typeof p[PLACE_FIELD] === "string" && p[PLACE_FIELD].length >= 1 && p[PLACE_FIELD].length <= 200);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -53,19 +54,21 @@ export const shapes = {
   aiNotes: (r) => (r.ai_filtering_note === undefined || (isNullable(r.ai_filtering_note, isStr) && (r.ai_filtering_note === null || r.ai_filtering_note.length <= 300)))
     && (r.ai_interview_note === undefined || (isNullable(r.ai_interview_note, isStr) && (r.ai_interview_note === null || r.ai_interview_note.length <= 300))),
   posterSession: (d) => isObj(d) && isObj(d.poster) && UUID_RE.test(d.poster.poster_id) && isStr(d.poster.full_name) && isBool(d.poster.is_org_admin) && isObj(d.organization) && isStr(d.organization.name) && isStr(d.verified_at) && (d.plan === undefined || shapes.plan(d.plan)),
-  posting: (d) => isObj(d) && UUID_RE.test(d.id) && isStr(d.status) && isStr(d.title) && isStr(d.expiration_date) && /^[0-9A-Z]{12}$/.test(d.public_code) && REF_RE.test(d.posting_ref) && isNullable(d.closed_reason, isStr),
+  posting: (d) => isObj(d) && UUID_RE.test(d.id) && isStr(d.status) && isStr(d.title) && isStr(d.expiration_date) && POST_ID_RE.test(d.public_code) && REF_RE.test(d.posting_ref) && isNullable(d.closed_reason, isStr),
   searchRow: (r) => isObj(r) && isStr(r.company_name) && isStr(r.title) && Array.isArray(r.locations) && r.locations.every(isStr) && isBool(r.is_remote) && isStr(r.posted_at) && isStr(r.closes_at)
     && isNullable(r.applicant_cap, Number.isInteger) && isStr(r.status) && isNullable(r.closed_reason, isStr) && isNullable(r.ai_filtering, isBool) && isNullable(r.ai_interview_other, isBool) && isBool(r.ai_disclosure_shown)
     && shapes.aiNotes(r)
-    && isBool(r.third_party_recruiter) && MASK_RE.test(r.masked_code) && isNullable(r.masked_req, (v) => isStr(v) && MASKED_REQ_RE.test(v)) && REF_RE.test(r.posting_ref) && isNullable(r.last_edited_at, isStr),
+    && isBool(r.third_party_recruiter) && MASK_RE.test(r.masked_code) && isNullable(r.masked_req, (v) => isStr(v) && MASKED_REQ_RE.test(v)) && REF_RE.test(r.posting_ref) && isNullable(r.last_edited_at, isStr)
+    // prompt BQ (October 12, 2026): the whole KIO ID (null or absent from an answer of before the database change) and, for a lookup by ID, when it closed or expired
+    && (r.kio_id === undefined || isNullable(r.kio_id, isKioShown)) && (r.closed_at === undefined || isNullable(r.closed_at, isStr)),
   // one row of the staff-scope answer (staff_search_openings): every status, exact keys only
   staffRow: (r) => isObj(r) && Object.keys(r).every((k) => STAFF_ROW_KEYS.includes(k) || STAFF_ROW_OPTIONAL_KEYS.includes(k)) && STAFF_ROW_KEYS.every((k) => Object.hasOwn(r, k))   // is_registered is read by js/registered.js (only a boolean true draws the mark; any other value is not registered), so its value is not judged here
     && isStr(r.company_name) && isStr(r.organization_name) && isStr(r.title) && Array.isArray(r.locations) && r.locations.every(isStr) && isBool(r.is_remote)
     && POSTING_STATUSES.includes(r.status) && POSTING_STATUSES.includes(r.stored_status) && isNullable(r.closed_reason, isStr) && isNullable(r.posted_at, isStr) && isNullable(r.closes_at, isStr) && isNullable(r.go_live_at, isStr)
     && isNullable(r.applicant_cap, Number.isInteger) && isNullable(r.ai_filtering, isBool) && isNullable(r.ai_interview_other, isBool) && isBool(r.third_party_recruiter)
-    && isStr(r.opening_id) && /^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(r.opening_id) && isNullable(r.req_number, isStr),
+    && isStr(r.opening_id) && /^(?:KIO-)?[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(r.opening_id) && isNullable(r.req_number, isStr),
   staffSearch: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req") && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.staffRow) && Object.keys(d).length === 3,
-  search: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req") && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.searchRow),
+  search: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req" || d.mode === "kio") && (d.mismatch === undefined || isBool(d.mismatch)) && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.searchRow),
   // prompt BA (October 10, 2026): up to ten application links, three named recruiter firms and ONE entry of kind "policy" (the employer's AI and hiring policy link: position 1, a label saying where it goes, never a firm)
   detail: (d) => isObj(d) && isObj(d.posting) && shapes.searchRow(Object.assign({ }, d.posting)) && (d.comment_count === undefined || (Number.isInteger(d.comment_count) && d.comment_count >= 0)) && Array.isArray(d.links) && d.links.length <= 14 && linkCountsOk(d.links)
     && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && l.position >= 1 && l.position <= 10 && isNullable(l.label, isStr) && (l.kind === undefined || l.kind === "apply" || l.kind === "recruiter" || l.kind === "policy") && (l.firm === undefined || isNullable(l.firm, isStr)) && (l.kind !== "recruiter" || isStr(l.firm))
@@ -83,13 +86,13 @@ export const shapes = {
   contestAnswer: (d) => isObj(d) && d.ok === true && isObj(d.contest) && UUID_RE.test(d.contest.id) && d.contest.status === "open" && isStr(d.contest.filed_at),
   reportAnswer: (d) => isObj(d) && Number.isInteger(d.report_id) && d.report_id > 0,
   // list-my-postings (the employer's own list): every field the dashboard reads, checked; anything else is ignored
-  myPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && /^[0-9A-Z]{12}$/.test(p.post_id) && EFFECTIVE_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
+  myPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && POST_ID_RE.test(p.post_id) && EFFECTIVE_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
     && isNullable(p.closed_reason, isStr) && isBool(p.is_remote) && Array.isArray(p.locations) && p.locations.every(isStr) && Array.isArray(p.location_ids) && p.location_ids.every(isStr) && isBool(p.locations_attested) && placeFieldOk(p)
     && Number.isInteger(p.window_days) && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isNullable(p.go_live_at, isStr) && isNullable(p.applicant_cap, Number.isInteger)
     && isBool(p.bump_used) && isNullable(p.bump_days, Number.isInteger) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr) && Number.isInteger(p.comment_count) && p.comment_count >= 0,
   myPostings: (d) => isObj(d) && Number.isInteger(d.total) && d.total >= 0 && Array.isArray(d.postings) && d.postings.length <= 50 && d.postings.every(shapes.myPosting) && isNullable(d.next_offset, Number.isInteger),
   // get-my-posting (one posting, for the edit page): the fields the form starts from, checked; recent_changes: the newest five log entries (when, note, kind, the NAMES of the fields; never values)
-  openPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && isStr(p.company_name) && /^[0-9A-Z]{12}$/.test(p.post_id) && EFFECTIVE_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
+  openPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && isStr(p.company_name) && POST_ID_RE.test(p.post_id) && EFFECTIVE_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
     && isNullable(p.closed_reason, isStr) && isBool(p.is_remote) && Array.isArray(p.locations) && p.locations.every(isStr) && Array.isArray(p.location_ids) && p.location_ids.every(isStr) && isBool(p.locations_attested) && placeFieldOk(p)
     && isNullable(p.ai_filtering, isBool) && isNullable(p.ai_interview_other, isBool) && shapes.aiNotes(p) && isBool(p.third_party_recruiter) && isBool(p.req_searchable) && isBool(p.destination_links_exclusive) && isNullable(p.applicant_cap, Number.isInteger) && isStr(p.description_text) && Number.isInteger(p.window_days)
     && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isNullable(p.go_live_at, isStr) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr),

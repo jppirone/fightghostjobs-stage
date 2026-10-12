@@ -3,15 +3,15 @@
 // Prompt BP (October 11, 2026): the table has Title (with the place and the day it was added under it), Req #, Opening ID, Status (only in a view that can hold more than one status), Actions, Closes (with a flag line when
 // the date is near) and Comments; the sort box orders every loaded row; the Expiring pill gathers drafts near the end of their publish window.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=d197c035";
-import { rememberNext } from "../session.js?v=124260d8";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=627686d1";
+import { rememberNext } from "../session.js?v=c0af4232";
 import { $, h, clear, alertBox } from "../dom.js?v=ff147636";
-import { groupCode, waitText } from "../format.js?v=0631812a";
-import { placeNodes } from "../place.js?v=3cd2a533";
-import { FILTERS, SORTS, SORT_ANNOUNCE, defaultSort, sortRows, showsStatusColumn, statusChip, matchesFilter, matchesText, reqCell, addedCell, closesCell, expiryFlag } from "../dashboard-model.js?v=4121704d";
-import { actionsFor, publishWindowEnded } from "../dashboard-model.js?v=4121704d";
-import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=64b7aa8d";
-import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";
+import { groupCode, waitText } from "../format.js?v=032c6fc5";
+import { placeNodes } from "../place.js?v=915c680a";
+import { FILTERS, SORTS, SORT_ANNOUNCE, defaultSort, sortRows, showsStatusColumn, statusChip, matchesFilter, matchesText, reqCell, addedCell, closesCell, expiryFlag } from "../dashboard-model.js?v=232a65eb";
+import { actionsFor, publishWindowEnded } from "../dashboard-model.js?v=232a65eb";
+import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=1be744f9";
+import { COMMENTS_VISIBLE } from "../config.js?v=9bf25cae";
 
 const PAGE_CAP = 20;                       // 20 pages of 50: a hard stop, never an endless loop
 // sort: the choice the person made (null until they pick one; it stays while they change pills, until they pick another or reload); announce: the sentence the next draw says once

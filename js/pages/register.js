@@ -1,10 +1,11 @@
 // register.js - an employer registers a posting: create it (a draft), then publish it (standard tier goes live immediately).
 // "Save draft" stops after the first step: the draft is then found and published from My postings (dashboard.html). Nothing here trusts the page for identity: the session token tells the server who is acting.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=d197c035";
-import { rememberNext } from "../session.js?v=124260d8";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=627686d1";
+import { rememberNext } from "../session.js?v=c0af4232";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
-import { fmtClose, groupCode, waitText } from "../format.js?v=0631812a";
+import { fmtClose, waitText } from "../format.js?v=032c6fc5";
+import { kioBlock } from "../kio-block.js?v=8007f4da";
 import { checkGoLive, mapScheduleError } from "../schedule-form.js?v=b2985372";
 import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome, collectFirms, firmsOutcome, collectPolicy, policyOutcome, mapPolicyError, linkProblems, checkReport } from "../register-form.js?v=baec0d26";
 import { mapLinksErrors, planNotice, addressProblem } from "../edit-form.js?v=b5757c87";
@@ -268,8 +269,9 @@ function showResult(p, kind, problem, goLiveAt) {
   if (state.placeProblem) result.append(h("div", { style: "margin-top:12px;", id: "placeProblem" }, alertBox("error", state.placeProblem)));
   result.append(h("div", { style: "margin-top:20px;" },
     h("div", { style: "font-size:13px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;" }, "Your Opening ID"),
-    h("span", { class: "code-box", id: "postId" }, groupCode(p.public_code)),
-    h("p", { style: "font-size:13px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;" }, "Candidates find this opening by your company name plus either the job title or this Opening ID. They only ever see the last four characters of it.")));
+    // prompt BQ: the ID, its short link and the lines for a job ad, each with a copy button (js/kio-block.js); the ID keeps the big "code-box" look it has always had here
+    kioBlock(p.public_code, { idClass: "code-box" }),
+    h("p", { style: "font-size:13px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;" }, "Candidates can look this opening up with its ID alone, or with your company name plus the job title. The whole ID is shown to them.")));
   if (kind === "scheduled") result.append(h("div", { style: "margin-top:16px;" }, alertBox("notice", "Nothing is visible to candidates until it goes live. Its " + (p.window_days || 45) + "-day window is counted from the moment it actually goes live. You can change the time, remove it or publish it now from My openings.")));
   if (kind === "draft") result.append(h("div", { style: "margin-top:16px;" }, alertBox("notice", "Nothing is visible to candidates yet. Open My openings to publish it: a draft can be published for 14 days after it was saved, and the opening window starts when you publish.")));
   const actions = h("div", { style: "margin-top:22px;display:flex;gap:12px;flex-wrap:wrap;" });

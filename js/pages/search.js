@@ -1,27 +1,27 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=d197c035";
-import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=124260d8";
-import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=68216be2";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=627686d1";
+import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=c0af4232";
+import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=d2a55ed0";
 import { savePending, takePending } from "../signin-handoff.js?v=882122ed";
-import { applyFragmentPrefill } from "../fragment-prefill.js?v=1c621d5c";
+import { applyFragmentPrefill } from "../fragment-prefill.js?v=51f26865";
 import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js?v=f37507d8";
 import { lockScroll } from "../scroll-lock.js?v=b751eb4c";
 import { trapFocus } from "../dialog-focus.js?v=1dcc8c83";
 import { makeAnnouncer } from "../search-status.js?v=7497036c";
-import { recapSentence } from "../search-recap.js?v=467642b9";
+import { recapSentence } from "../search-recap.js?v=882473cf";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js?v=ff147636";
-import { waitText } from "../format.js?v=0631812a";
-import { postingChips, notOpenMessage } from "../chips.js?v=bb38507f";
+import { waitText } from "../format.js?v=032c6fc5";
+import { postingChips, notOpenMessage } from "../chips.js?v=7a1dc776";
 import { aiNotes } from "../ai-notes.js?v=35c5dc92";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=f2ea9573";
-import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";
+import { COMMENTS_VISIBLE } from "../config.js?v=9bf25cae";
 import { openUnit } from "../open-link.js?v=454df0f2";
-import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js?v=3ea36db8";
+import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_MISMATCH_MESSAGE } from "../search-input.js?v=68a063e9";
 import { isRegistered } from "../registered.js?v=f191c8c2";
-import { placeNodes } from "../place.js?v=3cd2a533";
-import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=85a73d71";
+import { placeNodes } from "../place.js?v=915c680a";
+import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=54075273";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
@@ -35,7 +35,10 @@ let staffMode = false, staffRobotsBefore = null, staffRobotsAdded = false, staff
 
 // opened with the company and ONE other value in the URL fragment (the browser extension does this): the boxes are filled, the fragment is taken out of the address bar at once, and the person presses Search. Never an automatic search,
 // and a search saved before the sign-in link is dropped so it can not run over what was filled in (js/fragment-prefill.js has the rules for this untrusted input)
-if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn })) takePending(localStorage);
+// prompt BQ: a fragment with a KIO ID (#k=...&c=...&t=...) puts the ID in the one box and, when it was sent, the company in the company box. The title words (t) are NOT put in a box: they are kept here, in memory only, so that the answer can say
+// whether the job ad's title differs from the record. They are used only for a search of that same ID, and dropped when the ID is changed.
+let heldKio = null;   // { stored, title } | null
+if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onKio: (k) => { heldKio = k.title ? { stored: k.stored, title: k.title } : null; } })) takePending(localStorage);
 
 function setFormError(text) { formError.hidden = !text; formError.textContent = text || ""; }
 function startCooldown(button, seconds, idleLabel) {
@@ -87,6 +90,9 @@ $("#signinForm").addEventListener("submit", async (ev) => {
 // the place of an opening: ONE rule for every screen (js/place.js placeNodes): the typed place with its small note, otherwise the list places and Remote, otherwise "Location not stated"
 const placeNodesOf = (row) => placeNodes(h, row);
 
+// the ID a candidate sees on a card and in the details window: the whole KIO ID when the answer carries it (the employer's req number stays masked), else the masked last four of an answer from before the database change
+const openingIdText = (row) => (typeof row.kio_id === "string" && row.kio_id !== "" ? row.kio_id : row.masked_code);
+
 // ---- search
 function renderCard(row) {
   const chips = postingChips(row).map(chip);
@@ -95,7 +101,7 @@ function renderCard(row) {
       h("div", {},
         h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
         h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
-        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, placeNodesOf(row), " · Opening ID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : ""))),
+        h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, placeNodesOf(row), " · Opening ID " + openingIdText(row) + (row.masked_req ? " · Req " + row.masked_req : ""))),
       // the check mark only for an opening the DATABASE says is registered (an active paid plan, or a pilot plan with an expiry date): one plain true in the row, nothing else about the plan (js/registered.js)
       isRegistered(row) ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }, "✓ Registered") : null),
     h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, chips),
@@ -111,22 +117,25 @@ function showResults(data, searched) {
   const n = data.results.length;
   if (n === 0) {
     countEl.textContent = "No matching openings";
-    resultsEl.append(h("div", { class: "empty-note", style: "margin-top:0;" }, noMatchMessage(searched.company, searched.query, searched.kind)));
+    // prompt BQ: an ID that is past its retention says so in its own words; every other empty answer is the page's usual note
+    resultsEl.append(h("div", { class: "empty-note", id: "emptyNote", style: "margin-top:0;" }, searched.gone === true ? KIO_GONE_MESSAGE : noMatchMessage(searched.company, searched.query, searched.kind)));
     return;
   }
   countEl.textContent = n + (n === 1 ? " matching opening" : " matching openings") + (data.truncated ? ": showing the first 25; add more of the title to narrow it" : "");
+  // prompt BQ: the ID is registered, but not to the company or title the job ad showed: said above the opening, which is still shown (the person decides)
+  if (data.mismatch === true) resultsEl.append(h("div", { class: "alert alert-notice", id: "mismatchNotice", role: "status" }, KIO_MISMATCH_MESSAGE));
   for (const row of data.results) resultsEl.append(renderCard(row));
 }
 
 // ---- the recap (Part C): once a search has run, the boxes are emptied and this read-only sentence sits between the form and the results. The one spoken message of the search is this same sentence (js/search-status.js).
 function hideRecap() { recapEl.hidden = true; recapTextEl.textContent = ""; }
-function showRecap(typed, company, search, auto) {
+function showRecap(typed, company, search, auto, extra) {
   lastSearch = typed;
   companyIn.value = ""; queryIn.value = ""; reqIn.value = "";
   const text = recapSentence(company, search);
   recapTextEl.textContent = text; recapEl.hidden = false;
-  // the one spoken message of the search: the recap sentence AND the count, in the visible count line's own words (so a search that found nothing says "No matching postings" too)
-  const spoken = text + " " + countEl.textContent + ".";
+  // the one spoken message of the search: the recap sentence AND the count, in the visible count line's own words (so a search that found nothing says "No matching postings" too); prompt BQ: and the mismatch notice, when there is one
+  const spoken = text + " " + countEl.textContent + "." + (extra ? " " + extra : "");
   status.announce(spoken);
   // After a successful search the recap goes to the top of the window, so the recap and the first results are on screen (October 5, 2026). A scroll, never a focus move (focus stays on the Search button). Smooth; a person who prefers
   // reduced motion gets no scroll at all. Not for a replayed search (the person did nothing, and the landing note sits above), and never for a search that failed (showRecap is only called on success).
@@ -187,7 +196,7 @@ async function runStaffSearch(c, q, typed, auto) {
   busy = true; searchBtn.disabled = true; searchBtn.textContent = "Searching…";
   status.clear();
   try {
-    const key = q.kind === "req" ? { p_req: q.value } : q.kind === "code" ? { p_code: q.value } : { p_phrase: q.value };
+    const key = q.kind === "req" ? { p_req: q.value } : q.kind === "code" || q.kind === "kio" ? { p_code: q.value } : { p_phrase: q.value };   // prompt BQ: a KIO ID goes to the staff function as its code (the function reads both forms)
     let r = await api.staffSearch(Object.assign({ p_company: c.value }, key));
     if (q.alsoTryCode && r.ok && r.data.results.length === 0) r = await api.staffSearch({ p_company: c.value, p_code: q.value });
     if (r.ok) { showStaffResults(r.data); showRecap(typed, c.value, q, auto); return true; }
@@ -203,7 +212,13 @@ window.addEventListener("pagehide", () => { if (staffMode) { clear(resultsEl); c
 async function runSearch(auto) {   // auto: the saved search replayed after the sign-in link (the person did nothing, so the landing note stays)
   if (busy) return;
   setFormError(""); hideRecap();
-  const c = checkCompany(companyIn.value), q = resolveSearch(queryIn.value, reqIn.value);
+  const q = resolveSearch(queryIn.value, reqIn.value);
+  // prompt BQ: text that has the shape of an ID but fails the check is refused at once, whatever else is or is not filled in: nothing is sent and the search limit is not touched
+  if (!q.ok && q.message === KIO_INVALID_MESSAGE) { setFormError(q.message); queryIn.focus(); return; }
+  // prompt BQ: the ID alone is enough. A company is asked for in every other kind of search, exactly as before; with an ID that passes the check it is optional (when it is typed it is still checked and, when it differs from the
+  // record, it only raises the notice beside the answer)
+  const idAlone = !staffMode && q.ok && q.kind === "kio" && String(companyIn.value || "").trim() === "";   // (the staff search still asks for the company: its database function needs one)
+  const c = idAlone ? { ok: true, value: "" } : checkCompany(companyIn.value);
   if (!c.ok) { setFormError(c.message); companyIn.focus(); return; }
   if (!q.ok) {
     setFormError(q.message);
@@ -227,10 +242,25 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
   status.clear();
   let cooldown = 0;
   try {
-    let r = await api.candidateSearch(q.kind === "req" ? { company: c.value, req: q.value } : q.kind === "code" ? { company: c.value, code: q.value } : { company: c.value, phrase: q.value });
-    if (q.alsoTryCode && r.ok && r.data.results.length === 0) r = await api.candidateSearch({ company: c.value, code: q.value });
+    // prompt BQ: a lookup by the KIO ID sends the ID and, only when they were given, the company and (from the extension's fragment, same ID only) the title words; the answer says whether they differ from the record
+    const kioBody = (stored) => {
+      const b = { kio: stored };
+      if (c.value !== "") b.company = c.value;
+      if (heldKio && heldKio.stored === stored) b.phrase = heldKio.title;
+      return b;
+    };
+    let r = await api.candidateSearch(q.kind === "kio" ? kioBody(q.value) : q.kind === "req" ? { company: c.value, req: q.value } : q.kind === "code" ? { company: c.value, code: q.value } : { company: c.value, phrase: q.value });
+    if (q.alsoTryCode && r.ok && r.data.results.length === 0) r = await api.candidateSearch(q.alsoTryKio ? kioBody(q.alsoTryKio) : { company: c.value, code: q.value });
+    const wasKio = q.kind === "kio" || (!!q.alsoTryKio && r.ok && r.data.mode === "kio") || (!!q.alsoTryKio && !r.ok && r.status === 410);   // the words of an ID answer only when the text really was read as an ID
+    let gone = false;
+    if (!r.ok && r.status === 410 && r.error.code === "gone") { gone = true; r = { ok: true, data: { mode: "kio", truncated: false, results: [] } }; }   // an opening past its retention: its own words
     if (!r.ok && r.status === 404 && r.error.code === "not_found") r = { ok: true, data: { mode: "code", truncated: false, results: [] } };   // a code that matches nothing is a plain "no such posting"
-    if (r.ok) { showResults(r.data, { company: c.value, query: q.value, kind: q.kind }); showRecap(typed, c.value, q, auto); return; }
+    if (!r.ok && r.status === 400 && r.error.field === "kio") { setFormError(KIO_INVALID_MESSAGE); queryIn.focus(); return; }
+    if (r.ok) {
+      showResults(r.data, { company: c.value, query: q.value, kind: wasKio ? "kio" : q.kind, gone });
+      showRecap(typed, c.value, q, auto, r.data.mismatch === true ? KIO_MISMATCH_MESSAGE : "");
+      return;
+    }
     clear(resultsEl); countEl.hidden = true;
     if (isAuthFailure(r.error)) { session = null; applySession(); showSignIn(r.error.code === "reverification_required" ? "Your email confirmation has expired. Please confirm your email again." : "Please confirm your email to search."); return; }
     if (r.error.code === "rate_limited") { cooldown = r.error.retryAfter || 30; setFormError("You are searching too fast. Try again in " + waitText(cooldown) + "."); return; }
@@ -256,7 +286,7 @@ reqToggle.addEventListener("click", () => {
 function openModal(row, opener) {
   $("#modalCompany").textContent = row.company_name;
   $("#modalTitle").textContent = row.title;
-  $("#modalRefs").textContent = "Opening ID " + row.masked_code + (row.masked_req ? " · Req " + row.masked_req : "");
+  $("#modalRefs").textContent = "Opening ID " + openingIdText(row) + (row.masked_req ? " · Req " + row.masked_req : "");
   // the place line, the same words as the result card and the comments page (prompt BJ): the list places and Remote, or the employer's own text with its small note, or "Location not stated"
   const place = $("#modalPlace"); clear(place); place.hidden = false;
   place.append(...placeNodesOf(row));

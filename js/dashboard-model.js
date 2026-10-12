@@ -1,6 +1,6 @@
 // dashboard-model.js - what the "My postings" table shows for each row. Pure (no DOM): tested in Node.
 // The backend (list-my-postings) already sends the EFFECTIVE status (a live or paused posting whose clock has run out reads as "expired"); this file only chooses labels, the filters and the order.
-import { fmtDate, fmtClose } from "./format.js?v=0631812a";
+import { fmtDate, fmtClose } from "./format.js?v=032c6fc5";
 
 export const CLOSING_SOON_DAYS = 10;              // the top expiry-warning threshold: a live or paused posting with this many days or fewer left is "Closing soon"
 // prompt BP (October 11, 2026): THE ONE number of the at-a-glance flag and of the Expiring pill. A row whose date that matters (the close date of a live or paused opening, the publish-by date of a draft) is within

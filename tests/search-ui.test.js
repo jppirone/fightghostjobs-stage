@@ -53,7 +53,7 @@ const FIELD_CHECK = `(() => {
   return { out, order, labels, button: (document.querySelector("#searchBtn") || {}).textContent, sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, toggle: !!document.querySelector("#reqToggle") };
 })()`;
 
-const EXPECT_PH = { company: "e.g. Meridian Health Systems", reqq: "From the job ad", titleq: "XXXX-XXXX-XXXX, or e.g. Data Analyst" };
+const EXPECT_PH = { company: "e.g. Meridian Health Systems", reqq: "From the job ad", titleq: "KIO-XXXX-XXXX-XXXX, or e.g. Data Analyst" };   // prompt BQ (October 12, 2026): the box shows the new ID form
 async function fieldProblems(tab, width, phone) {
   const bad = [];
   await tab.focusEmulation(true); await tab.viewport(width, phone); await sleep(250);
@@ -83,7 +83,7 @@ async function fieldProblems(tab, width, phone) {
 }
 
 // ---- the three boxes: Company (required), then ONE of the req number or the postID / title box (October 5, 2026). Wording is exact; the group is labelled; the visible "or" sits between the two; the three boxes keep their layout.
-const NEW_SENTENCE = "Company is required. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.";
+const NEW_SENTENCE = "Company is required, unless you type an Opening ID. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.";
 const FORM_CHECK = `(() => {
   const q = (s) => document.querySelector(s);
   const vis = (e) => { if (!e) return false; const c = getComputedStyle(e), r = e.getBoundingClientRect(); return c.display !== "none" && c.visibility !== "hidden" && r.width > 0 && r.height > 0; };

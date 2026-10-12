@@ -4,7 +4,7 @@
 // The words are the destination links rows' own (js/link-panel-model.js LP) wherever the meaning is the same; the sentences that name a firm are new and listed in reports\stage-bc-report.txt.
 
 import { MAX_FIRM_NAME, recruiterFirms, addressProblem } from "./edit-form.js?v=b5757c87";
-import { LP } from "./link-panel-model.js?v=bd483e94";
+import { LP } from "./link-panel-model.js?v=af31acf3";
 
 const hasControl = (s) => Array.from(String(s)).some((ch) => { const c = ch.codePointAt(0); return c < 32 || c === 127; });
 

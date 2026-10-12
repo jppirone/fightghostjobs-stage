@@ -6,6 +6,13 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { kioCheckChar, kioDisplay, readKio } from "../js/kio.js";
+
+// prompt BQ (October 12, 2026): opts.kio switches the fake backend to the MIGRATED database: every opening's ID is a KIO ID (the 12 character codes below with their last character replaced by the check character), search rows carry
+// kio_id, and candidate-search answers a lookup by ID alone. Without opts.kio every answer is as it always was (an unmigrated database), which the pages must still show correctly.
+//   the IDs the fake knows: the two search results (by their codes), "KIO7K3M9Q2XW4T9" (a closed opening with its closing date), "KIO000000000000" (an opening past its retention: 410), any other well formed ID: 404
+export const KIO_CLOSED = "KIO7K3M9Q2XW4T9", KIO_GONE = "KIO000000000000";
+export const kioOf = (pcode) => { const body = String(pcode).slice(0, 11), cc = kioCheckChar(body); return { stored: "KIO" + body + cc, shown: kioDisplay(body + cc) }; };
 
 const REAL = "https://tpmvkjuhbbwftqoodzcn.supabase.co";
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8", ".json": "application/json" };
@@ -98,7 +105,7 @@ export function startFakeSite(root, opts = {}) {
       if (name === "poster-login-intent") return send(202, { ok: true });
       if (name === "poster-session") return poster ? send(200, { poster: { poster_id: c.poster_id, full_name: LONG_NAME, is_org_admin: true }, organization: { organization_id: "00000000-0000-4000-8000-0000000000bb", name: LONG_ORG }, verified_at: new Date().toISOString(), reverify_by: inDays(30), plan: planFor(opts) }) : unauth();
       // prompt BL: opts.mineOverrides: for each of the five rows in order an object merged into it; opts.mineExtra: more rows (each merged over the first row's shape) for the layout tests of My openings
-      const mine = () => MINE.map((p, i) => ({ ...p, ...((opts.mineOverrides && opts.mineOverrides[i]) || {}) })).concat((opts.mineExtra || []).map((x, i) => ({ ...MINE[0], id: "3f1d5b1e-0000-4000-8000-0000000001" + String(10 + i), ...x })));
+      const mine = () => MINE.map((p, i) => ({ ...p, ...(opts.kio ? { post_id: kioOf(p.post_id).stored } : {}), ...((opts.mineOverrides && opts.mineOverrides[i]) || {}) })).concat((opts.mineExtra || []).map((x, i) => ({ ...MINE[0], ...(opts.kio ? { post_id: kioOf(MINE[0].post_id).stored } : {}), id: "3f1d5b1e-0000-4000-8000-0000000001" + String(10 + i), ...x })));
       if (name === "list-my-postings") return poster ? send(200, { total: mine().length, postings: body.offset ? [] : mine().map((p, i) => (i === 0 && opts.placeText ? { ...p, locations: [], location_ids: [], source_location_text: opts.placeText } : p)), next_offset: null }) : unauth();
       if (name === "employer-analytics") return poster ? send(200, ANALYTICS) : unauth();
       if (name === "poster-roster-list") return poster ? send(200, { posters: ROSTER.map((p, i) => (i === 0 ? { ...p, poster_id: c.poster_id } : p)) }) : unauth();
@@ -196,31 +203,47 @@ export function startFakeSite(root, opts = {}) {
           : ps === "closed" ? { status: "closed", stored_status: "closed", closed_reason: "filled", posted_at: inDays(-10), expiration_date: inDays(35), publish_by: null, go_live_at: null }
           : ps === "expired" ? { status: "expired", stored_status: "live", closed_reason: "expired_no_action", posted_at: inDays(-50), expiration_date: inDays(-5), publish_by: null, go_live_at: null }
           : { status: "live", stored_status: "live", closed_reason: null, posted_at: inDays(-10), expiration_date: inDays(35), publish_by: null, go_live_at: null };
-        return send(200, { posting: { id: body.posting_id, title: "Data Analyst", req_number: "4471", company_name: "Meridian Health", post_id: "ABCDEFGHJKMN", ...PS, is_remote: opts.postingRemote === true, locations: (opts.placeText || opts.postingNoPlace) ? [] : ["Austin, TX"], location_ids: (opts.placeText || opts.postingNoPlace) ? [] : ["gn:4671654"], source_location_text: opts.placeText || null, locations_attested: false, ai_filtering: false, ai_interview_other: null, third_party_recruiter: opts.recruiter === true || firmsState.length > 0, req_searchable: true, destination_links_exclusive: false, applicant_cap: null, description_text: Array.from({ length: 60 }, (_, i) => "requirement" + i).join(" "), window_days: 45, created_at: opts.createdAt || inDays(-10), last_edited_at: null },
+        return send(200, { posting: { id: body.posting_id, title: "Data Analyst", req_number: "4471", company_name: "Meridian Health", post_id: opts.kio ? kioOf("ABCDEFGHJKMN").stored : "ABCDEFGHJKMN", ...PS, is_remote: opts.postingRemote === true, locations: (opts.placeText || opts.postingNoPlace) ? [] : ["Austin, TX"], location_ids: (opts.placeText || opts.postingNoPlace) ? [] : ["gn:4671654"], source_location_text: opts.placeText || null, locations_attested: false, ai_filtering: false, ai_interview_other: null, third_party_recruiter: opts.recruiter === true || firmsState.length > 0, req_searchable: true, destination_links_exclusive: false, applicant_cap: null, description_text: Array.from({ length: 60 }, (_, i) => "requirement" + i).join(" "), window_days: 45, created_at: opts.createdAt || inDays(-10), last_edited_at: null },
           destination_links: (applyState ? applyState.map((l) => ({ position: l.position, kind: "apply", firm: null, label: l.label, shown_as: "Employer's own site", check_status: l.check_status, check_http: 200 })) : []).concat(firmEntries(), policyEntry() ? [policyEntry()] : []), plan: planDoc(), recent_changes: opts.recentChanges || [{ at: inDays(-2), note: "Fixed a typo in the third paragraph", kind: "text_correction", fields: ["description_text"] }, { at: inDays(-5), note: "Renamed the role", kind: "edit", fields: ["title"] }] });
       }
       // prompt BH: create-posting answers with a draft (the request body is in site.calls); opts.createRefusal = { status, body } makes it refuse, opts.createDropsPlace answers without the typed place
       if (name === "create-posting") {
         if (!poster) return unauth();
         if (opts.createRefusal) return send(opts.createRefusal.status, opts.createRefusal.body);
-        return send(201, { id: "3f1d5b1e-0000-4000-8000-0000000000aa", status: "draft", title: String(body.title || ""), expiration_date: inDays(30), public_code: "ABCDEFGHJKMN", posting_ref: "abcdefghjkmnpqrstvwx", closed_reason: null, source_location_text: opts.createDropsPlace ? null : (typeof body.source_location_text === "string" ? body.source_location_text : null) });   // the real one answers with the whole row (returning *); opts.createDropsPlace: a server that does not know the typed place yet
+        return send(201, { id: "3f1d5b1e-0000-4000-8000-0000000000aa", status: "draft", title: String(body.title || ""), expiration_date: inDays(30), public_code: opts.kio ? kioOf("ABCDEFGHJKMN").stored : "ABCDEFGHJKMN", posting_ref: "abcdefghjkmnpqrstvwx", closed_reason: null, source_location_text: opts.createDropsPlace ? null : (typeof body.source_location_text === "string" ? body.source_location_text : null) });   // the real one answers with the whole row (returning *); opts.createDropsPlace: a server that does not know the typed place yet
       }
       // prompt BK: Publish on the edit page (the same call My openings makes). opts.publishRefusal = { status, body } makes it refuse.
       if (name === "publish-posting") {
         if (!poster) return unauth();
         if (opts.publishRefusal) return send(opts.publishRefusal.status, opts.publishRefusal.body);
         state.published = true;
-        return send(200, { posting: { id: body.posting_id, status: "live", title: "Data Analyst", expiration_date: inDays(45), public_code: "ABCDEFGHJKMN", posting_ref: "abcdefghjkmnpqrstvwx", closed_reason: null } });
+        return send(200, { posting: { id: body.posting_id, status: "live", title: "Data Analyst", expiration_date: inDays(45), public_code: opts.kio ? kioOf("ABCDEFGHJKMN").stored : "ABCDEFGHJKMN", posting_ref: "abcdefghjkmnpqrstvwx", closed_reason: null } });
       }
       if (name === "edit-posting") return poster ? send(200, { edited: true, changed_fields: ["title"], similarity_pct: null }) : unauth();   // the saved posting reads back as it was (the fake keeps nothing), so a save ends with nothing unsaved
       if (name === "list-posting-comments") return poster ? send(200, { posting_id: body.posting_id, comments: [{ id: "c1", body: "This role was filled last month, according to a friend who works there.", created_at: inDays(-3), is_mine: false }], total: 1, next_offset: null }) : unauth();   // the employer reads the thread of their own posting
       if (name === "candidate-session") return cand ? send(200, { ok: true }) : unauth();
       if (!cand) return send(401, { error: "unauthorized", code: poster ? "not_a_candidate_session" : "unauthorized" });
+      // prompt BQ: with opts.kio a search row carries the whole KIO ID (derived from the row's code, which is its posting_ref's first twelve characters)
+      const withKio = (p) => (opts.kio ? { ...p, kio_id: kioOf(p.posting_ref.slice(0, 12).toUpperCase()).shown } : p);
+      if (name === "candidate-search" && body.kio !== undefined) {
+        if (!opts.kio) return send(400, { error: "Unknown field. Only company, phrase, code and req are accepted.", code: "invalid_request", field: "kio" });
+        const r = readKio(String(body.kio));
+        if (r.kind !== "kio") return send(400, { error: "That ID is not valid. Check it and try again.", code: "invalid_request", field: "kio" });
+        if (r.stored === KIO_GONE) return send(410, { error: "gone", code: "gone" });
+        let row = RESULTS.map(withKio).find((p) => kioOf(p.posting_ref.slice(0, 12).toUpperCase()).stored === r.stored) || null;
+        if (r.stored === KIO_CLOSED) row = { ...RESULTS[0], kio_id: r.display, status: "closed", closed_reason: "filled", closed_at: inDays(-40), posting_ref: "z".repeat(20), masked_code: "****-****-W4T9" };
+        if (!row) return send(404, { error: "not_found", code: "not_found" });
+        // the notice: only for what was sent, by the page's own plain comparison (letters and digits, case ignored)
+        const alnum = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const co = alnum(body.company), ph = alnum(body.phrase);
+        const mismatch = (co !== "" && !alnum(row.company_name).startsWith(co)) || (ph !== "" && !alnum(row.title).includes(ph));
+        return send(200, { mode: "kio", truncated: false, mismatch, results: [row] });
+      }
       if (name === "candidate-search") {
         const co = String(body.company || "").toLowerCase();
         // opts.registeredValues: what is_registered carries on each result in order (true, false, "true", 1, null, or the word omit to leave the key out), for the tests of the check mark rule
         const vals = opts.registeredValues;
-        const rows = RESULTS.filter((p) => p.company_name.toLowerCase().includes(co)).map((p, i) => { const q = { ...p }; if (vals && i < vals.length) { if (vals[i] === "omit") delete q.is_registered; else q.is_registered = vals[i]; } return q; });
+        const rows = RESULTS.filter((p) => p.company_name.toLowerCase().includes(co)).map((p, i) => { const q = { ...withKio(p) }; if (vals && i < vals.length) { if (vals[i] === "omit") delete q.is_registered; else q.is_registered = vals[i]; } return q; });
         // opts.placeOverrides: for each result in order an object merged into the row (locations, is_remote, source_location_text), for the tests of the display-only place text (AZ3)
         const placed = opts.placeOverrides ? rows.map((r, i) => Object.assign({}, r, (opts.placeOverrides[i] || {}))) : rows;
         return send(200, { mode: body.req ? "req" : body.code ? "code" : "phrase", truncated: false, results: placed });
@@ -238,7 +261,7 @@ export function startFakeSite(root, opts = {}) {
         // opts.detailFirms: [{ firm, label }] named recruiter firms sent with the links (label null = a firm named without an address); prompt BG
         const firmLinks = (opts.detailFirms || []).map((f, i) => ({ position: i + 1, kind: "recruiter", firm: f.firm, label: f.label === undefined ? "Employer's own site" : f.label }));
         // opts.detailOverride (prompt BJ): merged into the posting the comments page and the details call receive (for example { locations: [], source_location_text: "Berlin, Germany" })
-        return send(200, { posting: opts.detailOverride ? { ...p, ...opts.detailOverride } : p, links: apply.concat(firmLinks, opts.policyDetail ? [POLICY_ENTRY] : []) });
+        return send(200, { posting: opts.detailOverride ? { ...withKio(p), ...opts.detailOverride } : withKio(p), links: apply.concat(firmLinks, opts.policyDetail ? [POLICY_ENTRY] : []) });
       }
       // with opts.policyDetail the one-time links are https addresses the page accepts (the page opens whatever it is given; the test replaces window.open and reads the address); without it the answer is as it always was
       if (name === "candidate-link-issue") return send(200, { expires_at: inDays(0.0014), links: [{ position: 1, label: "Careers site", go_url: opts.policyDetail || opts.detailFirms ? "https://go.example.invalid/f/apply-1" : SELF + "/404.html" }].concat(opts.detailFirms ? [{ position: 2, label: "Apply on LinkedIn, the employer's own page", go_url: "https://go.example.invalid/f/apply-2" }] : []).concat((opts.detailFirms || []).map((f, i) => ({ position: i + 1, kind: "recruiter", firm: f.firm, label: f.label === undefined ? "Employer's own site" : f.label, go_url: "https://go.example.invalid/f/firm-" + (i + 1) }))).concat(opts.policyDetail ? [{ position: 1, kind: "policy", label: "Employer's own site", go_url: "https://go.example.invalid/f/policy-1" }] : []) });
@@ -274,6 +297,7 @@ export function startFakeSite(root, opts = {}) {
     let data = fs.readFileSync(file);
     if ([".html", ".js", ".mjs"].includes(ext)) data = Buffer.from(data.toString("utf8").split(REAL).join(SELF));
     if (rel === "/js/config.js" && opts.commentsOff) data = Buffer.from(data.toString("utf8").replace("COMMENTS_VISIBLE = true", "COMMENTS_VISIBLE = false"));
+    if (rel === "/js/config.js" && opts.shortLinkLive) data = Buffer.from(data.toString("utf8").replace("KIO_SHORT_LINK_LIVE = false", "KIO_SHORT_LINK_LIVE = true"));   // opts.shortLinkLive (prompt BQ): the short link switched ON (it ships OFF)
     if (rel === "/js/config.js" && opts.codeOn) data = Buffer.from(data.toString("utf8").replace("EMAIL_CODE_ENTRY = false", "EMAIL_CODE_ENTRY = true"));   // opts.codeOn: the emailed-code field switched ON (it ships OFF, so every other test sees the sign-in pages as shipped)
     res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": opts.pageCache || "no-store" }); res.end(data);   // opts.pageCache: the Cache-Control the real stage serves (max-age=600), for the test that needs the browser's back/forward cache to be allowed; the default is unchanged
   });

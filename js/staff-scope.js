@@ -7,8 +7,8 @@
 // (no session, not staff, the functions missing, an error, an odd answer) leaves the page exactly as it is for everyone. This file never decides who is staff; it only reads the address and words what is on screen.
 // THE CONTRACT WITH THE EXTENSION: the address carries scope=all in its query string, nothing else is new. Absent, empty, repeated or any other value means "live only", exactly as before.
 
-import { fmtDateTz, fmtClose } from "./format.js?v=0631812a";
-import { aiFilteringChip, aiInterviewChip, CLOSED_REASON_LABEL } from "./chips.js?v=bb38507f";
+import { fmtDateTz, fmtClose } from "./format.js?v=032c6fc5";
+import { aiFilteringChip, aiInterviewChip, CLOSED_REASON_LABEL } from "./chips.js?v=7a1dc776";
 
 export const STAFF_BANNER = "Staff view: showing all openings, including ones that are not live.";
 // the line under the search boxes (#titleNote). For everyone else it says a title search will not show openings that are not live; in the staff view that is the opposite of true, so it says what the staff search does.

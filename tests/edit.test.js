@@ -224,17 +224,19 @@ test("the edit page has the Opening ID from the opening it already loads: the ge
 
 test("edit.html and edit.js show the Opening ID at the top, with the same label text, formatter and class as the dashboard and the comments page", () => {
   const html = src("edit.html"), js = src("js/pages/edit.js");
-  assert.match(html, /<div id="postIdLine"[^>]*\bhidden>Opening ID <span class="mono" id="postId"><\/span><\/div>/);
+  // prompt BQ (October 12, 2026): the line is drawn by js/kio-block.js (the ID, the short link and the lines for a job ad, with copy buttons); the ID is still the element #postId, formatted by the same displayId as groupCode
+  assert.match(html, /<div id="postIdLine"[^>]*\bhidden><\/div>/);
   assert.ok(html.indexOf('id="postIdLine"') > html.indexOf("Edit an opening</h1>") && html.indexOf('id="postIdLine"') < html.indexOf('id="statusLine"'), "the Opening ID sits under the heading, above the status line");
-  assert.match(js, /import \{[^}]*\bgroupCode\b[^}]*\} from "\.\.\/format\.js";/);
-  assert.ok(js.includes('$("#postId").textContent = groupCode(p.post_id); $("#postIdLine").hidden = false;'));
-  assert.ok(js.indexOf('$("#postIdLine").hidden = false;') < js.indexOf("noteLabel(p.stored_status"), "it is set in populate(), so every reload after a save keeps it");
+  assert.match(js, /import \{ kioBlock \} from "\.\.\/kio-block\.js";/);
+  assert.ok(js.includes('const idLine = $("#postIdLine"); clear(idLine); idLine.append(kioBlock(p.post_id)); idLine.hidden = false;'));
+  assert.ok(js.indexOf('idLine.hidden = false;') < js.indexOf("noteLabel(p.stored_status"), "it is set in populate(), so every reload after a save keeps it");
+  assert.ok(src("js/kio-block.js").includes('import { displayId, shortLinkOf, adLines, isKioShown } from "./kio.js";') && src("js/format.js").includes("return displayId(code);"), "the block and groupCode use the one formatter");
 });
 
 test("the pages that already showed the Opening ID still do, through the same formatter", () => {
   assert.ok(src("js/pages/dashboard.js").includes("groupCode(p.post_id)") && src("js/pages/dashboard.js").includes('"Title", "Req #", "Opening ID"'));      // prompt BP: the headings are drawn by the page script
   assert.ok(src("js/pages/comments.js").includes('"Opening ID " + groupCode(p.post_id)'));
-  assert.ok(src("js/pages/register.js").includes("groupCode(p.public_code)") && src("js/pages/register.js").includes('"Your Opening ID"'));
+  assert.ok(src("js/pages/register.js").includes('kioBlock(p.public_code, { idClass: "code-box" })') && src("js/pages/register.js").includes('"Your Opening ID"'));   // prompt BQ: the confirmation draws the same block (js/kio-block.js)
 });
 
 // ---- the recruiter toggle and the destination links section (edit page layout and wording)

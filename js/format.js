@@ -1,4 +1,5 @@
 // format.js - pure display helpers (no DOM, no network): tested in Node by tests/unit.test.js.
+import { displayId } from "./kio.js?v=80867368";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -54,9 +55,9 @@ export function fmtClose(iso, tz) {
   return fmtDate(iso, tz) + ", " + hr + ":" + String(mi).padStart(2, "0") + " " + ap + (z === "" ? "" : " " + z);
 }
 
-// The employer sees their own full postID (the 12-character code), grouped for reading: XXXX-XXXX-XXXX
+// The employer sees their own full ID, grouped for reading: the KIO ID as KIO-XXXX-XXXX-XXXX (prompt BQ; js/kio.js displayId), an opening that still holds an old 12 character code as XXXX-XXXX-XXXX
 export function groupCode(code) {
-  return typeof code === "string" && /^[0-9A-Z]{12}$/.test(code) ? code.slice(0, 4) + "-" + code.slice(4, 8) + "-" + code.slice(8) : String(code || "");
+  return displayId(code);
 }
 
 // "Remote", "Tampa, FL", "Remote · Tampa, FL"

@@ -9,7 +9,7 @@
 <script src="js/stage-gate.js?v=d48925c1"></script>
 <title>FightGhostJobs | Search</title>
 <link rel="stylesheet" href="styles.css?v=4cea5b1e">
-<link rel="stylesheet" href="app.css?v=1b3644ed">
+<link rel="stylesheet" href="app.css?v=4eb653e2">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -31,14 +31,14 @@
     <h1 style="font-size:34px;font-weight:700;letter-spacing:-.01em;">Look up an opening</h1>
     <div id="searchGuide" class="srch-guide">
       <p class="srch-lead">Search for one specific job you already know about.</p>
-      <p>Easiest and most exact: the company name plus the requisition (req) number or the Opening ID from the employer's job ad.</p>
+      <p>Easiest and most exact: the Opening ID from the employer's job ad (no company name needed), or the company name plus the requisition (req) number.</p>
       <p>No ID? Use the company name plus part of the job title, copied from the job ad if you can.</p>
     </div>
     <form id="searchForm" class="srch-form" novalidate style="display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;max-width:1080px;">
       <div class="srch-company" style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
         <label for="company" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;">Company <span class="srch-req">(required)</span></label>
         <input id="company" class="srch-input" type="text" aria-required="true" maxlength="200" autocomplete="off" placeholder="e.g. Meridian Health Systems" aria-describedby="companyHint" style="border:none;padding:4px 0;">
-        <div id="companyHint" class="field-hint">Must match the employer's name. We ignore endings like Inc., Co. and LLC.</div>
+        <div id="companyHint" class="field-hint">Must match the employer's name. We ignore endings like Inc., Co. and LLC. Not needed with an Opening ID.</div>
       </div>
       <div class="srch-sep" style="width:1px;background:var(--line);"></div>
       <div class="srch-group" role="group" aria-labelledby="oneOfHead" style="flex:2;display:flex;flex-direction:column;">
@@ -67,7 +67,7 @@
             <li>No Opening ID handy? Type part of the job title instead; this box takes either</li>
           </ul></span></span>
         </label>
-        <input id="titleq" class="srch-input" type="text" maxlength="80" autocomplete="off" placeholder="XXXX-XXXX-XXXX, or e.g. Data Analyst" aria-describedby="titleHint reqHint titleNote" style="border:none;padding:4px 0;">
+        <input id="titleq" class="srch-input" type="text" maxlength="80" autocomplete="off" placeholder="KIO-XXXX-XXXX-XXXX, or e.g. Data Analyst" aria-describedby="titleHint reqHint titleNote" style="border:none;padding:4px 0;">
         <div id="titleHint" class="field-hint">An Opening ID is exact. No ID? Use part of the title.</div>
       </div>
       </div>
@@ -75,7 +75,7 @@
       <button type="submit" id="searchBtn" class="btn btn-dark">Search</button>
     </form>
     <div id="formError" class="field-error" role="alert" hidden style="max-width:1080px;margin-top:10px;font-size:13px;"></div>
-    <div id="reqHint" class="field-hint" style="max-width:1080px;">Company is required. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.</div>
+    <div id="reqHint" class="field-hint" style="max-width:1080px;">Company is required, unless you type an Opening ID. Then fill in one of the other two boxes: the req number, or the Opening ID / title box, not both. The req number is hidden as you type; press Show to check it.</div>
     <div id="titleNote" class="field-hint" style="max-width:1080px;">A title search will not list all of a company's jobs, and it will not show openings that are not live. Closed or expired openings are found only by Opening ID or req number.</div>
   </div>
 
@@ -135,6 +135,6 @@
 
 <footer class="site-footer"><span>FightGhostJobs</span><a href="privacy.html">Privacy</a><a href="mailto:privacy@fightghostjobs.com">privacy@fightghostjobs.com</a></footer>
 
-<script type="module" src="js/pages/search.js?v=17531d90"></script>
+<script type="module" src="js/pages/search.js?v=baf6a07f"></script>
 </body>
 </html>

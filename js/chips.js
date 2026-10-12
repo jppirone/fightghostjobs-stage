@@ -1,7 +1,7 @@
 // chips.js - what a posting's facts are called on screen. Pure (no DOM): tested in Node.
 // The wording of the two AI disclosures and their tooltips is the FINAL design copy (design brief addendum, section 12): the tooltip describes the mechanism, never an outcome.
 
-import { fmtDateTz, fmtClose } from "./format.js?v=0631812a";
+import { fmtDateTz, fmtClose } from "./format.js?v=032c6fc5";
 
 export const TOOLTIP_FILTERING = "Resume screening or keyword/ATS-style matching used to prioritize applications before a human reviews them.";
 export const TOOLTIP_INTERVIEW = "Any AI that interacts with a candidate directly, such as an AI-conducted interview or a chatbot screening call.";
@@ -23,7 +23,8 @@ export function statusChips(p, tz) {
     case "live": return [{ text: "Closes " + closes, bold: true }];
     case "paused": return [{ text: "Paused", bold: true }, { text: "Close date " + closes + " (the clock keeps running)" }];
     case "expired": return [{ text: "Expired · " + (CLOSED_REASON_LABEL[p.closed_reason] || "No action taken"), bold: true }, { text: "Was set to close " + closes }];
-    case "closed": return [{ text: "Closed · " + (CLOSED_REASON_LABEL[p.closed_reason] || "Reason not recorded"), bold: true }];
+    // prompt BQ: an opening found by its ID alone carries the day it closed (closed_at); a row from a title or req search does not, and reads exactly as before
+    case "closed": return [{ text: "Closed · " + (CLOSED_REASON_LABEL[p.closed_reason] || "Reason not recorded"), bold: true }].concat(typeof p.closed_at === "string" && fmtDateTz(p.closed_at, tz) !== "" ? [{ text: "Closed on " + fmtDateTz(p.closed_at, tz) }] : []);
     default: return [{ text: String(p.status || "Status unknown"), bold: true }];
   }
 }

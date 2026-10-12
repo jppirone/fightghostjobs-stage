@@ -5,8 +5,8 @@
 // (linkcheck\NOTES-frontend.md lists every one for the owner's review).
 
 import { applyLinks, MAX_URL, MAX_LABEL } from "./edit-form.js?v=b5757c87";
-import { waitText } from "./format.js?v=0631812a";
-import { isAuthFailure } from "./api.js?v=2b6638b4";
+import { waitText } from "./format.js?v=032c6fc5";
+import { isAuthFailure } from "./api.js?v=6b0c92df";
 
 const hasControl = (s) => Array.from(String(s)).some((ch) => { const c = ch.codePointAt(0); return c < 32 || c === 127; });
 

@@ -16,6 +16,12 @@ export const EMAIL_CODE_ENTRY = false;
 // While false: no Comments link on the home card, none in the details window ("Report a wrong link" stays); the comments page shows only the wrong-link report section; My postings has no Comments column, no row link and no phone card line.
 // This switch hides the SCREENS only: the backend still accepts and lists comments if it is called directly (see the report for what a backend refusal flag would take).
 export const COMMENTS_VISIBLE = true;
+// THE KIO ID (prompt BQ, October 12, 2026). KIO_PREFIX: the three letters every ID starts with, in ONE place on this side (the database has public.kio_prefix(), the edge functions have their own KIO_PREFIX constant, the extension has
+// kio.js: all four must name the same word, and tests/kio-parity.test.js fails when they do not). KIO_SHORT_LINK_HOST: the short address that will forward to the receiving page (404.html). KIO_SHORT_LINK_LIVE: SHIPS FALSE. While false the
+// employer's "Lines for your job ad" carry only the "KIO ID:" line; the "Check this opening:" line with the short address is added the moment this is true, and not before the address really forwards (John's DNS step, see the report).
+export const KIO_PREFIX = "KIO";
+export const KIO_SHORT_LINK_HOST = "knowitsopen.com";
+export const KIO_SHORT_LINK_LIVE = false;
 export const STORAGE_KEY = "fgj-auth";          // where the Auth client keeps the session (this origin's localStorage only)
 export const NEXT_KEY = "fgj-next";              // where a page remembers "go here after the sign-in link" (sessionStorage)
 export const KIND_KEY = "fgj-signin-kind";       // "poster" | "candidate": what the person asked to sign in as (sessionStorage)

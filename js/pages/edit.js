@@ -2,25 +2,26 @@
 // The server judges the rest (how much of the requirements text is kept, the location rule, duplicate req numbers) and this page shows its answer in words. Nothing here trusts the page for identity: the session token tells the server who is acting.
 // Unsaved work is never lost silently: a bar at the bottom of the window says what is not saved, the browser asks before the page is left, and the page's own links ask with a dialog (js/unsaved-guard.js; what counts as unsaved is js/dirty-state.js).
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=d197c035";
-import { rememberNext } from "../session.js?v=124260d8";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=627686d1";
+import { rememberNext } from "../session.js?v=c0af4232";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
-import { fmtClose, fmtStamp, waitText, groupCode } from "../format.js?v=0631812a";
-import { statusChip, actionsFor } from "../dashboard-model.js?v=4121704d";
-import { runAction } from "../dashboard-actions.js?v=64b7aa8d";
+import { fmtClose, fmtStamp, waitText } from "../format.js?v=032c6fc5";
+import { kioBlock } from "../kio-block.js?v=8007f4da";
+import { statusChip, actionsFor } from "../dashboard-model.js?v=232a65eb";
+import { runAction } from "../dashboard-actions.js?v=1be744f9";
 import { mountLimitHint } from "../limit-hint.js?v=1cfa5987";
 import { checkEdit, mapEditErrors, KIND_TEXT, plainChangeNote, checkLinks, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js?v=b5757c87";
 import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
 import { mountPlaceChoice } from "../place-choice.js?v=f65a1b27";
 import { storedPlaceText } from "../place-text.js?v=cb5d7506";
-import { placeNodes } from "../place.js?v=3cd2a533";
+import { placeNodes } from "../place.js?v=915c680a";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js?v=b2985372";
 import { loadCatalog } from "../location-catalog.js?v=bb0c937e";
 import { mountLinkRowsById, mountLinkRows } from "../link-rows.js?v=a79f852e";
-import { mountLinkPanel } from "../link-panel.js?v=7cbbc49f";
-import { mountFirmPanel } from "../firm-panel.js?v=05bb51d8";
-import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=b1b46a27";
-import { mountPolicyPanel } from "../policy-panel.js?v=b0c7945b";
+import { mountLinkPanel } from "../link-panel.js?v=9704a2e8";
+import { mountFirmPanel } from "../firm-panel.js?v=d9204246";
+import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=178a8206";
+import { mountPolicyPanel } from "../policy-panel.js?v=a248ff15";
 import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js?v=f2ea9573";
 import { wireInfoIcons } from "../info-icon.js?v=66958a58";
 import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL, ACTION, ADDED_LABEL, panelsFirstText } from "../dirty-state.js?v=7d4da23c";
@@ -354,7 +355,8 @@ async function populate(doc, opts) {
   $("#companyShown").textContent = p.company_name;
   $("#aiFilterHint").textContent = p.ai_filtering === null ? "Not stated yet. Once you state it, it can be changed but not cleared." : "Shown to candidates as a plain fact, never scored.";
   $("#aiInterviewHint").textContent = p.ai_interview_other === null ? "Not stated yet. Once you state it, it can be changed but not cleared." : "Independent of filtering. An employer can have neither, either, or both on.";
-  $("#postId").textContent = groupCode(p.post_id); $("#postIdLine").hidden = false;   // the same postID, formatted the same way, as the dashboard row and the comments page
+  // the opening's ID, its short link and the lines for a job ad, each with a copy button (js/kio-block.js); text only, for every status including a draft. The ID is formatted the same way as the dashboard row and the comments page.
+  const idLine = $("#postIdLine"); clear(idLine); idLine.append(kioBlock(p.post_id)); idLine.hidden = false;
   const chip = statusChip(p, Date.now());
   const line = $("#statusLine"); line.hidden = false; clear(line);
   line.append(h("span", { class: "status " + chip.cls }, chip.text), " ", p.stored_status === "draft" ? (p.go_live_at ? "Scheduled: not visible to candidates until it goes live." : "Not visible to candidates yet.") : (p.status === "live" || p.status === "paused") && p.expiration_date ? "Closes " + fmtClose(p.expiration_date) + "." : "");

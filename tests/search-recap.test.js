@@ -146,8 +146,8 @@ test("search recap: boxes emptied, read-only recap between form and results, req
 const DEFECTS = [
   ["the boxes are not emptied after a search", ["kinds"], [["js/pages/search.js", (s) => s.replace('companyIn.value = ""; queryIn.value = ""; reqIn.value = "";\n  const text', "const text")]]],
   ["the req number is shown in clear", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"req\" ? RECAP.REQ", "search.kind === \"req\" ? \"req \" + search.value")]]],
-  ["the Opening ID is shown in clear", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" ? \"Opening ID \" + search.value : search.alsoTryCode ? RECAP.CODE")]]],
-  ["twelve plain letters are printed as a title", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" ? RECAP.CODE")]]],
+  ["the Opening ID is shown in clear", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" ? \"Opening ID \" + search.value : search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE")]]],   // prompt BQ: the search-recap.js text now also names the kio kind; the defect is the same
+  ["twelve plain letters are printed as a title", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" || search.kind === \"kio\" ? RECAP.CODE")]]],
   ["the recap repeats the count", ["kinds"], [["js/search-recap.js", (s) => s.replace('"." + RECAP.TAIL', '"." + RECAP.TAIL + " 2 matching openings"')]]],
   ["the recap sentence is reworded", ["kinds"], [["js/search-recap.js", (s) => s.replace('TAIL: " Your results are below."', 'TAIL: " The results are below."')]]],
   ["the recap sits under the results", ["kinds"], [["search.html", (s) => { const a = s.indexOf('    <div id="recap" class="recap" hidden>'), b = s.indexOf('    <div id="searchStatus"'), blk = s.slice(a, b), rest = s.slice(0, a) + s.slice(b), at = rest.indexOf('    <div id="results"'), end = rest.indexOf("</div>", at) + 7; return rest.slice(0, end) + blk + rest.slice(end); }]]],
@@ -159,7 +159,7 @@ const DEFECTS = [
   ["the verify your email card shows a recap", ["signedOut"], [["js/pages/search.js", (s) => s.replace('    showSignIn("Confirm your email first.', '    recapEl.hidden = false;\n    showSignIn("Confirm your email first.')]]],
   ["the typed values are kept in browser storage", ["kinds"], [["js/pages/search.js", (s) => s.replace("  lastSearch = typed;\n", "  lastSearch = typed; sessionStorage.setItem(\"last-search\", JSON.stringify(typed));\n")]]],
   ["the recap sentence is not spoken", ["kinds"], [["js/pages/search.js", (s) => s.replace("  status.announce(spoken);\n  // After a successful search", "  // After a successful search")]]],
-  ["the count is left out of the spoken message", ["kinds"], [["js/pages/search.js", (s) => s.replace('const spoken = text + " " + countEl.textContent + ".";', "const spoken = text;")]]],
+  ["the count is left out of the spoken message", ["kinds"], [["js/pages/search.js", (s) => s.replace('const spoken = text + " " + countEl.textContent + "." + (extra ? " " + extra : "");', "const spoken = text;")]]],
   ["the count is spoken as a second message instead of one", ["kinds"], [["js/pages/search.js", (s) => s.replace("  status.announce(spoken);\n  // After a successful search", "  status.announce(text); setTimeout(() => status.announce(countEl.textContent), 200);\n  // After a successful search")]]],
 ];
 test("negative controls: each defect in the recap makes a check fail", { timeout: 3000000 }, async () => {

@@ -10,8 +10,13 @@
 //   - a key given twice, a bad percent escape, a missing company, or MORE THAN ONE of postID, req number and title (the page takes the req box or the postID/title box, never both) refuses the whole fragment
 //   - a refused fragment fills nothing, and is still removed from the address bar
 
-export const FRAGMENT_KEYS = { c: "company", p: "postid", r: "req", t: "title" };
-export const FRAGMENT_MAX = { company: 200, postid: 14, req: 100, title: 80 };
+// prompt BQ (October 12, 2026): a fifth key, k, the KIO ID in its stored form (what the extension sends). k rides with c and t at most: a k with p or r refuses the whole fragment (no req number is ever sent with an ID), a k that is not a
+// KIO ID that passes the check refuses it, and the company is optional (the ID alone drives the search). t is kept in the page's memory ONLY, to say whether the job ad's title differs from the record: the page has one box for the ID
+// and the title words, so the ID goes in that box and t is not shown anywhere. Nothing here is ever sent anywhere by this module, and no email or personal data is read: only c, k and t.
+import { readKio } from "./kio.js?v=80867368";
+
+export const FRAGMENT_KEYS = { c: "company", p: "postid", r: "req", t: "title", k: "kio" };
+export const FRAGMENT_MAX = { company: 200, postid: 14, req: 100, title: 80, kio: 24 };
 const MAX_TOTAL = 700, MAX_PARTS = 12;
 const hasControl = (s) => Array.from(s).some((ch) => { const c = ch.codePointAt(0); return c < 32 || c === 127 || c === 0x2028 || c === 0x2029; });
 
@@ -35,6 +40,15 @@ export function parseSearchFragment(hash) {
   }
   if (!ours) return { ours: false, result: null };
   if (bad) return { ours: true, result: null };
+  if (found.has("k")) {
+    // the KIO ID: c and t are optional; p and r are never accepted with it
+    if (found.has("p") || found.has("r")) return { ours: true, result: null };
+    const cK = found.get("c") || "", tK = found.get("t") || "", kK = found.get("k");
+    if (cK.length > FRAGMENT_MAX.company || tK.length > FRAGMENT_MAX.title || kK === "" || kK.length > FRAGMENT_MAX.kio) return { ours: true, result: null };
+    const read = readKio(kK);
+    if (read.kind !== "kio") return { ours: true, result: null };
+    return { ours: true, result: { company: cK, kind: "kio", value: read.display, stored: read.stored, title: tK } };
+  }
   const company = found.get("c") || "", seconds = ["p", "r", "t"].filter((k) => found.has(k));
   if (company === "" || company.length > FRAGMENT_MAX.company || seconds.length !== 1) return { ours: true, result: null };
   const kind = FRAGMENT_KEYS[seconds[0]], value = found.get(seconds[0]);
@@ -43,12 +57,14 @@ export function parseSearchFragment(hash) {
 }
 
 // win: the window; fills the boxes (text only) and removes the fragment from the address bar before anything else happens. -> true when the boxes were filled
-export function applyFragmentPrefill({ win, companyEl, queryEl, reqEl }) {
+// onKio({ stored, shown, title }): called when the fragment carried a KIO ID, so the page can keep the title words (t) in memory for the mismatch notice; they are never put in a box.
+export function applyFragmentPrefill({ win, companyEl, queryEl, reqEl, onKio }) {
   const { ours, result } = parseSearchFragment(win.location.hash);
   if (!ours) return false;
   try { win.history.replaceState(win.history.state, "", win.location.pathname + win.location.search); } catch { /* the address bar keeps the fragment; the boxes are still filled below */ }
   if (!result) return false;
   companyEl.value = result.company;
   if (result.kind === "req") reqEl.value = result.value; else queryEl.value = result.value;
+  if (result.kind === "kio" && typeof onKio === "function") onKio({ stored: result.stored, shown: result.value, title: result.title });
   return true;
 }
