@@ -3,14 +3,14 @@
 // Prompt BP (October 11, 2026): the table has Title (with the place and the day it was added under it), Req #, Opening ID, Status (only in a view that can hold more than one status), Actions, Closes (with a flag line when
 // the date is near) and Comments; the sort box orders every loaded row; the Expiring pill gathers drafts near the end of their publish window.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=627686d1";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=67bc7e98";
 import { rememberNext } from "../session.js?v=c0af4232";
 import { $, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { groupCode, waitText } from "../format.js?v=032c6fc5";
 import { placeNodes } from "../place.js?v=915c680a";
-import { FILTERS, SORTS, SORT_ANNOUNCE, defaultSort, sortRows, showsStatusColumn, statusChip, matchesFilter, matchesText, reqCell, addedCell, closesCell, expiryFlag } from "../dashboard-model.js?v=232a65eb";
-import { actionsFor, publishWindowEnded } from "../dashboard-model.js?v=232a65eb";
-import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=1be744f9";
+import { FILTERS, SORTS, SORT_ANNOUNCE, defaultSort, sortRows, showsStatusColumn, statusChip, matchesFilter, matchesText, reqCell, addedCell, closesCell, expiryFlag } from "../dashboard-model.js?v=62183447";
+import { actionsFor, publishWindowEnded } from "../dashboard-model.js?v=62183447";
+import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=db14b538";
 import { COMMENTS_VISIBLE } from "../config.js?v=9bf25cae";
 
 const PAGE_CAP = 20;                       // 20 pages of 50: a hard stop, never an endless loop
@@ -45,7 +45,7 @@ function actionCells(p, now) {
   // Edit is a page of its own (a link); the others are one-click dialogs
   const out = actionsFor(p, now).map((k) => k === "edit" ? h("a", { class: "row-action", href: "edit.html?id=" + encodeURIComponent(p.id) }, ACTION_LABEL[k]) : h("button", { type: "button", class: "row-action", onclick: () => runAction(k, p, deps) }, ACTION_LABEL[k]));
   // prompt BL: the note is ONE block that wraps inside the cell at a fixed width (css: .my-openings .act-note); it used to be three inline pieces on one line, which stretched the Actions column of every row
-  if (publishWindowEnded(p, now)) out.push(h("div", { class: "row-note act-note" }, "Publish window ended: a draft can be published for 14 days after it was saved. To use it, ", h("a", { class: "row-action note-link", href: "register.html" }, "add it again"), " as a new opening."));
+  if (publishWindowEnded(p, now)) out.push(h("div", { class: "row-note act-note" }, "Publish window ended: a draft can be published for 14 days after it was added. To use it, ", h("a", { class: "row-action note-link", href: "register.html" }, "add it again"), " as a new opening."));
   return out;
 }
 
@@ -135,8 +135,9 @@ const wide = window.matchMedia("(min-width:641px)");
 function fitTable() {
   const table = document.querySelector(".my-openings"), card = table && table.closest(".card");
   if (!table || !card) return;
-  for (const level of ["", "snug", "tight"]) {
-    table.classList.toggle("snug", level === "snug"); table.classList.toggle("tight", level === "tight");
+  // prompt BR (October 12, 2026): a level between "snug" and "tight": the Status pills may wrap between their words (one clean rounded box each) before any date breaks between its day and its time
+  for (const level of ["", "snug", "wrap-status", "tight"]) {
+    table.classList.toggle("snug", level === "snug"); table.classList.toggle("wrap-status", level === "wrap-status"); table.classList.toggle("tight", level === "tight");
     if (!wide.matches || level === "tight" || card.scrollWidth <= card.clientWidth + 1) break;
   }
 }

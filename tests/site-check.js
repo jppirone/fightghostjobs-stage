@@ -1835,7 +1835,7 @@ export function checkSite(root, opts = {}) {
         ['.my-openings td[data-label="Actions"] .row-action{margin:0 14px 0 0}', "the action words keep a gap on their right and no left margin (a wrapped word is not indented)"],
         ['.my-openings td[data-label="Actions"] .row-action:last-child{margin-right:0}', "the last action word has no gap after it"],
         [".my-openings .nb{white-space:nowrap}", "a date and its time are no-wrap pieces (a line breaks only between them)"],
-        ['.my-openings td[data-label="Actions"],.my-openings td[data-label="Closes"],.my-openings td[data-label="Opening ID"],.my-openings td[data-label="Comments"]{width:1%;white-space:nowrap}', "the four columns take what their words need (prompt BP: drawn at the roomiest, fitted by the page)"],
+        ['.my-openings td[data-label="Actions"],.my-openings td[data-label="Closes"],.my-openings td[data-label="Opening ID"],.my-openings td[data-label="Comments"],.my-openings td[data-label="Status"]{width:1%;white-space:nowrap}', "the five columns take what their words need (prompt BP: drawn at the roomiest, fitted by the page; prompt BR: Status joins them so its pill stays one line)"],
         [".my-openings .act-note{min-width:36ch}", "the expired-draft note keeps a block about 36 characters wide while it fits"],
       ]) if (!c.includes(pin)) add("S81", cssF, "app.css: " + why);
       if (!/@media \(min-width:641px\)\{\s*\.my-openings thead th,\.my-openings td\{padding-left:8px;padding-right:8px\}/.test(c)) add("S81", cssF, "the tidy table rules apply above the phone width only (the phone layout is the card list of S48)");
@@ -1909,7 +1909,7 @@ export function checkSite(root, opts = {}) {
         ["state.announce = SORT_ANNOUNCE(item[1]);", "a changed sort is announced"],
         ["(state.announce ? state.announce + \". \" : \"\") + count", "the announcement goes into the one live region"],
         ["if (state.sortBoxStatus !== showStatus) {", "the sort box keeps its element (and its focus) when the table is drawn again"],
-        ["for (const level of [\"\", \"snug\", \"tight\"]) {", "the table is fitted to the card by asking the browser"],
+        ["for (const level of [\"\", \"snug\", \"wrap-status\", \"tight\"]) {", "the table is fitted to the card by asking the browser (prompt BR: the Status pills may wrap, as one box each, before any date does)"],
         ["h(\"div\", { class: \"row-sub\", \"data-part\": \"added\" }, addedCell(p))", "the day it was added is a line under the title"],
       ]) if (!s.includes(pin)) add("S82", dashJ, "dashboard.js: " + why);
     }
@@ -1969,6 +1969,37 @@ export function checkSite(root, opts = {}) {
     }
     if (fs.existsSync(runF) && !read(runF).includes('"kio-id.test.js"')) add("S83", runF, "kio-id.test.js is not in the suite");
     if (fs.existsSync(runF) && !read(runF).includes('"kio.unit.test.js"')) add("S83", runF, "kio.unit.test.js is not in the suite");
+  }
+  // S84 (2026-10-12, prompt BR): the day a closed or expired row ended (Closes cell and sort), the Status pill as one box, the editor's saved line taken away at the next change, and the 14 days counted from the day the
+  // draft was ADDED (the server counts created_at + 14 days; saving never moves it) in every place that says so.
+  {
+    const modF = path.join(root, "js", "dashboard-model.js"), cssF = path.join(root, "app.css"), edF = path.join(root, "js", "pages", "edit.js"), runF = path.join(root, "tests", "run-all.js");
+    if (fs.existsSync(modF)) {
+      const m = read(modF);
+      for (const [pin, why] of [['if (p.status === "expired") return p.expiration_date ? "Expired " + fmtDate(p.expiration_date) : "Expired";', "an expired row says Expired and the day it ran out"],
+        ['typeof p.closed_at === "string" && fmtDate(p.closed_at) !== "" ? "Closed " + fmtDate(p.closed_at) : "Closed"', "a closed row says Closed and the day it was closed, or Closed alone: never its scheduled date"],
+        ["if (isOver(a) !== isOver(b)) return isOver(a) ? 1 : -1;", "closed and expired rows go after every open row in both Closes directions"],
+        ['export const isOver = (p) => p.status === "closed" || p.status === "expired";', "one definition of a row that is over"]]) if (!m.includes(pin)) add("S84", modF, "dashboard-model.js: " + why);
+    }
+    if (fs.existsSync(cssF)) {
+      const c = read(cssF);
+      if (!c.includes('.my-openings td[data-label="Status"] .status{display:inline-block;border-radius:14px}')) add("S84", cssF, "the Status pill is one box (inline-block with a modest radius): a wrapped run of text clips its background");
+    }
+    if (fs.existsSync(edF)) {
+      const e = stripJsComments(read(edF));
+      for (const [pin, why] of [['if (kind === "ok" || result === true) box.setAttribute("data-result", "1");', "a result line is marked"], ['if (anyUnsaved() && document.querySelector("[data-result]")) clearResults();', "the next change takes the result lines away"],
+        ['window.addEventListener("pageshow", (ev) => { if (ev.persisted) clearResults(); });', "a page back from the cache has no result lines"], ['showErrors({}); say(formAlert, "error", ""); clearResults();', "Discard takes them away"]]) if (!e.includes(pin)) add("S84", edF, "edit.js: " + why);
+    }
+    for (const f of js) {
+      const t = read(f);
+      if (/(after it was saved|was saved more than 14 days ago)/.test(stripJsComments(t))) add("S84", f, "the 14 days are counted from the day the draft was added, not saved");
+    }
+    for (const [rel, pin] of [[["js", "pages", "dashboard.js"], "14 days after it was added. To use it, "], [["js", "pages", "edit.js"], "14 days after it was added, until "], [["js", "pages", "register.js"], "14 days after it was added, and the opening window starts when you publish."],
+      [["js", "dashboard-actions.js"], "can only be published for 14 days after it was added."]]) {
+      const f = path.join(root, ...rel);
+      if (fs.existsSync(f) && !read(f).includes(pin)) add("S84", f, "must say the 14 days are counted from when it was added: " + pin);
+    }
+    if (fs.existsSync(runF) && !read(runF).includes('"br.test.js"')) add("S84", runF, "br.test.js is not in the suite");
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed

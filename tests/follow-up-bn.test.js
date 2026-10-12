@@ -17,7 +17,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const EDIT = "edit.html?id=3f1d5b1e-0000-4000-8000-000000000001";
 const NOT_STATED = "Location not stated";
-const NOTE_WORDS = "Publish window ended: a draft can be published for 14 days after it was saved. To use it, add it again as a new opening.";
+const NOTE_WORDS = "Publish window ended: a draft can be published for 14 days after it was added. To use it, add it again as a new opening.";   // prompt BR (October 12, 2026): "added", as the server counts it
 const ONE_SENTENCE = "The destination links section has something that is not saved. Use the button in that section to save it first, then press Save changes.";
 let browser;
 before(async () => { browser = await launchBrowser(); });
@@ -276,9 +276,13 @@ const SCENARIOS = {
     await tab.eval("document.querySelector('#aiInterviewToggle').click()"); await sleep(150);
     await typeIn(tab, "#note", "Turned the switch on"); await click(tab, "#saveBtn"); await sleep(1000);
     if ((await text(tab, "#formAlert")) !== "Saved. 1 field was changed.") bad.push("the saved message reads '" + (await text(tab, "#formAlert")) + "'");
-    // typing elsewhere does not take a saved message away (it is a statement of what happened, not a condition)
+    // it stays while nothing else happens (it is a statement of what just happened, not a condition): a key press or a click that changes nothing does not take it away...
+    await tab.eval("document.body.dispatchEvent(new Event('keyup', { bubbles: true })); document.body.dispatchEvent(new Event('click', { bubbles: true }))");
+    await sleep(500);
+    if ((await text(tab, "#formAlert")) !== "Saved. 1 field was changed.") bad.push("the saved message went by itself: '" + (await text(tab, "#formAlert")) + "'");
+    // ...and, prompt BR (October 12, 2026, John's decision), it goes the moment the NEXT change begins (BN had kept it until the next save)
     await typeIn(tab, "#jtitle", "Data Analyst II"); await sleep(250);
-    if ((await text(tab, "#formAlert")) !== "Saved. 1 field was changed.") bad.push("the saved message went when something else was typed: '" + (await text(tab, "#formAlert")) + "'");
+    if ((await text(tab, "#formAlert")) !== "") bad.push("the saved message stayed when the next change began: '" + (await text(tab, "#formAlert")) + "'");
     return bad; })); },
 };
 

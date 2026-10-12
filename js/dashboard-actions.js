@@ -1,8 +1,8 @@
 // dashboard-actions.js - the row actions on "My postings": publish a draft, pause, resume, extend (the one-time bump) and close. Each one opens a small confirmation dialog that says what will happen,
 // then calls the backend (which has already been verified: it decides who may do what to which posting and refuses anything else). Everything shown is text (dom.js), never HTML.
 import { h } from "./dom.js?v=ff147636";
-import { isAuthFailure, describeError } from "./api.js?v=6b0c92df";
-import { checkBump, checkClose, MAX_BUMP_DAYS, MAX_REASON, MAX_CLOSE_DETAIL } from "./dashboard-model.js?v=232a65eb";
+import { isAuthFailure, describeError } from "./api.js?v=35b914eb";
+import { checkBump, checkClose, MAX_BUMP_DAYS, MAX_REASON, MAX_CLOSE_DETAIL } from "./dashboard-model.js?v=62183447";
 import { fmtClose } from "./format.js?v=032c6fc5";
 import { focusWithRing } from "./focus-ring.js?v=98307f3f";
 const DAY_MS = 86400000;
@@ -64,7 +64,7 @@ export function runAction(kind, p, deps) {
     const aged = Date.parse(p.created_at) + 14 * DAY_MS <= Date.now();
     return openDialog({ title: "Remove the scheduled go-live?", confirmLabel: "Remove schedule",
       content: [para(title + " goes back to a plain draft: nothing is published on " + fmtClose(p.go_live_at) + ". Nothing else about it changes."),
-        para(aged ? "This draft was saved more than 14 days ago, and a plain draft can only be published for 14 days after it was saved. Once the schedule is removed it can no longer be published: keep the schedule (or publish it now) instead, or add a new opening." : "A plain draft can be published for 14 days after it was saved, so publish it before then or schedule it again.")],
+        para(aged ? "This draft was added more than 14 days ago, and a plain draft can only be published for 14 days after it was added. Once the schedule is removed it can no longer be published: keep the schedule (or publish it now) instead, or add a new opening." : "A plain draft can be published for 14 days after it was added, so publish it before then or schedule it again.")],
       onSubmit: async () => finish(await api.schedulePosting(p.id, null), () => "The schedule for " + title + " is removed. It is a draft again.") });
   }
   if (kind === "publish") {

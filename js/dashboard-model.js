@@ -98,8 +98,17 @@ export const SORTS = [["added_desc", "Added, newest first"], ["added_asc", "Adde
   ["title_asc", "Title, A to Z"], ["title_desc", "Title, Z to A"], ["status", "Status"]];
 export const SORT_ANNOUNCE = (label) => "Sorted by " + label;
 export const defaultSort = (filterKey) => (filterKey === "closing" || filterKey === "expiring" ? "closes_asc" : "added_desc");
-// the date a row's Closes cell shows, in milliseconds (a close date, a publish-by date, a go-live time), or null when the row has none: such rows go last in both Closes directions
+// prompt BR (October 12, 2026): a closed or expired opening has nothing left to lapse. Its date is the day it REALLY ended: an expired one ran out at its expiration_date; a closed one was closed on closed_at (the day the employer
+// pressed Close), which the server may or may not send yet (the page reads it only when it is there). The scheduled expiration_date of a closed opening never happened and is never shown or sorted on.
+export const isOver = (p) => p.status === "closed" || p.status === "expired";
+export function endedAt(p) {
+  const v = p.status === "expired" ? p.expiration_date : p.status === "closed" ? p.closed_at : null;
+  const t = typeof v === "string" ? Date.parse(v) : NaN;
+  return Number.isNaN(t) ? null : t;
+}
+// the date a row's Closes cell shows, in milliseconds (a close date, a publish-by date, a go-live time, the day a closed or expired opening ended), or null when the row has none: such rows go last in both Closes directions
 export function closesAt(p) {
+  if (isOver(p)) return endedAt(p);
   const v = p.status === "scheduled" ? p.go_live_at : p.status === "draft" ? p.publish_by : p.expiration_date;
   const t = typeof v === "string" ? Date.parse(v) : NaN;
   return Number.isNaN(t) ? null : t;
@@ -116,7 +125,8 @@ export function sortRows(rows, key, nowMs) {
     case "title_desc": return list.sort((a, b) => byTitle(b, a) || tie(a, b));
     case "closes_asc": case "closes_desc": {
       const sign = key === "closes_asc" ? 1 : -1;
-      return list.sort((a, b) => { const x = closesAt(a), y = closesAt(b); if (x === null && y === null) return tie(a, b); if (x === null) return 1; if (y === null) return -1; return sign * (x - y) || tie(a, b); });
+      // prompt BR: closed and expired rows go after every open row in BOTH directions (the same place a row with no date goes); among themselves they follow the direction by the day they really ended
+      return list.sort((a, b) => { if (isOver(a) !== isOver(b)) return isOver(a) ? 1 : -1; const x = closesAt(a), y = closesAt(b); if (x === null && y === null) return tie(a, b); if (x === null) return 1; if (y === null) return -1; return sign * (x - y) || tie(a, b); });
     }
     case "status": return list.sort((a, b) => statusChip(a, nowMs).text.localeCompare(statusChip(b, nowMs).text) || tie(a, b));
     default: return list.sort(tie);                                         // added_desc
@@ -129,13 +139,17 @@ export function closesCell(p) {
   if (p.status === "scheduled") return p.go_live_at ? "Goes live " + fmtClose(p.go_live_at) : "Not set";
   if (p.status === "draft") return p.publish_by ? "Publish by " + fmtDate(p.publish_by) : "Not set";
   if (p.status === "live" || p.status === "paused") return fmtClose(p.expiration_date);
+  // prompt BR: the day it really ended, with the word for how: "Expired Oct 16" (it ran out), "Closed Oct 9" (the employer closed it). A closed opening whose closing day the server has not sent yet reads "Closed"
+  // alone: the scheduled date it never reached is not shown.
+  if (p.status === "expired") return p.expiration_date ? "Expired " + fmtDate(p.expiration_date) : "Expired";
+  if (p.status === "closed") return typeof p.closed_at === "string" && fmtDate(p.closed_at) !== "" ? "Closed " + fmtDate(p.closed_at) : "Closed";
   return p.expiration_date ? fmtDate(p.expiration_date) : "None";
 }
 
 // ---- row actions (slice B)
 export const MIN_BUMP_DAYS = 1, MAX_BUMP_DAYS = 15, MAX_REASON = 300, MAX_CLOSE_DETAIL = 500;      // the backend refuses anything else (bump-posting, close-posting)
 
-// A draft can be published for 14 days after it was saved (publish_by); after that publish-posting refuses it.
+// A draft can be published for 14 days after it was ADDED (publish_by = created_at + 14 days); after that publish-posting refuses it. (prompt BR: it said "saved"; saving does not move it.)
 export const publishWindowEnded = (p, nowMs) => p.status === "draft" && typeof p.publish_by === "string" && Date.parse(p.publish_by) <= nowMs;
 
 // -> the action keys a row offers, in display order. Based on the EFFECTIVE status too: a live or paused posting whose clock has run out reads as expired and offers nothing.

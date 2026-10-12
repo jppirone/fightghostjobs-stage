@@ -83,7 +83,7 @@ const SCENARIOS = {
     }
     if (m.apmH > 110) bad.push("the row with the long place line is " + m.apmH + " pixels high (a few lines at most)");
     const noteText = await text(tab, ".act-note");
-    if (noteText !== "Publish window ended: a draft can be published for 14 days after it was saved. To use it, add it again as a new opening.") bad.push("the note's words changed: '" + noteText + "'");
+    if (noteText !== "Publish window ended: a draft can be published for 14 days after it was added. To use it, add it again as a new opening.") bad.push("the note's words changed: '" + noteText + "'");
     return bad; })); },
   async layoutNarrow(root) { return withSite(root, MIX(), (site) => withTab(async (tab) => { const bad = [];
     for (const w of [1100, 768]) {

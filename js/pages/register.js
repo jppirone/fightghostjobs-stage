@@ -1,7 +1,7 @@
 // register.js - an employer registers a posting: create it (a draft), then publish it (standard tier goes live immediately).
 // "Save draft" stops after the first step: the draft is then found and published from My postings (dashboard.html). Nothing here trusts the page for identity: the session token tells the server who is acting.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=627686d1";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=67bc7e98";
 import { rememberNext } from "../session.js?v=c0af4232";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { fmtClose, waitText } from "../format.js?v=032c6fc5";
@@ -273,7 +273,7 @@ function showResult(p, kind, problem, goLiveAt) {
     kioBlock(p.public_code, { idClass: "code-box" }),
     h("p", { style: "font-size:13px;line-height:1.6;color:var(--muted);margin:12px 0 0 0;" }, "Candidates can look this opening up with its ID alone, or with your company name plus the job title. The whole ID is shown to them.")));
   if (kind === "scheduled") result.append(h("div", { style: "margin-top:16px;" }, alertBox("notice", "Nothing is visible to candidates until it goes live. Its " + (p.window_days || 45) + "-day window is counted from the moment it actually goes live. You can change the time, remove it or publish it now from My openings.")));
-  if (kind === "draft") result.append(h("div", { style: "margin-top:16px;" }, alertBox("notice", "Nothing is visible to candidates yet. Open My openings to publish it: a draft can be published for 14 days after it was saved, and the opening window starts when you publish.")));
+  if (kind === "draft") result.append(h("div", { style: "margin-top:16px;" }, alertBox("notice", "Nothing is visible to candidates yet. Open My openings to publish it: a draft can be published for 14 days after it was added, and the opening window starts when you publish.")));
   const actions = h("div", { style: "margin-top:22px;display:flex;gap:12px;flex-wrap:wrap;" });
   if (kind === "live") actions.append(h("a", { class: "btn btn-dark btn-sm", href: "search.html" }, "Look it up as a candidate →"));
   actions.append(h("a", { class: "btn btn-outline btn-sm", href: "dashboard.html" }, "View my openings"));

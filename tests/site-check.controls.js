@@ -1338,7 +1338,7 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the flag is dropped from the page", "S82", edit(DJ, (s) => s.replace('flag ? h("div", { class: "row-flag", "data-part": "flag" }, flag) : null,', "null,")));
   control("a changed sort is not announced", "S82", edit(DJ, (s) => s.replace("state.announce = SORT_ANNOUNCE(item[1]);", "")));
   control("the sort box is rebuilt at every draw", "S82", edit(DJ, (s) => s.replace("if (state.sortBoxStatus !== showStatus) {", "if (true) {")));
-  control("the table is never fitted to the card", "S82", edit(DJ, (s) => s.replace('for (const level of ["", "snug", "tight"]) {', 'for (const level of [""]) {')));
+  control("the table is never fitted to the card", "S82", edit(DJ, (s) => s.replace('for (const level of ["", "snug", "wrap-status", "tight"]) {', 'for (const level of [""]) {')));
   control("the day added is no longer under the title", "S82", edit(DJ, (s) => s.replace('h("div", { class: "row-sub", "data-part": "added" }, addedCell(p))', "null")));
   control("the flag colour is pale", "S82", edit(CSS, (s) => s.replace("color:#8A4B00;margin-top:2px}", "color:#D9A35B;margin-top:2px}")));
   control("the tight layout is gone", "S82", edit(CSS, (s) => s.replace('.my-openings.tight td[data-label="Actions"]', '.my-openings.tightGone td[data-label="Actions"]')));
@@ -1367,6 +1367,24 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the edit page does not draw the block", "S83", edit(EJ, (s) => s.replace('import { kioBlock } from "../kio-block.js";', "")));
   control("the KIO test is not in the suite", "S83", edit(RUN, (s) => s.replace('path.join(here, "kio-id.test.js")', 'path.join(here, "unit.test.js")')));
   control("the KIO unit test is not in the suite", "S83", edit(RUN, (s) => s.replace('path.join(here, "kio.unit.test.js")', 'path.join(here, "unit.test.js")')));
+}
+
+// S84 (prompt BR, October 12, 2026): the real day on closed and expired rows, the pill as one box, the saved line taken away at the next change, the 14 days from the day it was added
+{
+  const MJ = "js/dashboard-model.js", CSS = "app.css", EJ = "js/pages/edit.js", DJ = "js/pages/dashboard.js", RJ = "js/pages/register.js", AJ = "js/dashboard-actions.js", RUN = "tests/run-all.js";
+  control("an expired row loses its word", "S84", edit(MJ, (s) => s.replace('"Expired " + fmtDate(p.expiration_date) : "Expired";', 'fmtDate(p.expiration_date) : "Expired";')));
+  control("a closed row shows its scheduled date", "S84", edit(MJ, (s) => s.replace('? "Closed " + fmtDate(p.closed_at) : "Closed";', '? "Closed " + fmtDate(p.closed_at) : fmtDate(p.expiration_date);')));
+  control("closed rows are not sorted last", "S84", edit(MJ, (s) => s.replace("if (isOver(a) !== isOver(b)) return isOver(a) ? 1 : -1; const x", "const x")));
+  control("a second definition of a row that is over", "S84", edit(MJ, (s) => s.replace('export const isOver = (p) => p.status === "closed" || p.status === "expired";', 'export const isOver = (p) => p.status === "closed";')));
+  control("the Status pill is a run of text", "S84", edit(CSS, (s) => s.replace('.my-openings td[data-label="Status"] .status{display:inline-block;border-radius:14px}', "")));
+  control("the saved line is not taken away at the next change", "S84", edit(EJ, (s) => s.replace('if (anyUnsaved() && document.querySelector("[data-result]")) clearResults();', "")));
+  control("a result line is not marked", "S84", edit(EJ, (s) => s.replace('if (kind === "ok" || result === true) box.setAttribute("data-result", "1");', "")));
+  control("the saved line comes back from the cache", "S84", edit(EJ, (s) => s.replace('window.addEventListener("pageshow", (ev) => { if (ev.persisted) clearResults(); });', "")));
+  control("Discard leaves the result lines", "S84", edit(EJ, (s) => s.replace('showErrors({}); say(formAlert, "error", ""); clearResults();', 'showErrors({}); say(formAlert, "error", "");')));
+  control("the note counts the days from saved", "S84", edit(DJ, (s) => s.replace("14 days after it was added. To use it, ", "14 days after it was saved. To use it, ")));
+  control("the confirmation counts the days from saved", "S84", edit(RJ, (s) => s.replace("14 days after it was added, and the opening window", "14 days after it was saved, and the opening window")));
+  control("the schedule confirmation counts the days from saved", "S84", edit(AJ, (s) => s.replace("can only be published for 14 days after it was added.", "can only be published for 14 days after it was saved.")));
+  control("the BR browser test is not in the suite", "S84", edit(RUN, (s) => s.replace('path.join(here, "br.test.js")', 'path.join(here, "unit.test.js")')));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });

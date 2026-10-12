@@ -68,8 +68,10 @@ const SORT_ROWS = () => {
 const ORDER = {
   added_desc: ["Bravo Draft", "Delta Analyst", "Echo Scheduled", "Charlie Nurse", "Golf No Date", "Alpha Engineer", "Foxtrot Closed", "Hotel Expired"],
   added_asc: ["Hotel Expired", "Foxtrot Closed", "Alpha Engineer", "Golf No Date", "Charlie Nurse", "Echo Scheduled", "Delta Analyst", "Bravo Draft"],
-  closes_asc: ["Foxtrot Closed", "Hotel Expired", "Alpha Engineer", "Bravo Draft", "Echo Scheduled", "Charlie Nurse", "Delta Analyst", "Golf No Date"],
-  closes_desc: ["Delta Analyst", "Charlie Nurse", "Echo Scheduled", "Bravo Draft", "Alpha Engineer", "Hotel Expired", "Foxtrot Closed", "Golf No Date"],
+  // prompt BR (October 12, 2026): closed and expired rows go after every open row in both directions (a closed row's scheduled date never came); among themselves by the day they really ended:
+  // Hotel Expired ran out 3 days ago, Foxtrot Closed has no closing day from the server (no date: after the dated ones). Before BR they sorted in among the open rows by their expiration date.
+  closes_asc: ["Alpha Engineer", "Bravo Draft", "Echo Scheduled", "Charlie Nurse", "Delta Analyst", "Golf No Date", "Hotel Expired", "Foxtrot Closed"],
+  closes_desc: ["Delta Analyst", "Charlie Nurse", "Echo Scheduled", "Bravo Draft", "Alpha Engineer", "Golf No Date", "Hotel Expired", "Foxtrot Closed"],
   title_asc: ["Alpha Engineer", "Bravo Draft", "Charlie Nurse", "Delta Analyst", "Echo Scheduled", "Foxtrot Closed", "Golf No Date", "Hotel Expired"],
   title_desc: ["Hotel Expired", "Golf No Date", "Foxtrot Closed", "Echo Scheduled", "Delta Analyst", "Charlie Nurse", "Bravo Draft", "Alpha Engineer"],
   status: ["Foxtrot Closed", "Alpha Engineer", "Bravo Draft", "Golf No Date", "Hotel Expired", "Delta Analyst", "Charlie Nurse", "Echo Scheduled"],
@@ -136,6 +138,11 @@ const SCENARIOS = {
       if (r.words.length && r.actLines !== 1) bad.push("1100: '" + r.title + "': the action words are on " + r.actLines + " lines");
       if (r.closes.length && r.closesLines !== 1) bad.push("1100: '" + r.title + "': the Closes value is on " + r.closesLines + " lines");
     }
+    // prompt BR (October 12, 2026): since the Status pills got their own fallback (they may wrap before any date does, with 6 pixel side padding at that level), the checks above hold at 1100 whatever the base padding is.
+    // The padding of 8 still decides a window a little wider (about 1171 pixels, a card of about 1090): the snuggest layout needs about 1077 with 8 and about 1105 with 12, so with 12 the pills fall back to wrapping there.
+    await openDash(tab, site, 1171);
+    const wide = await tab.eval("Array.from(document.querySelectorAll('tbody td[data-label=\"Status\"] .status')).map((p) => ({ text: p.textContent.trim(), h: Math.round(p.getBoundingClientRect().height) }))");
+    for (const p of wide) if (p.h > 30) bad.push("1171: the pill '" + p.text + "' is " + p.h + " pixels high (one line fits here with the 8 pixel padding)");
     return bad; })); },
   async smallerWindows(root) { return withSite(root, johnsRows(), (site) => withTab(async (tab) => { const bad = [];
     let wrapped = 0;
@@ -392,7 +399,7 @@ const DEFECTS = [
   ["the sort box is before the search box", [["dashboard.html", (s) => s.replace('    <div class="sort-box"><label for="sortBox">Sort by</label><select id="sortBox"></select></div>\n', "").replace('  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">\n    <div id="filters"', '  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">\n    <div class="sort-box"><label for="sortBox">Sort by</label><select id="sortBox"></select></div>\n    <div id="filters"')]], ["keyboard"]],
   ["the table is not fitted to the card (no fallback)", [["js/pages/dashboard.js", (s) => s.replace("if (!wide.matches || level === \"tight\" || card.scrollWidth <= card.clientWidth + 1) break;", "break;")]], ["smallerWindows"]],
   ["the side padding is back at 12 pixels", [["app.css", (s) => s.replace("  .my-openings thead th,.my-openings td{padding-left:8px;padding-right:8px}\n", "")]], ["at1100"]],
-  ["the columns are not shrunk to their words", [["app.css", (s) => s.replace('  .my-openings td[data-label="Actions"],.my-openings td[data-label="Closes"],.my-openings td[data-label="Opening ID"],.my-openings td[data-label="Comments"]{width:1%;white-space:nowrap}\n', "")]], ["johnsSize"]],
+  ["the columns are not shrunk to their words", [["app.css", (s) => s.replace('  .my-openings td[data-label="Actions"],.my-openings td[data-label="Closes"],.my-openings td[data-label="Opening ID"],.my-openings td[data-label="Comments"],.my-openings td[data-label="Status"]{width:1%;white-space:nowrap}\n', "")]], ["johnsSize"]],   // prompt BR: Status joined the list
   ["the date pieces sit straight in the cell (a phone grid takes each as an item)", [["js/pages/dashboard.js", (s) => s.replace('return h("span", { class: "dt" }, ...out);', "return out;")]], ["phoneList"]],
 ];
 test("negative controls: each defect makes a scenario fail", { timeout: 7200000 }, async () => {

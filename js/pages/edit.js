@@ -2,13 +2,13 @@
 // The server judges the rest (how much of the requirements text is kept, the location rule, duplicate req numbers) and this page shows its answer in words. Nothing here trusts the page for identity: the session token tells the server who is acting.
 // Unsaved work is never lost silently: a bar at the bottom of the window says what is not saved, the browser asks before the page is left, and the page's own links ask with a dialog (js/unsaved-guard.js; what counts as unsaved is js/dirty-state.js).
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=627686d1";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=67bc7e98";
 import { rememberNext } from "../session.js?v=c0af4232";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { fmtClose, fmtStamp, waitText } from "../format.js?v=032c6fc5";
 import { kioBlock } from "../kio-block.js?v=8007f4da";
-import { statusChip, actionsFor } from "../dashboard-model.js?v=232a65eb";
-import { runAction } from "../dashboard-actions.js?v=1be744f9";
+import { statusChip, actionsFor } from "../dashboard-model.js?v=62183447";
+import { runAction } from "../dashboard-actions.js?v=db14b538";
 import { mountLimitHint } from "../limit-hint.js?v=1cfa5987";
 import { checkEdit, mapEditErrors, KIND_TEXT, plainChangeNote, checkLinks, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js?v=b5757c87";
 import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
@@ -18,10 +18,10 @@ import { placeNodes } from "../place.js?v=915c680a";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js?v=b2985372";
 import { loadCatalog } from "../location-catalog.js?v=bb0c937e";
 import { mountLinkRowsById, mountLinkRows } from "../link-rows.js?v=a79f852e";
-import { mountLinkPanel } from "../link-panel.js?v=9704a2e8";
-import { mountFirmPanel } from "../firm-panel.js?v=d9204246";
-import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=178a8206";
-import { mountPolicyPanel } from "../policy-panel.js?v=a248ff15";
+import { mountLinkPanel } from "../link-panel.js?v=0fc55760";
+import { mountFirmPanel } from "../firm-panel.js?v=be826aba";
+import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=8884ef82";
+import { mountPolicyPanel } from "../policy-panel.js?v=806fe4cf";
 import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js?v=f2ea9573";
 import { wireInfoIcons } from "../info-icon.js?v=66958a58";
 import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL, ACTION, ADDED_LABEL, panelsFirstText } from "../dirty-state.js?v=7d4da23c";
@@ -43,7 +43,14 @@ const place = mountPlaceChoice({ onChange: () => refreshUnsaved() });      // pr
 
 const val = (id) => $(id).value;
 // say() also drops the live mark (prompt BN): a sentence put there by syncLiveSentence() below is the ONLY kind that is taken away again when the condition ends; every other sentence stays until the next one replaces it
-function say(box, kind, text) { clear(box); box.removeAttribute("data-live-sentence"); box.hidden = !text; if (text) box.append(alertBox(kind, text)); }
+// prompt BR (October 12, 2026): a RESULT line (what a save or an action just did: kind "ok", or a notice passed result = true) is marked data-result and is taken away again by clearResults() the moment the next change begins
+// (refreshUnsaved), by Discard and when the page comes back from the browser's cache. An error or a condition (the live sentence) is not a result and stays until it is answered.
+function say(box, kind, text, result) {
+  clear(box); box.removeAttribute("data-live-sentence"); box.removeAttribute("data-result");
+  box.hidden = !text;
+  if (text) { box.append(alertBox(kind, text)); if (kind === "ok" || result === true) box.setAttribute("data-result", "1"); }
+}
+function clearResults() { for (const box of Array.from(document.querySelectorAll("[data-result]"))) say(box, "error", ""); }
 function showErrors(byField) {
   for (const el of $$("[data-error-for]")) { const id = el.dataset.errorFor; const msg = byField[id]; el.hidden = !msg; el.textContent = msg || ""; const inp = $("#" + (id === "locpicker" ? "locq" : id)); if (inp) inp.setAttribute("aria-invalid", msg ? "true" : "false"); }
 }
@@ -111,7 +118,7 @@ function renderSchedule(p, editable) {
   state.glBaseline = scheduled ? toLocalInput(p.go_live_at) : "";
   const st = $("#scheduleState"); clear(st);
   st.append(scheduled ? h("span", {}, h("strong", {}, "Scheduled: "), "goes live at " + fmtClose(p.go_live_at) + ", published within 15 minutes after that time. Its window is counted from then.")
-    : "Not scheduled. It goes live when you publish it" + (p.publish_by ? " (a draft can be published for 14 days after it was saved, until " + fmtClose(p.publish_by) + ")." : "."));
+    : "Not scheduled. It goes live when you publish it" + (p.publish_by ? " (a draft can be published for 14 days after it was added, until " + fmtClose(p.publish_by) + ")." : "."));
   if (!state.keepPanels.has(PANEL.GOLIVE)) $("#gldate").value = state.glBaseline;       // a time typed and not saved yet stays when another part of the page is saved
   $("#scheduleBtn").textContent = scheduled ? "Change the time" : "Schedule go-live";
   $("#unscheduleBtn").hidden = !scheduled;
@@ -250,7 +257,7 @@ async function submitFirmAdd() {
     const reload = await api.getMyPosting(postingId);
     if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.FIRMS });
     const warn = firmWarn(r.data, r.data.position);
-    say($("#firmsAlert"), warn ? "notice" : "ok", firmSuccess("add", r.data, null) + (warn ? " " + warn : ""));
+    say($("#firmsAlert"), warn ? "notice" : "ok", firmSuccess("add", r.data, null) + (warn ? " " + warn : ""), true);
   } finally { state.firmsBusy = false; $("#addFirmBtn").disabled = false; }
 }
 // Remove all firms (the whole-set call with none: the only use this page still makes of it)
@@ -327,7 +334,7 @@ async function submitPolicy() {
     const reload = await api.getMyPosting(postingId);
     if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.POLICY });
     const saved = r.data.links.find((x) => x.kind === "policy");
-    say($("#policyAlert"), !saved || saved.check_status === "ok" ? "ok" : "notice", policySavedText(r.data, false));
+    say($("#policyAlert"), !saved || saved.check_status === "ok" ? "ok" : "notice", policySavedText(r.data, false), true);
   } finally { state.policyBusy = false; $("#savePolicyBtn").disabled = false; }
 }
 $("#savePolicyBtn").addEventListener("click", () => submitPolicy());
@@ -423,7 +430,7 @@ async function submit() {
     if (!r.data.edited) {      // the server finds nothing to change: what is shown is what is stored, so the form is read again and nothing stays marked as unsaved
       const same = await api.getMyPosting(postingId);
       if (same.ok) await populate(same.data);
-      say(formAlert, "notice", "Nothing was changed."); return true;
+      say(formAlert, "notice", "Nothing was changed.", true); return true;
     }
     const reload = await api.getMyPosting(postingId);
     if (reload.ok) await populate(reload.data);
@@ -459,7 +466,7 @@ async function submitLinks(clearAll) {
     const reload = await api.getMyPosting(postingId);
     if (reload.ok) await populate(reload.data, { keepForm: true, saved: PANEL.LINKS });
     const warn = clearAll ? null : checkWarnings(r.data.links);
-    say($("#linksAlert"), warn ? "notice" : "ok", (r.data.changed === false ? (clearAll ? "There were no links stored, so nothing was changed." : "These are the links already stored, so nothing was changed.") : clearAll ? "Removed. No destination links are stored; candidates will see no apply link for this opening." : "Saved. " + (r.data.active_links === 1 ? "1 destination link is" : r.data.active_links + " destination links are") + " now stored.") + (warn ? " " + warn : ""));
+    say($("#linksAlert"), warn ? "notice" : "ok", (r.data.changed === false ? (clearAll ? "There were no links stored, so nothing was changed." : "These are the links already stored, so nothing was changed.") : clearAll ? "Removed. No destination links are stored; candidates will see no apply link for this opening." : "Saved. " + (r.data.active_links === 1 ? "1 destination link is" : r.data.active_links + " destination links are") + " now stored.") + (warn ? " " + warn : ""), true);
   } finally { state.linksBusy = false; $("#saveLinksBtn").disabled = false; }
 }
 $("#linksForm").addEventListener("submit", (ev) => { ev.preventDefault(); submitLinks(false); });
@@ -575,6 +582,7 @@ function syncLiveSentence() {
 noteInput.addEventListener("input", () => { if (noteInput.value.trim() !== "" && !noteErrEl.hidden) { noteErrEl.hidden = true; noteErrEl.textContent = ""; noteInput.setAttribute("aria-invalid", "false"); } });
 function refreshUnsaved() {
   if (!guard) return;
+  if (anyUnsaved() && document.querySelector("[data-result]")) clearResults();       // prompt BR: the next change has begun, so what the last save said is no longer the state of the page
   guard.refresh();
   for (const x of limitHints) x.refresh();         // the counts follow a value a script put in a box (a save, Discard)
   syncLiveSentence();
@@ -592,7 +600,7 @@ async function discardAll() {
     if (shown("#linksPanel")) linkPanel.discard();            // the rows are drawn again from the stored links: an open edit form and what was typed in it are gone
     if (shown("#firmsForm")) firmPanel.discard();             // the same for the recruiter firms' rows and for the policy link's row
     if (shown("#policyPanel")) policyPanel.discard();
-    showErrors({}); say(formAlert, "error", "");
+    showErrors({}); say(formAlert, "error", ""); clearResults();      // prompt BR: Discard also takes away what a link, firm, policy or schedule save said
     guard.refresh();
   } finally { guard.hush(false); }
   guard.announce(UNSAVED.DISCARDED);
@@ -605,6 +613,7 @@ guard = mountUnsavedGuard({
   activeElement: () => document.activeElement, confirmDiscard: () => window.confirm(UNSAVED.CONFIRM_DISCARD), rescueFocus: () => $("#editHeading").focus(),
 });
 for (const t of ["input", "change", "click", "keyup"]) document.addEventListener(t, () => refreshUnsaved());
+window.addEventListener("pageshow", (ev) => { if (ev.persisted) clearResults(); });       // prompt BR: coming back to this page from the browser's cache does not bring back what the last save said
 // a click on any link of this page that leaves it, or on Sign out, is held back while something is unsaved (capture phase: before the link or the button acts)
 document.addEventListener("click", (ev) => {
   const t = ev.target && ev.target.closest ? ev.target : null;

@@ -5,8 +5,8 @@
 //   * nothing the person typed goes anywhere but the one call; it is never put in the page's text outside the box it was typed in.
 
 import { h, alertBox } from "./dom.js?v=ff147636";
-import { isAuthFailure } from "./api.js?v=6b0c92df";
-import { CONTEST_NOTICE, CONTEST_CONFIRM, CONTEST_ALREADY, CONTEST_CATEGORIES, checkContestCategory, checkContestExplanation, contestCounter, contestLimits, contestRefusal } from "./comments-model.js?v=d7c654b4";
+import { isAuthFailure } from "./api.js?v=35b914eb";
+import { CONTEST_NOTICE, CONTEST_CONFIRM, CONTEST_ALREADY, CONTEST_CATEGORIES, checkContestCategory, checkContestExplanation, contestCounter, contestLimits, contestRefusal } from "./comments-model.js?v=68884a2b";
 import { fmtDate } from "./format.js?v=032c6fc5";
 
 // the bordered notice. employer: the owner's view also says "Under review" (with the date the contest was filed: from the reader after a reload, from the filing answer right after filing); candidates see the notice text alone.

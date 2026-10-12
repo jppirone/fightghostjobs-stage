@@ -78,8 +78,24 @@ test("sort by Closes: the date the Closes cell shows (close date, publish-by, go
     closed = row({ id: "closed", status: "closed", expiration_date: at(-4) });
   assert.equal(closesAt(none), null);
   assert.equal(closesAt(sched), Date.parse(at(5)));
-  assert.deepEqual(sortRows([live, none, soon, draft, sched, closed], "closes_asc", NOW).map((x) => x.id), ["closed", "soon", "sched", "draft", "live", "none"]);
-  assert.deepEqual(sortRows([live, none, soon, draft, sched, closed], "closes_desc", NOW).map((x) => x.id), ["live", "draft", "sched", "soon", "closed", "none"]);
+  // prompt BR (October 12, 2026): a closed or expired row goes after every open row in both directions (its scheduled expiration_date never happened); it used to sort by that date, in among the live ones
+  assert.deepEqual(sortRows([live, none, soon, draft, sched, closed], "closes_asc", NOW).map((x) => x.id), ["soon", "sched", "draft", "live", "none", "closed"]);
+  assert.deepEqual(sortRows([live, none, soon, draft, sched, closed], "closes_desc", NOW).map((x) => x.id), ["live", "draft", "sched", "soon", "none", "closed"]);
+});
+
+test("prompt BR: closed and expired rows follow the open ones in both directions and, among themselves, the day they really ended (expired: its expiration date; closed: closed_at, none while the server does not send it)", () => {
+  const open = row({ id: "open", expiration_date: at(30) }), none = row({ id: "none", status: "draft", stored_status: "draft", posted_at: null, expiration_date: null, publish_by: null });
+  const c1 = row({ id: "c1", status: "closed", expiration_date: at(40), closed_at: at(-9) }), c2 = row({ id: "c2", status: "closed", expiration_date: at(2), closed_at: at(-3) });
+  const e1 = row({ id: "e1", status: "expired", stored_status: "live", closed_reason: "expired_no_action", expiration_date: at(-20) });
+  const cx = row({ id: "cx", status: "closed", expiration_date: at(-1) });          // closed, closing day not sent: no date, after the dated ones
+  assert.equal(closesAt(c1), Date.parse(at(-9)), "the closing day, not the scheduled date");
+  assert.equal(closesAt(e1), Date.parse(at(-20)));
+  assert.equal(closesAt(cx), null);
+  const all = [c2, open, cx, e1, c1, none];
+  assert.deepEqual(sortRows(all, "closes_asc", NOW).map((x) => x.id), ["open", "none", "e1", "c1", "c2", "cx"]);
+  assert.deepEqual(sortRows(all, "closes_desc", NOW).map((x) => x.id), ["open", "none", "c2", "c1", "e1", "cx"]);
+  // the Closed pill holds only these rows: the same order by the real day
+  assert.deepEqual(sortRows([c2, cx, e1, c1], "closes_asc", NOW).map((x) => x.id), ["e1", "c1", "c2", "cx"]);
 });
 
 test("sort by Title: A to Z and Z to A ignoring case, numbers in order; sort by Status groups by the chip's words", () => {
@@ -141,7 +157,11 @@ test("table cells: a missing req number, the Added line, and the close cell per 
   assert.match(closesCell(row({ status: "draft", posted_at: null, expiration_date: null, publish_by: at(9) })), /^Publish by [A-Z][a-z]{2} \d{1,2}$/);
   assert.equal(closesCell(row({ status: "draft", posted_at: null, expiration_date: null, publish_by: null })), "Not set");
   assert.match(closesCell(row({})), /[AP]M/);                                    // a live posting's close date carries the exact time
-  assert.match(closesCell(row({ status: "closed" })), /^[A-Z][a-z]{2} \d{1,2}$/);
+  // prompt BR (October 12, 2026): the day it really ended, with the word for how; a closed row never shows its scheduled date (it used to show that date, bare)
+  assert.equal(closesCell(row({ status: "closed", expiration_date: at(25) })), "Closed", "closed, closing day not sent: the word alone, never the scheduled date");
+  assert.match(closesCell(row({ status: "closed", expiration_date: at(25), closed_at: at(-3) })), /^Closed [A-Z][a-z]{2} \d{1,2}$/);
+  assert.match(closesCell(row({ status: "expired", stored_status: "live", expiration_date: at(-2) })), /^Expired [A-Z][a-z]{2} \d{1,2}$/);
+  assert.equal(closesCell(row({ status: "expired", stored_status: "live", expiration_date: null })), "Expired");
 });
 
 // ---- slice B: row actions
