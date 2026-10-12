@@ -704,6 +704,8 @@ control("the dashboard loses the place-your-postID-on-your-site sentence", "S40"
   control("the Edit this search button becomes a span", "S53", edit("search.html", (s) => s.replace("<button type=\"button\" id=\"recapEdit\" class=\"btn btn-outline btn-sm\">Edit this search</button>", "<span id=\"recapEdit\" class=\"btn\">Edit this search</span>")));
   control("the recap sentence loses its ending", "S53", edit("js/search-recap.js", (s) => s.replace("TAIL: \" Your results are below.\"", "TAIL: \"\"")));
   control("the req number is printed in the recap", "S53", edit("js/search-recap.js", (s) => s.replace("search.kind === \"req\" ? RECAP.REQ", "search.kind === \"req\" ? search.value")));
+  control("a KIO ID is no longer shown in the recap (prompt BS)", "S53", edit("js/search-recap.js", (s) => s.replace('search.kind === "kio" && typeof search.shown === "string" && search.shown !== "" ? RECAP.KIO + search.shown : ', "")));
+  control("the recap shows the ID as it was typed, not in the shown form (prompt BS)", "S53", edit("js/search-recap.js", (s) => s.replace("RECAP.KIO + search.shown :", "RECAP.KIO + search.value :")));
   control("an Opening ID is printed in the recap", "S53", edit("js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" || search.kind === \"kio\" ? search.value : RECAP.CODE")));
   control("the boxes are not emptied", "S53", edit("js/pages/search.js", (s) => s.replace("companyIn.value = \"\"; queryIn.value = \"\"; reqIn.value = \"\";", "void 0;")));
   control("a new search does not hide the recap", "S53", edit("js/pages/search.js", (s) => s.replace("setFormError(\"\"); hideRecap();", "setFormError(\"\");")));

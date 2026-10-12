@@ -9,13 +9,15 @@ export const RECAP = {
   TAIL: " Your results are below.",
   REQ: "a req number was entered",
   CODE: "an Opening ID was entered",
+  KIO: "Opening ID ",              // prompt BS (October 12, 2026): a KIO ID is public by design, so the recap shows it, in the shown form (KIO-XXXX-XXXX-XXXX) however it was typed
 };
 
 const oneLine = (t) => String(t == null ? "" : t).replace(/\s+/g, " ").trim();
 
 export function recapSentence(company, search) {
-  const what = search.kind === "req" ? RECAP.REQ : search.kind === "code" || search.kind === "kio" || search.alsoTryCode ? RECAP.CODE : "title " + oneLine(search.value);
-  // prompt BQ: a lookup by the ID alone has no company to name (the ID is never printed)
+  // prompt BS: a KIO ID is shown (search.shown is its normalised shown form, the same one the results use); an old 12 character code, twelve plain letters and a req number are still never printed
+  const what = search.kind === "req" ? RECAP.REQ : search.kind === "kio" && typeof search.shown === "string" && search.shown !== "" ? RECAP.KIO + search.shown : search.kind === "code" || search.kind === "kio" || search.alsoTryCode ? RECAP.CODE : "title " + oneLine(search.value);
+  // prompt BQ: a lookup by the ID alone has no company to name
   const lead = search.kind === "kio" && oneLine(company) === "" ? "You searched for: " : RECAP.LEAD + oneLine(company) + ", ";
   return lead + what + "." + RECAP.TAIL;
 }

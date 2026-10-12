@@ -10,7 +10,7 @@ import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js?v=f37507d8";
 import { lockScroll } from "../scroll-lock.js?v=b751eb4c";
 import { trapFocus } from "../dialog-focus.js?v=1dcc8c83";
 import { makeAnnouncer } from "../search-status.js?v=7497036c";
-import { recapSentence } from "../search-recap.js?v=882473cf";
+import { recapSentence } from "../search-recap.js?v=ae06c9fd";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js?v=ff147636";
 import { waitText } from "../format.js?v=032c6fc5";
 import { postingChips, notOpenMessage } from "../chips.js?v=7a1dc776";
@@ -18,7 +18,7 @@ import { aiNotes } from "../ai-notes.js?v=35c5dc92";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=f2ea9573";
 import { COMMENTS_VISIBLE } from "../config.js?v=9bf25cae";
 import { openUnit } from "../open-link.js?v=454df0f2";
-import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_MISMATCH_MESSAGE } from "../search-input.js?v=68a063e9";
+import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, kioMismatchMessage } from "../search-input.js?v=61d86e5f";
 import { isRegistered } from "../registered.js?v=f191c8c2";
 import { placeNodes } from "../place.js?v=915c680a";
 import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=54075273";
@@ -122,13 +122,16 @@ function showResults(data, searched) {
     return;
   }
   countEl.textContent = n + (n === 1 ? " matching opening" : " matching openings") + (data.truncated ? ": showing the first 25; add more of the title to narrow it" : "");
-  // prompt BQ: the ID is registered, but not to the company or title the job ad showed: said above the opening, which is still shown (the person decides)
-  if (data.mismatch === true) resultsEl.append(h("div", { class: "alert alert-notice", id: "mismatchNotice", role: "status" }, KIO_MISMATCH_MESSAGE));
+  // prompt BQ: the ID is registered, but not to the company or title the job ad showed: said above the opening, which is still shown (the person decides). Prompt BS: it names what was entered (as text, never markup).
+  if (data.mismatch === true) resultsEl.append(h("div", { class: "alert alert-notice", id: "mismatchNotice", role: "status" }, searched.mismatchText || kioMismatchMessage(searched.company, searched.title)));
   for (const row of data.results) resultsEl.append(renderCard(row));
 }
 
 // ---- the recap (Part C): once a search has run, the boxes are emptied and this read-only sentence sits between the form and the results. The one spoken message of the search is this same sentence (js/search-status.js).
 function hideRecap() { recapEl.hidden = true; recapTextEl.textContent = ""; }
+// prompt BS (October 12, 2026): the moment a new search attempt begins, nothing of the earlier one stays on the page: its results (with the mismatch notice inside them), its count line, its recap and its spoken message.
+// Only the new outcome shows, even when the attempt is refused on the page itself and nothing is sent. Focus is not touched, and Edit this search (which does not start an attempt) keeps the old results as before.
+function clearOutcome() { clear(resultsEl); countEl.hidden = true; countEl.textContent = ""; hideRecap(); lastSearch = null; status.clear(); }
 function showRecap(typed, company, search, auto, extra) {
   lastSearch = typed;
   companyIn.value = ""; queryIn.value = ""; reqIn.value = "";
@@ -211,7 +214,7 @@ window.addEventListener("pagehide", () => { if (staffMode) { clear(resultsEl); c
 
 async function runSearch(auto) {   // auto: the saved search replayed after the sign-in link (the person did nothing, so the landing note stays)
   if (busy) return;
-  setFormError(""); hideRecap();
+  setFormError(""); hideRecap(); clearOutcome();
   const q = resolveSearch(queryIn.value, reqIn.value);
   // prompt BQ: text that has the shape of an ID but fails the check is refused at once, whatever else is or is not filled in: nothing is sent and the search limit is not touched
   if (!q.ok && q.message === KIO_INVALID_MESSAGE) { setFormError(q.message); queryIn.focus(); return; }
@@ -243,10 +246,11 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
   let cooldown = 0;
   try {
     // prompt BQ: a lookup by the KIO ID sends the ID and, only when they were given, the company and (from the extension's fragment, same ID only) the title words; the answer says whether they differ from the record
+    let sentTitle = "";                      // prompt BS: the title words that really went with the ID (the notice names them)
     const kioBody = (stored) => {
       const b = { kio: stored };
       if (c.value !== "") b.company = c.value;
-      if (heldKio && heldKio.stored === stored) b.phrase = heldKio.title;
+      if (heldKio && heldKio.stored === stored) { b.phrase = heldKio.title; sentTitle = heldKio.title; }
       return b;
     };
     let r = await api.candidateSearch(q.kind === "kio" ? kioBody(q.value) : q.kind === "req" ? { company: c.value, req: q.value } : q.kind === "code" ? { company: c.value, code: q.value } : { company: c.value, phrase: q.value });
@@ -257,8 +261,9 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
     if (!r.ok && r.status === 404 && r.error.code === "not_found") r = { ok: true, data: { mode: "code", truncated: false, results: [] } };   // a code that matches nothing is a plain "no such posting"
     if (!r.ok && r.status === 400 && r.error.field === "kio") { setFormError(KIO_INVALID_MESSAGE); queryIn.focus(); return; }
     if (r.ok) {
-      showResults(r.data, { company: c.value, query: q.value, kind: wasKio ? "kio" : q.kind, gone });
-      showRecap(typed, c.value, q, auto, r.data.mismatch === true ? KIO_MISMATCH_MESSAGE : "");
+      const mismatchText = r.data.mismatch === true ? kioMismatchMessage(c.value, sentTitle) : "";
+      showResults(r.data, { company: c.value, query: q.value, kind: wasKio ? "kio" : q.kind, gone, title: sentTitle, mismatchText });
+      showRecap(typed, c.value, q, auto, mismatchText);
       return;
     }
     clear(resultsEl); countEl.hidden = true;

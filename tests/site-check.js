@@ -1167,7 +1167,8 @@ export function checkSite(root, opts = {}) {
     if (!fs.existsSync(rcF)) add("S53", rcF, "js/search-recap.js must exist");
     else {
       const t = stripJsComments(read(rcF));
-      for (const [needle, why] of [['LEAD: "You searched for: company "', "the approved opening"], ['TAIL: " Your results are below."', "the approved ending"], ['REQ: "a req number was entered"', "the req number wording"], ['CODE: "an Opening ID was entered"', "the Opening ID wording"], ['search.kind === "req" ? RECAP.REQ : search.kind === "code" || search.kind === "kio" || search.alsoTryCode ? RECAP.CODE : "title " + oneLine(search.value)', "a req number and an Opening ID (a KIO ID too, and twelve plain letters) are never printed, only a plain title"]]) if (!t.includes(needle)) add("S53", rcF, "search-recap.js must keep " + why);
+      for (const [needle, why] of [['LEAD: "You searched for: company "', "the approved opening"], ['TAIL: " Your results are below."', "the approved ending"], ['REQ: "a req number was entered"', "the req number wording"], ['CODE: "an Opening ID was entered"', "the Opening ID wording"], ['search.kind === "req" ? RECAP.REQ : search.kind === "kio" && typeof search.shown === "string" && search.shown !== "" ? RECAP.KIO + search.shown : search.kind === "code" || search.kind === "kio" || search.alsoTryCode ? RECAP.CODE : "title " + oneLine(search.value)', "a req number, an old code and twelve plain letters are never printed, only a plain title; a KIO ID (public by design, prompt BS) is shown in its shown form"],
+        ['KIO: "Opening ID ",', "the words that go before a shown KIO ID"]]) if (!t.includes(needle)) add("S53", rcF, "search-recap.js must keep " + why);
     }
     if (fs.existsSync(srF)) {
       const t = stripJsComments(read(srF));
@@ -1346,8 +1347,9 @@ export function checkSite(root, opts = {}) {
       const raw = read(f), parts = f.endsWith(".html") ? [pageText(raw), ...[...raw.matchAll(/<title>([^<]*)<\/title>/g)].map((m) => m[1])] : strings(stripJsComments(raw));
       for (const p of parts) { const hit = p.split("\n").find((l) => BANNED.test(l)); if (hit) { add("S66", f, "people read this: it uses a word or a dash the opening vocabulary does not allow: " + hit.trim().slice(0, 110)); break; } }
       // "Registered" is the PAID status word (the check mark): the free employer action is "Add an opening" (prompt AZ, October 9, 2026). The register family is refused in anything a person reads, except the check mark's own label and a page file name (register.html).
-      // prompt BQ (October 12, 2026): the two sentences John's KIO ID spec words with "registered" (an ID that no opening holds; an ID held by another company or title) are his own approved wording and are let through, exactly
-      for (const p of parts) { const hit = p.replace(/✓ Registered/g, "").replace(/No opening is registered under that ID\./g, "").replace(/This ID is registered to a different company or title \(see results below\) than the job ad where you found it\./g, "").split("\n").find((l) => REG.test(l) && !/^[a-z0-9_\-./]+$/.test(l.trim())); if (hit) {   // a lower case single token with no space is a code name or a path (submit("register"), "../registered.js"), not text
+      // prompt BQ (October 12, 2026): the two sentences John's KIO ID spec words with "registered" (an ID that no opening holds; an ID held by another company or title) are his own approved wording and are let through, exactly.
+      // Prompt BS (October 12, 2026): the second one is now the notice John approved in direction ("This ID is not registered to the company you entered (...)") and its title and both variants in the same style.
+      for (const p of parts) { const hit = p.replace(/✓ Registered/g, "").replace(/No opening is registered under that ID\./g, "").replace(/This ID is not registered to the (company or job title|job title|company) (you entered|in the job ad)/g, "").split("\n").find((l) => REG.test(l) && !/^[a-z0-9_\-./]+$/.test(l.trim())); if (hit) {   // a lower case single token with no space is a code name or a path (submit("register"), "../registered.js"), not text
  add("S66", f, "people read this: register, registered or registration is the paid status word only (the check mark); the free action is Add an opening: " + hit.trim().slice(0, 110)); break; } }
     }
   }

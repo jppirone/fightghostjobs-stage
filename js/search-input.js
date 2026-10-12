@@ -15,7 +15,16 @@ const CODE_RE = /^[0-9A-HJKMNP-TV-Z]{12}$/;
 export const KIO_INVALID_MESSAGE = "That ID is not valid. Check it and try again.";
 export const KIO_NOT_REGISTERED_MESSAGE = "No opening is registered under that ID.";
 export const KIO_GONE_MESSAGE = "This opening is no longer on FightGhostJobs.";
-export const KIO_MISMATCH_MESSAGE = "This ID is registered to a different company or title (see results below) than the job ad where you found it.";
+// prompt BS (October 12, 2026): the notice says plainly what is different, without accusing anyone, and what to check. It names what the person entered (the company exactly as typed, the job title the job ad
+// carried), as text. When both were sent the database does not say which differs, so the sentence names both. The opening is shown below it: hiding it would hide the sign of a job ad that borrows a real company's ID.
+const KIO_MISMATCH_TAIL = " It belongs to the opening shown below. Check that you copied the ID correctly from the job ad.";
+export function kioMismatchMessage(company, title) {
+  const c = String(company == null ? "" : company).trim(), t = String(title == null ? "" : title).trim();
+  if (c !== "" && t !== "") return "This ID is not registered to the company or job title you entered (" + c + ", " + t + ")." + KIO_MISMATCH_TAIL;
+  if (t !== "") return "This ID is not registered to the job title you entered (" + t + ")." + KIO_MISMATCH_TAIL;
+  if (c !== "") return "This ID is not registered to the company you entered (" + c + ")." + KIO_MISMATCH_TAIL;
+  return "This ID is not registered to the company or job title in the job ad." + KIO_MISMATCH_TAIL;
+}
 
 // What the page says when a search finds nothing: an echo of exactly what was searched, then the note. The last sentence of the note is deliberate: a title search lists only live or
 // paused postings (candidate_search_postings_v2), so a posting that has closed or expired is found only by its postID, and without that sentence "no match" would read as "never registered".

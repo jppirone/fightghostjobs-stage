@@ -30,7 +30,7 @@ const FIRST = kioOf("D21M48YBZQBF");            // the first search result of th
 const UNKNOWN = kioOf("ABCDEFGHJKMN");           // well formed, nobody has it: 404
 const EDITED = kioOf("ABCDEFGHJKMN");            // the ID of the one opening the edit page shows
 const NOT_VALID = "That ID is not valid. Check it and try again.", NOT_REG = "No opening is registered under that ID.", GONE = "This opening is no longer on FightGhostJobs.";
-const MISMATCH = "This ID is registered to a different company or title (see results below) than the job ad where you found it.";
+const MISMATCH = "This ID is not registered to the ";   // prompt BS: the notice's opening words (the company, title and both cases are tests/bs.test.js)
 const EDIT = "edit.html?id=3f1d5b1e-0000-4000-8000-000000000001";
 
 async function signIn(tab, site, kind) {
@@ -65,7 +65,7 @@ const SCENARIOS = {
     if (!r.includes("Opening ID " + FIRST.shown)) bad.push("the card does not show the whole ID: " + r.slice(0, 220));
     if (/\*{4}-\*{4}/.test(r)) bad.push("the card still shows a masked code: " + r.slice(0, 220));
     if (r.includes(MISMATCH)) bad.push("a notice with nothing to compare");
-    if ((await text(tab, "#recapText")) !== "You searched for: an Opening ID was entered. Your results are below.") bad.push("the recap says: " + (await text(tab, "#recapText")));
+    if ((await text(tab, "#recapText")) !== "You searched for: Opening ID " + FIRST.shown + ". Your results are below.") bad.push("the recap says: " + (await text(tab, "#recapText")));
     if ((await boxes(tab)) !== "||") bad.push("the boxes were not emptied: " + (await boxes(tab)));
     if (await tab.eval("document.documentElement.innerHTML.includes(" + q(FIRST.stored) + ")")) bad.push("the stored form of the ID is on the page");
     // every typed form reads the same
@@ -236,7 +236,7 @@ test("the KIO ID on the pages: the ID alone, the notice, the fragment, the answe
 // ---- negative controls: [label, scenarios, [[file, mutate]]]
 const DEFECTS = [
   ["a company is still asked for with an ID", ["idAlone"], [["js/pages/search.js", (s) => s.replace("const idAlone = !staffMode && q.ok", "const idAlone = false && q.ok")]]],
-  ["the held title words go with any ID", ["fragment"], [["js/pages/search.js", (s) => s.replace("if (heldKio && heldKio.stored === stored) b.phrase = heldKio.title;", "if (heldKio) b.phrase = heldKio.title;")]]],
+  ["the held title words go with any ID", ["fragment"], [["js/pages/search.js", (s) => s.replace("if (heldKio && heldKio.stored === stored) { b.phrase = heldKio.title; sentTitle = heldKio.title; }", "if (heldKio) { b.phrase = heldKio.title; sentTitle = heldKio.title; }")]]],
   ["the notice is never shown", ["notice"], [["js/pages/search.js", (s) => s.replace("if (data.mismatch === true) resultsEl.append(", "if (false) resultsEl.append(")]]],
   ["an ID that fails the check is sent to the backend", ["answers"], [["js/search-input.js", (s) => s.replace("if (k.kind === \"none\" && looksLikeKio(t)) return { ok: false, message: KIO_INVALID_MESSAGE };", "")]]],
   ["the card shows the masked code instead of the whole ID", ["idAlone"], [["js/pages/search.js", (s) => s.replace("(typeof row.kio_id === \"string\" && row.kio_id !== \"\" ? row.kio_id : row.masked_code)", "row.masked_code")]]],
