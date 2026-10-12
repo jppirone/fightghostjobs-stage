@@ -2,25 +2,25 @@
 // The server judges the rest (how much of the requirements text is kept, the location rule, duplicate req numbers) and this page shows its answer in words. Nothing here trusts the page for identity: the session token tells the server who is acting.
 // Unsaved work is never lost silently: a bar at the bottom of the window says what is not saved, the browser asks before the page is left, and the page's own links ask with a dialog (js/unsaved-guard.js; what counts as unsaved is js/dirty-state.js).
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=4c8c3f5c";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=d197c035";
 import { rememberNext } from "../session.js?v=124260d8";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
-import { fmtClose, fmtStamp, waitText, groupCode } from "../format.js?v=696f63b8";
-import { statusChip, actionsFor } from "../dashboard-model.js?v=7d5b30a5";
-import { runAction } from "../dashboard-actions.js?v=2388f448";
+import { fmtClose, fmtStamp, waitText, groupCode } from "../format.js?v=0631812a";
+import { statusChip, actionsFor } from "../dashboard-model.js?v=77fc1e4e";
+import { runAction } from "../dashboard-actions.js?v=f0e16902";
 import { mountLimitHint } from "../limit-hint.js?v=1cfa5987";
 import { checkEdit, mapEditErrors, KIND_TEXT, plainChangeNote, checkLinks, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js?v=b5757c87";
 import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
 import { mountPlaceChoice } from "../place-choice.js?v=f65a1b27";
 import { storedPlaceText } from "../place-text.js?v=cb5d7506";
-import { placeNodes } from "../place.js?v=c72ddb7f";
+import { placeNodes } from "../place.js?v=3cd2a533";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js?v=b2985372";
 import { loadCatalog } from "../location-catalog.js?v=bb0c937e";
 import { mountLinkRowsById, mountLinkRows } from "../link-rows.js?v=a79f852e";
-import { mountLinkPanel } from "../link-panel.js?v=1c4bd3ea";
-import { mountFirmPanel } from "../firm-panel.js?v=1571c7d7";
-import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=f19a4799";
-import { mountPolicyPanel } from "../policy-panel.js?v=22622330";
+import { mountLinkPanel } from "../link-panel.js?v=7cbbc49f";
+import { mountFirmPanel } from "../firm-panel.js?v=05bb51d8";
+import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=b1b46a27";
+import { mountPolicyPanel } from "../policy-panel.js?v=b0c7945b";
 import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js?v=f2ea9573";
 import { wireInfoIcons } from "../info-icon.js?v=66958a58";
 import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL, ACTION, ADDED_LABEL, panelsFirstText } from "../dirty-state.js?v=7d4da23c";
@@ -41,18 +41,22 @@ $("#remote").addEventListener("change", () => picker.refresh());
 const place = mountPlaceChoice({ onChange: () => refreshUnsaved() });      // prompt BH: "A place outside the US or not in the list"
 
 const val = (id) => $(id).value;
-function say(box, kind, text) { clear(box); box.hidden = !text; if (text) box.append(alertBox(kind, text)); }
+// say() also drops the live mark (prompt BN): a sentence put there by syncLiveSentence() below is the ONLY kind that is taken away again when the condition ends; every other sentence stays until the next one replaces it
+function say(box, kind, text) { clear(box); box.removeAttribute("data-live-sentence"); box.hidden = !text; if (text) box.append(alertBox(kind, text)); }
 function showErrors(byField) {
   for (const el of $$("[data-error-for]")) { const id = el.dataset.errorFor; const msg = byField[id]; el.hidden = !msg; el.textContent = msg || ""; const inp = $("#" + (id === "locpicker" ? "locq" : id)); if (inp) inp.setAttribute("aria-invalid", msg ? "true" : "false"); }
 }
 const draftSaveBtn = $("#draftSaveBtn"), publishBtn = $("#publishBtn"), actionArea = $("#actionArea");
 // prompt BM: "What changed, and why?" belongs to a CHANGE: its box (label, field, rule sentence, error line, limit hint) is taken out of the page while the main form has no change, and put back as soon as it has one.
 // The elements are kept here, so everything that reads them (collect, the rules, the errors) keeps working while they are out of the page.
-const noteBlock = $("#noteBlock"), noteInput = $("#note"), noteLabelEl = $("#noteLabel"), noteNeededEl = $("#noteNeeded");
+const noteBlock = $("#noteBlock"), noteInput = $("#note"), noteLabelEl = $("#noteLabel"), noteNeededEl = $("#noteNeeded"), noteErrEl = noteBlock.querySelector('[data-error-for="note"]');
 noteBlock.remove();
 function setBusy(on) { state.busy = on; saveBtn.disabled = on; draftSaveBtn.disabled = on; publishBtn.disabled = on; $("#unsavedSave").disabled = on; $("#unsavedDiscard").disabled = on; }
 // the boxes that stop typing at a limit say so (prompt BK); the limit is each box's own maxlength. The description's own hint already says "Up to 20,000 characters.", so only its count and its limit sentence are added.
-const limitHints = [mountLimitHint({ input: $("#jtitle") }), mountLimitHint({ input: $("#req") }), mountLimitHint({ input: $("#aiFilterNote") }), mountLimitHint({ input: $("#aiInterviewNote") }), mountLimitHint({ input: $("#desc"), hint: false })];
+// prompt BN: the note box has its count too ("0 of 500", the limit sentence on a paste); its own line "One line, 500 characters at most. It is saved with the change." stays, so no second "Up to 500" line is added.
+// Its count lives in the box's block, so it leaves the page and comes back with it (syncNoteBlock redraws it at 0 of 500).
+const noteLimit = mountLimitHint({ input: noteInput, hint: false });
+const limitHints = [mountLimitHint({ input: $("#jtitle") }), mountLimitHint({ input: $("#req") }), mountLimitHint({ input: $("#aiFilterNote") }), mountLimitHint({ input: $("#aiInterviewNote") }), mountLimitHint({ input: $("#desc"), hint: false }), noteLimit];
 async function sessionEnded() { await signOut(); rememberNext("edit.html?id=" + postingId, "poster"); go("employer-signin.html?reason=expired"); }
 function failureText(err) {
   if (err.code === "rate_limited") return "Too many requests just now. Try again in " + waitText(err.retryAfter || 30) + ".";
@@ -355,7 +359,9 @@ async function populate(doc, opts) {
   const line = $("#statusLine"); line.hidden = false; clear(line);
   line.append(h("span", { class: "status " + chip.cls }, chip.text), " ", p.stored_status === "draft" ? (p.go_live_at ? "Scheduled: not visible to candidates until it goes live." : "Not visible to candidates yet.") : (p.status === "live" || p.status === "paused") && p.expiration_date ? "Closes " + fmtClose(p.expiration_date) + "." : "");
   // the place line: the same one every other screen draws (js/place.js), from what is STORED (the form's own place boxes show what is being edited)
-  const pl = $("#placeLine"); pl.hidden = false; clear(pl); pl.append("Place: ", ...placeNodes(h, p, { note: false }));      // prompt BL: the employer typed it, so no "as provided by the employer" here
+  // prompt BL: the employer typed it, so no "as provided by the employer" here. Prompt BN: and nothing at all, not even the label, when nothing is set (no place, no Remote): the title often says it.
+  const pl = $("#placeLine"), placeKids = placeNodes(h, p, { note: false, hideNone: true }); clear(pl); pl.hidden = placeKids.length === 0;
+  if (placeKids.length > 0) pl.append("Place: ", ...placeKids);
   noteLabel(p.stored_status === "draft");
   renderChanges(doc.recent_changes);
   if (!keepForm) { picker.set(await entriesFor(p), p.locations_attested); place.set((p.location_ids || []).length === 0 ? storedPlaceText(p) : ""); state.baseline = snapshotOf(collect()); }     // the snapshot every later edit is compared with
@@ -456,7 +462,7 @@ async function submitLinks(clearAll) {
 }
 $("#linksForm").addEventListener("submit", (ev) => { ev.preventDefault(); submitLinks(false); });
 $("#clearLinksBtn").addEventListener("click", () => { if (window.confirm("Remove all destination links from this opening? Candidates will then see no apply link. You can add links again at any time.")) submitLinks(true); });
-// ---- the one action area at the bottom (prompt BK, October 11, 2026). The main button reads Save changes while something on the page has changed and Close while nothing has; the link sections keep their own
+// ---- the one action area at the bottom (prompt BK, October 11, 2026). The main button reads Save changes while something on the page has changed and Back to My openings while nothing has; the link sections keep their own
 // saves in the middle, and the bottom button double checks them: a section with something not saved is named in one sentence, nothing is submitted, and the person saves that section first.
 // Save as draft and Publish exist for a draft only: a live, paused or closed opening is never set back to draft by this page (the server refuses it too: tests\register-bk.test.js, the status guard test).
 const anyUnsaved = () => formUnsaved() || panelsUnsaved().length > 0;
@@ -465,12 +471,13 @@ function linkSectionsClear() {
   const open = panelsUnsaved();
   if (open.length === 0) return true;
   say(formAlert, "notice", panelsFirstText(open));
+  formAlert.setAttribute("data-live-sentence", "panels");        // prompt BN: syncLiveSentence() keeps it true or takes it away
   return false;
 }
 async function onMain() {
   if (state.busy || !state.orig) return;
   say(formAlert, "error", "");
-  if (!anyUnsaved()) { guard.openDialog(() => go("dashboard.html"), saveBtn); return; }   // Close (the dialog asks first only if something turned out to be unsaved)
+  if (!anyUnsaved()) { guard.openDialog(() => go("dashboard.html"), saveBtn); return; }   // Back to My openings (the dialog asks first only if something turned out to be unsaved)
   if (!linkSectionsClear()) return;
   await submit();
 }
@@ -535,8 +542,9 @@ function syncNoteBlock(wanted) {
     const had = noteBlock.contains(document.activeElement);
     noteBlock.remove();
     noteInput.value = ""; noteInput.setAttribute("aria-invalid", "false");
-    const err = noteBlock.querySelector('[data-error-for="note"]'); err.hidden = true; err.textContent = "";
+    noteErrEl.hidden = true; noteErrEl.textContent = "";
     noteNeededEl.hidden = true; noteNeededEl.textContent = "";
+    noteLimit.refresh();                       // the count goes back to 0 of 500 and the paste sentence is gone, ready for the next time the box is put back
     if (state.needNote) { state.needNote = false; noteLabel(state.orig.stored_status === "draft"); }       // a server demand for an explanation belonged to that change
     if (had) saveBtn.focus();
   }
@@ -553,10 +561,21 @@ function syncActions() {
   draftSaveBtn.hidden = !draft;
   publishBtn.hidden = !(draft && actionsFor(state.orig, Date.now()).includes("publish"));
 }
+// the double check sentence above the bottom button (prompt BN): it describes a condition (a link section holds something not saved), so it is shown only while that is true. It follows the sections: gone the
+// moment none of them holds anything (Cancel in a link form, Discard, a link saved or removed, the box emptied by hand), and re-worded when the set of sections changes.
+function syncLiveSentence() {
+  if (formAlert.getAttribute("data-live-sentence") !== "panels") return;
+  const open = panelsUnsaved(), text = panelsFirstText(open);
+  if (text === "") { say(formAlert, "error", ""); return; }
+  if (text !== formAlert.textContent.trim()) { say(formAlert, "notice", text); formAlert.setAttribute("data-live-sentence", "panels"); }
+}
+// the error under the note box says the note is missing: it goes as soon as a note is typed (the next press checks it again)
+noteInput.addEventListener("input", () => { if (noteInput.value.trim() !== "" && !noteErrEl.hidden) { noteErrEl.hidden = true; noteErrEl.textContent = ""; noteInput.setAttribute("aria-invalid", "false"); } });
 function refreshUnsaved() {
   if (!guard) return;
   guard.refresh();
   for (const x of limitHints) x.refresh();         // the counts follow a value a script put in a box (a save, Discard)
+  syncLiveSentence();
   syncActions();
   const m = unsavedModel(), status = state.orig ? state.orig.stored_status : "live";
   const need = noteNeededEl; need.hidden = !m.noteRequired; need.textContent = m.noteRequired ? UNSAVED.noteRequired(status) : "";          // the note rule, shown as soon as a change makes it apply

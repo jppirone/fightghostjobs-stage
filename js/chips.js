@@ -1,7 +1,7 @@
 // chips.js - what a posting's facts are called on screen. Pure (no DOM): tested in Node.
 // The wording of the two AI disclosures and their tooltips is the FINAL design copy (design brief addendum, section 12): the tooltip describes the mechanism, never an outcome.
 
-import { fmtDateTz, fmtClose } from "./format.js?v=696f63b8";
+import { fmtDateTz, fmtClose } from "./format.js?v=0631812a";
 
 export const TOOLTIP_FILTERING = "Resume screening or keyword/ATS-style matching used to prioritize applications before a human reviews them.";
 export const TOOLTIP_INTERVIEW = "Any AI that interacts with a candidate directly, such as an AI-conducted interview or a chatbot screening call.";

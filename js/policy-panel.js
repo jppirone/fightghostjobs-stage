@@ -3,7 +3,7 @@
 // Rules (tests/site-check.js S72 pins them): the address is never on the page; Check link is api.checkPolicyLink; Edit and Remove are the whole-set call api.setPolicyLink (one address, or null), never an
 // application link's call; the policy link is its own kind and is not an application link.
 
-import { LP, refusalFor } from "./link-panel-model.js?v=b98fb34c";
+import { LP, refusalFor } from "./link-panel-model.js?v=bd483e94";
 import { mountRowPanel } from "./row-panel.js?v=2ab133e1";
 import { isPolicy, policyRows, policySignature, policyRowMeta, policyRowNotice, planPolicyEdit, policySavedText, policyAria, POLICY_ROW_HINT, POLICY_EDIT_HELP, POLICY_ADDRESS_ARIA, POLICY_EDIT_TITLE,
   POLICY_CONFIRM_REPLACE, POLICY_REMOVE_CONFIRM, POLICY_OPEN_LABEL } from "./policy-link.js?v=f2ea9573";

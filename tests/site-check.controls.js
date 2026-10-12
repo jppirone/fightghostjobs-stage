@@ -901,7 +901,7 @@ control("control characters are no longer removed from the place text", "S68", e
 control("the source text is used even when the opening has a catalog place", "S68", edit("js/place.js", (s) => s.replace('locs.length === 0 ? sourcePlaceText(row) : ""', "sourcePlaceText(row)")));
 control("the place text is made into markup", "S68", edit("js/place.js", (s) => s.replace("const remote =", "const x = document.createElement('div'); x.innerHTML = src; const remote =")));
 control("the search page shows the place with locationLine again", "S68", edit("js/pages/search.js", (s) => s.replace("placeNodesOf(row), \" \u00b7 \" + staffIdLine(row)", "locationLine(row.is_remote, row.locations) + \" \u00b7 \" + staffIdLine(row)")));
-control("the place line says registered", "S68", edit("js/place.js", (s) => s.replace("+ src, note: PLACE_NOTE };", "+ src + \" (registered)\", note: PLACE_NOTE };")));
+control("the place line says registered", "S68", edit("js/place.js", (s) => s.replace("+ src, note: PLACE_NOTE, stated: true };", "+ src + \" (registered)\", note: PLACE_NOTE, stated: true };")));
 control("a script names a place of the employer boards", "S68", edit("js/pages/comments.js", (s) => s.replace("Reading and leaving comments here", "Tokyo: reading and leaving comments here")));
 
 // S67 (2026-10-09): the page never sees a plan; the check mark is one strict boolean read in one place
@@ -1021,10 +1021,10 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the edit page does not put the stored typed place in the box", "S76", edit(ED, (s) => s.replace('place.set((p.location_ids || []).length === 0 ? storedPlaceText(p) : "");', 'place.set("");')));
   control("the register page does not tell that the place was not saved", "S76", edit(RG, (s) => s.replace("state.placeProblem = values.outside === true && storedPlaceText(created.data) !== collapsePlaceText(values.locText) ? PLACE_WORDS.NOT_SAVED : null;", "state.placeProblem = null;")));
   control("the result does not show the place problem", "S76", edit(RG, (s) => s.replace('alertBox("error", state.placeProblem)', 'alertBox("error", "")')));
-  control("My openings calls locationLine", "S76", edit("js/pages/dashboard.js", (s) => s.replace("placeNodes(h, p, { note: false })", "locationLine(p.is_remote, p.locations)")));
+  control("My openings calls locationLine", "S76", edit("js/pages/dashboard.js", (s) => s.replace("placeNodes(h, p, { note: false, hideNone: true })", "locationLine(p.is_remote, p.locations)")));
   control("the typed place is not part of the unsaved snapshot", "S76", edit("js/dirty-state.js", (s) => s.replace("place: v.outside === true ? trim(v.locText) : null, ", "")));
   control("a script other than the two place scripts names the field", "S68", append("js/format.js", 'export const _f = "source_location_text";'));
-  control("a banned word is in the choice's words (rule S66)", "S66", edit(PT, (s) => s.replace('HINT: "Shown to candidates as you wrote it.', 'HINT: "Shown to candidates as the listing says it.')));
+  control("a banned word is in the choice's words (rule S66)", "S66", edit(PT, (s) => s.replace("Shown to candidates as you wrote it.", "Shown to candidates as the listing says it.")));
   control("a browser test is out of the suite", "S76", edit("tests/run-all.js", (s) => s.replace(/\[path\.join\(here, "place-text\.test\.js"\)\], true\],\n/, "")));
 }
 
@@ -1198,7 +1198,7 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the editor has no place line", "S77", edit(EH, (s) => s.replace('id="placeLine"', 'id="placeLineGone"')));
   control("the editor has no count under the place box", "S77", edit(EH, (s) => s.replace('id="loctextCount"', 'id="loctextCountGone"')));
   control("the comments page draws the place with locationLine", "S77", edit("js/pages/comments.js", (s) => s.replace("placeNodes(h, p)", "locationLine(p.is_remote, p.locations)")));
-  control("My openings draws no place through placeNodes", "S77", edit("js/pages/dashboard.js", (s) => s.replace("placeNodes(h, p, { note: false })", "p.title")));
+  control("My openings draws no place through placeNodes", "S77", edit("js/pages/dashboard.js", (s) => s.replace("placeNodes(h, p, { note: false, hideNone: true })", "p.title")));
   control("the editor's history draws the stored note raw", "S77", edit("js/pages/edit.js", (s) => s.replace("plainChangeNote(c.note)", "c.note")));
   control("plainChangeNote is gone", "S77", edit("js/edit-form.js", (s) => s.replace("export function plainChangeNote(", "export function plainChangeNoteGone(")));
   control("the register page's unit tests are not in the suite", "S77", edit("tests/run-all.js", (s) => s.replace(', path.join(here, "register-bj.unit.test.js")', "")));
@@ -1264,10 +1264,10 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the note has no fixed width", "S79", edit(CSS, (s) => s.replace(".my-openings .act-note{max-width:24ch;white-space:normal;overflow-wrap:break-word}", ".my-openings .act-note{white-space:normal}")));
   control("an action word may break inside the word", "S79", edit(CSS, (s) => s.replace('.my-openings td[data-label="Actions"] .row-action{white-space:nowrap}', "")));
   control("the table rules apply on a phone too", "S79", edit(CSS, (s) => s.replace("@media (min-width:641px){\n  .my-openings thead", "@media (min-width:1px){\n  .my-openings thead")));
-  control("My openings shows the note", "S79", edit(DJ, (s) => s.replace("placeNodes(h, p, { note: false })", "placeNodes(h, p)")));
+  control("My openings shows the note", "S79", edit(DJ, (s) => s.replace("placeNodes(h, p, { note: false, hideNone: true })", "placeNodes(h, p, { hideNone: true })")));
   control("the expired draft's note is three pieces on a line again", "S79", edit(DJ, (s) => s.replace('h("div", { class: "row-note act-note" },', 'h("span", { class: "row-note" },')));
   control("the Actions cell is set to nowrap again", "S79", edit(DJ, (s) => s.replace('h("td", { role: "cell", "data-label": "Actions" }, actionCells(p, now))', 'h("td", { role: "cell", "data-label": "Actions", style: "white-space:nowrap;" }, actionCells(p, now))')));
-  control("the opening editor shows the note", "S79", edit("js/pages/edit.js", (s) => s.replace("placeNodes(h, p, { note: false })", "placeNodes(h, p)")));
+  control("the opening editor shows the note", "S79", edit("js/pages/edit.js", (s) => s.replace("placeNodes(h, p, { note: false, hideNone: true })", "placeNodes(h, p, { hideNone: true })")));
   control("the note is left off for everyone by default", "S79", edit("js/place.js", (s) => s.replace("if (p.note && !(opts && opts.note === false)) out.push(", "if (p.note && (opts && opts.note === true)) out.push(")));
   control("the candidate search page leaves the note off", "S79", edit("js/pages/search.js", (s) => s.replace("const placeNodesOf = (row) => placeNodes(h, row);", "const placeNodesOf = (row) => placeNodes(h, row, { note: false });")));
   control("the comments page leaves the note off", "S79", edit("js/pages/comments.js", (s) => s.replace("placeNodes(h, p), ", "placeNodes(h, p, { note: false }), ")));
@@ -1294,6 +1294,33 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the main button reads Save changes with nothing changed", "S80", edit(EJ, (s) => s.replace("saveBtn.textContent = dirty ? ACTION.SAVE : ACTION.BACK;", "saveBtn.textContent = ACTION.SAVE;")));
   control("the main button word is Close again", "S80", edit("js/dirty-state.js", (s) => s.replace('BACK: "Back to My openings"', 'BACK: "Close"')));
   control("the note box's browser test is not in the suite", "S80", edit("tests/run-all.js", (s) => s.replace('path.join(here, "note-box.test.js")', 'path.join(here, "unit.test.js")')));
+}
+
+// S81 (prompt BN, October 11, 2026): My openings tidied; an empty place is nothing on the employer's two screens; the note box's count; a live sentence is shown only while true
+{
+  const CSS = "app.css", DJ = "js/pages/dashboard.js", EJ = "js/pages/edit.js", PJ = "js/place.js";
+  control("the tidy table rules apply on a phone too", "S81", edit(CSS, (s) => s.replace("@media (min-width:641px){\n  .my-openings thead th,.my-openings td{padding-left:8px", "@media (min-width:1px){\n  .my-openings thead th,.my-openings td{padding-left:8px")));
+  control("an action word has a left margin again", "S81", edit(CSS, (s) => s.replace('.my-openings td[data-label="Actions"] .row-action{margin:0 14px 0 0}', '.my-openings td[data-label="Actions"] .row-action{margin:0 0 0 14px}')));
+  control("the last action word keeps a gap after it", "S81", edit(CSS, (s) => s.replace('  .my-openings td[data-label="Actions"] .row-action:last-child{margin-right:0}\n', "")));
+  control("a date and its time may break in the middle", "S81", edit(CSS, (s) => s.replace("  .my-openings .nb{white-space:nowrap}\n", "")));
+  control("the wide window rule is gone", "S81", edit(CSS, (s) => s.replace("{width:1%;white-space:nowrap}", "{}")));
+  control("the wide window rule starts at any width", "S81", edit(CSS, (s) => s.replace("@media (min-width:1320px){", "@media (min-width:1px){")));
+  control("the expired-draft note has no width of its own", "S81", edit(CSS, (s) => s.replace("  .my-openings .act-note{min-width:36ch}", "")));
+  control("the Title column has no share limit", "S81", edit(CSS, (s) => s.replace('  .my-openings th:first-child,.my-openings td[data-label="Title"]{width:18%}\n', "")));
+  control("the date pieces sit straight in the cell", "S81", edit(DJ, (s) => s.replace('return h("span", { class: "dt" }, ...out);', "return out;")));
+  control("the Added value is plain text again", "S81", edit(DJ, (s) => s.replace("dateBits(postedCell(p))", "postedCell(p)")));
+  control("the Closes value is plain text again", "S81", edit(DJ, (s) => s.replace("dateBits(closesCell(p))", "closesCell(p)")));
+  control("My openings leaves an empty block for no place", "S81", edit(DJ, (s) => s.replace('place.length ? h("div"', 'true ? h("div"')));
+  control("the place rule hides every place", "S81", edit(PJ, (s) => s.replace("if (!p.stated && opts && opts.hideNone === true) return [];", "if (opts && opts.hideNone === true) return [];")));
+  control("the candidate search page passes hideNone", "S81", edit("js/pages/search.js", (s) => s.replace("const placeNodesOf = (row) => placeNodes(h, row);", "const placeNodesOf = (row) => placeNodes(h, row, { hideNone: true });")));
+  control("the comments page passes hideNone", "S81", edit("js/pages/comments.js", (s) => s.replace("placeNodes(h, p), ", "placeNodes(h, p, { hideNone: true }), ")));
+  control("the note box has no count", "S81", edit(EJ, (s) => s.replace("const noteLimit = mountLimitHint({ input: noteInput, hint: false });", "const noteLimit = { refresh() {} };")));
+  control("the double check sentence is not marked as live", "S81", edit(EJ, (s) => s.replace('  formAlert.setAttribute("data-live-sentence", "panels");        // prompt BN: syncLiveSentence() keeps it true or takes it away\n', "")));
+  control("the refresh never re-checks the sentence", "S81", edit(EJ, (s) => s.replace("  syncLiveSentence();\n  syncActions();", "  syncActions();")));
+  control("the sentence is never re-worded", "S81", edit(EJ, (s) => s.replace("text = panelsFirstText(open);", "text = panelsFirstText([]);")));
+  control("the error under the note box stays after a note is typed", "S81", edit(EJ, (s) => s.replace('noteInput.addEventListener("input", () =>', 'noteInput.addEventListener("keyup", () =>')));
+  control("the editor keeps the Place label with nothing after it", "S81", edit(EJ, (s) => s.replace("pl.hidden = placeKids.length === 0;", "pl.hidden = false;")));
+  control("the follow-up browser test is not in the suite", "S81", edit("tests/run-all.js", (s) => s.replace('path.join(here, "follow-up-bn.test.js")', 'path.join(here, "unit.test.js")')));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });

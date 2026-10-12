@@ -1,5 +1,5 @@
 // index.js - the landing page is static; the only live part is the top-bar account area.
-import { mountAccount } from "../app.js?v=4c8c3f5c";
+import { mountAccount } from "../app.js?v=d197c035";
 import { $ } from "../dom.js?v=ff147636";
 import { wireInfoIcons } from "../info-icon.js?v=66958a58";
 import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";

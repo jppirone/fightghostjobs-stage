@@ -60,11 +60,12 @@ export function groupCode(code) {
 }
 
 // "Remote", "Tampa, FL", "Remote · Tampa, FL"
+export const LOCATION_NOT_STATED = "Location not stated";       // what a candidate screen shows for an opening with no place and no Remote (prompt BN: js/place.js can leave it out on the employer's own screens)
 export function locationLine(isRemote, locations) {
   const parts = [];
   if (isRemote === true) parts.push("Remote");
   if (Array.isArray(locations)) for (const l of locations) if (typeof l === "string" && l.trim() !== "") parts.push(l.trim());
-  return parts.length ? parts.join(" · ") : "Location not stated";
+  return parts.length ? parts.join(" · ") : LOCATION_NOT_STATED;
 }
 
 export function initials(name) {

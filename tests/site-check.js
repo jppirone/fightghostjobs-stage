@@ -1572,7 +1572,7 @@ export function checkSite(root, opts = {}) {
     }
     if (fs.existsSync(dbF)) {
       const s = body(dbF);
-      if (!s.includes("placeNodes(h, p, { note: false })")) add("S76", dbF,"My openings shows the place through js/place.js (the typed place when there is no list place)");
+      if (!s.includes("placeNodes(h, p, { note: false, hideNone: true })")) add("S76", dbF,"My openings shows the place through js/place.js (the typed place when there is no list place)");
       if (/locationLine\(/.test(s)) add("S76", dbF, "My openings never calls locationLine directly");
     }
     if (fs.existsSync(dsF)) {
@@ -1771,15 +1771,15 @@ export function checkSite(root, opts = {}) {
         [".my-openings .act-note{max-width:24ch;white-space:normal;overflow-wrap:break-word}", "every note in the Actions cell wraps at a fixed width"],
         ['.my-openings td[data-label="Actions"] .row-action{white-space:nowrap}', "an action word stays on one line"],
       ]) if (!c.includes(pin)) add("S79", cssF, "app.css: " + why);
-      if (!/@media \(min-width:641px\)\{\s*\.my-openings thead/.test(c)) add("S79", cssF, "the My openings table rules apply above the phone width only (the phone layout is the card list of S48)");
+      if (!/@media \(min-width:641px\)\{\s*\.my-openings thead th:first-child/.test(c)) add("S79", cssF, "the My openings table rules apply above the phone width only (the phone layout is the card list of S48)");
     }
     if (fs.existsSync(dashJ)) {
       const s = body(dashJ);
-      if (!s.includes("placeNodes(h, p, { note: false })")) add("S79", dashJ, "My openings draws the place without the note (the employer typed it)");
+      if (!s.includes("placeNodes(h, p, { note: false, hideNone: true })")) add("S79", dashJ, "My openings draws the place without the note (the employer typed it), and with nothing when nothing is set (prompt BN)");
       if (!s.includes('h("div", { class: "row-note act-note" },')) add("S79", dashJ, "the expired draft's note is ONE block (class act-note), not three pieces on a line");
       if (/data-label": "Actions", style/.test(s)) add("S79", dashJ, "the Actions cell has no inline style (it must not be set to nowrap)");
     }
-    if (fs.existsSync(editJ) && !body(editJ).includes("placeNodes(h, p, { note: false })")) add("S79", editJ, "the opening editor draws the place without the note");
+    if (fs.existsSync(editJ) && !body(editJ).includes("placeNodes(h, p, { note: false, hideNone: true })")) add("S79", editJ, "the opening editor draws the place without the note, and with nothing when nothing is set (prompt BN)");
     if (fs.existsSync(plJ) && !body(plJ).includes("if (p.note && !(opts && opts.note === false)) out.push(")) add("S79", plJ, "placeNodes leaves the note off only when the caller says so (the default shows it)");
     for (const f of [srJ, cmJ]) if (fs.existsSync(f) && /note:\s*false/.test(body(f))) add("S79", f, "a screen a candidate sees keeps the note: no note: false here");
     if (fs.existsSync(runF) && !read(runF).includes('"my-openings.test.js"')) add("S79", runF, "my-openings.test.js is not in the suite");
@@ -1804,7 +1804,7 @@ export function checkSite(root, opts = {}) {
     if (fs.existsSync(edF)) {
       const s = body(edF);
       for (const [pin, why] of [
-        ["const noteBlock = $(\"#noteBlock\"), noteInput = $(\"#note\"), noteLabelEl = $(\"#noteLabel\"), noteNeededEl = $(\"#noteNeeded\");\nnoteBlock.remove();", "the note block is taken out of the page at load and kept"],
+        ["const noteBlock = $(\"#noteBlock\"), noteInput = $(\"#note\"), noteLabelEl = $(\"#noteLabel\"), noteNeededEl = $(\"#noteNeeded\"), noteErrEl = noteBlock.querySelector('[data-error-for=\"note\"]');\nnoteBlock.remove();", "the note block is taken out of the page at load and kept"],
         ["syncNoteBlock(editable && formUnsaved());", "the box is in the page only while the main form has a change (not for a link section alone)"],
         ["if (wanted && !inPage) actionArea.insertBefore(noteBlock, actionArea.firstChild);", "the box goes back in at the top of the bottom area, without moving the cursor"],
         ["noteInput.value = \"\"; noteInput.setAttribute(\"aria-invalid\", \"false\");", "the text is cleared when the box goes"],
@@ -1816,6 +1816,63 @@ export function checkSite(root, opts = {}) {
     }
     if (fs.existsSync(dsF) && !body(dsF).includes('BACK: "Back to My openings"')) add("S80", dsF, "the main button's word is Back to My openings");
     if (fs.existsSync(runF) && !read(runF).includes('"note-box.test.js"')) add("S80", runF, "note-box.test.js is not in the suite");
+  }
+  // S81 (2026-10-11, prompt BN): My openings tidied, an empty place shown as nothing on the employer's two screens, a count under the note box, and a sentence that describes a condition is shown only while it is
+  // true. Pinned: the action words have a gap on their right and no left margin (a wrapped word is not indented), a date and its time are no-wrap pieces, the wide-window rule that lets the Actions, Closes, Added,
+  // Opening ID and Comments columns take what their words need, the expired-draft note's own width; placeNodes leaves the words out only when the caller passes hideNone and only for an opening with nothing set,
+  // and ONLY My openings and the opening editor pass it (a candidate screen never does); the editor's double check sentence is marked and re-checked on every refresh; the note box has its count. The browser
+  // test (follow-up-bn.test.js, with note-box.test.js) runs in the suite.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const body = (f) => (fs.existsSync(f) ? stripJsComments(read(f)) : "");
+    const cssF = P("app.css"), dashJ = P("js", "pages", "dashboard.js"), editJ = P("js", "pages", "edit.js"), plJ = P("js", "place.js"), runF = P("tests", "run-all.js");
+    if (fs.existsSync(cssF)) {
+      const c = read(cssF);
+      for (const [pin, why] of [
+        ['.my-openings td[data-label="Actions"] .row-action{margin:0 14px 0 0}', "the action words keep a gap on their right and no left margin (a wrapped word is not indented)"],
+        ['.my-openings td[data-label="Actions"] .row-action:last-child{margin-right:0}', "the last action word has no gap after it"],
+        [".my-openings .nb{white-space:nowrap}", "a date and its time are no-wrap pieces (a line breaks only between them)"],
+        ['.my-openings td[data-label="Actions"],.my-openings td[data-label="Closes"],.my-openings td[data-label="Added"],.my-openings td[data-label="Opening ID"],.my-openings td[data-label="Comments"]{width:1%;white-space:nowrap}', "a wide window lets the five columns take what their words need"],
+        [".my-openings .act-note{min-width:36ch}", "the expired-draft note keeps a block about 36 characters wide in a wide window"],
+        ['.my-openings th:first-child,.my-openings td[data-label="Title"]{width:18%}', "the Title column's share is limited so the others keep their words on one line"],
+      ]) if (!c.includes(pin)) add("S81", cssF, "app.css: " + why);
+      if (!/@media \(min-width:641px\)\{\s*\.my-openings thead th,\.my-openings td\{padding-left:8px;padding-right:8px\}/.test(c)) add("S81", cssF, "the tidy table rules apply above the phone width only (the phone layout is the card list of S48)");
+      if (!/@media \(min-width:1320px\)\{\s*\.my-openings td\[data-label="Actions"\]/.test(c)) add("S81", cssF, "the wide window rule applies from 1320 pixels (the narrowest window that fits every value on one line)");
+    }
+    if (fs.existsSync(dashJ)) {
+      const s = body(dashJ);
+      for (const [pin, why] of [
+        ['return h("span", { class: "dt" }, ...out);', "the pieces of a date sit in ONE wrapper (a phone card's cell is a grid: each direct child is an item)"],
+        ["dateBits(postedCell(p))", "the Added value is drawn in no-wrap pieces"],
+        ["dateBits(closesCell(p))", "the Closes value is drawn in no-wrap pieces"],
+        ["place.length ? h(\"div\"", "the place line is left out when there is no place to show (no empty block)"],
+      ]) if (!s.includes(pin)) add("S81", dashJ, "dashboard.js: " + why);
+    }
+    if (fs.existsSync(plJ)) {
+      const s = body(plJ);
+      if (!s.includes("if (!p.stated && opts && opts.hideNone === true) return [];")) add("S81", plJ, "placeNodes returns nothing only for an opening with nothing set, and only when the caller passes hideNone");
+    }
+    // the two employer-only screens are the ONLY files that pass hideNone
+    for (const dir of [P("js"), P("js", "pages")]) {
+      if (!fs.existsSync(dir)) continue;
+      for (const f of fs.readdirSync(dir)) {
+        if (!f.endsWith(".js")) continue;
+        const file = path.join(dir, f), isOk = file === dashJ || file === editJ || file === plJ;
+        if (!isOk && /hideNone/.test(body(file))) add("S81", file, "only My openings and the opening editor may pass hideNone (a candidate screen keeps \"Location not stated\")");
+      }
+    }
+    if (fs.existsSync(editJ)) {
+      const s = body(editJ);
+      for (const [pin, why] of [
+        ["const noteLimit = mountLimitHint({ input: noteInput, hint: false });", "the note box has its count (its own line of words stays, so no second hint line)"],
+        ["say(formAlert, \"notice\", panelsFirstText(open));\n  formAlert.setAttribute(\"data-live-sentence\", \"panels\");", "the double check sentence is marked as a live sentence"],
+        ["  syncLiveSentence();\n  syncActions();", "every refresh re-checks the double check sentence"],
+        ["text = panelsFirstText(open);", "the live sentence is re-worded from what the sections hold now"],
+        ["noteInput.addEventListener(\"input\",", "the error under the note box goes when a note is typed"],
+      ]) if (!s.includes(pin)) add("S81", editJ, "edit.js: " + why);
+      if (!s.includes("pl.hidden = placeKids.length === 0;")) add("S81", editJ, "edit.js: the place line (and its label) is hidden when nothing is set");
+    }
+    if (fs.existsSync(runF) && !read(runF).includes('"follow-up-bn.test.js"')) add("S81", runF, "follow-up-bn.test.js is not in the suite");
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed

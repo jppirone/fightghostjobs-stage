@@ -59,6 +59,9 @@ export function startFakeSite(root, opts = {}) {
   let policyState = opts.policy === undefined ? null : opts.policy;   // the AI and hiring policy link the fake backend holds for the one opening (see opts.plan, opts.policy, opts.policyCheck, opts.policyDetail below)
   // the recruiter firms the fake backend holds for the one opening (prompt BC, October 10, 2026): opts.firms = [{ firm, with_address (default true), check_status, check_http, shown_as }] in position order; opts.recruiter: the saved toggle is on
   let firmsState = (opts.firms || []).map((f, i) => ({ position: i + 1, firm: f.firm, has_url: f.with_address !== false, shown_as: f.shown_as === undefined ? "Employer's own site" : f.shown_as, check_status: f.check_status || "ok", check_http: f.check_http === undefined ? (f.check_status === "failed" ? 404 : 200) : f.check_http }));
+  // the destination (application) links the fake backend holds (prompt BN, October 11, 2026): opts.applyLinks = [{ label }] in position order. Only when the option is given are they returned by get-my-posting and replaced by a
+  // whole-set save (every other test keeps the old behavior: nothing stored, a save is only answered).
+  let applyState = Array.isArray(opts.applyLinks) ? opts.applyLinks.map((l, i) => ({ position: i + 1, label: l.label || null, check_status: l.check_status || "ok" })) : null;
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://x");
     hits.push(req.method + " " + url.pathname);
@@ -180,6 +183,7 @@ export function startFakeSite(root, opts = {}) {
         if (bad >= 0) return send(400, { error: "url must start with https://", field: "links[" + bad + "].url", errors: [{ field: "links[" + bad + "].url", message: "url must start with https://" }] });
         const chk = opts.applyCheck || "ok";
         const links = list.map((x, i) => ({ position: i + 1, kind: "apply", firm: null, label: typeof x.label === "string" && x.label !== "" ? x.label : null, shown_as: "Employer's own site", check_status: chk, check_http: chk === "failed" ? 404 : 200 }));
+        if (applyState) applyState = links.map((l) => ({ position: l.position, label: l.label, check_status: l.check_status }));
         return send(200, { posting_id: body.posting_id, changed: true, active_links: links.length, links });
       }
       if (name === "get-my-posting") {
@@ -193,7 +197,7 @@ export function startFakeSite(root, opts = {}) {
           : ps === "expired" ? { status: "expired", stored_status: "live", closed_reason: "expired_no_action", posted_at: inDays(-50), expiration_date: inDays(-5), publish_by: null, go_live_at: null }
           : { status: "live", stored_status: "live", closed_reason: null, posted_at: inDays(-10), expiration_date: inDays(35), publish_by: null, go_live_at: null };
         return send(200, { posting: { id: body.posting_id, title: "Data Analyst", req_number: "4471", company_name: "Meridian Health", post_id: "ABCDEFGHJKMN", ...PS, is_remote: opts.postingRemote === true, locations: (opts.placeText || opts.postingNoPlace) ? [] : ["Austin, TX"], location_ids: (opts.placeText || opts.postingNoPlace) ? [] : ["gn:4671654"], source_location_text: opts.placeText || null, locations_attested: false, ai_filtering: false, ai_interview_other: null, third_party_recruiter: opts.recruiter === true || firmsState.length > 0, req_searchable: true, destination_links_exclusive: false, applicant_cap: null, description_text: Array.from({ length: 60 }, (_, i) => "requirement" + i).join(" "), window_days: 45, created_at: opts.createdAt || inDays(-10), last_edited_at: null },
-          destination_links: firmEntries().concat(policyEntry() ? [policyEntry()] : []), plan: planDoc(), recent_changes: opts.recentChanges || [{ at: inDays(-2), note: "Fixed a typo in the third paragraph", kind: "text_correction", fields: ["description_text"] }, { at: inDays(-5), note: "Renamed the role", kind: "edit", fields: ["title"] }] });
+          destination_links: (applyState ? applyState.map((l) => ({ position: l.position, kind: "apply", firm: null, label: l.label, shown_as: "Employer's own site", check_status: l.check_status, check_http: 200 })) : []).concat(firmEntries(), policyEntry() ? [policyEntry()] : []), plan: planDoc(), recent_changes: opts.recentChanges || [{ at: inDays(-2), note: "Fixed a typo in the third paragraph", kind: "text_correction", fields: ["description_text"] }, { at: inDays(-5), note: "Renamed the role", kind: "edit", fields: ["title"] }] });
       }
       // prompt BH: create-posting answers with a draft (the request body is in site.calls); opts.createRefusal = { status, body } makes it refuse, opts.createDropsPlace answers without the typed place
       if (name === "create-posting") {

@@ -1,7 +1,7 @@
 // team.js - the organization's roster (admins only): who can register postings, add a person (invited until their first sign-in), make or unmake an admin, remove a person (naming who takes over
 // their postings when they own any). Every rule is enforced by the backend; this page shows its answers in words. Nothing here trusts the page for identity: the session token tells the server who is acting.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=4c8c3f5c";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=d197c035";
 import { rememberNext } from "../session.js?v=124260d8";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { checkAdd, successorChoices, statusText, roleText, actionsFor, mapRosterError } from "../roster-model.js?v=0e3dedd7";

@@ -68,8 +68,39 @@ const SCENARIOS = {
     // the box comes before the buttons in the tab order and is the first thing of the bottom area
     const order = await tab.eval("Array.from(document.querySelectorAll('#actionArea input, #actionArea button')).filter((e) => !e.closest('[hidden]') && !e.hidden).map((e) => e.id)");
     if (order[0] !== "note" || order[1] !== "saveBtn") bad.push("the order in the bottom area is " + JSON.stringify(order));
-    // nothing announces the box: no live region or alert inside it
-    if (await tab.eval("!!document.querySelector('#noteBlock [role=alert], #noteBlock [role=status], #noteBlock [aria-live]')")) bad.push("the box carries a live region");
+    // nothing announces the box: nothing inside it is a live region WITH words in it (prompt BN: the count's paste sentence is a live region like the other boxes', hidden and empty until a paste meets the limit)
+    if (await tab.eval("Array.from(document.querySelectorAll('#noteBlock [role=alert], #noteBlock [role=status], #noteBlock [aria-live]')).some((e) => !e.hidden || e.textContent.trim() !== '')")) bad.push("the box carries a live region that says something");
+    return bad; })); },
+  // ---- the count (prompt BN): "x of 500" like every other box, redrawn from 0 when the box comes back
+  async count(root) { return withSite(root, { plan: "verified" }, (site) => withTab(async (tab) => { const bad = [];
+    await openEdit(tab, site);
+    const COUNT = '#noteBlock [data-limit-for="note"][data-limit="count"]', SAID = '#noteBlock [data-limit-for="note"][data-limit="note"]';
+    await typeIn(tab, "#jtitle", "Data Analyst II"); await sleep(150);
+    if ((await text(tab, COUNT)) !== "0 of 500") bad.push("a new box reads '" + (await text(tab, COUNT)) + "' (0 of 500)");
+    const own = await tab.eval("Array.from(document.querySelectorAll('#noteBlock .field-hint')).map((e) => e.innerText.trim()).filter((t) => t !== '')");
+    if (own.filter((t) => /500 characters at most/.test(t)).length !== 1) bad.push("the box's own line is not there exactly once: " + JSON.stringify(own));
+    if (own.some((t) => /^Up to 500 characters\.$/.test(t))) bad.push("a second 'Up to 500 characters.' line was added");
+    // the count sits under the line of words
+    const order = await tab.eval("(() => { const kids = Array.from(document.querySelector('#noteBlock').children); const at = (re) => kids.findIndex((k) => re.test(k.innerText)); return { line: at(/500 characters at most/), count: at(/^\\d[\\d,]* of 500$/) }; })()");
+    if (order.line < 0 || order.count < order.line) bad.push("the count is not under the line of words: " + JSON.stringify(order));
+    if ((await tab.eval("document.querySelector(" + q(COUNT) + ").getAttribute('aria-hidden')")) !== "true") bad.push("the count is read out as it changes");
+    await typeIn(tab, "#note", "Level added"); await sleep(100);
+    if ((await text(tab, COUNT)) !== "11 of 500") bad.push("after typing 11 characters the count reads '" + (await text(tab, COUNT)) + "'");
+    // at the limit and a paste past it
+    await tab.eval("(() => { const i = document.querySelector('#note'); i.focus(); i.value = 'x'.repeat(500); i.dispatchEvent(new Event('input', { bubbles: true })); i.setSelectionRange(500, 500); i.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: 'y', bubbles: true, cancelable: true })); })()");
+    await sleep(100);
+    if ((await text(tab, COUNT)) !== "500 of 500") bad.push("at the limit the count reads '" + (await text(tab, COUNT)) + "'");
+    if ((await text(tab, SAID)) !== "That is all it can hold: 500 characters.") bad.push("typing past the limit says '" + (await text(tab, SAID)) + "'");
+    await tab.eval("(() => { const i = document.querySelector('#note'); i.value = 'x'.repeat(495); i.dispatchEvent(new Event('input', { bubbles: true })); i.setSelectionRange(495, 495); const dt = new DataTransfer(); dt.setData('text/plain', 'abcdefghijkl'); i.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertFromPaste', dataTransfer: dt, bubbles: true, cancelable: true })); })()");
+    await sleep(100);
+    if (!/^What you pasted was longer than 500 characters, so it was cut at 500\.$/.test((await text(tab, SAID)) || "")) bad.push("a paste past the limit says '" + (await text(tab, SAID)) + "'");
+    // the change undone: the box goes; the change again: it is back at 0 of 500 with no sentence
+    await typeIn(tab, "#jtitle", "Data Analyst"); await sleep(150);
+    if (await exists(tab, "#note")) bad.push("the box stays after the change was undone");
+    await typeIn(tab, "#jtitle", "Data Analyst III"); await sleep(150);
+    if ((await text(tab, COUNT)) !== "0 of 500") bad.push("the box put back reads '" + (await text(tab, COUNT)) + "' (0 of 500)");
+    const said = await tab.eval("(() => { const e = document.querySelector(" + q(SAID) + "); return e ? { hidden: e.hidden, text: e.textContent.trim() } : null; })()");
+    if (!said || !said.hidden || said.text !== "") bad.push("the limit sentence is still there when the box comes back: " + JSON.stringify(said));
     return bad; })); },
   async changeThenUndo(root) { return withSite(root, { plan: "verified" }, (site) => withTab(async (tab) => { const bad = [];
     await openEdit(tab, site);
@@ -94,7 +125,11 @@ const SCENARIOS = {
     await click(tab, "#saveBtn"); await sleep(400);
     if (!/^Say what changed and why\./.test((await text(tab, '[data-error-for="note"]')) || "")) bad.push("without a note the error reads '" + (await text(tab, '[data-error-for="note"]')) + "'");
     if (callsOf(site, "edit-posting").length) bad.push("a live opening was saved without a note");
-    await typeIn(tab, "#note", "Level added to the title");
+    await typeIn(tab, "#note", "Level added to the title"); await sleep(100);
+    // prompt BN: the error under the box says the note is missing, so it goes as soon as a note is typed (the sentence of the rule stays: it is true while a change exists)
+    if ((await text(tab, '[data-error-for="note"]')) !== "") bad.push("the error under the box stays after a note was typed: '" + (await text(tab, '[data-error-for="note"]')) + "'");
+    if ((await tab.eval("document.querySelector('#note').getAttribute('aria-invalid')")) !== "false") bad.push("the box is still marked invalid after a note was typed");
+    if (!/needs a note/.test((await text(tab, "#noteNeeded")) || "")) bad.push("the rule sentence went when a note was typed: '" + (await text(tab, "#noteNeeded")) + "'");
     await click(tab, "#saveBtn"); await sleep(1200);
     const c = callsOf(site, "edit-posting");
     if (c.length !== 1 || c[0].body.change_note !== "Level added to the title") bad.push("the save did not carry the note: " + JSON.stringify(c.map((x) => x.body)));
@@ -163,6 +198,10 @@ const DEFECTS = [
   ["the note is no longer required for a live opening", [["js/edit-form.js", (s) => s.replace('if (note === "" && !e.note) e.note = "Say what changed and why. The note is required and is kept with the opening.";', "")]], ["noteRuleUnchanged"]],
   ["the cursor jumps into the box when it appears", [["js/pages/edit.js", (s) => s.replace("if (wanted && !inPage) actionArea.insertBefore(noteBlock, actionArea.firstChild);", "if (wanted && !inPage) { actionArea.insertBefore(noteBlock, actionArea.firstChild); noteInput.focus(); }")]], ["cursorStays"]],
   ["a draft's box shows with nothing changed", [["js/pages/edit.js", (s) => s.replace("syncNoteBlock(editable && formUnsaved());", "syncNoteBlock(editable && (formUnsaved() || state.orig.stored_status === \"draft\"));")]], ["drafts"]],
+  ["the note box has no count (prompt BN)", [["js/pages/edit.js", (s) => s.replace("const noteLimit = mountLimitHint({ input: noteInput, hint: false });", "const noteLimit = { refresh() {} };")]], ["count"]],
+  ["the note box gets a second 'Up to 500 characters.' line", [["js/pages/edit.js", (s) => s.replace("const noteLimit = mountLimitHint({ input: noteInput, hint: false });", "const noteLimit = mountLimitHint({ input: noteInput, hint: true });")]], ["count"]],
+  ["the count is not redrawn when the box goes and comes back", [["js/pages/edit.js", (s) => s.replace("    noteLimit.refresh();                       // the count goes back to 0 of 500 and the paste sentence is gone, ready for the next time the box is put back\n", "").replace(", noteLimit];", "];")]], ["count"]],
+  ["the error under the box stays after a note is typed", [["js/pages/edit.js", (s) => s.replace('noteInput.addEventListener("input", () => { if (noteInput.value.trim() !== "" && !noteErrEl.hidden) { noteErrEl.hidden = true; noteErrEl.textContent = ""; noteInput.setAttribute("aria-invalid", "false"); } });', "")]], ["noteRuleUnchanged"]],
   ["the box is put back after the box is built for the page but never taken out again", [["js/pages/edit.js", (s) => s.replace("else if (!wanted && inPage) {", "else if (false) {")]], ["changeThenUndo", "drafts"]],
 ];
 test("negative controls: each defect makes a scenario fail", { timeout: 3600000 }, async () => {

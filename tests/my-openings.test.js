@@ -62,6 +62,9 @@ const MEASURE = `(() => {
     note: nr ? { w: Math.round(nr.width), h: Math.round(nr.height) } : null, maxCellRight: Math.max(...cells), lastTh: ths.length ? ths[ths.length - 1].right : null };
 })()`;
 const TITLE_MIN = 176, ACTIONS_CAP = 260;
+// prompt BN (October 11, 2026): at a window of 1320 pixels and wider the Actions column is as wide as the expired-draft note (about 36 characters) needs, so its cap there is 300 (it was 260 for a 24 character note);
+// below that window width the cap is unchanged
+const ACTIONS_CAP_WIDE = 300, NOTE_CAP_WIDE = 300;
 
 const SCENARIOS = {
   // ---- the layout
@@ -72,10 +75,10 @@ const SCENARIOS = {
     if (m.lastTh > m.cardRight + 1 || m.maxCellRight > m.cardRight + 1) bad.push("a column runs past the edge of the card: " + JSON.stringify({ lastTh: m.lastTh, cardRight: m.cardRight, maxCell: m.maxCellRight }));
     const title = m.ths.find((t) => t.name === "Title");
     if (!title || title.w < TITLE_MIN) bad.push("the Title column is " + (title && title.w) + " pixels (at least " + TITLE_MIN + ")");
-    if (Math.max(...m.acts) > ACTIONS_CAP) bad.push("the Actions column is " + Math.max(...m.acts) + " pixels (at most " + ACTIONS_CAP + "): " + JSON.stringify(m.acts));
+    if (Math.max(...m.acts) > ACTIONS_CAP_WIDE) bad.push("the Actions column is " + Math.max(...m.acts) + " pixels (at most " + ACTIONS_CAP_WIDE + "): " + JSON.stringify(m.acts));
     if (!m.note) bad.push("the expired draft's note is not on the page");
     else {
-      if (m.note.w > 240) bad.push("the note is " + m.note.w + " pixels wide (it wraps at a fixed width)");
+      if (m.note.w > NOTE_CAP_WIDE) bad.push("the note is " + m.note.w + " pixels wide (it wraps at a fixed width)");
       if (m.note.h < 30) bad.push("the note did not wrap (" + m.note.h + " pixels high)");
     }
     if (m.apmH > 110) bad.push("the row with the long place line is " + m.apmH + " pixels high (a few lines at most)");
@@ -191,11 +194,11 @@ const DEFECTS = [
   ["the note has no width cap", [["app.css", (s) => s.replace(".my-openings .act-note{max-width:24ch;white-space:normal;overflow-wrap:break-word}", ".my-openings .act-note{white-space:nowrap}")]], ["layout1366"]],
   ["the Title column has no minimum", [["app.css", (s) => s.replace(".my-openings thead th:first-child,.my-openings td[data-label=\"Title\"]{min-width:11rem}", "")]], ["layoutNarrow"]],
   ["the style is applied to every table (not scoped to My openings)", [["dashboard.html", (s) => s.replace('class="dash-table rtable my-openings"', 'class="dash-table rtable"')]], ["layout1366"]],
-  ["My openings shows the note again", [["js/pages/dashboard.js", (s) => s.replace("placeNodes(h, p, { note: false })", "placeNodes(h, p)")]], ["placeEmployer"]],
-  ["the editor shows the note again", [["js/pages/edit.js", (s) => s.replace("placeNodes(h, p, { note: false })", "placeNodes(h, p)")]], ["placeEmployer"]],
+  ["My openings shows the note again", [["js/pages/dashboard.js", (s) => s.replace("placeNodes(h, p, { note: false, hideNone: true })", "placeNodes(h, p, { hideNone: true })")]], ["placeEmployer"]],
+  ["the editor shows the note again", [["js/pages/edit.js", (s) => s.replace("placeNodes(h, p, { note: false, hideNone: true })", "placeNodes(h, p, { hideNone: true })")]], ["placeEmployer"]],
   ["no screen shows the note any more", [["js/place.js", (s) => s.replace("if (p.note && !(opts && opts.note === false)) out.push(", "if (false) out.push(")]], ["placeCandidate"]],
   ["the candidate card loses the note when the employer's option is off", [["js/place.js", (s) => s.replace("if (p.note && !(opts && opts.note === false)) out.push(", "if (p.note && false) out.push(")]], ["placeCandidate"]],
-  ["a dash is left when there is no place", [["js/place.js", (s) => s.replace("return { text: (remote ? \"Remote · \" : \"\") + src, note: PLACE_NOTE };", "return { text: (remote ? \"Remote · \" : \"\") + src, note: PLACE_NOTE };").replace("if (src === \"\") return { text: locationLine(row ? row.is_remote : null, row ? row.locations : null), note: null };", "if (src === \"\") return { text: locationLine(row ? row.is_remote : null, row ? row.locations : null) + \" ·\", note: null };")]], ["placeEmployer", "placeEditorEmpty"]],
+  ["a dash is left when there is no place", [["js/place.js", (s) => s.replace("return { text: (remote ? \"Remote · \" : \"\") + src, note: PLACE_NOTE };", "return { text: (remote ? \"Remote · \" : \"\") + src, note: PLACE_NOTE };").replace("return { text, note: null, stated: text !== LOCATION_NOT_STATED }; }", "return { text: text + \" ·\", note: null, stated: text !== LOCATION_NOT_STATED }; }")]], ["placeEmployer", "placeEditorEmpty"]],
 ];
 test("negative controls: each defect makes a scenario fail", { timeout: 3600000 }, async () => {
   const missed = [];

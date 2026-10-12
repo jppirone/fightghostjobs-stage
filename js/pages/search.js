@@ -1,7 +1,7 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=4c8c3f5c";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=d197c035";
 import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=124260d8";
 import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=68216be2";
 import { savePending, takePending } from "../signin-handoff.js?v=882122ed";
@@ -12,16 +12,16 @@ import { trapFocus } from "../dialog-focus.js?v=1dcc8c83";
 import { makeAnnouncer } from "../search-status.js?v=7497036c";
 import { recapSentence } from "../search-recap.js?v=467642b9";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js?v=ff147636";
-import { waitText } from "../format.js?v=696f63b8";
-import { postingChips, notOpenMessage } from "../chips.js?v=f36dd73d";
+import { waitText } from "../format.js?v=0631812a";
+import { postingChips, notOpenMessage } from "../chips.js?v=bb38507f";
 import { aiNotes } from "../ai-notes.js?v=35c5dc92";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=f2ea9573";
 import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";
 import { openUnit } from "../open-link.js?v=454df0f2";
 import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus } from "../search-input.js?v=3ea36db8";
 import { isRegistered } from "../registered.js?v=f191c8c2";
-import { placeNodes } from "../place.js?v=c72ddb7f";
-import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=c7fcdca3";
+import { placeNodes } from "../place.js?v=3cd2a533";
+import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=85a73d71";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");

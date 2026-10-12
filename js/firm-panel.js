@@ -3,7 +3,7 @@
 // Rules (tests/site-check.js S72 pins them): the address is never on the page; the three row actions call api.checkRecruiterFirm, api.editRecruiterFirm and api.removeRecruiterFirm with the stored position.
 
 import { isAuthFailure } from "./api.js?v=2b6638b4";
-import { FP, firmRows, firmMeta, firmSignature, planFirmEdit, firmConfirmText, firmRefusal, firmSuccess, firmWarn, checkAria, editAria, removeAria } from "./firm-panel-model.js?v=f19a4799";
+import { FP, firmRows, firmMeta, firmSignature, planFirmEdit, firmConfirmText, firmRefusal, firmSuccess, firmWarn, checkAria, editAria, removeAria } from "./firm-panel-model.js?v=b1b46a27";
 import { mountRowPanel } from "./row-panel.js?v=2ab133e1";
 
 // ctx: { host, hintEl, api, getPostingId, openBlank, schedule, now, isBlocked, onSessionEnded, onStale, onChanged }

@@ -6,8 +6,8 @@
 
 import { h, alertBox } from "./dom.js?v=ff147636";
 import { isAuthFailure } from "./api.js?v=2b6638b4";
-import { CONTEST_NOTICE, CONTEST_CONFIRM, CONTEST_ALREADY, CONTEST_CATEGORIES, checkContestCategory, checkContestExplanation, contestCounter, contestLimits, contestRefusal } from "./comments-model.js?v=fc0981ec";
-import { fmtDate } from "./format.js?v=696f63b8";
+import { CONTEST_NOTICE, CONTEST_CONFIRM, CONTEST_ALREADY, CONTEST_CATEGORIES, checkContestCategory, checkContestExplanation, contestCounter, contestLimits, contestRefusal } from "./comments-model.js?v=e5714f5b";
+import { fmtDate } from "./format.js?v=0631812a";
 
 // the bordered notice. employer: the owner's view also says "Under review" (with the date the contest was filed: from the reader after a reload, from the filing answer right after filing); candidates see the notice text alone.
 export function contestNotice({ employer = false, since = null } = {}) {

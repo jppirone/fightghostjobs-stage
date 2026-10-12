@@ -5,7 +5,7 @@ import { SUPABASE_URL, PUBLISHABLE_KEY } from "./config.js?v=f3dc1a31";
 import { accessToken, currentSession, signOut, rememberNext } from "./session.js?v=124260d8";
 import { h, clear, alertBox } from "./dom.js?v=ff147636";
 import { takeLanded, landingText, landingKindForPage } from "./landing-notice.js?v=f37507d8";
-import { initials } from "./format.js?v=696f63b8";
+import { initials } from "./format.js?v=0631812a";
 import { buildAccount, wireAccountMenu } from "./account-menu.js?v=82a9e619";
 import { orderHeader, watchHeaderOrder } from "./header-order.js?v=a22712e8";
 

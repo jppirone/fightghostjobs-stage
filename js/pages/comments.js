@@ -3,15 +3,15 @@
 // Posting a comment: the page checks length and plain text, the backend applies the whole rule (no web address, no naming where the posting was found unless this posting already shows
 // that platform, no slurs or profanity) and says why in words. Wrong links go to a private report, not to the thread.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js?v=4c8c3f5c";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js?v=d197c035";
 import { requestLink, watchOtherTabSignIn } from "../session.js?v=124260d8";
 import { $, h, clear, alertBox, chip } from "../dom.js?v=ff147636";
-import { waitText, groupCode } from "../format.js?v=696f63b8";
-import { placeNodes } from "../place.js?v=c72ddb7f";
-import { postingChips, notOpenRecap } from "../chips.js?v=f36dd73d";
+import { waitText, groupCode } from "../format.js?v=0631812a";
+import { placeNodes } from "../place.js?v=3cd2a533";
+import { postingChips, notOpenRecap } from "../chips.js?v=bb38507f";
 import { aiNotes } from "../ai-notes.js?v=35c5dc92";
-import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js?v=fc0981ec";
-import { addContestPart } from "../contest-ui.js?v=331b7281";
+import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js?v=e5714f5b";
+import { addContestPart } from "../contest-ui.js?v=b9c08a07";
 import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";   // the one comments switch: while false this page is only the wrong-link report
 
 const params = new URLSearchParams(location.search);

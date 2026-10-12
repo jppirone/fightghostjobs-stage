@@ -211,7 +211,7 @@ const DEFECTS = [
   ["the stored typed place is not put in the box", [["js/pages/edit.js", (s) => s.replace("place.set((p.location_ids || []).length === 0 ? storedPlaceText(p) : \"\");", "place.set(\"\");")]], ["editPrefilled", "editChange"]],
   ["a changed typed place is not counted as unsaved work", [["js/dirty-state.js", (s) => s.replace("place: v.outside === true ? trim(v.locText) : null, ", "")]], ["editChange"]],
   ["moving back to the list does not clear the typed place", [["js/edit-form.js", (s) => s.replace("if (typed !== wasTyped) ch[PLACE_FIELD] = typed;", "if (typed !== wasTyped && typed !== null) ch[PLACE_FIELD] = typed;")]], ["editToList"]],
-  ["My openings shows only the list place", [["js/pages/dashboard.js", (s) => s.replace("placeNodes(h, p, { note: false })", "(Array.isArray(p.locations) && p.locations.length ? p.locations.join(\"; \") : \"Location not stated\")")]], ["dashboard"]],
+  ["My openings shows only the list place", [["js/pages/dashboard.js", (s) => s.replace("placeNodes(h, p, { note: false, hideNone: true })", "(Array.isArray(p.locations) && p.locations.length ? p.locations.join(\"; \") : \"Location not stated\")")]], ["dashboard"]],
 ];
 test("negative controls: each defect in the typed place's page code makes a scenario fail", { timeout: 1800000 }, async () => {
   const missed = [];

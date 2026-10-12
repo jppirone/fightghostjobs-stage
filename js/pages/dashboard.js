@@ -1,14 +1,14 @@
 // dashboard.js - "My postings": the postings the signed-in employer OWNS (a colleague's do not appear), with the row actions: publish a draft, pause, resume, extend (once) and close.
 // Nothing here trusts the page for identity: the session token tells the server who is asking, and the server returns only that person's postings.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=4c8c3f5c";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=d197c035";
 import { rememberNext } from "../session.js?v=124260d8";
 import { $, h, clear, alertBox } from "../dom.js?v=ff147636";
-import { groupCode, waitText } from "../format.js?v=696f63b8";
-import { placeNodes } from "../place.js?v=c72ddb7f";
-import { FILTERS, statusChip, matchesFilter, matchesText, sortByPosted, reqCell, postedCell, capCell, closesCell } from "../dashboard-model.js?v=7d5b30a5";
-import { actionsFor, publishWindowEnded } from "../dashboard-model.js?v=7d5b30a5";
-import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=2388f448";
+import { groupCode, waitText } from "../format.js?v=0631812a";
+import { placeNodes } from "../place.js?v=3cd2a533";
+import { FILTERS, statusChip, matchesFilter, matchesText, sortByPosted, reqCell, postedCell, capCell, closesCell } from "../dashboard-model.js?v=77fc1e4e";
+import { actionsFor, publishWindowEnded } from "../dashboard-model.js?v=77fc1e4e";
+import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=f0e16902";
 import { COMMENTS_VISIBLE } from "../config.js?v=f3dc1a31";
 
 if (!COMMENTS_VISIBLE) { const th = document.querySelector('th[data-col="comments"]'); if (th) th.remove(); }   // the one comments switch (js/config.js): no Comments column while it is off
@@ -48,16 +48,30 @@ function actionCells(p, now) {
   return out;
 }
 
+// prompt BN: a date and its time never break in the middle. Each piece ("Goes live", "Nov 25,", "7:38 AM EST") is a no-wrap span (css: .my-openings .nb) and a line may break only between the pieces.
+// The words are the same as the model's (js/dashboard-model.js): a value that is no date ("Not yet", "None") is returned as it is. The pieces sit in ONE wrapper (class dt): on a phone the cell is a grid and
+// each direct child is a grid item, so the value must stay a single child there, as the plain text was.
+const DATE_BITS = /^(.*?)([A-Z][a-z]{2} \d{1,2},?)(?: (\d{1,2}:\d{2} [AP]M.*))?$/;
+function dateBits(text) {
+  const m = DATE_BITS.exec(String(text));
+  if (!m) return text;
+  const out = [];
+  for (const bit of [m[1].trim(), m[2], m[3]]) { if (!bit) continue; if (out.length) out.push(" "); out.push(h("span", { class: "nb" }, bit)); }
+  return h("span", { class: "dt" }, ...out);
+}
+
 function row(p, now) {
   const chip = statusChip(p, now);
+  // prompt BL: the employer typed the place: no "as provided by the employer" here. Prompt BN: and nothing at all when nothing is set (no place, no Remote): the title often says it.
+  const place = placeNodes(h, p, { note: false, hideNone: true });
   return h("tr", { role: "row" },
-    h("td", { role: "cell", "data-label": "Title", style: "font-weight:600;" }, p.title, h("div", { style: "font-size:12px;font-weight:400;color:var(--muted);margin-top:3px;" }, placeNodes(h, p, { note: false }))),      // prompt BL: the employer typed the place: no "as provided by the employer" here
+    h("td", { role: "cell", "data-label": "Title", style: "font-weight:600;" }, p.title, place.length ? h("div", { style: "font-size:12px;font-weight:400;color:var(--muted);margin-top:3px;" }, place) : null),
     h("td", { role: "cell", "data-label": "Req #", style: "color:var(--muted);" }, reqCell(p)),
     h("td", { role: "cell", "data-label": "Opening ID", class: "mono", style: "color:var(--muted);white-space:nowrap;" }, groupCode(p.post_id)),
     h("td", { role: "cell", "data-label": "Status" }, h("span", { class: "status " + chip.cls }, chip.text)),
     h("td", { role: "cell", "data-label": "Actions" }, actionCells(p, now)),          // right after the status: the actions must never be pushed off the edge of a narrow window (each action word stays on one line and the note wraps: css .my-openings)
-    h("td", { role: "cell", "data-label": "Added", style: "color:var(--muted);" }, postedCell(p)),
-    h("td", { role: "cell", "data-label": "Closes", style: "color:var(--muted);" }, closesCell(p), p.bump_used ? h("div", { class: "row-note" }, "extended " + p.bump_days + (p.bump_days === 1 ? " day" : " days")) : null),
+    h("td", { role: "cell", "data-label": "Added", style: "color:var(--muted);" }, dateBits(postedCell(p))),
+    h("td", { role: "cell", "data-label": "Closes", style: "color:var(--muted);" }, dateBits(closesCell(p)), p.bump_used ? h("div", { class: "row-note" }, "extended " + p.bump_days + (p.bump_days === 1 ? " day" : " days")) : null),
     h("td", { role: "cell", "data-label": "Applicant cap", style: "color:var(--muted);" }, capCell(p)),
     COMMENTS_VISIBLE ? h("td", { role: "cell", "data-label": "Comments", style: "white-space:nowrap;" }, h("a", { class: "row-action", href: "comments.html?id=" + encodeURIComponent(p.id), title: "Read the comments" }, "💬 " + p.comment_count)) : null);   // the one comments switch (js/config.js)
 }
