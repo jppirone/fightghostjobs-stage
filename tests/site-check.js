@@ -57,6 +57,7 @@
 //   S62 the search page opened with the company and one other value in the URL fragment (extension hand-off): only c, p, r, t, the site's limits, plain text, refuse on doubt, fragment removed at once, never an automatic search
 //   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
 //   S60 search engines (Phase 3): the flag ALLOW_INDEXING in js/config.js (false on stage) agrees with every page's robots tag and with robots.txt; sign-in pages are noindex in every environment; the tool and the test exist and run
+//   S86 no masked KIO ID in any visible string, the candidate comments page shows the whole ID, a valid sample ID on the home page, Ended on a dead draft, the filter finds an ID typed with hyphens (prompt BV)
 //   S85 the label of the public code is KIO ID everywhere a person sees it (never Opening ID), the Closes sort puts a draft whose publish window ended with the ended rows (prompt BU)
 //   S53 the search recap (Part C): sentence, never the req number or postID, Edit this search, memory only, one spoken message
 //   S52 the accessibility round: header Tab order, one polite search status, the details window's focus handling, the unsaved bar's closing message, 24 pixel hit areas, and the four tests that prove them
@@ -1848,7 +1849,7 @@ export function checkSite(root, opts = {}) {
       const s = body(dashJ);
       for (const [pin, why] of [
         ['return h("span", { class: "dt" }, ...out);', "the pieces of a date sit in ONE wrapper (a phone card's cell is a grid: each direct child is an item)"],
-        ["dateBits(closesCell(p))", "the Closes value is drawn in no-wrap pieces"],
+        ["dateBits(closesCell(p, now))", "the Closes value is drawn in no-wrap pieces (and given the time, so an ended draft says Ended)"],
         ["place.length ? h(\"div\"", "the place line is left out when there is no place to show (no empty block)"],
       ]) if (!s.includes(pin)) add("S81", dashJ, "dashboard.js: " + why);
     }
@@ -2019,7 +2020,7 @@ export function checkSite(root, opts = {}) {
       [["js", "pages", "register.js"], '}, "Your KIO ID"),', "the confirmation says Your KIO ID"],
       [["js", "pages", "search.js"], '" · KIO ID: " + openingIdText(row)', "a result card's line reads KIO ID: then the ID"],
       [["js", "pages", "search.js"], 'textContent = "KIO ID: " + openingIdText(row)', "the details window's line reads KIO ID: then the ID"],
-      [["js", "pages", "comments.js"], '" · KIO ID: " + p.masked_code', "the comments page's candidate line reads KIO ID: then the ID"],
+      [["js", "pages", "comments.js"], '" · KIO ID: " + (typeof p.kio_id === "string"', "the comments page's candidate line reads KIO ID: then the ID (the whole one since prompt BV)"],
       [["js", "pages", "comments.js"], '"KIO ID: " + groupCode(p.post_id)', "the comments page's employer line reads KIO ID: then the ID"],
       [["js", "staff-scope.js"], '" · KIO ID: " + row.opening_id', "the staff card's line reads KIO ID: then the ID"],
       [["js", "pages", "dashboard.js"], '"data-label": "KIO ID"', "the My openings cell is labelled KIO ID (the phone card list shows this label)"],
@@ -2038,6 +2039,36 @@ export function checkSite(root, opts = {}) {
       if (!m.includes('export const isExpiring = (p, nowMs) => p.status === "draft" && leftWithinFlag(p, nowMs) !== null && !isClosingSoon(p, nowMs);')) add("S85", modF, "the Expiring pill holds only a draft with time left (a draft whose window ended is not in it)");
     }
     if (fs.existsSync(runF) && !read(runF).includes('"bu.test.js"')) add("S85", runF, "bu.test.js is not in the suite");
+  }
+  // S86 (2026-10-12, prompt BV): the KIO ID is public, so no page text or script string shows it masked (asterisks inside an ID), the candidate's comments page shows the whole ID the server sends (kio_id; the masked
+  // code is only the fallback for an answer from before the database change), the home page's sample card shows a whole sample ID that passes the real check character, a draft whose publish window ended says Ended
+  // in My openings, and the My openings filter also compares the ID without its hyphens.
+  {
+    const MASKED = /\*{4}-\*{4}|KIO[-\s]?\*{2,}|\*{3,}[-\s]?[0-9A-Z]{4}-[0-9A-Z]{4}/;
+    for (const f of html) { const t = read(f).replace(/<!--[\s\S]*?-->/g, ""); if (MASKED.test(t)) add("S86", f, "a page shows a KIO ID masked with asterisks (the ID is public)"); }
+    for (const f of js) { const t = stripJsComments(read(f)); if (MASKED.test(t)) add("S86", f, "a script has a masked KIO ID in a string (the ID is public)"); }
+    const P = (...a) => path.join(root, ...a);
+    const ALPHA = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+    const checkOk = (c) => {      // Luhn mod 32 over the alphabet (the same rule as js/kio.js kioValid, written out here so this rule reads no site file)
+      if (c.length !== 12 || ![...c].every((ch) => ALPHA.includes(ch))) return false;
+      let sum = 0, factor = 1;
+      for (let i = c.length - 1; i >= 0; i--) { let a = factor * ALPHA.indexOf(c[i]); factor = factor === 2 ? 1 : 2; a = Math.floor(a / 32) + (a % 32); sum += a; }
+      return sum % 32 === 0;
+    };
+    const ixF = P("index.html");
+    if (fs.existsSync(ixF)) {
+      const m = /Remote · KIO ID: <span class="mono">KIO-([0-9A-Z]{4})-([0-9A-Z]{4})-([0-9A-Z]{4})<\/span>/.exec(read(ixF));
+      if (!m) add("S86", ixF, "the home page's sample card must show a whole KIO ID (KIO-XXXX-XXXX-XXXX) after Remote · KIO ID:");
+      else if (!checkOk(m[1] + m[2] + m[3])) add("S86", ixF, "the home page's sample KIO ID does not pass the check character");
+    }
+    const cmF = P("js", "pages", "comments.js"), mdF = P("js", "dashboard-model.js"), runF = P("tests", "run-all.js");
+    if (fs.existsSync(cmF) && !stripJsComments(read(cmF)).includes('(typeof p.kio_id === "string" && p.kio_id !== "" ? p.kio_id : p.masked_code)')) add("S86", cmF, "the candidate's comments page shows the whole KIO ID the server sends (kio_id), the masked code only as the fallback");
+    if (fs.existsSync(mdF)) {
+      const m = stripJsComments(read(mdF));
+      if (!m.includes('(nowMs !== undefined && publishWindowEnded(p, nowMs) ? "Ended " : "Publish by ")')) add("S86", mdF, "a draft whose publish window ended says Ended in the Closes cell");
+      if (!m.includes('return typeof p.post_id === "string" && norm(p.post_id).replace(/ /g, "").includes(n.replace(/ /g, ""));')) add("S86", mdF, "the My openings filter compares the ID without its hyphens and spaces too");
+    }
+    if (fs.existsSync(runF) && !read(runF).includes('"bv.test.js"')) add("S86", runF, "bv.test.js is not in the suite");
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed

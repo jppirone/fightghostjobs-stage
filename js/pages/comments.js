@@ -102,7 +102,7 @@ function renderRecap(d) {
     const p = d.data.posting;
     $("#recapCompany").textContent = p.company_name; $("#recapTitle").textContent = p.title;
     // the place line is the same one every screen draws (js/place.js): the typed place with its small note, or the list places and Remote, or "Location not stated"
-    const meta = $("#recapMeta"); clear(meta); meta.append(...placeNodes(h, p), " · KIO ID: " + p.masked_code + (p.masked_req ? " · Req " + p.masked_req : ""));
+    const meta = $("#recapMeta"); clear(meta); meta.append(...placeNodes(h, p), " · KIO ID: " + (typeof p.kio_id === "string" && p.kio_id !== "" ? p.kio_id : p.masked_code) + (p.masked_req ? " · Req " + p.masked_req : ""));
     const chips = $("#recapChips"); clear(chips); for (const c of postingChips(p)) chips.append(chip(c));
     const notes = $("#recapNotes"); clear(notes);
     for (const n of aiNotes(p)) notes.append(h("div", { style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text));

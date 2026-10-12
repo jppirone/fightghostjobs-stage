@@ -1309,7 +1309,7 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the roomiest-layout rule applies on a phone too", "S81", edit(CSS, (s) => s.replace('@media (min-width:641px){\n  .my-openings td[data-label="Actions"],', '@media (min-width:1px){\n  .my-openings td[data-label="Actions"],')));
   control("the expired-draft note has no width of its own", "S81", edit(CSS, (s) => s.replace("  .my-openings .act-note{min-width:36ch}", "")));
   control("the date pieces sit straight in the cell", "S81", edit(DJ, (s) => s.replace('return h("span", { class: "dt" }, ...out);', "return out;")));
-  control("the Closes value is plain text again", "S81", edit(DJ, (s) => s.replace("dateBits(closesCell(p))", "closesCell(p)")));
+  control("the Closes value is plain text again", "S81", edit(DJ, (s) => s.replace("dateBits(closesCell(p, now))", "closesCell(p, now)")));
   control("My openings leaves an empty block for no place", "S81", edit(DJ, (s) => s.replace('place.length ? h("div"', 'true ? h("div"')));
   control("the place rule hides every place", "S81", edit(PJ, (s) => s.replace("if (!p.stated && opts && opts.hideNone === true) return [];", "if (opts && opts.hideNone === true) return [];")));
   control("the candidate search page passes hideNone", "S81", edit("js/pages/search.js", (s) => s.replace("const placeNodesOf = (row) => placeNodes(h, row);", "const placeNodesOf = (row) => placeNodes(h, row, { hideNone: true });")));
@@ -1403,6 +1403,15 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("a draft whose window ended is counted as time left in the Expiring pill", "S85", edit(MJ, (s) => s.replace('p.status === "draft" && leftWithinFlag(p, nowMs) !== null && !isClosingSoon(p, nowMs);', 'p.status === "draft" && !isClosingSoon(p, nowMs);')));
   control("an ended row is only a closed or expired one", "S85", edit(MJ, (s) => s.replace("export const isEnded = (p, nowMs) => isOver(p) || publishWindowEnded(p, nowMs);", "export const isEnded = (p, nowMs) => isOver(p);")));
   control("the BU browser test is not in the suite", "S85", edit(RUN, (s) => s.replace('path.join(here, "bu.test.js")', 'path.join(here, "unit.test.js")')));
+  // S86 (prompt BV): no masked KIO ID in a visible string, the whole ID on the candidate comments page, a valid sample ID, Ended, the hyphen-tolerant filter
+  control("a page shows the sample ID masked", "S86", edit("index.html", (s) => s.replace("KIO-EV9B-V8ZV-Q45P</span>", "****-****-Q45P</span>")));
+  control("a script has a masked ID in a string", "S86", append("js/pages/comments.js", 'export const SAMPLE_LINE = "KIO ID: ****-****-1B5W";'));
+  control("the sample ID fails the check character", "S86", edit("index.html", (s) => s.replace("KIO-EV9B-V8ZV-Q45P</span>", "KIO-EV9B-V8ZV-Q45Q</span>")));
+  control("the sample is the old masked value again", "S86", edit("index.html", (s) => s.replace("KIO-EV9B-V8ZV-Q45P</span>", "X7K2•••••</span>")));
+  control("the candidate comments page shows only the masked code", "S86", edit("js/pages/comments.js", (s) => s.replace('(typeof p.kio_id === "string" && p.kio_id !== "" ? p.kio_id : p.masked_code)', "p.masked_code")));
+  control("a draft whose window ended says Publish by again", "S86", edit(MJ, (s) => s.replace('(nowMs !== undefined && publishWindowEnded(p, nowMs) ? "Ended " : "Publish by ")', '"Publish by "')));
+  control("the filter compares only the stored form of the ID", "S86", edit(MJ, (s) => s.replace('return typeof p.post_id === "string" && norm(p.post_id).replace(/ /g, "").includes(n.replace(/ /g, ""));', "return false;")));
+  control("the BV browser test is not in the suite", "S86", edit(RUN, (s) => s.replace('path.join(here, "bv.test.js")', 'path.join(here, "unit.test.js")')));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });

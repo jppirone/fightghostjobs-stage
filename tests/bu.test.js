@@ -5,7 +5,7 @@
 //      page and the privacy page; a sweep of the text, the accessible names, the titles and the placeholders of every page finds no "Opening ID";
 //   2. a column rule written for the header still matches it: the KIO ID column takes what its words need (no spare width), so a label and its style rule cannot drift apart;
 //   3. a draft whose publish window ended sorts with the closed and expired rows in both Closes directions, among them by its publish-by day; Added and Title are unchanged; the Expiring pill does not hold it; its
-//      Closes cell still reads "Publish by <day>".
+//      Closes cell reads "Ended <day>" since prompt BV (BU left it "Publish by <day>"), and a draft with time left still reads "Publish by <day>".
 // Then negative controls: one deliberate defect at a time in the page code or the style; each must make a scenario fail. A missing browser FAILS the test (set FGJ_BROWSER). Run: node --test tests/bu.test.js
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -53,7 +53,7 @@ const click = (tab, sel) => tab.eval("document.querySelector(" + q(sel) + ").cli
 const pill = (tab, label) => tab.eval("(() => { const b = Array.from(document.querySelectorAll('#filters .filter-pill')).find((x) => x.textContent.trim() === " + q(label) + "); if (!b) throw new Error('no pill ' + " + q(label) + "); b.click(); })()");
 const pickSort = (tab, value) => tab.eval("(() => { const s = document.querySelector('#sortBox'); s.value = " + q(value) + "; s.dispatchEvent(new Event('change', { bubbles: true })); })()");
 const titles = (tab) => tab.eval("Array.from(document.querySelectorAll('tbody tr')).map((tr) => tr.querySelector('td').firstChild.textContent.trim())");
-const closesOf = (tab) => tab.eval("Object.fromEntries(Array.from(document.querySelectorAll('tbody tr')).map((tr) => [tr.querySelector('td').firstChild.textContent.trim(), tr.querySelector('td[data-label=\"Closes\"]').innerText.replace(/\\s+/g, ' ').trim()]))");
+const closesOf = (tab) => tab.eval("Object.fromEntries(Array.from(document.querySelectorAll('tbody tr')).map((tr) => [tr.querySelector('td').firstChild.textContent.trim(), (tr.querySelector('td[data-label=\"Closes\"] .dt') || tr.querySelector('td[data-label=\"Closes\"]')).innerText.replace(/\\s+/g, ' ').trim()]))");   // (prompt BV: the date words only, without the flag line under them)
 async function openDash(tab, site, width, phone = false) {
   await signIn(tab, site, "poster");
   if (phone) await tab.viewport(width, true, 800); else await johnsWindow(tab, width, 500);
@@ -156,7 +156,9 @@ const SCENARIOS = {
     // the Closes cell of a dead draft keeps its words; the others keep theirs
     await pill(tab, "All"); await sleep(300);
     const c = await closesOf(tab);
-    if (c["Hotel Dead Draft"] !== "Publish by " + day(now - 3 * DAY)) bad.push("a dead draft's Closes cell reads '" + c["Hotel Dead Draft"] + "'");
+    // prompt BV (October 12, 2026): the cell of a draft whose window ended reads "Ended <day>" (BU left it "Publish by <day>", pending John's word); a draft with time left still reads "Publish by"
+    if (c["Hotel Dead Draft"] !== "Ended " + day(now - 3 * DAY)) bad.push("a dead draft's Closes cell reads '" + c["Hotel Dead Draft"] + "'");
+    if (c["Juliet Draft Alive"] !== "Publish by " + day(now + 6 * DAY)) bad.push("a draft with time left reads '" + c["Juliet Draft Alive"] + "'");
     if (c["Bravo Closed"] !== "Closed " + day(now - 5 * DAY)) bad.push("a closed row's Closes cell reads '" + c["Bravo Closed"] + "'");
     // the other sorts are as they were
     await pickSort(tab, "title_asc"); await sleep(300);
@@ -295,7 +297,7 @@ const SCENARIOS = {
     await signIn(tab, site, "out");
     await tab.goto(site.url + "/index.html"); await tab.waitFor("document.readyState === 'complete'", 10000); await sleep(400);
     const home = (await text(tab, "main")) || (await text(tab, "body")) || "";
-    if (!/Remote · KIO ID: X7K2/.test(home)) bad.push("the home page's sample card line is not 'KIO ID: ...'");
+    if (!home.includes("Remote · KIO ID: KIO-EV9B-V8ZV-Q45P")) bad.push("the home page's sample card line is not 'KIO ID: KIO-...' (prompt BV: the whole sample ID)");
     if (!home.includes("Title, location, dates, and a KIO ID. Included on every tier.")) bad.push("the home page's first step does not say a KIO ID");
     if (!home.includes("or by company and KIO ID or title, before applying.")) bad.push("the home page's third step does not say KIO ID");
     await tab.goto(site.url + "/privacy.html"); await tab.waitFor("document.readyState === 'complete'", 10000); await sleep(300);
@@ -348,7 +350,7 @@ const DEFECTS = [
   ["the ended rows go first in the descending order", ["deadDraft"], [["js/dashboard-model.js", (s) => s.replace("if (ea !== eb) return ea ? 1 : -1; const x", "if (ea !== eb) return ea ? (sign > 0 ? 1 : -1) : (sign > 0 ? -1 : 1); const x")]]],
   ["a dead draft is counted as time left in the Expiring pill", ["deadDraft"], [["js/dashboard-model.js", (s) => s.replace('export const isExpiring = (p, nowMs) => p.status === "draft" && leftWithinFlag(p, nowMs) !== null && !isClosingSoon(p, nowMs);', 'export const isExpiring = (p, nowMs) => p.status === "draft" && lapseAt(p) !== null && Date.parse(lapseAt(p)) - nowMs <= EXPIRY_FLAG_DAYS * DAY_MS && !isClosingSoon(p, nowMs);')]]],
   ["the Added sort puts a dead draft last", ["deadDraft"], [["js/dashboard-model.js", (s) => s.replace('default: return list.sort(tie);', 'default: return list.sort((a, b) => publishWindowEnded(a, nowMs) - publishWindowEnded(b, nowMs) || tie(a, b));')]]],
-  ["a dead draft's Closes cell says it ended", ["deadDraft"], [["js/dashboard-model.js", (s) => s.replace('if (p.status === "draft") return p.publish_by ? "Publish by " + fmtDate(p.publish_by) : "Not set";', 'if (p.status === "draft") return p.publish_by ? "Ended " + fmtDate(p.publish_by) : "Not set";')]]],
+  ["a dead draft's Closes cell says Publish by again (prompt BV: it says Ended)", ["deadDraft"], [["js/dashboard-model.js", (s) => s.replace('(nowMs !== undefined && publishWindowEnded(p, nowMs) ? "Ended " : "Publish by ")', '"Publish by "')]]],
 ];
 test("negative controls: each defect of BU makes a check fail", { timeout: 6000000 }, async () => {
   const missed = [];

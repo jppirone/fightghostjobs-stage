@@ -299,7 +299,7 @@ const DEFECTS = [
   ["the action words keep a left margin each (a wrapped word is indented)", [["app.css", (s) => s.replace(CSS_ACTION_MARGIN, "")]], ["tidyNarrow"]],
   ["the action words may split inside a word", [["app.css", (s) => s.replace('  .my-openings td[data-label="Actions"] .row-action{white-space:nowrap}\n', "")]], ["tidyNarrow"]],
   ["a date and its time may break in the middle", [["app.css", (s) => s.replace("  .my-openings .nb{white-space:nowrap}\n", "")]], ["tidyNarrow"]],
-  ["the dates are plain text again (no pieces)", [["js/pages/dashboard.js", (s) => s.replace('h("td", { role: "cell", "data-label": "Closes", style: "color:var(--muted);" }, dateBits(closesCell(p))', 'h("td", { role: "cell", "data-label": "Closes", style: "color:var(--muted);" }, closesCell(p)')]], ["tidyNarrow"]],
+  ["the dates are plain text again (no pieces)", [["js/pages/dashboard.js", (s) => s.replace('h("td", { role: "cell", "data-label": "Closes", style: "color:var(--muted);" }, dateBits(closesCell(p, now))', 'h("td", { role: "cell", "data-label": "Closes", style: "color:var(--muted);" }, closesCell(p, now)')]], ["tidyNarrow"]],
   ["the wide window rule is gone (the columns share the width in proportion)", [["app.css", (s) => s.replace("{width:1%;white-space:nowrap}", "{}")]], ["tidy1366", "tidyWide"]],
   ["the expired-draft note has no width of its own", [["app.css", (s) => s.replace("  .my-openings .act-note{min-width:36ch}", "")]], ["tidy1366"]],
   // prompt BP: the control "the side padding is back at 12 pixels" moved to my-openings-bp.test.js (at1100), where the one-line layout at 1100 depends on it

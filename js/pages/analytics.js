@@ -6,7 +6,7 @@ import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFai
 import { rememberNext } from "../session.js?v=c0af4232";
 import { $, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { waitText, plural } from "../format.js?v=032c6fc5";
-import { statusChip } from "../dashboard-model.js?v=b3715dc3";
+import { statusChip } from "../dashboard-model.js?v=e406518f";
 import { DEFAULT_RANGE_DAYS, rangeToDates, sharePctLabel, clickThroughPct, clickThroughLabel, searchModeBreakdown, linkBreakdown, isThinData } from "../analytics-model.js?v=92224b01";
 
 const state = { rangeDays: DEFAULT_RANGE_DAYS };

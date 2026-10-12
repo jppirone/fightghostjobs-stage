@@ -332,9 +332,10 @@ const SCENARIOS = {
     await fill("Meridian", "Nurse", ""); await run();
     const had = await tab.eval("document.querySelectorAll('#results .card').length");
     if (!(had > 0) || !(await visible(tab, "#resultCount"))) { bad.push("the first search found nothing to clear"); return bad; }
-    // another refusal (nothing to search for) leaves the results as they were
+    // another refusal (nothing to search for) clears the earlier results too: since prompt BS any new attempt clears what an earlier search left (prompt BV changed this pin from "leaves the results as they were")
     await fill("Meridian", "", ""); await run();
-    if ((await tab.eval("document.querySelectorAll('#results .card').length")) !== had) bad.push("a different refusal cleared the results");
+    if ((await tab.eval("document.querySelectorAll('#results .card').length")) !== 0) bad.push("a refusal for an empty search left the earlier results in place (prompt BS: any new attempt clears them)");
+    if (await visible(tab, "#resultCount")) bad.push("the earlier count is still shown above an empty-search refusal");
     // both the req number and the title: the refusal, and nothing from the earlier search under it
     await fill("Meridian", "Nurse", "R-2026-0451"); await run();
     if ((await text(tab, "#formError")) !== "Fill in the req number, or the KIO ID / title box, not both.") bad.push("the refusal reads '" + (await text(tab, "#formError")) + "'");
@@ -383,8 +384,10 @@ const DEFECTS = [
   ["the My openings dialog's button has no ring", [["js/dashboard-actions.js", (s) => s.replace("focusWithRing(focusable(form)[0] || confirm);", "(focusable(form)[0] || confirm).focus();")]], ["ringDashboardDialog"]],
   ["the team dialog's button has no ring", [["js/pages/team.js", (s) => s.replace("focusWithRing(confirm);", "confirm.focus();")]], ["ringTeamDialog"]],
   ["the ring is too thin", [["app.css", (s) => s.replace("button.focus-ring,a.focus-ring{outline:2px solid var(--ember);outline-offset:2px}", "button.focus-ring,a.focus-ring{outline:1px solid var(--ember);outline-offset:2px}")]], ["ringLeaveDialog"]],
-  ["the refusal leaves the earlier results", [["js/pages/search.js", (s) => s.replace("if (q.clearResults) { clear(resultsEl); countEl.hidden = true; hideRecap(); lastSearch = null; status.clear(); }", "")]], ["searchRefusal"]],
-  ["every refusal clears the results", [["js/search-input.js", (s) => s.replace("if (!hasTitle && !hasReq) return { ok: false, message: \"Enter a req number, a KIO ID or part of the job title.\", focus: \"req\" };", "if (!hasTitle && !hasReq) return { ok: false, message: \"Enter a req number, a KIO ID or part of the job title.\", focus: \"req\", clearResults: true };")]], ["searchRefusal"]],
+  // (prompt BV: the control "the refusal leaves the earlier results" (taking out the both-boxes branch's own clearing) was removed: since BS every new attempt starts with clearOutcome(), which clears the same things,
+  // so that mutation no longer changes anything the page shows; it is covered by the control below, which takes the BS clearing out)
+  // prompt BV (October 12, 2026): the pin now says an empty-search refusal CLEARS the earlier results (BS); the old control ("every refusal clears the results") described the opposite expectation and was replaced
+  ["a new attempt no longer clears the earlier results (the page keeps the old results under an empty-search refusal)", [["js/pages/search.js", (s) => s.replace("setFormError(\"\"); hideRecap(); clearOutcome();", "setFormError(\"\"); hideRecap();")]], ["searchRefusal"]],
 ];
 test("negative controls: each defect in the editor's and the register page's code makes a scenario fail", { timeout: 5400000 }, async () => {
   const missed = [];

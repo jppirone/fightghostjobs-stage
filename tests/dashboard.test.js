@@ -56,6 +56,18 @@ test("text filter: title, req number or Opening ID, ignoring case and punctuatio
   assert.equal(matchesText(row({ req_number: null }), "R-1"), false);
 });
 
+// prompt BV (October 12, 2026): the ID as the column and the job ad show it (with hyphens) finds the row; the stored form has none
+test("text filter: a KIO ID typed or pasted with its hyphens, in any case, with spaces, or a part spanning a hyphen; titles with a hyphen; hyphens alone", () => {
+  const r = row({ title: "Front-End Engineer", req_number: "R-9", post_id: "KIO7K3M9Q2XW4T9" });
+  for (const q of ["KIO-7K3M-9Q2X-W4T9", "kio-7k3m-9q2x-w4t9", "  KIO-7K3M-9Q2X-W4T9  ", "KIO 7K3M 9Q2X W4T9", "KIO7K3M9Q2XW4T9", "7K3M-9Q2X", "9q2x-w4", "7K3M-9"]) assert.equal(matchesText(r, q), true, q);
+  for (const q of ["KIO-7K3M-9Q2X-W4TA", "KIO-AAAA-BBBB-CCCC", "7K3M-9Q2Y", "nurse"]) assert.equal(matchesText(r, q), false, q);
+  assert.equal(matchesText(r, "front-end"), true, "a title with a hyphen is found by that hyphen");
+  assert.equal(matchesText(r, "front end"), true);
+  assert.equal(matchesText(r, "R-9"), true, "the req number as before");
+  for (const q of ["-", "---", " - - "]) assert.equal(matchesText(r, q), true, "punctuation alone is an empty filter: " + JSON.stringify(q));
+  assert.equal(matchesText(row({ post_id: null, title: "Analyst" }), "KIO-7K3M"), false, "no ID, no match");
+});
+
 // ---- prompt BP (October 11, 2026): sorting, the flag, the Expiring pill, the Status column
 test("the sort options: six in the agreed words, Status only on request; defaults per pill", () => {
   assert.deepEqual(SORTS.map((s) => s[1]), ["Added, newest first", "Added, oldest first", "Closes, soonest first", "Closes, furthest first", "Title, A to Z", "Title, Z to A", "Status"]);
@@ -162,6 +174,13 @@ test("table cells: a missing req number, the Added line, and the close cell per 
   assert.match(closesCell(row({ status: "closed", expiration_date: at(25), closed_at: at(-3) })), /^Closed [A-Z][a-z]{2} \d{1,2}$/);
   assert.match(closesCell(row({ status: "expired", stored_status: "live", expiration_date: at(-2) })), /^Expired [A-Z][a-z]{2} \d{1,2}$/);
   assert.equal(closesCell(row({ status: "expired", stored_status: "live", expiration_date: null })), "Expired");
+  // prompt BV (October 12, 2026): a draft whose publish window has ended says Ended (with the day); a draft with time left still says Publish by
+  const dead = row({ status: "draft", posted_at: null, expiration_date: null, publish_by: at(-3) }), alive = row({ status: "draft", posted_at: null, expiration_date: null, publish_by: at(9) });
+  assert.match(closesCell(dead, NOW), /^Ended [A-Z][a-z]{2} \d{1,2}$/);
+  assert.match(closesCell(alive, NOW), /^Publish by [A-Z][a-z]{2} \d{1,2}$/);
+  assert.match(closesCell(dead), /^Publish by /, "without a time the cell reads as it always did");
+  assert.equal(closesCell(row({ status: "draft", posted_at: null, expiration_date: null, publish_by: null }), NOW), "Not set");
+  assert.match(closesCell(row({ status: "scheduled", stored_status: "draft", go_live_at: at(-1), publish_by: at(-3) }), NOW), /^Goes live /, "a scheduled draft is exempt from the publish window");
 });
 
 // ---- slice B: row actions

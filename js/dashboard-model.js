@@ -70,9 +70,13 @@ export function matchesFilter(p, key, nowMs) {
 }
 
 const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+// prompt BV (October 12, 2026): the ID is also compared WITHOUT its hyphens and spaces, so the whole ID typed or pasted as shown (KIO-XXXX-XXXX-XXXX), in any case, and a part of it that spans a hyphen (7R5Q-E6) find the
+// opening; the post_id is stored without hyphens. Titles and req numbers are compared exactly as before (a title with a hyphen is still found by that hyphen). A query of only hyphens or spaces is empty after norm()
+// and shows every row, as an empty box does: punctuation alone never hides a row.
 export function matchesText(p, q) {
   const n = norm(q); if (n === "") return true;
-  return [p.title, p.req_number, p.post_id].some((v) => norm(v).includes(n));
+  if ([p.title, p.req_number, p.post_id].some((v) => norm(v).includes(n))) return true;
+  return typeof p.post_id === "string" && norm(p.post_id).replace(/ /g, "").includes(n.replace(/ /g, ""));
 }
 
 // ---- which views can hold more than one status (prompt BP). Worked out from matchesFilter itself, with one sample row of every status the server can send, so the Status column follows the real rules:
@@ -136,9 +140,10 @@ export function sortRows(rows, key, nowMs) {
 
 export const reqCell = (p) => (p.req_number ? p.req_number : "None");
 export const addedCell = (p) => "Added " + fmtDate(p.created_at);
-export function closesCell(p) {
+// nowMs (prompt BV, October 12, 2026): a draft whose publish window has ended reads "Ended Oct 11" (publish by reads as a deadline still ahead); with no nowMs a draft reads "Publish by" as it always did
+export function closesCell(p, nowMs) {
   if (p.status === "scheduled") return p.go_live_at ? "Goes live " + fmtClose(p.go_live_at) : "Not set";
-  if (p.status === "draft") return p.publish_by ? "Publish by " + fmtDate(p.publish_by) : "Not set";
+  if (p.status === "draft") return p.publish_by ? (nowMs !== undefined && publishWindowEnded(p, nowMs) ? "Ended " : "Publish by ") + fmtDate(p.publish_by) : "Not set";
   if (p.status === "live" || p.status === "paused") return fmtClose(p.expiration_date);
   // prompt BR: the day it really ended, with the word for how: "Expired Oct 16" (it ran out), "Closed Oct 9" (the employer closed it). A closed opening whose closing day the server has not sent yet reads "Closed"
   // alone: the scheduled date it never reached is not shown.
