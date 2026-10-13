@@ -90,7 +90,13 @@ export function startFakeSite(root, opts = {}) {
         if (!staff) return send(404, { code: "FG404", message: "not found" });
         if (opts.staffSearchFails) return send(500, { code: "XX000", message: "boom" });
         const co = String(body.p_company || "").toLowerCase(), ph = String(body.p_phrase || "").toLowerCase();
-        const rows = STAFF_ROWS.filter((r) => r.company_name.toLowerCase().includes(co) && (!ph || r.title.toLowerCase().includes(ph) || (body.p_code ? r.opening_id.replace(/-/g, "") === body.p_code.replace(/-/g, "") : false)));
+        // prompt BY (October 12, 2026): a search by code with NO company finds the opening by its ID alone, whatever its company or status (the database after staff-search-id-migration); with opts.staffNeedsCompany the
+        // database is as it was before that file (every search needs a company: FG400). With opts.kio the rows carry KIO form IDs (derived from the old fixture codes, check character included).
+        const allRows = opts.kio ? STAFF_ROWS.map((r) => ({ ...r, opening_id: kioOf(r.opening_id.replace(/-/g, "")).shown })) : STAFF_ROWS;
+        const idNorm = (s) => String(s || "").toUpperCase().replace(/[ -]+/g, "").replace(/^KIO/, "");
+        if (typeof body.p_code === "string" && body.p_code !== "" && co.trim() === "" && opts.staffNeedsCompany) return send(400, { code: "FG400", message: "company is missing or too short", details: "company" });
+        const rows = typeof body.p_code === "string" && body.p_code !== "" && co.trim() === "" ? allRows.filter((r) => idNorm(r.opening_id) === idNorm(body.p_code))
+          : allRows.filter((r) => r.company_name.toLowerCase().includes(co) && (typeof body.p_code === "string" && body.p_code !== "" ? idNorm(r.opening_id) === idNorm(body.p_code) : (!ph || r.title.toLowerCase().includes(ph))));   // a code with a company is that code in that company (it used to return the company's whole list)
         const out = opts.staffOmitRegistered ? rows.map((r) => { const q = { ...r }; delete q.is_registered; return q; }) : rows;   // opts.staffOmitRegistered: the staff function before the registered-check migration (no is_registered key)
         // opts.staffPlaceOverrides: for each staff result in order an object merged into the row (locations, source_location_text), for the tests of the display-only place text (AZ3)
         const outPlaced = opts.staffPlaceOverrides ? out.map((r, i) => Object.assign({}, r, (opts.staffPlaceOverrides[i] || {}))) : out;

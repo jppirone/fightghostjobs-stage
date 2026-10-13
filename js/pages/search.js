@@ -18,7 +18,7 @@ import { aiNotes } from "../ai-notes.js?v=35c5dc92";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=f2ea9573";
 import { COMMENTS_VISIBLE } from "../config.js?v=9bf25cae";
 import { openUnit } from "../open-link.js?v=454df0f2";
-import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, kioMismatchMessage } from "../search-input.js?v=b3ef517f";
+import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=b3ef517f";
 import { isRegistered } from "../registered.js?v=f191c8c2";
 import { placeNodes } from "../place.js?v=915c680a";
 import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=6f2976ed";
@@ -162,11 +162,12 @@ function renderStaffCard(row) {
         isRegistered(row) ? h("div", { class: "pill badge-verified" }, "✓ Registered") : null)),   // the same rule as the public view
     h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, staffChips(row).map(chip)));
 }
-function showStaffResults(data) {
+// idAlone (prompt BY, October 12, 2026): the search was a KIO ID with no company; an ID nobody has says the same sentence as the normal search ("No opening is registered under that ID.")
+function showStaffResults(data, idAlone) {
   clear(resultsEl);
   countEl.hidden = false;
   countEl.textContent = staffCountText(data.results.length, data.truncated);
-  if (data.results.length === 0) { resultsEl.append(h("div", { class: "empty-note", style: "margin-top:0;" }, "Nothing matches that company and those words in any status.")); return; }
+  if (data.results.length === 0) { resultsEl.append(h("div", { class: "empty-note", style: "margin-top:0;" }, idAlone === true ? KIO_NOT_REGISTERED_MESSAGE : "Nothing matches that company and those words in any status.")); return; }
   for (const row of data.results) resultsEl.append(renderStaffCard(row));
 }
 function enterStaffMode() {
@@ -202,7 +203,7 @@ async function runStaffSearch(c, q, typed, auto) {
     const key = q.kind === "req" ? { p_req: q.value } : q.kind === "code" || q.kind === "kio" ? { p_code: q.value } : { p_phrase: q.value };   // prompt BQ: a KIO ID goes to the staff function as its code (the function reads both forms)
     let r = await api.staffSearch(Object.assign({ p_company: c.value }, key));
     if (q.alsoTryCode && r.ok && r.data.results.length === 0) r = await api.staffSearch({ p_company: c.value, p_code: q.value });
-    if (r.ok) { showStaffResults(r.data); showRecap(typed, c.value, q, auto); return true; }
+    if (r.ok) { showStaffResults(r.data, c.value === "" && q.kind === "kio"); showRecap(typed, c.value, q, auto); return true; }
     leaveStaffMode();
     return false;
   } finally {
@@ -220,7 +221,7 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
   if (!q.ok && q.message === KIO_INVALID_MESSAGE) { setFormError(q.message); queryIn.focus(); return; }
   // prompt BQ: the ID alone is enough. A company is asked for in every other kind of search, exactly as before; with an ID that passes the check it is optional (when it is typed it is still checked and, when it differs from the
   // record, it only raises the notice beside the answer)
-  const idAlone = !staffMode && q.ok && q.kind === "kio" && String(companyIn.value || "").trim() === "";   // (the staff search still asks for the company: its database function needs one)
+  const idAlone = q.ok && q.kind === "kio" && String(companyIn.value || "").trim() === "";   // prompt BY: also in the staff view (the staff function takes an ID with no company since staff-search-id-migration; until that is run, a refusal puts the page back to the normal search, which answers the same ID)
   const c = idAlone ? { ok: true, value: "" } : checkCompany(companyIn.value);
   if (!c.ok) { setFormError(c.message); companyIn.focus(); return; }
   if (!q.ok) {

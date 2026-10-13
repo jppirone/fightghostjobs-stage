@@ -1364,7 +1364,7 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the receiving page calls the backend", "S83", edit(RCV, (s) => s.replace('location.replace("/search.html#k=" + stored);', 'fetch("/x"); location.replace("/search.html#k=" + stored);')));
   control("the receiving page reads the path itself", "S83", edit(RCV, (s) => s.replace("kioFromPath(location.pathname)", "location.pathname.slice(1)")));
   control("404.html does not load the receiving script", "S83", edit(F404, (s) => s.replace('<script type="module" src="/js/kio-receive.js"></script>', "")));
-  control("an ID alone is asked for a company", "S83", edit(SJ, (s) => s.replace("const idAlone = !staffMode && q.ok && q.kind === \"kio\"", "const idAlone = false && q.kind === \"kio\"")));
+  control("an ID alone is asked for a company", "S83", edit(SJ, (s) => s.replace("const idAlone = q.ok && q.kind === \"kio\"", "const idAlone = false && q.kind === \"kio\"")));
   control("an ID that fails the check is not refused on the page", "S83", edit(SJ, (s) => s.replace("if (!q.ok && q.message === KIO_INVALID_MESSAGE) { setFormError(q.message); queryIn.focus(); return; }", "")));
   control("the edit page does not draw the block", "S83", edit(EJ, (s) => s.replace('import { kioBlock } from "../kio-block.js";', "")));
   control("the KIO test is not in the suite", "S83", edit(RUN, (s) => s.replace('path.join(here, "kio-id.test.js")', 'path.join(here, "unit.test.js")')));
@@ -1425,6 +1425,13 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the confirmation becomes a live region as well", "S88", append("js/pages/register.js", 'result.setAttribute("aria-live", "polite");'));
   control("the confirmation element carries a role in the page", "S88", edit("register.html", (s) => s.replace('<div id="result" class="card" hidden>', '<div id="result" class="card" role="status" hidden>')));
   control("the BX browser test is not in the suite", "S88", edit(RUN, (s) => s.replace('path.join(here, "bx.test.js")', 'path.join(here, "unit.test.js")')));
+  // S89 (prompt BY): the staff view finds a KIO ID with no company
+  control("the staff view asks for a company again", "S89", edit("js/pages/search.js", (s) => s.replace("const idAlone = q.ok && q.kind === \"kio\"", "const idAlone = !staffMode && q.ok && q.kind === \"kio\"")));
+  control("an ID nobody has says the company sentence in the staff view", "S89", edit("js/pages/search.js", (s) => s.replace("idAlone === true ? KIO_NOT_REGISTERED_MESSAGE : \"Nothing matches that company and those words in any status.\"", "\"Nothing matches that company and those words in any status.\"")));
+  control("the staff answer does not know the search was an ID alone", "S89", edit("js/pages/search.js", (s) => s.replace("showStaffResults(r.data, c.value === \"\" && q.kind === \"kio\");", "showStaffResults(r.data);")));
+  control("an ID that fails the check is no longer refused on the page", "S89", edit("js/pages/search.js", (s) => s.replace("if (!q.ok && q.message === KIO_INVALID_MESSAGE) { setFormError(q.message); queryIn.focus(); return; }", "")));
+  control("the staff view starts on any answer", "S89", edit("js/pages/search.js", (s) => s.replace("if (r.ok && r.data === true) enterStaffMode();", "if (r.ok) enterStaffMode();")));
+  control("the BY browser test is not in the suite", "S89", edit(RUN, (s) => s.replace('path.join(here, "by.test.js")', 'path.join(here, "unit.test.js")')));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });

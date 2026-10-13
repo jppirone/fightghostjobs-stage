@@ -288,7 +288,7 @@ const SCENARIOS = {
     await tab.waitFor("document.querySelectorAll('#results .staff-card').length > 0", 12000).catch(() => null); await sleep(500);
     const cards = await tab.eval("Array.from(document.querySelectorAll('#results .staff-card')).map((c) => c.innerText.replace(/\\s+/g, ' ').trim())");
     if (cards.length < 2) bad.push("the staff view has " + cards.length + " cards");
-    if (cards.some((c) => /Opening ID/.test(c)) || !cards.some((c) => / · KIO ID: [0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}/.test(c))) bad.push("a staff card line is not 'KIO ID: <ID>': " + q(cards.slice(0, 2)).slice(0, 400));
+    if (cards.some((c) => /Opening ID/.test(c)) || !cards.some((c) => / · KIO ID: KIO-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}/.test(c))) bad.push("a staff card line is not 'KIO ID: <ID>': " + q(cards.slice(0, 2)).slice(0, 400));
     const hits = await tab.eval(SWEEP);
     if (hits.length) bad.push("the staff view still says Opening ID: " + q(hits.slice(0, 4)));
     return bad; })); },

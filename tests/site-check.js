@@ -57,6 +57,7 @@
 //   S62 the search page opened with the company and one other value in the URL fragment (extension hand-off): only c, p, r, t, the site's limits, plain text, refuse on doubt, fragment removed at once, never an automatic search
 //   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
 //   S60 search engines (Phase 3): the flag ALLOW_INDEXING in js/config.js (false on stage) agrees with every page's robots tag and with robots.txt; sign-in pages are noindex in every environment; the tool and the test exist and run
+//   S89 the staff view finds a KIO ID with no company, says the normal sentence for an ID nobody has, and is entered only on a clear true (prompt BY)
 //   S88 after an opening is added the keyboard focus is on the confirmation heading (tabindex -1, no live region as well) (prompt BX)
 //   S87 the "This opening is not added yet" bar is redrawn at the moment the opening exists, not by a later key, click or input (prompt BW)
 //   S86 no masked KIO ID in any visible string, the candidate comments page shows the whole ID, a valid sample ID on the home page, Ended on a dead draft, the filter finds an ID typed with hyphens (prompt BV)
@@ -1969,7 +1970,7 @@ export function checkSite(root, opts = {}) {
     for (const [f, why] of [[editF, "the edit page draws the ID block"], [regF, "the confirmation page draws the ID block"]]) if (fs.existsSync(f) && !read(f).includes('import { kioBlock } from "../kio-block.js";')) add("S83", f, why + " (kioBlock)");
     if (fs.existsSync(srchF)) {
       const s = read(srchF);
-      if (!s.includes('const idAlone = !staffMode && q.ok && q.kind === "kio"')) add("S83", srchF, "an ID alone needs no company");
+      if (!s.includes('const idAlone = q.ok && q.kind === "kio"')) add("S83", srchF, "an ID alone needs no company (prompt BY: in the staff view too)");
       if (!s.includes("if (!q.ok && q.message === KIO_INVALID_MESSAGE) { setFormError(q.message); queryIn.focus(); return; }")) add("S83", srchF, "an ID that fails the check is refused on the page, nothing sent");
       if (/applyFragmentPrefill\([^)]*\)[^;]*\.then|requestSubmit\(\)|runSearch\(\)[^;]*applyFragmentPrefill/.test(s.split("function setFormError")[0])) add("S83", srchF, "the fragment never runs a search");
     }
@@ -2099,6 +2100,21 @@ export function checkSite(root, opts = {}) {
     const html = P("register.html");
     if (fs.existsSync(html) && /id="result"[^>]*\b(role|aria-live)=/.test(read(html))) add("S88", html, "the confirmation element must not carry a role or aria-live (the focus is the announcement)");
     if (fs.existsSync(runF) && !read(runF).includes('"bx.test.js"')) add("S88", runF, "bx.test.js is not in the suite");
+  }
+  // S89 (2026-10-12, prompt BY): the staff view finds a KIO ID with no company, like the normal search (the staff function takes an ID with no company since staff-search-id-migration); an ID nobody has says the same
+  // sentence as the normal search; an ID that fails the check is refused on the page before anything is sent (for everyone); the staff view is entered only on a clear true from the database.
+  {
+    const P = (...a) => path.join(root, ...a);
+    const srF = P("js", "pages", "search.js"), runF = P("tests", "run-all.js");
+    if (fs.existsSync(srF)) {
+      const s = stripJsComments(read(srF));
+      if (s.includes("!staffMode && q.ok && q.kind === \"kio\"")) add("S89", srF, "the staff view must not ask for a company when an ID is typed");
+      if (!s.includes('idAlone === true ? KIO_NOT_REGISTERED_MESSAGE : "Nothing matches that company and those words in any status."')) add("S89", srF, "an ID nobody has in the staff view says No opening is registered under that ID.");
+      if (!s.includes("showStaffResults(r.data, c.value === \"\" && q.kind === \"kio\");")) add("S89", srF, "the staff answer must know the search was an ID with no company");
+      if (!s.includes('if (!q.ok && q.message === KIO_INVALID_MESSAGE) { setFormError(q.message); queryIn.focus(); return; }')) add("S89", srF, "an ID that fails the check is refused on the page before anything is sent");
+      if (!s.includes("if (r.ok && r.data === true) enterStaffMode();")) add("S89", srF, "the staff view starts only on a clear true from the database");
+    }
+    if (fs.existsSync(runF) && !read(runF).includes('"by.test.js"')) add("S89", runF, "by.test.js is not in the suite");
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed
