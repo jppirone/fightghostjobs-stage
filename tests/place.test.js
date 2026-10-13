@@ -107,9 +107,9 @@ const DEFECTS = [
   ["the text is shown even when the opening has a catalog place", ["card", "staff"], [["js/place.js", (s) => s.replace('const src = locs.length === 0 ? sourcePlaceText(row) : "";', "const src = sourcePlaceText(row);")]]],
   ["there is no length limit", ["limit"], [["js/place.js", (s) => s.replace(".slice(0, MAX_PLACE_CHARS)", "")]]],
   ["control characters are not removed", ["control"], [["js/place.js", (s) => s.replace('.replace(/[\\u0000-\\u001f\\u007f-\\u009f]/g, "")', "")]]],
-  ["the text is made into markup (no escaping)", ["escaped"], [["js/pages/search.js", (s) => s.replace("return [p.text, p.note ?", "const sp = document.createElement(\"span\"); sp.innerHTML = p.text; return [sp, p.note ?")]]],
-  ["the note is left out", ["card", "details", "staff"], [["js/place.js", (s) => s.replace("note: PLACE_NOTE };\n}", "note: null };\n}")]]],
-  ["the details window never shows it", ["details"], [["js/pages/search.js", (s) => s.replace("place.hidden = !shown;", "place.hidden = true;")]]],
+  ["the text is made into markup (no escaping)", ["escaped"], [["js/place.js", (s) => s.replace("const out = [p.text];", "const sp = document.createElement(\"span\"); sp.innerHTML = p.text; const out = [sp];")]]],   // TEST1 (October 13, 2026): since BJ every screen draws the place with placeNodes in js/place.js; the defect is the same: the typed text is made into markup
+  ["the note is left out", ["card", "details", "staff"], [["js/place.js", (s) => s.replace("note: PLACE_NOTE, stated: true };", "note: null, stated: true };")]]],   // TEST1 (October 13, 2026): the return line has a stated flag since BJ; the defect is the same: the note is left out
+  ["the details window never shows it", ["details"], [["js/pages/search.js", (s) => s.replace("clear(place); place.hidden = false;", "clear(place); place.hidden = true;")]]],   // TEST1 (October 13, 2026): since BJ the details window always draws the one place line (the list places, Remote, or the typed text with its note), so the line was  place.hidden = !shown;  and is now  place.hidden = false;  ; the defect is the same: the window never shows it
   ["the place text goes into the search request", ["notForSearch"], [["js/pages/search.js", (s) => s.replace(": { company: c.value, phrase: q.value });", ": { company: c.value, phrase: q.value, place: \"Tokyo, Japan\" });")]]],
 ];
 test("negative controls: each defect in the place text makes a scenario fail", { timeout: 1800000 }, async () => {

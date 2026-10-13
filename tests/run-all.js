@@ -32,6 +32,7 @@ const steps = [
   ["emailed code next to the link: typed in the same tab on the search page and the employer sign-in page (real browser)", [path.join(here, "code-entry.test.js")], true],
   ["the KIO ID (prompt BQ): a lookup by the ID alone, the mismatch notice, the extension's k fragment, the answers, the employer's ID block with its copy buttons, My openings with the 18 character ID, the short link receiving page, an unmigrated database (real browser)", [path.join(here, "kio-id.test.js")], true],
   ["My openings and the editor (prompt BR): Closed and Expired with the real day, closed and expired rows last in both Closes directions, one clean Status pill at 1093, 1100 and 1366 pixels, the editor's saved line gone at the next change, the 14 days counted from the day it was added (real browser)", [path.join(here, "br.test.js")], true],
+  ["the KIO ID on the search page (prompt BS): the recap shows the ID in its shown form however it was typed, the mismatch notice names what was entered and says to check the copy, nothing of an earlier search stays when a new attempt begins or the page refuses an ID, the short link path fills the box and searches nothing (real browser)", [path.join(here, "bs.test.js")], true],
   ["the label KIO ID everywhere a person sees it (prompt BU): My openings header and column rule at 1093, 1100 and 1366 pixels, the editor, the Add confirmation, the search page's words, the comments page, the staff view, a sweep of every page for the old words; a draft whose publish window ended sorts with the ended rows in both Closes directions (real browser)", [path.join(here, "bu.test.js")], true],
   ["the follow-ups of BV: a draft whose publish window ended says Ended, the My openings filter finds a KIO ID typed with its hyphens, the home page sample card shows a whole valid KIO ID, the candidate comments page shows the whole KIO ID with the req number still masked (real browser)", [path.join(here, "bv.test.js")], true],
   ["the unsaved bar on the Add page is gone the moment the opening is added, by Enter, Space, the mouse, Enter in a field, Save draft and the bar's own Save draft, with no later input; it stays while the request is in flight and after a failed add (real keys and mouse, real browser)", [path.join(here, "bw.test.js")], true],
@@ -63,11 +64,13 @@ const steps = [
 ];
 // The time limit of one step, in minutes. Chosen from the measured times (reports\browser-cleanup-report.txt): the slowest healthy browser step takes about 10 minutes and the static controls about 18; the longest test
 // timeout inside a browser file is 58 minutes, so a browser step gets 60 and the test's own timeout still fires first. FGJ_STEP_LIMIT_SCALE multiplies every limit; FGJ_STEP_LIMIT_MIN sets one limit for every step.
+// TEST1 (October 13, 2026): the static controls now get 90 minutes, not 45. The overnight full run (NIGHT1) was stopped at 45 after 1104 controls: the file grew (more than 1150 controls) and each control copies and checks the
+// whole repository, which grew too (about 2.8 seconds per control, 17.6 minutes in all on October 7). The step still has a limit: a run that is stopped at 90 minutes is a finding, not a pass.
 function limitMin(files) {
   if (process.env.FGJ_STEP_LIMIT_MIN) return Number(process.env.FGJ_STEP_LIMIT_MIN);
   const base = path.basename(files[0]);
   // the first prefix of the file name that matches (most specific first); every other file is a browser step
-  const byPrefix = [["site-check.controls", 45], ["site-check", 5], ["leak-check.test", 15], ["leak-check", 5], ["unit.test", 15], ["indexing", 15]];
+  const byPrefix = [["site-check.controls", 90], ["site-check", 5], ["leak-check.test", 15], ["leak-check", 5], ["unit.test", 15], ["indexing", 15]];
   const hit = byPrefix.find(([p]) => base.startsWith(p));
   return (hit ? hit[1] : 60) * (Number(process.env.FGJ_STEP_LIMIT_SCALE) || 1);
 }

@@ -341,7 +341,7 @@ const DEFECTS = [
   ["the result line says Opening ID", ["searchPage"], [["js/pages/search.js", (s) => s.replace('" · KIO ID: " + openingIdText(row)', '" · Opening ID " + openingIdText(row)')]]],
   ["the details window says Opening ID", ["searchPage"], [["js/pages/search.js", (s) => s.replace('textContent = "KIO ID: " + openingIdText(row)', 'textContent = "Opening ID " + openingIdText(row)')]]],
   ["an old code's recap says an Opening ID", ["searchPage"], [["js/search-recap.js", (s) => s.replace('CODE: "a KIO ID was entered",', 'CODE: "an Opening ID was entered",')]]],
-  ["the comments page line says Opening ID", ["commentsAndStaff"], [["js/pages/comments.js", (s) => s.replace('" · KIO ID: " + p.masked_code', '" · Opening ID " + p.masked_code')]]],
+  ["the comments page line says Opening ID", ["commentsAndStaff"], [["js/pages/comments.js", (s) => s.replace('" · KIO ID: " + (typeof p.kio_id', '" · Opening ID " + (typeof p.kio_id')]]],   // TEST1 (October 13, 2026): since BV the line shows the whole kio_id and the masked code only without it; the defect is the same: the label says Opening ID
   ["the employer's comments line says Opening ID", ["commentsAndStaff"], [["js/pages/comments.js", (s) => s.replace('"KIO ID: " + groupCode(p.post_id)', '"Opening ID " + groupCode(p.post_id)')]]],
   ["the staff card line says Opening ID", ["staffView"], [["js/staff-scope.js", (s) => s.replace('" · KIO ID: " + row.opening_id', '" · Opening ID " + row.opening_id')]]],
   ["the home page sample says Opening ID", ["otherPages"], [["index.html", (s) => s.replace("Remote · KIO ID: <span", "Remote · Opening ID <span")]]],

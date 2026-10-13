@@ -235,7 +235,7 @@ test("the KIO ID on the pages: the ID alone, the notice, the fragment, the answe
 
 // ---- negative controls: [label, scenarios, [[file, mutate]]]
 const DEFECTS = [
-  ["a company is still asked for with an ID", ["idAlone"], [["js/pages/search.js", (s) => s.replace("const idAlone = !staffMode && q.ok", "const idAlone = false && q.ok")]]],
+  ["a company is still asked for with an ID", ["idAlone"], [["js/pages/search.js", (s) => s.replace("const idAlone = q.ok && q.kind === \"kio\"", "const idAlone = false && q.kind === \"kio\"")]]],   // TEST1 (October 13, 2026): BY removed the staff view test from this line (the ID alone is also enough there); the defect is the same: a company is asked for again
   ["the held title words go with any ID", ["fragment"], [["js/pages/search.js", (s) => s.replace("if (heldKio && heldKio.stored === stored) { b.phrase = heldKio.title; sentTitle = heldKio.title; }", "if (heldKio) { b.phrase = heldKio.title; sentTitle = heldKio.title; }")]]],
   ["the notice is never shown", ["notice"], [["js/pages/search.js", (s) => s.replace("if (data.mismatch === true) resultsEl.append(", "if (false) resultsEl.append(")]]],
   ["an ID that fails the check is sent to the backend", ["answers"], [["js/search-input.js", (s) => s.replace("if (k.kind === \"none\" && looksLikeKio(t)) return { ok: false, message: KIO_INVALID_MESSAGE };", "")]]],
