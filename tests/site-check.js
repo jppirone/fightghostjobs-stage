@@ -57,6 +57,7 @@
 //   S62 the search page opened with the company and one other value in the URL fragment (extension hand-off): only c, p, r, t, the site's limits, plain text, refuse on doubt, fragment removed at once, never an automatic search
 //   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
 //   S60 search engines (Phase 3): the flag ALLOW_INDEXING in js/config.js (false on stage) agrees with every page's robots tag and with robots.txt; sign-in pages are noindex in every environment; the tool and the test exist and run
+//   S90 every tests/*.test.js is a step of tests/run-all.js (a test file that is not a step is never run by a full run) (prompt TEST2)
 //   S89 the staff view finds a KIO ID with no company, says the normal sentence for an ID nobody has, and is entered only on a clear true (prompt BY)
 //   S88 after an opening is added the keyboard focus is on the confirmation heading (tabindex -1, no live region as well) (prompt BX)
 //   S87 the "This opening is not added yet" bar is redrawn at the moment the opening exists, not by a later key, click or input (prompt BW)
@@ -2115,6 +2116,23 @@ export function checkSite(root, opts = {}) {
       if (!s.includes("if (r.ok && r.data === true) enterStaffMode();")) add("S89", srF, "the staff view starts only on a clear true from the database");
     }
     if (fs.existsSync(runF) && !read(runF).includes('"by.test.js"')) add("S89", runF, "by.test.js is not in the suite");
+  }
+  // S90 (2026-10-13, prompt TEST2): every tests/*.test.js is a step of tests/run-all.js. BS added tests/bs.test.js and never its step, and nothing noticed for days (the overnight full run, NIGHT1, found it): a test
+  // file that is not a step is never run by a full run. The steps are read from run-all.js itself (the text between "const steps = [" and its closing "];", comments taken out, so a name in a comment is not a step),
+  // not from a copy of the list. A file name counts when it stands in quotes in that list, as path.join(here, "x.test.js") does.
+  {
+    const dirT = path.join(root, "tests"), runF = path.join(dirT, "run-all.js");
+    if (fs.existsSync(runF)) {
+      const src = stripJsComments(read(runF));
+      const from = src.indexOf("const steps = ["), to = from < 0 ? -1 : src.indexOf("\n];", from);
+      if (from < 0 || to < 0) add("S90", runF, "the steps list of run-all.js was not found (const steps = [ ... ];): the rule cannot say which test files are steps");
+      else {
+        const stepsText = src.slice(from, to);
+        for (const f of fs.readdirSync(dirT).filter((x) => /\.test\.js$/.test(x)).sort()) {
+          if (!stepsText.includes('"' + f + '"')) add("S90", path.join(dirT, f), f + " is not a step of tests/run-all.js: it is never run by a full run (add it to the steps list)");
+        }
+      }
+    }
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed

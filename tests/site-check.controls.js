@@ -1432,6 +1432,11 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("an ID that fails the check is no longer refused on the page", "S89", edit("js/pages/search.js", (s) => s.replace("if (!q.ok && q.message === KIO_INVALID_MESSAGE) { setFormError(q.message); queryIn.focus(); return; }", "")));
   control("the staff view starts on any answer", "S89", edit("js/pages/search.js", (s) => s.replace("if (r.ok && r.data === true) enterStaffMode();", "if (r.ok) enterStaffMode();")));
   control("the BY browser test is not in the suite", "S89", edit(RUN, (s) => s.replace('path.join(here, "by.test.js")', 'path.join(here, "unit.test.js")')));
+  // S90 (prompt TEST2): every tests/*.test.js is a step of tests/run-all.js
+  control("the BS browser test is not a step (its line is commented out)", "S90", edit(RUN, (s) => s.replace('  ["the KIO ID on the search page (prompt BS):', '  // ["the KIO ID on the search page (prompt BS):')));
+  control("a new test file nobody listed", "S90", (dir) => { fs.writeFileSync(path.join(dir, "tests", "zz-unlisted.test.js"), "// a test file that is not a step of run-all.js\n"); });
+  control("a test file named only in a comment of run-all.js", "S90", edit(RUN, (s) => s.replace('path.join(here, "bs.test.js")', 'path.join(here, "unit.test.js")').replace("const here = path.dirname(fileURLToPath(import.meta.url));", "const here = path.dirname(fileURLToPath(import.meta.url));\n// bs.test.js")));
+  control("the steps list can no longer be found", "S90", edit(RUN, (s) => s.replace("const steps = [", "const stepList = [")));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });
