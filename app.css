@@ -162,6 +162,9 @@ a.row-action:hover{text-decoration:underline}
 .contest-form select{width:100%;min-height:44px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px;font-family:'Work Sans',sans-serif;background:#fff;color:var(--ink)}
 .contest-form select:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
 .contest-form select[aria-invalid="true"]{border-color:var(--ember-dark)}
+.intent-select{width:100%;min-height:44px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px;font-family:'Work Sans',sans-serif;background:#fff;color:var(--ink)}
+.intent-select:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+.intent-note{margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:var(--ink)}
 .contest-confirm{display:flex;flex-direction:column;gap:10px;font-size:14px;line-height:1.6}
 .contest-confirm-title{margin:0;font-weight:700}
 .contest-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}

@@ -3,15 +3,16 @@
 // Posting a comment: the page checks length and plain text, the backend applies the whole rule (no web address, no naming where the posting was found unless this posting already shows
 // that platform, no slurs or profanity) and says why in words. Wrong links go to a private report, not to the thread.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js?v=67bc7e98";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js?v=fef88967";
 import { requestLink, watchOtherTabSignIn } from "../session.js?v=c0af4232";
 import { $, h, clear, alertBox, chip } from "../dom.js?v=ff147636";
 import { waitText, groupCode } from "../format.js?v=032c6fc5";
 import { placeNodes } from "../place.js?v=915c680a";
 import { postingChips, notOpenRecap } from "../chips.js?v=7a1dc776";
 import { aiNotes } from "../ai-notes.js?v=35c5dc92";
-import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js?v=68884a2b";
-import { addContestPart } from "../contest-ui.js?v=8dc33975";
+import { intentNotes } from "../intent-statement.js?v=d37f2b4b";
+import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js?v=0023c746";
+import { addContestPart } from "../contest-ui.js?v=ec965932";
 import { COMMENTS_VISIBLE } from "../config.js?v=9bf25cae";   // the one comments switch: while false this page is only the wrong-link report
 
 const params = new URLSearchParams(location.search);
@@ -105,7 +106,8 @@ function renderRecap(d) {
     const meta = $("#recapMeta"); clear(meta); meta.append(...placeNodes(h, p), " · KIO ID: " + (typeof p.kio_id === "string" && p.kio_id !== "" ? p.kio_id : p.masked_code) + (p.masked_req ? " · Req " + p.masked_req : ""));
     const chips = $("#recapChips"); clear(chips); for (const c of postingChips(p)) chips.append(chip(c));
     const notes = $("#recapNotes"); clear(notes);
-    for (const n of aiNotes(p)) notes.append(h("div", { style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text));
+    // prompt ST1: the kind of opening ("The employer says: ..."), beside the AI lines; nothing at all when not stated
+    for (const n of [...aiNotes(p), ...intentNotes(p)]) notes.append(h("div", { style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text));
     $("#recapNote").textContent = state.links.length ? "The employer's links (" + state.links.length + ") are on the opening's details in Search. If one of them led you somewhere wrong, use “Report a wrong link” at the bottom of this page." : "This employer has not provided a link to where you can apply.";
   } else if (d.status === 409 && d.data && d.data.code === "posting_not_open") {
     const nr = notOpenRecap(d.data.status, d.data.closed_reason || null, COMMENTS_VISIBLE);

@@ -9,7 +9,7 @@
 <script src="js/stage-gate.js?v=d48925c1"></script>
 <title>FightGhostJobs | Add an Opening</title>
 <link rel="stylesheet" href="styles.css?v=4cea5b1e">
-<link rel="stylesheet" href="app.css?v=180dfd87">
+<link rel="stylesheet" href="app.css?v=1f0016a1">
 </head>
 <body>
 <a id="skipToUnsaved" class="skip-link" href="#unsavedSave" hidden>Skip to unsaved changes</a>
@@ -143,6 +143,18 @@
         <div class="field-error" data-error-for="aiInterviewNote" hidden></div>
       </div>
 
+      <div id="intentRow" style="display:flex;flex-direction:column;gap:8px;">
+        <label for="intentSelect" style="font-size:14px;font-weight:600;">Kind of opening (optional)</label>
+        <div id="intentHint" style="font-size:13px;color:var(--muted);line-height:1.6;">Optional. Say what kind of opening this is. Candidates read it as a line that begins "The employer says". Leave it as Not stated to show nothing.</div>
+        <select id="intentSelect" class="intent-select" aria-describedby="intentHint intentMeaning"><option value="">Not stated</option></select>
+        <div id="intentMeaning" class="field-hint" style="margin-top:0;" hidden></div>
+        <div id="intentDateRow" hidden style="display:flex;flex-direction:column;gap:6px;">
+          <label for="intentDate" id="intentDateLabel" style="font-size:13px;color:var(--muted);">Date</label>
+          <input id="intentDate" type="date" autocomplete="off">
+        </div>
+        <div class="field-error" data-error-for="intentDate" hidden></div>
+      </div>
+
       <div id="policyRow" hidden style="display:flex;flex-direction:column;gap:8px;">
         <label for="policyUrl" id="policyLabel" style="font-size:14px;font-weight:600;">Link to your AI and hiring policy (optional)</label>
         <div id="policyHint" style="font-size:13px;color:var(--muted);line-height:1.6;">Shown to candidates as a link to your own page. FightGhostJobs checks only that the address answers; it does not read or judge what the page says. It is saved right after the opening is added.</div>
@@ -257,6 +269,6 @@
 
 <footer class="site-footer"><span>FightGhostJobs</span><a href="privacy.html">Privacy</a><a href="mailto:privacy@fightghostjobs.com">privacy@fightghostjobs.com</a></footer>
 
-<script type="module" src="js/pages/register.js?v=db174cff"></script>
+<script type="module" src="js/pages/register.js?v=5e235b8b"></script>
 </body>
 </html>

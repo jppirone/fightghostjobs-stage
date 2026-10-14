@@ -9,6 +9,12 @@
 
 import { PLACE_FIELD } from "./place-text.js?v=cb5d7506";
 import { POST_ID_RE, isKioShown } from "./kio.js?v=80867368";
+import { intentOptionsOk, INTENT_CODES } from "./intent-statement.js?v=d37f2b4b";
+// prompt ST1: the employer's optional statement of the kind of an opening. A search row carries the finished sentence (or null); the editor's posting carries the code and the day. Absent = an answer from before the
+// database change. The sentence is plain text of at most 300 characters; the code is one of the four; the day is YYYY-MM-DD.
+const intentLineOk = (r) => r.intent_line === undefined || r.intent_line === null || (typeof r.intent_line === "string" && r.intent_line.length <= 300);
+const intentFieldsOk = (p) => (p.intent_statement === undefined || p.intent_statement === null || INTENT_CODES.includes(p.intent_statement))
+  && (p.intent_date === undefined || p.intent_date === null || (typeof p.intent_date === "string" && /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(p.intent_date)));
 // the typed place of an opening (prompt BH): absent, null or text of 1 to 200 characters (the table holds board text up to 200); never read for anything but display
 const placeFieldOk = (p) => p[PLACE_FIELD] === undefined || p[PLACE_FIELD] === null || (typeof p[PLACE_FIELD] === "string" && p[PLACE_FIELD].length >= 1 && p[PLACE_FIELD].length <= 200);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -60,7 +66,7 @@ export const shapes = {
     && shapes.aiNotes(r)
     && isBool(r.third_party_recruiter) && MASK_RE.test(r.masked_code) && isNullable(r.masked_req, (v) => isStr(v) && MASKED_REQ_RE.test(v)) && REF_RE.test(r.posting_ref) && isNullable(r.last_edited_at, isStr)
     // prompt BQ (October 12, 2026): the whole KIO ID (null or absent from an answer of before the database change) and, for a lookup by ID, when it closed or expired
-    && (r.kio_id === undefined || isNullable(r.kio_id, isKioShown)) && (r.closed_at === undefined || isNullable(r.closed_at, isStr)),
+    && (r.kio_id === undefined || isNullable(r.kio_id, isKioShown)) && (r.closed_at === undefined || isNullable(r.closed_at, isStr)) && intentLineOk(r),
   // one row of the staff-scope answer (staff_search_openings): every status, exact keys only
   staffRow: (r) => isObj(r) && Object.keys(r).every((k) => STAFF_ROW_KEYS.includes(k) || STAFF_ROW_OPTIONAL_KEYS.includes(k)) && STAFF_ROW_KEYS.every((k) => Object.hasOwn(r, k))   // is_registered is read by js/registered.js (only a boolean true draws the mark; any other value is not registered), so its value is not judged here
     && isStr(r.company_name) && isStr(r.organization_name) && isStr(r.title) && Array.isArray(r.locations) && r.locations.every(isStr) && isBool(r.is_remote)
@@ -96,7 +102,9 @@ export const shapes = {
   openPosting: (p) => isObj(p) && UUID_RE.test(p.id) && isStr(p.title) && isNullable(p.req_number, isStr) && isStr(p.company_name) && POST_ID_RE.test(p.post_id) && EFFECTIVE_STATUSES.includes(p.status) && POSTING_STATUSES.includes(p.stored_status)
     && isNullable(p.closed_reason, isStr) && isBool(p.is_remote) && Array.isArray(p.locations) && p.locations.every(isStr) && Array.isArray(p.location_ids) && p.location_ids.every(isStr) && isBool(p.locations_attested) && placeFieldOk(p)
     && isNullable(p.ai_filtering, isBool) && isNullable(p.ai_interview_other, isBool) && shapes.aiNotes(p) && isBool(p.third_party_recruiter) && isBool(p.req_searchable) && isBool(p.destination_links_exclusive) && isNullable(p.applicant_cap, Number.isInteger) && isStr(p.description_text) && Number.isInteger(p.window_days)
-    && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isNullable(p.go_live_at, isStr) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr),
+    && isNullable(p.posted_at, isStr) && isNullable(p.expiration_date, isStr) && isNullable(p.publish_by, isStr) && isNullable(p.go_live_at, isStr) && isStr(p.created_at) && isNullable(p.last_edited_at, isStr) && intentFieldsOk(p),
+  // prompt ST1: the choices the employer's pages offer (the database's wording table): [{ code, label, meaning, needs_date }], in order
+  intentOptions: (d) => intentOptionsOk(d),
   // the destination links the employer stored: position and label only, NEVER the address (the server keeps that encrypted and does not send it back)
   // pass B: a stored link may also say what candidates see for it (shown_as: derived from where it goes, never from the label; null for a firm without a link) and how the liveness check went when it was saved.
   // pass C: kind 'apply' (an application link, up to 10) or 'recruiter' (a named recruiter firm, up to 3; firm = its name, a link optional)
@@ -277,6 +285,8 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     // ---- candidate side
     candidateSession: () => call("candidate-session", {}),
     // ---- staff scope (only a signed-in staff person gets anything; the database decides)
+    // prompt ST1: the kinds of opening the employer may state, with the employer's labels (PostgREST rpc with the poster's own token; any refusal or odd answer is { ok:false } and the page then offers the spec's wording)
+    intentOptions: () => rpc("intent_statement_options", {}, { validate: shapes.intentOptions }),
     isStaff: () => rpc("is_staff", {}, { validate: isBool }),
     staffSearch: (q) => rpc("staff_search_openings", q, { validate: shapes.staffSearch }),
     candidateSearch: (q) => call("candidate-search", q, { validate: shapes.search }),

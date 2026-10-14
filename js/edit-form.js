@@ -6,6 +6,7 @@
 
 import { problems as locationProblems } from "./location-rules.js?v=d6656595";
 import { aiNoteProblem } from "./ai-notes.js?v=35c5dc92";
+import { intentProblem, intentChange, INTENT_FIELD_IDS } from "./intent-statement.js?v=d37f2b4b";
 import { PLACE_FIELD, collapsePlaceText, placeTextProblem, storedPlaceText } from "./place-text.js?v=cb5d7506";
 
 export const MAX_NOTE = 500, MAX_DESC = 20000, MAX_REQ = 100;
@@ -16,6 +17,7 @@ export const FIELD_OF_SERVER_NAME = {
   title: "jtitle", req_number: "req", description_text: "desc", location_ids: "locpicker", is_remote: "locpicker", locations_attested: "attest", applicant_cap: "appcap", change_note: "note",
   ai_filtering_note: "aiFilterNote", ai_interview_note: "aiInterviewNote", req_searchable: "reqSearchToggle",
   [PLACE_FIELD]: "loctext",      // prompt BH: the typed place
+  ...INTENT_FIELD_IDS,           // prompt ST1: the kind of opening (intentSelect) and its date (intentDate)
 };
 
 // how req numbers are compared everywhere (case, spaces and punctuation ignored)
@@ -49,6 +51,8 @@ export function changedFields(orig, v) {
   if (fNote !== (orig.ai_filtering_note == null ? null : orig.ai_filtering_note)) ch.ai_filtering_note = fNote;
   const iNote = v.aiInterview === true ? (String(v.aiInterviewNote == null ? "" : v.aiInterviewNote).trim() || null) : null;
   if (iNote !== (orig.ai_interview_note == null ? null : orig.ai_interview_note)) ch.ai_interview_note = iNote;
+  // the kind of opening (prompt ST1): v.intent is undefined while the page has no such box (then nothing is sent); "" is not stated. Only what changed is sent; taking it away sends the word not_stated.
+  if (v.intent !== undefined) Object.assign(ch, intentChange({ intent_statement: orig.intent_statement, intent_date: orig.intent_date }, v.intent, v.intentDate));
   if ((v.recruiter === true) !== orig.third_party_recruiter) ch.third_party_recruiter = v.recruiter === true;
   if ((v.reqSearchable !== false) !== (orig.req_searchable !== false)) ch.req_searchable = v.reqSearchable !== false;
   if (typeof v.exclusive === "boolean" && v.exclusive !== (orig.destination_links_exclusive === true)) ch.destination_links_exclusive = v.exclusive;
@@ -77,6 +81,7 @@ export function checkEdit(orig, v) {
   else Object.assign(e, locationProblems(chosen, v.remote === true, v.attested === true));
   if (v.aiFilter === true) { const p = aiNoteProblem(String(v.aiFilterNote == null ? "" : v.aiFilterNote).trim()); if (p) e.aiFilterNote = p; }
   if (v.aiInterview === true) { const p = aiNoteProblem(String(v.aiInterviewNote == null ? "" : v.aiInterviewNote).trim()); if (p) e.aiInterviewNote = p; }
+  if (v.intent !== undefined) { const p = intentProblem(v.intent, v.intentDate); if (p) e.intentDate = p; }      // prompt ST1
   const note = String(v.note == null ? "" : v.note).trim();
   if (note.length > MAX_NOTE) e.note = "Keep the note to " + MAX_NOTE + " characters or fewer.";
   else if (hasControl(note)) e.note = "Keep the note to plain text.";
@@ -117,7 +122,8 @@ export function mapEditErrors(err) {
 // line of Recent changes goes through this before it is drawn (the stored text is not changed: older rows read the same way). Any other note is the employer's own words or one of the fixed plain sentences.
 const CHANGE_FIELD_WORDS = { title: "job title", req_number: "req number", description_text: "job description", location_ids: "place", locations: "place", [PLACE_FIELD]: "place", is_remote: "place", locations_attested: "place",
   ai_filtering: "AI filtering answer", ai_interview_other: "AI interviewing answer", ai_filtering_note: "AI filtering note", ai_interview_note: "AI interviewing note", ai_disclosure_shown: "AI disclosure", third_party_recruiter: "recruiter involved",
-  req_searchable: "req number search", destination_links_exclusive: "applications only through the links", applicant_cap: "applicant cap" };
+  req_searchable: "req number search", destination_links_exclusive: "applications only through the links", applicant_cap: "applicant cap",
+  intent_statement: "kind of opening", intent_date: "kind of opening" };
 export function plainChangeNote(note) {
   const raw = String(note == null ? "" : note);
   const m = /^edit-posting: changed (.+)$/.exec(raw.trim());

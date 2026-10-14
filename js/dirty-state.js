@@ -7,6 +7,9 @@
 // The change note is not part of the snapshot: a note with nothing changed is not saveable ("Nothing has changed.").
 
 import { storedPlaceText } from "./place-text.js?v=cb5d7506";
+import { INTENT_CODES, takesDate } from "./intent-statement.js?v=d37f2b4b";
+// prompt ST1: the kind of opening as the save reads it: a code (or "" = not stated) and its day only for the two values that take one
+const intentKey = (v) => { const c = trim(v.intent); const code = INTENT_CODES.includes(c) ? c : ""; return { intent: code, intentDate: takesDate(code) ? trim(v.intentDate) : "" }; };
 
 const trim = (t) => String(t == null ? "" : t).trim();
 // the description as the browser hands it back: a text box reports line breaks as \n, whatever the stored text used
@@ -23,6 +26,7 @@ export function snapshotOf(v) {
     aiFilter: tri(v.aiFilter), aiInterview: tri(v.aiInterview),
     aiFilterNote: v.aiFilter === true ? (trim(v.aiFilterNote) || null) : null, aiInterviewNote: v.aiInterview === true ? (trim(v.aiInterviewNote) || null) : null,
     recruiter: v.recruiter === true, reqSearchable: v.reqSearchable !== false, exclusive: typeof v.exclusive === "boolean" ? v.exclusive : null,
+    ...intentKey(v),
   });
 }
 // what the page puts in the form for a posting (the same values populate() uses): lets a test, or a caller without a form, build the snapshot straight from the posting.
@@ -32,7 +36,8 @@ export function valuesFromPosting(p, { planActive = false } = {}) {
   return { title: p.title, req: p.req_number || "", desc: p.description_text, locEntries: (p.location_ids || []).map((id) => ({ id })), attested: p.locations_attested === true, remote: p.is_remote === true, outside: typedPlace !== "", locText: typedPlace,
     appcap: p.applicant_cap === null || p.applicant_cap === undefined ? "" : String(p.applicant_cap), aiFilter: p.ai_filtering, aiInterview: p.ai_interview_other,
     aiFilterNote: p.ai_filtering_note || "", aiInterviewNote: p.ai_interview_note || "", recruiter: p.third_party_recruiter === true, reqSearchable: p.req_searchable !== false,
-    exclusive: planActive ? p.destination_links_exclusive === true : undefined };
+    exclusive: planActive ? p.destination_links_exclusive === true : undefined,
+    intent: typeof p.intent_statement === "string" ? p.intent_statement : "", intentDate: typeof p.intent_date === "string" ? p.intent_date : "" };
 }
 export const formDirty = (baseline, v) => baseline !== null && baseline !== undefined && snapshotOf(v) !== baseline;
 
@@ -148,6 +153,7 @@ export function registerSnapshot(v, rows) {
     appcap: capKey(v.appcap), win: trim(v.win), closeout: trim(v.closeout), goLater: v.goLater === true, goLive: v.goLater === true ? trim(v.goLive) : "",
     aiFilter: v.aiFilter === true, aiInterview: v.aiInterview === true, aiFilterNote: v.aiFilter === true ? trim(v.aiFilterNote) : "", aiInterviewNote: v.aiInterview === true ? trim(v.aiInterviewNote) : "",
     recruiter: v.recruiter === true, links: strip(r.links, ["url", "label"]), firms: strip(r.firms, ["name", "url"]), policy: trim(r.policy),
+    ...intentKey(v),
   });
 }
 export const REGISTER_UNSAVED = {

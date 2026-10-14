@@ -9,7 +9,7 @@
 <script src="js/stage-gate.js?v=d48925c1"></script>
 <title>FightGhostJobs | Edit an Opening</title>
 <link rel="stylesheet" href="styles.css?v=4cea5b1e">
-<link rel="stylesheet" href="app.css?v=180dfd87">
+<link rel="stylesheet" href="app.css?v=1f0016a1">
 </head>
 <body>
 <a id="skipToUnsaved" class="skip-link" href="#unsavedSave" hidden>Skip to unsaved changes</a>
@@ -111,6 +111,18 @@
         <label for="aiInterviewNote" style="font-size:13px;color:var(--muted);display:block;margin-bottom:6px;">In your own words (optional, shown to candidates): how AI interacts with candidates here. One paragraph, no web addresses.</label>
         <input id="aiInterviewNote" type="text" maxlength="300" autocomplete="off" placeholder="e.g. A recorded video interview is transcribed and summarised for the hiring manager.">
         <div class="field-error" data-error-for="aiInterviewNote" hidden></div>
+      </div>
+
+      <div id="intentRow" style="display:flex;flex-direction:column;gap:8px;">
+        <label for="intentSelect" style="font-size:14px;font-weight:600;">Kind of opening (optional)</label>
+        <div id="intentHint" style="font-size:13px;color:var(--muted);line-height:1.6;">Optional. Say what kind of opening this is. Candidates read it as a line that begins "The employer says". Leave it as Not stated to show nothing.</div>
+        <select id="intentSelect" class="intent-select" aria-describedby="intentHint intentMeaning"><option value="">Not stated</option></select>
+        <div id="intentMeaning" class="field-hint" style="margin-top:0;" hidden></div>
+        <div id="intentDateRow" hidden style="display:flex;flex-direction:column;gap:6px;">
+          <label for="intentDate" id="intentDateLabel" style="font-size:13px;color:var(--muted);">Date</label>
+          <input id="intentDate" type="date" autocomplete="off">
+        </div>
+        <div class="field-error" data-error-for="intentDate" hidden></div>
       </div>
 
       <div id="policyRow" hidden style="display:flex;flex-direction:column;gap:8px;">
@@ -283,6 +295,6 @@
 
 <footer class="site-footer"><span>FightGhostJobs</span><a href="privacy.html">Privacy</a><a href="mailto:privacy@fightghostjobs.com">privacy@fightghostjobs.com</a></footer>
 
-<script type="module" src="js/pages/edit.js?v=a4f3d57d"></script>
+<script type="module" src="js/pages/edit.js?v=f86100bb"></script>
 </body>
 </html>

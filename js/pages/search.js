@@ -1,7 +1,7 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=67bc7e98";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=fef88967";
 import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=c0af4232";
 import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=d2a55ed0";
 import { savePending, takePending } from "../signin-handoff.js?v=882122ed";
@@ -15,7 +15,8 @@ import { $, h, clear, alertBox, chip, safeHref } from "../dom.js?v=ff147636";
 import { waitText } from "../format.js?v=032c6fc5";
 import { postingChips, notOpenMessage } from "../chips.js?v=7a1dc776";
 import { aiNotes } from "../ai-notes.js?v=35c5dc92";
-import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=f2ea9573";
+import { intentNotes } from "../intent-statement.js?v=d37f2b4b";
+import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=5b8f0605";
 import { COMMENTS_VISIBLE } from "../config.js?v=9bf25cae";
 import { openUnit } from "../open-link.js?v=454df0f2";
 import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=b3ef517f";
@@ -107,6 +108,8 @@ function renderCard(row) {
     h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, chips),
     // the employer's own words about their AI use (pass D): shown verbatim, plainly attributed, only under a toggle that is on
     ...aiNotes(row).map((n) => h("div", { class: "ai-note", style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text)),
+    // prompt ST1: the employer's optional statement of the kind of the opening ("The employer says: ..."), beside the AI lines; nothing at all when not stated
+    ...intentNotes(row).map((n) => h("div", { class: "ai-note intent-note", style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text)),
     h("div", { style: "margin-top:22px;border-top:1px solid var(--line);padding-top:20px;display:flex;gap:12px;align-items:center;" },
       h("button", { type: "button", class: "btn btn-outline view-details", style: "flex:1;justify-content:center;", onclick: (ev) => openDetails(row, ev.currentTarget) }, "View opening details")));
 }

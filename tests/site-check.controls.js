@@ -1439,6 +1439,25 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the steps list can no longer be found", "S90", edit(RUN, (s) => s.replace("const steps = [", "const stepList = [")));
 }
 
+// S100 (prompt ST1, October 14, 2026): the employer's optional statement of the kind of an opening
+{
+  control("the register page loses the kind of opening choice", "S100", edit("register.html", (s) => s.replace('id="intentSelect"', 'id="intentSelectX"')));
+  control("the editor loses the date box", "S100", edit("edit.html", (s) => s.replace('id="intentDate" type="date"', 'id="intentDateX" type="date"')));
+  control("the choice starts as a value instead of Not stated", "S100", edit("register.html", (s) => s.replace('<option value="">Not stated</option>', '<option value="">Fill by a date</option>')));
+  control("the register page words say a choice is verified", "S100", edit("register.html", (s) => s.replace("Leave it as Not stated to show nothing.", "Leave it as Not stated to show nothing. A choice here is verified by us.")));
+  control("the editor words say compliant", "S100", edit("edit.html", (s) => s.replace("Kind of opening (optional)</label>", "Kind of opening (optional, compliant)</label>")));
+  control("the editor words say a choice satisfies a law", "S100", edit("edit.html", (s) => s.replace("Leave it as Not stated to show nothing.", "Leave it as Not stated to show nothing. This satisfies the law.")));
+  control("the module may show a sentence that does not begin The employer says", "S100", edit("js/intent-statement.js", (s) => s.replace('export const INTENT_LINE_START = "The employer says";', 'export const INTENT_LINE_START = "";')));
+  control("a fifth code is added", "S100", edit("js/intent-statement.js", (s) => s.replace('"not_current", "legal_requirement"];\nexport const INTENT_DATE_CODES', '"not_current", "legal_requirement", "other"];\nexport const INTENT_DATE_CODES')));
+  control("the module's words say certified", "S100", edit("js/intent-statement.js", (s) => s.replace("Enter the date as a real day.", "Enter the date as a certified day.")));
+  control("the search card stops showing the kind of opening", "S100", edit("js/pages/search.js", (s) => s.replace("...intentNotes(row).map(", "...[].map(")));
+  control("the comments page stops showing the kind of opening", "S100", edit("js/pages/comments.js", (s) => s.replace("[...aiNotes(p), ...intentNotes(p)]", "[...aiNotes(p)]")));
+  control("the labels are written in the page instead of read from the database", "S100", edit("js/api.js", (s) => s.replace('rpc("intent_statement_options"', 'rpc("is_staff"')));
+  control("the register form stops judging the kind of opening with the shared rule", "S100", edit("js/register-form.js", (s) => s.replace('import { intentProblem, intentFields, INTENT_FIELD_IDS } from "./intent-statement.js";', "const intentProblem = () => null, intentFields = () => ({}), INTENT_FIELD_IDS = {};")));
+  control("the editor page does not mount the choice", "S100", edit("js/pages/edit.js", (s) => s.replace("const intent = mountIntentBox({", "const intent = mountNothing({")));
+  control("a fourth database function is called directly (S65 holds the list)", "S65", edit("js/api.js", (s) => s.replace("    intentOptions: () => rpc(", '    anything: () => rpc("operator_list_postings", {}),\n    intentOptions: () => rpc(')));
+}
+
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed" + (ONLY ? "   RESTRICTED RUN (rules " + ONLY.join(", ") + " only): NOT a full run, not evidence for a push" : ""));
 process.exit(missed ? 1 : 0);

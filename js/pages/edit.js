@@ -2,30 +2,31 @@
 // The server judges the rest (how much of the requirements text is kept, the location rule, duplicate req numbers) and this page shows its answer in words. Nothing here trusts the page for identity: the session token tells the server who is acting.
 // Unsaved work is never lost silently: a bar at the bottom of the window says what is not saved, the browser asks before the page is left, and the page's own links ask with a dialog (js/unsaved-guard.js; what counts as unsaved is js/dirty-state.js).
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=67bc7e98";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=fef88967";
 import { rememberNext } from "../session.js?v=c0af4232";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { fmtClose, fmtStamp, waitText } from "../format.js?v=032c6fc5";
 import { kioBlock } from "../kio-block.js?v=6a7d21f6";
 import { statusChip, actionsFor } from "../dashboard-model.js?v=e406518f";
-import { runAction } from "../dashboard-actions.js?v=7c258c71";
+import { runAction } from "../dashboard-actions.js?v=8dab2c79";
 import { mountLimitHint } from "../limit-hint.js?v=1cfa5987";
-import { checkEdit, mapEditErrors, KIND_TEXT, plainChangeNote, checkLinks, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js?v=b5757c87";
+import { checkEdit, mapEditErrors, KIND_TEXT, plainChangeNote, checkLinks, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js?v=eb936068";
 import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
 import { mountPlaceChoice } from "../place-choice.js?v=f65a1b27";
+import { mountIntentBox } from "../intent-box.js?v=42ce2a47";
 import { storedPlaceText } from "../place-text.js?v=cb5d7506";
 import { placeNodes } from "../place.js?v=915c680a";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js?v=b2985372";
 import { loadCatalog } from "../location-catalog.js?v=bb0c937e";
-import { mountLinkRowsById, mountLinkRows } from "../link-rows.js?v=a79f852e";
-import { mountLinkPanel } from "../link-panel.js?v=0fc55760";
-import { mountFirmPanel } from "../firm-panel.js?v=be826aba";
-import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=8884ef82";
-import { mountPolicyPanel } from "../policy-panel.js?v=806fe4cf";
-import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js?v=f2ea9573";
+import { mountLinkRowsById, mountLinkRows } from "../link-rows.js?v=1d36f594";
+import { mountLinkPanel } from "../link-panel.js?v=6c0859a4";
+import { mountFirmPanel } from "../firm-panel.js?v=155154a7";
+import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=9fc2240b";
+import { mountPolicyPanel } from "../policy-panel.js?v=f32f02d5";
+import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js?v=5b8f0605";
 import { wireInfoIcons } from "../info-icon.js?v=66958a58";
-import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL, ACTION, ADDED_LABEL, panelsFirstText } from "../dirty-state.js?v=7d4da23c";
-import { mountUnsavedGuard } from "../unsaved-guard.js?v=206c5678";
+import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL, ACTION, ADDED_LABEL, panelsFirstText } from "../dirty-state.js?v=7d99ced4";
+import { mountUnsavedGuard } from "../unsaved-guard.js?v=2026d3b9";
 
 wireInfoIcons();
 
@@ -40,6 +41,10 @@ const form = $("#form"), pageAlert = $("#pageAlert"), formAlert = $("#formAlert"
 const picker = mountLocationPicker({ isRemote: () => $("#remote").checked, onChange: () => refreshUnsaved() });
 $("#remote").addEventListener("change", () => picker.refresh());
 const place = mountPlaceChoice({ onChange: () => refreshUnsaved() });      // prompt BH: "A place outside the US or not in the list"
+const intent = mountIntentBox({ onChange: () => refreshUnsaved() });       // prompt ST1: the optional "Kind of opening" choice and its date
+// the labels staff keep in the database, read once with the poster's own sign-in; null when they could not be read (the spec's wording is offered)
+let intentList = null;
+const intentReady = (async () => { try { const r = await api.intentOptions(); intentList = r.ok ? r.data : null; } catch { intentList = null; } })();
 
 const val = (id) => $(id).value;
 // say() also drops the live mark (prompt BN): a sentence put there by syncLiveSentence() below is the ONLY kind that is taken away again when the condition ends; every other sentence stays until the next one replaces it
@@ -87,7 +92,8 @@ const planActive = () => !!state.plan && state.plan.verified === true;
 function syncNoteRows() { $("#aiFilterNoteRow").hidden = state.aiFilter !== true; $("#aiInterviewNoteRow").hidden = state.aiInterview !== true; }
 
 const collect = () => ({ title: val("#jtitle"), req: val("#req"), desc: val("#desc"), locEntries: place.outside() ? [] : picker.get().entries, attested: place.outside() ? false : picker.get().attested, outside: place.outside(), locText: place.text(), remote: $("#remote").checked, appcap: val("#appcap"),
-  aiFilter: state.aiFilter, aiInterview: state.aiInterview, aiFilterNote: val("#aiFilterNote"), aiInterviewNote: val("#aiInterviewNote"), recruiter: state.recruiter, reqSearchable: state.reqSearchable, exclusive: planActive() ? state.exclusive : undefined, note: noteInput.value });
+  aiFilter: state.aiFilter, aiInterview: state.aiInterview, aiFilterNote: val("#aiFilterNote"), aiInterviewNote: val("#aiInterviewNote"), recruiter: state.recruiter, reqSearchable: state.reqSearchable, exclusive: planActive() ? state.exclusive : undefined, note: noteInput.value,
+  intent: intent.available() ? intent.get().code : undefined, intentDate: intent.get().date });      // prompt ST1: undefined while the database cannot take the statement (nothing is sent for it)
 
 // the catalog entries for the stored ids (a place the catalog no longer has still shows, by the display text the database stored)
 async function entriesFor(p) {
@@ -358,6 +364,10 @@ async function populate(doc, opts) {
     $("#remote").checked = p.is_remote; noteInput.value = "";
     setToggle("#aiFilterToggle", p.ai_filtering === true); setToggle("#aiInterviewToggle", p.ai_interview_other === true); setToggle("#recruiterToggle", p.third_party_recruiter);
     $("#aiFilterNote").value = p.ai_filtering_note || ""; $("#aiInterviewNote").value = p.ai_interview_note || ""; syncNoteRows();
+    // prompt ST1: the kind of opening. An answer without the field is one from before the database change: the choice stays out of the page and nothing is sent for it.
+    await intentReady;
+    if (!Object.prototype.hasOwnProperty.call(p, "intent_statement")) intent.hide();
+    else { intent.show(); intent.setOptions(intentList, p.intent_statement || ""); intent.set(p.intent_statement || "", p.intent_date || ""); }
   }
   $("#companyShown").textContent = p.company_name;
   $("#aiFilterHint").textContent = p.ai_filtering === null ? "Not stated yet. Once you state it, it can be changed but not cleared." : "Shown to candidates as a plain fact, never scored.";

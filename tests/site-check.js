@@ -58,6 +58,8 @@
 //   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
 //   S60 search engines (Phase 3): the flag ALLOW_INDEXING in js/config.js (false on stage) agrees with every page's robots tag and with robots.txt; sign-in pages are noindex in every environment; the tool and the test exist and run
 //   S90 every tests/*.test.js is a step of tests/run-all.js (a test file that is not a step is never run by a full run) (prompt TEST2)
+//   S100 the employer's optional statement of the kind of an opening (prompt ST1): the choice on both employer pages starts as Not stated, its words hold no compliant, certified, verified or posting, a candidate sees only a
+//        sentence that begins "The employer says", the labels come from the database (api.intentOptions), the search card and the comments page show it beside the AI lines
 //   S89 the staff view finds a KIO ID with no company, says the normal sentence for an ID nobody has, and is entered only on a clear true (prompt BY)
 //   S88 after an opening is added the keyboard focus is on the confirmation heading (tabindex -1, no live region as well) (prompt BX)
 //   S87 the "This opening is not added yet" bar is redrawn at the moment the opening exists, not by a later key, click or input (prompt BW)
@@ -2413,8 +2415,39 @@ export function checkSite(root, opts = {}) {
       const c = read(apiF), i = c.indexOf("async function rpc("), j = c.indexOf("const postingAnswer");
       if (i < 0 || j < i || !c.slice(i, j).includes('cache: "no-store"') || !c.slice(i, j).includes('"/rest/v1/rpc/"')) add("S65", apiF, 'the rpc helper must never cache (cache: "no-store") and must call /rest/v1/rpc/');
       const names = [...c.matchAll(/\brpc\("([a-z_]+)"/g)].map((m) => m[1]).sort().join(",");
-      if (names !== "is_staff,staff_search_openings") add("S65", apiF, "the only database functions api.js may call directly are is_staff and staff_search_openings (found: " + names + ")");
+      // prompt ST1 (October 14, 2026): a third read-only function, intent_statement_options (the labels of the optional kind-of-opening choice, read by the employer's pages with the poster's own token); it takes no
+      // argument and returns only the four codes with their employer labels and meanings, so it opens nothing about any opening or person (rule S100 holds it to that)
+      if (names !== "intent_statement_options,is_staff,staff_search_openings") add("S65", apiF, "the only database functions api.js may call directly are intent_statement_options, is_staff and staff_search_openings (found: " + names + ")");
     }
+  }
+
+  // S100 (2026-10-14, prompt ST1): the employer's optional statement of the kind of an opening. Both employer pages carry the choice (#intentRow, #intentSelect, #intentMeaning, #intentDateRow, #intentDate and
+  // one error line); it starts as Not stated; the words of the choice hold no compliant, certified, verified or posting and never say that a choice satisfies a law; the words themselves are not in the pages (the
+  // labels are read from the database by api.intentOptions); a candidate is shown only a sentence that begins "The employer says", on the search card and the comments page beside the AI lines.
+  {
+    const BAD = /complian|certif|verif|\bpostings?\b|s ?8877|satisf/i;
+    for (const rel of ["register.html", "edit.html"]) {
+      const p = path.join(root, rel); if (!fs.existsSync(p)) continue; const t = read(p);
+      for (const id of ["intentRow", "intentSelect", "intentMeaning", "intentDateRow", "intentDateLabel", "intentDate"]) if (!t.includes('id="' + id + '"')) add("S100", p, rel + " is missing #" + id);
+      if (!t.includes('<option value="">Not stated</option>')) add("S100", p, rel + ": the kind of opening must start as Not stated");
+      if (!t.includes('data-error-for="intentDate"')) add("S100", p, rel + ": the kind of opening needs its error line");
+      const a = t.indexOf('id="intentRow"'), b = t.indexOf('id="policyRow"');
+      if (a >= 0 && b > a && BAD.test(t.slice(a, b))) add("S100", p, rel + ": the words of the kind of opening hold a forbidden word (compliant, certified, verified, posting, S8877, satisfies)");
+    }
+    const mod = path.join(root, "js", "intent-statement.js"), box = path.join(root, "js", "intent-box.js");
+    if (!fs.existsSync(mod)) add("S100", mod, "js/intent-statement.js is missing");
+    else {
+      const c = read(mod);
+      if (!c.includes('export const INTENT_LINE_START = "The employer says";')) add("S100", mod, "a candidate may be shown only a sentence that begins The employer says");
+      if (!c.includes('export const INTENT_CODES = ["fill_by", "fill_no_sooner", "not_current", "legal_requirement"];')) add("S100", mod, "the four codes must be exactly fill_by, fill_no_sooner, not_current, legal_requirement");
+      if (BAD.test(stripJsComments(c))) add("S100", mod, "the words of js/intent-statement.js hold a forbidden word (compliant, certified, verified, posting, S8877, satisfies)");
+    }
+    if (!fs.existsSync(box)) add("S100", box, "js/intent-box.js is missing"); else if (BAD.test(stripJsComments(read(box)))) add("S100", box, "the words of js/intent-box.js hold a forbidden word");
+    const sj = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj) && !read(sj).includes("intentNotes(row).map(")) add("S100", sj, "search.js must show the kind of opening on the card, beside the AI notes");
+    const cj = path.join(root, "js", "pages", "comments.js"); if (fs.existsSync(cj) && !read(cj).includes("intentNotes(p)")) add("S100", cj, "comments.js must show the kind of opening beside the AI notes");
+    const af = path.join(root, "js", "api.js"); if (fs.existsSync(af) && !read(af).includes('rpc("intent_statement_options"')) add("S100", af, "api.js must read the labels of the kind of opening from the database (intent_statement_options)");
+    for (const rel of ["js/register-form.js", "js/edit-form.js"]) { const p = path.join(root, rel); if (fs.existsSync(p) && !/from "\.\/intent-statement\.js(\?v=[0-9a-f]{8})?"/.test(read(p))) add("S100", p, rel + " must judge the kind of opening with the shared rule (js/intent-statement.js)"); }
+    for (const rel of ["js/pages/register.js", "js/pages/edit.js"]) { const p = path.join(root, rel); if (fs.existsSync(p) && !read(p).includes("mountIntentBox(")) add("S100", p, rel + " must mount the kind of opening choice"); }
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");

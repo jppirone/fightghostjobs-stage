@@ -18,6 +18,13 @@ const REAL = "https://tpmvkjuhbbwftqoodzcn.supabase.co";
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8", ".json": "application/json" };
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
 export const fakeJwt = (claims) => b64({ alg: "HS256", typ: "JWT" }) + "." + b64({ sub: "00000000-0000-4000-8000-000000000001", role: "authenticated", aud: "authenticated", iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600, ...claims }) + ".sig";
+// prompt ST1: what public.intent_statement_options answers (the active values in order, the employer's label and meaning; never the candidate wording)
+export const INTENT_OPTIONS = [
+  { code: "fill_by", label: "Current vacancy, fill by a date", meaning: "The employer intends to fill this opening within 90 days or less.", needs_date: true },
+  { code: "fill_no_sooner", label: "Current vacancy, fill no sooner than a date", meaning: "The employer expects to fill this opening after more than 90 days.", needs_date: true },
+  { code: "not_current", label: "Not a current vacancy", meaning: "The employer is collecting applications for the future.", needs_date: false },
+  { code: "legal_requirement", label: "Advertised to meet a legal or policy requirement", meaning: "The employer is advertising because a rule requires it; a candidate may already be identified.", needs_date: false },
+];
 export const NOLINKS_REF = "m".repeat(20), CLOSED_REF = "c".repeat(20);   // a posting reference with no employer links, and one that is closed (detail answers 409 posting_not_open)
 export const LONG_NAME = "Bartholomew Featherstonehaugh-Wolverhampton", LONG_ORG = "Meridian Health Systems of the Greater Providence and Boston Region";
 const day = 864e5, inDays = (d) => new Date(Date.now() + d * day).toISOString();
@@ -64,6 +71,10 @@ export function startFakeSite(root, opts = {}) {
   const calls = [], hits = []; let SELF = "";      // hits (prompt BM): every request the browser made, "METHOD /path", whatever it was for
   const createGate = {}; createGate.promise = new Promise((r) => { createGate.release = r; });      // opts.createHold (prompt BW): create-posting is answered only when the test calls site.releaseCreate()
   const state = { published: false };   // prompt BK: what a call changed that a later read must show (the opening is live after Publish)
+  // prompt ST1 (October 14, 2026): opts.intent = true makes this the MIGRATED database for the optional statement of the kind of an opening: the rpc intent_statement_options answers (opts.intentOptions: the
+  // list, or the four spec values), get-my-posting carries intent_statement and intent_date (opts.intentValue = { code, date } is what the opening holds), and edit-posting applies them. Without it nothing is
+  // there (the rpc is a 404 and the answers have no such fields), as before the database change.
+  const intentState = { code: opts.intentValue ? opts.intentValue.code : null, date: opts.intentValue ? (opts.intentValue.date || null) : null };
   let policyState = opts.policy === undefined ? null : opts.policy;   // the AI and hiring policy link the fake backend holds for the one opening (see opts.plan, opts.policy, opts.policyCheck, opts.policyDetail below)
   // the recruiter firms the fake backend holds for the one opening (prompt BC, October 10, 2026): opts.firms = [{ firm, with_address (default true), check_status, check_http, shown_as }] in position order; opts.recruiter: the saved toggle is on
   let firmsState = (opts.firms || []).map((f, i) => ({ position: i + 1, firm: f.firm, has_url: f.with_address !== false, shown_as: f.shown_as === undefined ? "Employer's own site" : f.shown_as, check_status: f.check_status || "ok", check_http: f.check_http === undefined ? (f.check_status === "failed" ? 404 : 200) : f.check_http }));
@@ -84,6 +95,7 @@ export function startFakeSite(root, opts = {}) {
       if (opts.noRpc) return send(404, { code: "PGRST202", message: "Could not find the function" });
       if (opts.rpcFail) return send(500, { code: "XX000", message: "boom" });
       if (!c) return send(401, { code: "PGRST301", message: "JWT required" });
+      if (fn === "intent_statement_options") return opts.intent ? send(200, opts.intentOptions || INTENT_OPTIONS) : send(404, { code: "PGRST202", message: "Could not find the function" });
       const staff = (opts.staffEmails || ["staff@example.test"]).includes(String(c.email || "").toLowerCase());
       if (fn === "is_staff") return send(200, staff ? "true" : "false");
       if (fn === "staff_search_openings") {
@@ -210,7 +222,7 @@ export function startFakeSite(root, opts = {}) {
           : ps === "closed" ? { status: "closed", stored_status: "closed", closed_reason: "filled", posted_at: inDays(-10), expiration_date: inDays(35), publish_by: null, go_live_at: null }
           : ps === "expired" ? { status: "expired", stored_status: "live", closed_reason: "expired_no_action", posted_at: inDays(-50), expiration_date: inDays(-5), publish_by: null, go_live_at: null }
           : { status: "live", stored_status: "live", closed_reason: null, posted_at: inDays(-10), expiration_date: inDays(35), publish_by: null, go_live_at: null };
-        return send(200, { posting: { id: body.posting_id, title: "Data Analyst", req_number: "4471", company_name: "Meridian Health", post_id: opts.kio ? kioOf("ABCDEFGHJKMN").stored : "ABCDEFGHJKMN", ...PS, is_remote: opts.postingRemote === true, locations: (opts.placeText || opts.postingNoPlace) ? [] : ["Austin, TX"], location_ids: (opts.placeText || opts.postingNoPlace) ? [] : ["gn:4671654"], source_location_text: opts.placeText || null, locations_attested: false, ai_filtering: false, ai_interview_other: null, third_party_recruiter: opts.recruiter === true || firmsState.length > 0, req_searchable: true, destination_links_exclusive: false, applicant_cap: null, description_text: Array.from({ length: 60 }, (_, i) => "requirement" + i).join(" "), window_days: 45, created_at: opts.createdAt || inDays(-10), last_edited_at: null },
+        return send(200, { posting: { id: body.posting_id, title: "Data Analyst", req_number: "4471", company_name: "Meridian Health", post_id: opts.kio ? kioOf("ABCDEFGHJKMN").stored : "ABCDEFGHJKMN", ...PS, ...(opts.intent ? { intent_statement: intentState.code, intent_date: intentState.date } : {}), is_remote: opts.postingRemote === true, locations: (opts.placeText || opts.postingNoPlace) ? [] : ["Austin, TX"], location_ids: (opts.placeText || opts.postingNoPlace) ? [] : ["gn:4671654"], source_location_text: opts.placeText || null, locations_attested: false, ai_filtering: false, ai_interview_other: null, third_party_recruiter: opts.recruiter === true || firmsState.length > 0, req_searchable: true, destination_links_exclusive: false, applicant_cap: null, description_text: Array.from({ length: 60 }, (_, i) => "requirement" + i).join(" "), window_days: 45, created_at: opts.createdAt || inDays(-10), last_edited_at: null },
           destination_links: (applyState ? applyState.map((l) => ({ position: l.position, kind: "apply", firm: null, label: l.label, shown_as: "Employer's own site", check_status: l.check_status, check_http: 200 })) : []).concat(firmEntries(), policyEntry() ? [policyEntry()] : []), plan: planDoc(), recent_changes: opts.recentChanges || [{ at: inDays(-2), note: "Fixed a typo in the third paragraph", kind: "text_correction", fields: ["description_text"] }, { at: inDays(-5), note: "Renamed the role", kind: "edit", fields: ["title"] }] });
       }
       // prompt BH: create-posting answers with a draft (the request body is in site.calls); opts.createRefusal = { status, body } makes it refuse, opts.createDropsPlace answers without the typed place
@@ -232,6 +244,18 @@ export function startFakeSite(root, opts = {}) {
         if (!poster) return unauth();
         if (opts.scheduleRefusal) return send(opts.scheduleRefusal.status, opts.scheduleRefusal.body);
         return send(200, { changed: true, go_live_at: body.go_live_at === undefined ? null : body.go_live_at, status: body.go_live_at ? "scheduled" : "draft" });
+      }
+      if (name === "edit-posting" && opts.intent && poster) {
+        // prompt ST1: the statement and its day are applied the way the real function applies them (not_stated takes them away; null leaves the statement alone); the list of changed fields is what changed
+        const ch = [];
+        if (Object.prototype.hasOwnProperty.call(body, "intent_statement") && body.intent_statement !== null) {
+          const next = body.intent_statement === "not_stated" ? null : body.intent_statement;
+          if (next !== intentState.code) { intentState.code = next; ch.push("intent_statement"); }
+          if (next === null && intentState.date !== null && !Object.prototype.hasOwnProperty.call(body, "intent_date")) { intentState.date = null; ch.push("intent_date"); }
+        }
+        if (Object.prototype.hasOwnProperty.call(body, "intent_date") && body.intent_date !== intentState.date) { intentState.date = body.intent_date; ch.push("intent_date"); }
+        const others = Object.keys(body).filter((k) => !["posting_id", "change_note", "intent_statement", "intent_date"].includes(k));
+        return send(200, { edited: ch.length + others.length > 0, changed_fields: ch.concat(others), similarity_pct: null });
       }
       if (name === "edit-posting") return poster ? send(200, { edited: true, changed_fields: ["title"], similarity_pct: null }) : unauth();   // the saved posting reads back as it was (the fake keeps nothing), so a save ends with nothing unsaved
       if (name === "list-posting-comments") return poster ? send(200, { posting_id: body.posting_id, comments: [{ id: "c1", body: "This role was filled last month, according to a friend who works there.", created_at: inDays(-3), is_mine: false }], total: 1, next_offset: null }) : unauth();   // the employer reads the thread of their own posting

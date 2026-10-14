@@ -1,20 +1,21 @@
 // register.js - an employer registers a posting: create it (a draft), then publish it (standard tier goes live immediately).
 // "Save draft" stops after the first step: the draft is then found and published from My postings (dashboard.html). Nothing here trusts the page for identity: the session token tells the server who is acting.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=67bc7e98";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=fef88967";
 import { rememberNext } from "../session.js?v=c0af4232";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { fmtClose, waitText } from "../format.js?v=032c6fc5";
 import { kioBlock } from "../kio-block.js?v=6a7d21f6";
 import { checkGoLive, mapScheduleError } from "../schedule-form.js?v=b2985372";
-import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome, collectFirms, firmsOutcome, collectPolicy, policyOutcome, mapPolicyError, linkProblems, checkReport } from "../register-form.js?v=baec0d26";
-import { mapLinksErrors, planNotice, addressProblem } from "../edit-form.js?v=b5757c87";
-import { policyView, policyLapsedText } from "../policy-link.js?v=f2ea9573";
-import { registerSnapshot, summarizeRegister, REGISTER_UNSAVED, rowsTyped } from "../dirty-state.js?v=7d4da23c";
-import { mountUnsavedGuard } from "../unsaved-guard.js?v=206c5678";
-import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js?v=a79f852e";
+import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome, collectFirms, firmsOutcome, collectPolicy, policyOutcome, mapPolicyError, linkProblems, checkReport } from "../register-form.js?v=cd1d7cff";
+import { mapLinksErrors, planNotice, addressProblem } from "../edit-form.js?v=eb936068";
+import { policyView, policyLapsedText } from "../policy-link.js?v=5b8f0605";
+import { registerSnapshot, summarizeRegister, REGISTER_UNSAVED, rowsTyped } from "../dirty-state.js?v=7d99ced4";
+import { mountUnsavedGuard } from "../unsaved-guard.js?v=2026d3b9";
+import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js?v=1d36f594";
 import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
 import { mountPlaceChoice } from "../place-choice.js?v=f65a1b27";
+import { mountIntentBox } from "../intent-box.js?v=42ce2a47";
 import { PLACE_WORDS, storedPlaceText, collapsePlaceText } from "../place-text.js?v=cb5d7506";
 import { wireInfoIcons } from "../info-icon.js?v=66958a58";
 import { mountLimitHint } from "../limit-hint.js?v=1cfa5987";
@@ -32,6 +33,7 @@ const limitHints = ["#jtitle", "#req", "#closeout", "#aiFilterNote", "#aiIntervi
 const picker = mountLocationPicker({ isRemote: () => $("#remote").checked });
 $("#remote").addEventListener("change", () => picker.refresh());
 const place = mountPlaceChoice();      // prompt BH: "A place outside the US or not in the list" (one plain text box instead of the list)
+const intent = mountIntentBox();       // prompt ST1: the optional "Kind of opening" choice and its date (the labels are read from the database once, below)
 
 function wireToggle(id, key) {
   const btn = $(id);
@@ -70,7 +72,8 @@ const goLater = () => $("#glLater").checked;
 function syncGoLive() { $("#glWhen").hidden = !goLater(); registerBtn.textContent = goLater() ? "Add and schedule" : "Add opening"; }
 $("#glNow").addEventListener("change", syncGoLive); $("#glLater").addEventListener("change", syncGoLive);
 const collect = () => ({ title: val("#jtitle"), req: val("#req"), locEntries: place.outside() ? [] : picker.get().entries, attested: place.outside() ? false : picker.get().attested, outside: place.outside(), locText: place.text(), remote: $("#remote").checked, appcap: val("#appcap"), win: val("#livedays"), closeout: val("#closeout"), desc: val("#desc"),
-  aiFilter: state.aiFilter, aiInterview: state.aiInterview, aiFilterNote: val("#aiFilterNote"), aiInterviewNote: val("#aiInterviewNote"), recruiter: state.recruiter, dupAsked: state.dupAsked, dupNote: val("#dupnote"), goLater: goLater(), goLive: val("#gldate") });
+  aiFilter: state.aiFilter, aiInterview: state.aiInterview, aiFilterNote: val("#aiFilterNote"), aiInterviewNote: val("#aiInterviewNote"), recruiter: state.recruiter, dupAsked: state.dupAsked, dupNote: val("#dupnote"), goLater: goLater(), goLive: val("#gldate"),
+  intent: intent.get().code, intentDate: intent.get().date });
 
 function showErrors(byField) {
   for (const el of $$("[data-error-for]")) { const id = el.dataset.errorFor; const msg = byField[id]; el.hidden = !msg; el.textContent = msg || ""; const inp = $("#" + (id === "locpicker" ? "locq" : id)); if (inp) inp.setAttribute("aria-invalid", msg ? "true" : "false"); }
@@ -241,8 +244,8 @@ async function schedule() {
   showResult(state.saved, "scheduled", null, r.data.go_live_at);
 }
 
-function lockForm() { for (const el of $$("input, textarea", form)) el.disabled = true; picker.setLocked(true); if (state.links) state.links.setLocked(true); if (state.firms) state.firms.setLocked(true); registerBtn.hidden = true; draftBtn.hidden = true; }
-function unlockForm() { for (const el of $$("input, textarea", form)) el.disabled = false; picker.setLocked(false); if (state.links) state.links.setLocked(false); if (state.firms) state.firms.setLocked(false); registerBtn.hidden = false; draftBtn.hidden = false; }
+function lockForm() { for (const el of $$("input, textarea", form)) el.disabled = true; intent.setLocked(true); picker.setLocked(true); if (state.links) state.links.setLocked(true); if (state.firms) state.firms.setLocked(true); registerBtn.hidden = true; draftBtn.hidden = true; }
+function unlockForm() { for (const el of $$("input, textarea", form)) el.disabled = false; intent.setLocked(false); picker.setLocked(false); if (state.links) state.links.setLocked(false); if (state.firms) state.firms.setLocked(false); registerBtn.hidden = false; draftBtn.hidden = false; }
 
 function showResult(p, kind, problem, goLiveAt) {
   result.hidden = false; clear(result);
@@ -298,7 +301,7 @@ function resetForm() {
   showPolicyField("");
   $("#glNow").checked = true; $("#glLater").checked = false; syncGoLive();
   $("#aiFilterNoteRow").hidden = true; $("#aiInterviewNoteRow").hidden = true;
-  picker.reset(); place.reset();
+  picker.reset(); place.reset(); intent.reset();
   $("#livedays").value = "45";
   $("#remote").checked = false;
   for (const [id, key] of [["#aiFilterToggle", "aiFilter"], ["#aiInterviewToggle", "aiInterview"], ["#recruiterToggle", "recruiter"]]) { state[key] = false; $(id).classList.remove("on"); $(id).setAttribute("aria-checked", "false"); }
@@ -353,6 +356,10 @@ document.addEventListener("click", (ev) => {
   $("#orgName").textContent = ctx.info.organization.name;
   $("#companyShown").textContent = ctx.info.organization.name;   // read only: the server takes the company name from the organization and ignores any in the request
   setupLinks(ctx.info.plan);
+  // prompt ST1: the kinds of opening the employer may state, with the labels staff keep in the database (read with the poster's own sign-in). When the list cannot be read (the database change is not
+  // there yet) the whole choice stays out of the page and nothing is sent for it.
+  const kinds = await api.intentOptions();
+  if (kinds.ok) intent.setOptions(kinds.data, ""); else intent.hide();
   state.baseline = registerSnapshot(collect(), rowsNow());     // the blank form the page starts as: what is "unsaved" is measured from here
   refreshUnsaved();
 })();
