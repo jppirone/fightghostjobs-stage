@@ -7,7 +7,7 @@
 // Reading those claims here only decides which page to show. It grants nothing: every function checks the token again on the server.
 
 import { GoTrueClient } from "../vendor/auth-js.min.mjs?v=e56ca995";
-import { SUPABASE_URL, PUBLISHABLE_KEY, STORAGE_KEY, NEXT_KEY, KIND_KEY } from "./config.js?v=9bf25cae";
+import { SUPABASE_URL, PUBLISHABLE_KEY, STORAGE_KEY, NEXT_KEY, KIND_KEY } from "./config.js?v=41d402c7";
 import { saveLanding, takeLanding, clearHandoff, watchSignIn, isSafePage } from "./signin-handoff.js?v=882122ed";
 
 let client = null;

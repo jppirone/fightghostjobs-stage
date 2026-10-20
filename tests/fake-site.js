@@ -260,7 +260,9 @@ export function startFakeSite(root, opts = {}) {
         const rows = RESULTS.filter((p) => p.company_name.toLowerCase().includes(co)).map((p, i) => { const q = { ...withKio(p) }; if (vals && i < vals.length) { if (vals[i] === "omit") delete q.is_registered; else q.is_registered = vals[i]; } return q; });
         // opts.placeOverrides: for each result in order an object merged into the row (locations, is_remote, source_location_text), for the tests of the display-only place text (AZ3)
         const placed = opts.placeOverrides ? rows.map((r, i) => Object.assign({}, r, (opts.placeOverrides[i] || {}))) : rows;
-        return send(200, { mode: body.req ? "req" : body.code ? "code" : "phrase", truncated: false, results: placed });
+        // opts.resultCount (October 20, 2026): the title search answers exactly this many openings (copies of the first row with their own reference and title), and opts.truncated says the database stopped at its limit; for the refine hints
+        const sized = opts.resultCount && rows.length ? Array.from({ length: opts.resultCount }, (_, i) => ({ ...(placed[0] || withKio(RESULTS[0])), title: "Support Analyst Number " + (i + 1), posting_ref: ("s" + i).padEnd(20, "x").slice(0, 20) })) : placed;
+        return send(200, { mode: body.req ? "req" : body.code ? "code" : "phrase", truncated: opts.truncated === true, results: sized });
       }
       if (name === "candidate-posting-detail" && body.posting_ref === NOLINKS_REF) return send(200, { posting: { ...RESULTS[0], posting_ref: NOLINKS_REF }, links: [], comment_count: 1 });
       if (name === "candidate-posting-detail" && body.posting_ref === CLOSED_REF) return send(409, { error: "posting_not_open", code: "posting_not_open", status: "closed", closed_reason: "filled" });

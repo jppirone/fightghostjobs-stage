@@ -1,27 +1,28 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=67bc7e98";
-import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=c0af4232";
-import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=d2a55ed0";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=155a50a1";
+import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=6dcc7750";
+import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=63411616";
 import { savePending, takePending } from "../signin-handoff.js?v=882122ed";
-import { applyFragmentPrefill } from "../fragment-prefill.js?v=51f26865";
+import { applyFragmentPrefill } from "../fragment-prefill.js?v=cee0c08f";
 import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js?v=f37507d8";
 import { lockScroll } from "../scroll-lock.js?v=b751eb4c";
 import { trapFocus } from "../dialog-focus.js?v=1dcc8c83";
 import { makeAnnouncer } from "../search-status.js?v=7497036c";
 import { recapSentence } from "../search-recap.js?v=bd8e2e91";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js?v=ff147636";
-import { waitText } from "../format.js?v=032c6fc5";
-import { postingChips, notOpenMessage } from "../chips.js?v=7a1dc776";
+import { waitText } from "../format.js?v=35ca37b5";
+import { postingChips, notOpenMessage } from "../chips.js?v=bfb5e5e0";
 import { aiNotes } from "../ai-notes.js?v=35c5dc92";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=f2ea9573";
-import { COMMENTS_VISIBLE } from "../config.js?v=9bf25cae";
+import { COMMENTS_VISIBLE } from "../config.js?v=41d402c7";
 import { openUnit } from "../open-link.js?v=454df0f2";
-import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=b3ef517f";
+import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=cb774d1b";
 import { isRegistered } from "../registered.js?v=f191c8c2";
-import { placeNodes } from "../place.js?v=915c680a";
-import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=6f2976ed";
+import { refineHints } from "../refine-hint.js?v=e1547c0e";
+import { placeNodes } from "../place.js?v=0846848b";
+import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=8c9c7a45";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
@@ -124,7 +125,11 @@ function showResults(data, searched) {
   countEl.textContent = n + (n === 1 ? " matching opening" : " matching openings") + (data.truncated ? ": showing the first 25; add more of the title to narrow it" : "");
   // prompt BQ: the ID is registered, but not to the company or title the job ad showed: said above the opening, which is still shown (the person decides). Prompt BS: it names what was entered (as text, never markup).
   if (data.mismatch === true) resultsEl.append(h("div", { class: "alert alert-notice", id: "mismatchNotice", role: "status" }, searched.mismatchText || kioMismatchMessage(searched.company, searched.title)));
+  // the gentle refine hints (js/refine-hint.js): one or two plain lines above the results of a title search; the results below are the same whatever they say
+  const hints = refineHints({ mode: data.mode, query: searched.query, count: n, truncated: data.truncated === true });
+  if (hints.length) resultsEl.append(h("div", { class: "refine-hint", id: "refineHint" }, ...hints.map((t) => h("p", {}, t))));
   for (const row of data.results) resultsEl.append(renderCard(row));
+  return hints;
 }
 
 // ---- the recap (Part C): once a search has run, the boxes are emptied and this read-only sentence sits between the form and the results. The one spoken message of the search is this same sentence (js/search-status.js).
@@ -263,8 +268,8 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
     if (!r.ok && r.status === 400 && r.error.field === "kio") { setFormError(KIO_INVALID_MESSAGE); queryIn.focus(); return; }
     if (r.ok) {
       const mismatchText = r.data.mismatch === true ? kioMismatchMessage(c.value, sentTitle) : "";
-      showResults(r.data, { company: c.value, query: q.value, kind: wasKio ? "kio" : q.kind, gone, title: sentTitle, mismatchText });
-      showRecap(typed, c.value, q, auto, mismatchText);
+      const hints = showResults(r.data, { company: c.value, query: q.value, kind: wasKio ? "kio" : q.kind, gone, title: sentTitle, mismatchText });
+      showRecap(typed, c.value, q, auto, [mismatchText, ...(hints || [])].filter(Boolean).join(" "));
       return;
     }
     clear(resultsEl); countEl.hidden = true;

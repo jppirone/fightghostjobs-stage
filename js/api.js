@@ -8,7 +8,7 @@
 //   * the session's access token goes in the Authorization header, the publishable key in apikey; the identity is NEVER sent in a body (the backend refuses poster_id / organization_id and reads who you are from the token).
 
 import { PLACE_FIELD } from "./place-text.js?v=cb5d7506";
-import { POST_ID_RE, isKioShown } from "./kio.js?v=80867368";
+import { POST_ID_RE, isKioShown } from "./kio.js?v=f3cb2b4d";
 // the typed place of an opening (prompt BH): absent, null or text of 1 to 200 characters (the table holds board text up to 200); never read for anything but display
 const placeFieldOk = (p) => p[PLACE_FIELD] === undefined || p[PLACE_FIELD] === null || (typeof p[PLACE_FIELD] === "string" && p[PLACE_FIELD].length >= 1 && p[PLACE_FIELD].length <= 200);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

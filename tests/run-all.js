@@ -58,6 +58,8 @@ const steps = [
   ["back from Comments or Report a wrong link: the search page comes back as it was, signed out meanwhile clears it, nothing new is stored (real browser)", [path.join(here, "back-restore.test.js")], true],
   ["browser helper: closes its browser and removes its folder, a failed start leaves nothing, a hung close is stopped; a browser left open makes the leak check fire, a step that never ends is stopped by its time limit (real browser)", [path.join(here, "leak-check.test.js")], true],
   ["search engines: every page and robots.txt keep them out on stage, and the tool that switches production on (no browser)", [path.join(here, "indexing.test.js")], true],
+  ["the gentle refine hints of the title search (October 20, 2026): the lists and the two sentences, with the filler words left out (no browser)", [path.join(here, "refine-hint.unit.test.js")], true],
+  ["the gentle refine hints of the title search (October 20, 2026): the count line above 3 openings, the generic word line, both, neither; every result still shown; a plain note, spoken once inside the search's status; a new search clears them (real browser)", [path.join(here, "refine-hint.test.js")], true],
   ["static site rules", [path.join(here, "site-check.js")], false],
   ["static rules: negative controls", [path.join(here, "site-check.controls.js")], false],
   ["browser leak check: no browser process and no profile folder carries the test marker (starts no browser)", [path.join(here, "leak-check.js")], false],

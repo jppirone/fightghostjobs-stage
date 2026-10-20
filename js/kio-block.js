@@ -3,8 +3,8 @@
 //   kioBlock(stored, { live, win, idAttr }) -> a node.   stored: the postID the server sent (the KIO ID in its stored form, or an old 12 character code, which has no short link and no ad lines).
 //   live: whether the short link is live (js/config.js KIO_SHORT_LINK_LIVE): while false the ad lines carry only the "KIO ID:" line.
 import { h } from "./dom.js?v=ff147636";
-import { displayId, shortLinkOf, adLines, isKioShown } from "./kio.js?v=80867368";
-import { KIO_SHORT_LINK_LIVE } from "./config.js?v=9bf25cae";
+import { displayId, shortLinkOf, adLines, isKioShown } from "./kio.js?v=f3cb2b4d";
+import { KIO_SHORT_LINK_LIVE } from "./config.js?v=41d402c7";
 
 export const COPY_FAILED = "Copying did not work in this browser. Select the text and copy it yourself.";
 

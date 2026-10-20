@@ -1437,6 +1437,21 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("a new test file nobody listed", "S90", (dir) => { fs.writeFileSync(path.join(dir, "tests", "zz-unlisted.test.js"), "// a test file that is not a step of run-all.js\n"); });
   control("a test file named only in a comment of run-all.js", "S90", edit(RUN, (s) => s.replace('path.join(here, "bs.test.js")', 'path.join(here, "unit.test.js")').replace("const here = path.dirname(fileURLToPath(import.meta.url));", "const here = path.dirname(fileURLToPath(import.meta.url));\n// bs.test.js")));
   control("the steps list can no longer be found", "S90", edit(RUN, (s) => s.replace("const steps = [", "const stepList = [")));
+  // S101 (2026-10-20): the gentle refine hints of the title search
+  control("the module is gone", "S101", (dir) => { fs.rmSync(path.join(dir, "js", "refine-hint.js")); });
+  control("a word of the lines says verified", "S101", edit("js/refine-hint.js", (s) => s.replace(/"That word is common in many titles\./g, '"That word is common in many verified titles.')));
+  control("the limit is not 3", "S101", edit("js/config.js", (s) => s.replace("REFINE_HINT_MAX_RESULTS = 3;", "REFINE_HINT_MAX_RESULTS = 5;")));
+  control("a word is added to the generic list", "S101", edit("js/config.js", (s) => s.replace('"representative", "administrator"];', '"representative", "administrator", "officer"];')));
+  control("the filler list is changed", "S101", edit("js/config.js", (s) => s.replace('"at", "to", "with"];', '"at", "to"];')));
+  control("the generic list is copied into the module", "S101", edit("js/refine-hint.js", (s) => s.replace('import { REFINE_HINT_MAX_RESULTS,', 'const GENERIC_TITLE_WORDS = ["manager"];\nimport { REFINE_HINT_MAX_RESULTS,')));
+  control("the hints show for every kind of search", "S101", edit("js/refine-hint.js", (s) => s.replace('mode !== "phrase" ||', "")));
+  control("the search page does not use the hints", "S101", edit("js/pages/search.js", (s) => s.replace('import { refineHints } from "../refine-hint.js', 'import { refineHintsX } from "../refine-hint.js')));
+  control("the search page asks with the wrong mode", "S101", edit("js/pages/search.js", (s) => s.replace("refineHints({ mode: data.mode, query: searched.query", "refineHints({ mode: \"phrase\", query: searched.query")));
+  control("the staff view shows the hints", "S101", edit("js/pages/search.js", (s) => s.replace("function renderStaffCard(row) {", "function renderStaffCard(row) {\n  void refineHints({ mode: \"phrase\", query: \"\", count: 0, truncated: false });")));
+  control("the hint is an alert", "S101", edit("js/pages/search.js", (s) => s.replace('h("div", { class: "refine-hint", id: "refineHint" }', 'h("div", { class: "refine-hint", id: "refineHint", role: "alert" }')));
+  control("another page uses the hints", "S101", edit("js/pages/comments.js", (s) => s + '\nimport { refineHints } from "../refine-hint.js";\n'));
+  control("the unit test is not a step", "S101", edit(RUN, (s) => s.replace('path.join(here, "refine-hint.unit.test.js")', 'path.join(here, "unit.test.js")')));
+  control("the browser test is not a step", "S101", edit(RUN, (s) => s.replace('path.join(here, "refine-hint.test.js")', 'path.join(here, "unit.test.js")')));
 }
 
 fs.rmSync(tmpBase, { recursive: true, force: true });
