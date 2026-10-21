@@ -57,6 +57,7 @@
 //   S62 the search page opened with the company and one other value in the URL fragment (extension hand-off): only c, p, r, t, the site's limits, plain text, refuse on doubt, fragment removed at once, never an automatic search
 //   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
 //   S60 search engines (Phase 3): the flag ALLOW_INDEXING in js/config.js (false on stage) agrees with every page's robots tag and with robots.txt; sign-in pages are noindex in every environment; the tool and the test exist and run
+//   S101 the gentle refine hints of the title search (October 20, 2026): the three lists in js/config.js, js/refine-hint.js, only the search page shows them (never the staff view), a plain note (no alert), plain words, both tests are steps
 //   S90 every tests/*.test.js is a step of tests/run-all.js (a test file that is not a step is never run by a full run) (prompt TEST2)
 //   S100 the employer's optional statement of the kind of an opening (prompt ST1): the choice on both employer pages starts as Not stated, its words hold no compliant, certified, verified or posting, a candidate sees only a
 //        sentence that begins "The employer says", the labels come from the database (api.intentOptions), the search card and the comments page show it beside the AI lines
@@ -2135,6 +2136,35 @@ export function checkSite(root, opts = {}) {
         }
       }
     }
+  }
+  // S101 (2026-10-20): the gentle refine hints of the title search. Above the results of a TITLE search the page may say two plain things (js/refine-hint.js): how many openings were found when there are more than 3, and that
+  // a single generic word is common. The three lists (the limit 3, the generic words, the filler words) live ONLY in js/config.js. The lines are shown by the search page only (never the staff view, never another page), as a plain note
+  // (no role="alert", no live region of their own: they are spoken inside the search's one status message), in plain words (no "verified", no word of fear), and both tests of the feature are steps of the full run.
+  {
+    const cfgF = path.join(root, "js", "config.js"), modF = path.join(root, "js", "refine-hint.js"), sj = path.join(root, "js", "pages", "search.js"), runF = path.join(root, "tests", "run-all.js");
+    if (!fs.existsSync(modF)) add("S101", modF, "js/refine-hint.js is missing");
+    else {
+      const m = stripJsComments(read(modF));
+      if (/verif|compliant|certif|—|–/i.test(m)) add("S101", modF, "the words of the refine hints hold a forbidden word (verified, compliant, certified) or a dash");
+      if (!m.includes('from "./config.js') || !m.includes("REFINE_HINT_MAX_RESULTS") || !m.includes("GENERIC_TITLE_WORDS") || !m.includes("TITLE_FILLER_WORDS")) add("S101", modF, "the refine hints must read their three lists from js/config.js");
+      if (!m.includes('mode !== "phrase"')) add("S101", modF, "the refine hints must show only for a title search (mode phrase)");
+      if (/\b(GENERIC_TITLE_WORDS|TITLE_FILLER_WORDS)\s*=\s*\[/.test(m)) add("S101", modF, "the lists of the refine hints must not be copied into js/refine-hint.js: they live in js/config.js only");
+    }
+    if (fs.existsSync(cfgF)) {
+      const c = read(cfgF);
+      if (!c.includes("export const REFINE_HINT_MAX_RESULTS = 3;")) add("S101", cfgF, "REFINE_HINT_MAX_RESULTS must be 3 (John's number)");
+      if (!c.includes('export const GENERIC_TITLE_WORDS = ["manager", "senior", "junior", "associate", "specialist", "director", "analyst", "assistant", "coordinator", "lead", "supervisor", "engineer", "representative", "administrator"];')) add("S101", cfgF, "GENERIC_TITLE_WORDS is not the agreed starting list");
+      if (!c.includes('export const TITLE_FILLER_WORDS = ["of", "the", "and", "a", "an", "for", "in", "at", "to", "with"];')) add("S101", cfgF, "TITLE_FILLER_WORDS is not the agreed filler list (the database keeps the same list in its setting title_filler_words)");
+    } else add("S101", cfgF, "js/config.js is missing");
+    if (fs.existsSync(sj)) {
+      const s = read(sj);
+      if (!s.includes('import { refineHints } from "../refine-hint.js')) add("S101", sj, "the search page must import the refine hints");
+      if (!s.includes("refineHints({ mode: data.mode, query: searched.query")) add("S101", sj, "the search page must ask for the hints with the answer's own mode and the typed title");
+      if (/refineHints\(/.test(s.slice(s.indexOf("// ---- the staff scope"), s.indexOf("// ---- the details dialog") > 0 ? s.indexOf("// ---- the details dialog") : s.length))) add("S101", sj, "the staff view must not show the refine hints");
+      if (/id: "refineHint"[^)]*role:/.test(s) || /role: "(alert|status)"[^)]*id: "refineHint"/.test(s)) add("S101", sj, "the refine hint is a plain note: no role");
+    }
+    for (const f of js) { const n = path.relative(root, f).replace(/\\/g, "/"); if (["js/pages/search.js", "js/refine-hint.js"].includes(n)) continue; if (/refine-hint\.js|refineHints/.test(stripJsComments(read(f)))) add("S101", f, "only the search page may use the refine hints"); }
+    if (fs.existsSync(runF)) { const r = read(runF); for (const n of ["refine-hint.unit.test.js", "refine-hint.test.js"]) if (!r.includes('"' + n + '"')) add("S101", runF, n + " is not a step of the full run"); }
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed

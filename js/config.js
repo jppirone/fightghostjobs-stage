@@ -22,6 +22,12 @@ export const COMMENTS_VISIBLE = true;
 export const KIO_PREFIX = "KIO";
 export const KIO_SHORT_LINK_HOST = "knowitsopen.com";
 export const KIO_SHORT_LINK_LIVE = false;
+// THE REFINE HINTS (October 20, 2026; js/refine-hint.js): two plain lines above the results of a TITLE search, never a block. REFINE_HINT_MAX_RESULTS: more openings than this (3) shows "We found N openings. To narrow it ...".
+// GENERIC_TITLE_WORDS: a title that is only ONE of these words (after the filler words are left out) shows "That word is common in many titles ...". TITLE_FILLER_WORDS: the words that carry no meaning in a title; the database keeps
+// the same list (its setting title_filler_words, used by the search itself), this copy is only for the second hint. All three are the ONE place to change these on the page.
+export const REFINE_HINT_MAX_RESULTS = 3;
+export const GENERIC_TITLE_WORDS = ["manager", "senior", "junior", "associate", "specialist", "director", "analyst", "assistant", "coordinator", "lead", "supervisor", "engineer", "representative", "administrator"];
+export const TITLE_FILLER_WORDS = ["of", "the", "and", "a", "an", "for", "in", "at", "to", "with"];
 export const STORAGE_KEY = "fgj-auth";          // where the Auth client keeps the session (this origin's localStorage only)
 export const NEXT_KEY = "fgj-next";              // where a page remembers "go here after the sign-in link" (sessionStorage)
 export const KIND_KEY = "fgj-signin-kind";       // "poster" | "candidate": what the person asked to sign in as (sessionStorage)

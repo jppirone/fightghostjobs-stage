@@ -58,6 +58,8 @@ input[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--embe
 .source-row .go-icon{flex:none;display:block}
 .source-row-label{font-size:14px;font-weight:600;min-width:0;overflow-wrap:anywhere;margin-right:12px}
 .empty-note{font-size:14px;color:var(--muted);line-height:1.6;background:var(--panel);border-radius:10px;padding:14px 16px;margin-top:16px}
+.refine-hint{font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 16px}
+.refine-hint p{margin:0 0 6px}
 .result-count{font-size:13px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
 .code-box{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;letter-spacing:.06em;background:var(--panel);border-radius:10px;padding:14px 18px;display:inline-block}
 /* the employer's ID block (prompt BQ): the ID, the short link and the job ad lines, each with a copy button; text only, never a field */

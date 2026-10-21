@@ -3,17 +3,17 @@
 // Posting a comment: the page checks length and plain text, the backend applies the whole rule (no web address, no naming where the posting was found unless this posting already shows
 // that platform, no slurs or profanity) and says why in words. Wrong links go to a private report, not to the thread.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js?v=fef88967";
-import { requestLink, watchOtherTabSignIn } from "../session.js?v=c0af4232";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js?v=7a49eec3";
+import { requestLink, watchOtherTabSignIn } from "../session.js?v=6dcc7750";
 import { $, h, clear, alertBox, chip } from "../dom.js?v=ff147636";
-import { waitText, groupCode } from "../format.js?v=032c6fc5";
-import { placeNodes } from "../place.js?v=915c680a";
-import { postingChips, notOpenRecap } from "../chips.js?v=7a1dc776";
+import { waitText, groupCode } from "../format.js?v=35ca37b5";
+import { placeNodes } from "../place.js?v=0846848b";
+import { postingChips, notOpenRecap } from "../chips.js?v=bfb5e5e0";
 import { aiNotes } from "../ai-notes.js?v=35c5dc92";
 import { intentNotes } from "../intent-statement.js?v=d37f2b4b";
-import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js?v=0023c746";
-import { addContestPart } from "../contest-ui.js?v=ec965932";
-import { COMMENTS_VISIBLE } from "../config.js?v=9bf25cae";   // the one comments switch: while false this page is only the wrong-link report
+import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js?v=78d1769f";
+import { addContestPart } from "../contest-ui.js?v=2c6a7885";
+import { COMMENTS_VISIBLE } from "../config.js?v=41d402c7";   // the one comments switch: while false this page is only the wrong-link report
 
 const params = new URLSearchParams(location.search);
 const ref = String(params.get("ref") || "").toLowerCase(), pid = String(params.get("id") || "").toLowerCase();

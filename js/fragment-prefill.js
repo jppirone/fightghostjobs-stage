@@ -13,7 +13,7 @@
 // prompt BQ (October 12, 2026): a fifth key, k, the KIO ID in its stored form (what the extension sends). k rides with c and t at most: a k with p or r refuses the whole fragment (no req number is ever sent with an ID), a k that is not a
 // KIO ID that passes the check refuses it, and the company is optional (the ID alone drives the search). t is kept in the page's memory ONLY, to say whether the job ad's title differs from the record: the page has one box for the ID
 // and the title words, so the ID goes in that box and t is not shown anywhere. Nothing here is ever sent anywhere by this module, and no email or personal data is read: only c, k and t.
-import { readKio } from "./kio.js?v=80867368";
+import { readKio } from "./kio.js?v=f3cb2b4d";
 
 export const FRAGMENT_KEYS = { c: "company", p: "postid", r: "req", t: "title", k: "kio" };
 export const FRAGMENT_MAX = { company: 200, postid: 14, req: 100, title: 80, kio: 24 };

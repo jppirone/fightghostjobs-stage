@@ -8,7 +8,7 @@
 //   * the session's access token goes in the Authorization header, the publishable key in apikey; the identity is NEVER sent in a body (the backend refuses poster_id / organization_id and reads who you are from the token).
 
 import { PLACE_FIELD } from "./place-text.js?v=cb5d7506";
-import { POST_ID_RE, isKioShown } from "./kio.js?v=80867368";
+import { POST_ID_RE, isKioShown } from "./kio.js?v=f3cb2b4d";
 import { intentOptionsOk, INTENT_CODES } from "./intent-statement.js?v=d37f2b4b";
 // prompt ST1: the employer's optional statement of the kind of an opening. A search row carries the finished sentence (or null); the editor's posting carries the code and the day. Absent = an answer from before the
 // database change. The sentence is plain text of at most 300 characters; the code is one of the four; the day is YYYY-MM-DD.
