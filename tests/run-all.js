@@ -61,6 +61,8 @@ const steps = [
   ["search engines: every page and robots.txt keep them out on stage, and the tool that switches production on (no browser)", [path.join(here, "indexing.test.js")], true],
   ["the gentle refine hints of the title search (October 20, 2026): the lists and the two sentences, with the filler words left out (no browser)", [path.join(here, "refine-hint.unit.test.js")], true],
   ["the gentle refine hints of the title search (October 20, 2026): the count line above 3 openings, the generic word line, both, neither; every result still shown; a plain note, spoken once inside the search's status; a new search clears them (real browser)", [path.join(here, "refine-hint.test.js")], true],
+  ["the link count pills of the opening tile (prompt LK, October 23, 2026): the words, the counts, the exact tooltips (no browser)", [path.join(here, "link-pills.unit.test.js")], true],
+  ["the link count pills of the opening tile (prompt LK): 0, 1, 2, 3 and the maximum, official or employer links, the recruiter pill, the sum equals the details window, counts only, every status, the icons by mouse, keyboard and touch, wrapping at five widths, the comments page recap (real browser)", [path.join(here, "link-pills.test.js")], true],
   ["static site rules", [path.join(here, "site-check.js")], false],
   ["static rules: negative controls", [path.join(here, "site-check.controls.js")], false],
   ["browser leak check: no browser process and no profile folder carries the test marker (starts no browser)", [path.join(here, "leak-check.js")], false],

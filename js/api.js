@@ -10,6 +10,12 @@
 import { PLACE_FIELD } from "./place-text.js?v=cb5d7506";
 import { POST_ID_RE, isKioShown } from "./kio.js?v=f3cb2b4d";
 import { intentOptionsOk, INTENT_CODES } from "./intent-statement.js?v=d37f2b4b";
+import { MAX_APPLY_LINKS, MAX_RECRUITER_FIRMS } from "./link-pills.js?v=89324475";
+// prompt LK (October 23, 2026): the COUNTS of the links an opening has, for the tile (apply_link_count 0 to 10, recruiter_firm_count 0 to 3), both present or both absent (an answer from before the database change); a
+// well formed whole number, nothing else. destination_links_exclusive, when present, is a boolean (the details answer has carried it for a long time). No address, no token: only these numbers are read.
+const linkCountFieldsOk = (r) => (r.apply_link_count === undefined && r.recruiter_firm_count === undefined)
+  || (Number.isInteger(r.apply_link_count) && r.apply_link_count >= 0 && r.apply_link_count <= MAX_APPLY_LINKS && Number.isInteger(r.recruiter_firm_count) && r.recruiter_firm_count >= 0 && r.recruiter_firm_count <= MAX_RECRUITER_FIRMS);
+const exclusiveFlagOk = (r) => r.destination_links_exclusive === undefined || typeof r.destination_links_exclusive === "boolean";
 // prompt ST1: the employer's optional statement of the kind of an opening. A search row carries the finished sentence (or null); the editor's posting carries the code and the day. Absent = an answer from before the
 // database change. The sentence is plain text of at most 300 characters; the code is one of the four; the day is YYYY-MM-DD.
 const intentLineOk = (r) => r.intent_line === undefined || r.intent_line === null || (typeof r.intent_line === "string" && r.intent_line.length <= 300);
@@ -66,7 +72,7 @@ export const shapes = {
     && shapes.aiNotes(r)
     && isBool(r.third_party_recruiter) && MASK_RE.test(r.masked_code) && isNullable(r.masked_req, (v) => isStr(v) && MASKED_REQ_RE.test(v)) && REF_RE.test(r.posting_ref) && isNullable(r.last_edited_at, isStr)
     // prompt BQ (October 12, 2026): the whole KIO ID (null or absent from an answer of before the database change) and, for a lookup by ID, when it closed or expired
-    && (r.kio_id === undefined || isNullable(r.kio_id, isKioShown)) && (r.closed_at === undefined || isNullable(r.closed_at, isStr)) && intentLineOk(r),
+    && (r.kio_id === undefined || isNullable(r.kio_id, isKioShown)) && (r.closed_at === undefined || isNullable(r.closed_at, isStr)) && intentLineOk(r) && linkCountFieldsOk(r) && exclusiveFlagOk(r),
   // one row of the staff-scope answer (staff_search_openings): every status, exact keys only
   staffRow: (r) => isObj(r) && Object.keys(r).every((k) => STAFF_ROW_KEYS.includes(k) || STAFF_ROW_OPTIONAL_KEYS.includes(k)) && STAFF_ROW_KEYS.every((k) => Object.hasOwn(r, k))   // is_registered is read by js/registered.js (only a boolean true draws the mark; any other value is not registered), so its value is not judged here
     && isStr(r.company_name) && isStr(r.organization_name) && isStr(r.title) && Array.isArray(r.locations) && r.locations.every(isStr) && isBool(r.is_remote)

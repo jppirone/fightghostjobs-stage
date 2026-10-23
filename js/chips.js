@@ -2,6 +2,7 @@
 // The wording of the two AI disclosures and their tooltips is the FINAL design copy (design brief addendum, section 12): the tooltip describes the mechanism, never an outcome.
 
 import { fmtDateTz, fmtClose } from "./format.js?v=35ca37b5";
+import { recruiterChip, applicationLinksChip } from "./link-pills.js?v=89324475";
 
 export const TOOLTIP_FILTERING = "Resume screening or keyword/ATS-style matching used to prioritize applications before a human reviews them.";
 export const TOOLTIP_INTERVIEW = "Any AI that interacts with a candidate directly, such as an AI-conducted interview or a chatbot screening call.";
@@ -34,7 +35,9 @@ export function postingChips(p, tz) {
   const chips = [{ text: "Added " + fmtDateTz(p.posted_at, tz) }];
   chips.push(...statusChips(p, tz));
   chips.push(aiFilteringChip(p.ai_filtering), aiInterviewChip(p.ai_interview_other));
-  chips.push({ text: p.third_party_recruiter === true ? "Third-party recruiter involved" : "No recruiter" });
+  chips.push(recruiterChip(p));
+  const links = applicationLinksChip(p);   // prompt LK: how many links the employer gave (counts only); left out when the row has no counts
+  if (links !== null) chips.push(links);
   chips.push({ text: Number.isInteger(p.applicant_cap) ? "Capped at " + p.applicant_cap + " applicants" : "No applicant cap set" });
   if (typeof p.last_edited_at === "string" && p.last_edited_at !== "") chips.push({ text: "Edited " + fmtDateTz(p.last_edited_at, tz) });
   return chips;

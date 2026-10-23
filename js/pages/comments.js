@@ -3,16 +3,17 @@
 // Posting a comment: the page checks length and plain text, the backend applies the whole rule (no web address, no naming where the posting was found unless this posting already shows
 // that platform, no slurs or profanity) and says why in words. Wrong links go to a private report, not to the thread.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js?v=7a49eec3";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js?v=8cda0927";
 import { requestLink, watchOtherTabSignIn } from "../session.js?v=6dcc7750";
 import { $, h, clear, alertBox, chip } from "../dom.js?v=ff147636";
 import { waitText, groupCode } from "../format.js?v=35ca37b5";
 import { placeNodes } from "../place.js?v=0846848b";
-import { postingChips, notOpenRecap } from "../chips.js?v=bfb5e5e0";
+import { postingChips, notOpenRecap } from "../chips.js?v=851e7e8f";
+import { countsFromDetail } from "../link-pills.js?v=89324475";
 import { aiNotes } from "../ai-notes.js?v=35c5dc92";
 import { intentNotes } from "../intent-statement.js?v=d37f2b4b";
-import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js?v=78d1769f";
-import { addContestPart } from "../contest-ui.js?v=2c6a7885";
+import { checkComment, checkReason, checkLinkReport, refusalText, ago, linkChoices, detailLinks, showLinkPicker, cooldownMs, parseLinkChoice, COMMENT_RULES, MAX_COMMENT, MAX_LINK_REPORT, DEFAULT_CONTEST_LIMITS } from "../comments-model.js?v=79765c80";
+import { addContestPart } from "../contest-ui.js?v=e265f40d";
 import { COMMENTS_VISIBLE } from "../config.js?v=41d402c7";   // the one comments switch: while false this page is only the wrong-link report
 
 const params = new URLSearchParams(location.search);
@@ -104,7 +105,7 @@ function renderRecap(d) {
     $("#recapCompany").textContent = p.company_name; $("#recapTitle").textContent = p.title;
     // the place line is the same one every screen draws (js/place.js): the typed place with its small note, or the list places and Remote, or "Location not stated"
     const meta = $("#recapMeta"); clear(meta); meta.append(...placeNodes(h, p), " · KIO ID: " + (typeof p.kio_id === "string" && p.kio_id !== "" ? p.kio_id : p.masked_code) + (p.masked_req ? " · Req " + p.masked_req : ""));
-    const chips = $("#recapChips"); clear(chips); for (const c of postingChips(p)) chips.append(chip(c));
+    const chips = $("#recapChips"); clear(chips); for (const c of postingChips(Object.assign({}, p, countsFromDetail(d.data)))) chips.append(chip(c));   // prompt LK: the link pills count the links this same answer lists
     const notes = $("#recapNotes"); clear(notes);
     // prompt ST1: the kind of opening ("The employer says: ..."), beside the AI lines; nothing at all when not stated
     for (const n of [...aiNotes(p), ...intentNotes(p)]) notes.append(h("div", { style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text));

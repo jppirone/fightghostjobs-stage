@@ -57,6 +57,7 @@
 //   S62 the search page opened with the company and one other value in the URL fragment (extension hand-off): only c, p, r, t, the site's limits, plain text, refuse on doubt, fragment removed at once, never an automatic search
 //   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
 //   S60 search engines (Phase 3): the flag ALLOW_INDEXING in js/config.js (false on stage) agrees with every page's robots tag and with robots.txt; sign-in pages are noindex in every environment; the tool and the test exist and run
+//   S102 the link count pills of the opening tile (prompt LK, October 23, 2026): js/link-pills.js reads only the counts and the statement, says only what the employer disclosed (no "verified", no dash), the tile is built in js/chips.js only, the tooltips are exact, both tests are steps
 //   S101 the gentle refine hints of the title search (October 20, 2026): the three lists in js/config.js, js/refine-hint.js, only the search page shows them (never the staff view), a plain note (no alert), plain words, both tests are steps
 //   S90 every tests/*.test.js is a step of tests/run-all.js (a test file that is not a step is never run by a full run) (prompt TEST2)
 //   S100 the employer's optional statement of the kind of an opening (prompt ST1): the choice on both employer pages starts as Not stated, its words hold no compliant, certified, verified or posting, a candidate sees only a
@@ -2165,6 +2166,33 @@ export function checkSite(root, opts = {}) {
     }
     for (const f of js) { const n = path.relative(root, f).replace(/\\/g, "/"); if (["js/pages/search.js", "js/refine-hint.js"].includes(n)) continue; if (/refine-hint\.js|refineHints/.test(stripJsComments(read(f)))) add("S101", f, "only the search page may use the refine hints"); }
     if (fs.existsSync(runF)) { const r = read(runF); for (const n of ["refine-hint.unit.test.js", "refine-hint.test.js"]) if (!r.includes('"' + n + '"')) add("S101", runF, n + " is not a step of the full run"); }
+  }
+  // S102 (2026-10-23, prompt LK): the link count pills of the opening tile. The tile says HOW MANY links the employer gave and whether the employer calls them official, from three values of the search result (apply_link_count,
+  // recruiter_firm_count, destination_links_exclusive) and the recruiter switch: COUNTS ONLY. The module reads those four keys and no other (so never an address, a firm address or a one-time link), says only what the employer
+  // disclosed (no "verified", no dash), keeps John's exact tooltips, and is used by the one place that builds the tile (js/chips.js), by the answer check of js/api.js (the two maxima) and by the comments page recap (the counts of
+  // the same details answer). The old tile text "Third-party recruiter involved" belongs to the employer's switch label and is not on the tile any more. Both tests of the feature are steps of the full run.
+  {
+    const lpF = path.join(root, "js", "link-pills.js"), chF = path.join(root, "js", "chips.js"), apiF = path.join(root, "js", "api.js"), runF = path.join(root, "tests", "run-all.js");
+    if (!fs.existsSync(lpF)) add("S102", lpF, "js/link-pills.js is missing");
+    else {
+      const raw = read(lpF), m = stripJsComments(raw);
+      if (new RegExp("verif|compliant|certif|" + String.fromCharCode(8212) + "|" + String.fromCharCode(8211), "i").test(raw.replace(/\/\/.*$/gm, ""))) add("S102", lpF, "the words of the link pills hold a forbidden word (verified, compliant, certified) or a dash");
+      const keys = [...new Set(Array.from(m.matchAll(/\brow\.([a-z_]+)/g), (x) => x[1]))].sort().join(",");
+      if (keys !== "apply_link_count,destination_links_exclusive,recruiter_firm_count,third_party_recruiter") add("S102", lpF, "the link pills must read exactly apply_link_count, destination_links_exclusive, recruiter_firm_count and third_party_recruiter of a row (found: " + keys + ")");
+      if (/\.(url|go_url|href|token|label|firm|firm_url|address)\b/.test(m)) add("S102", lpF, "the link pills must not read an address, a label or a firm name");
+      if (!m.includes('export const TOOLTIP_OFFICIAL = "The employer says these are the only places to apply for this opening. FightGhostJobs does not check that.";')) add("S102", lpF, "the official links tooltip is not John's exact text");
+      if (!m.includes('export const TOOLTIP_EMPLOYER = "Links the employer provided to apply for this opening. The employer has not said these are the only places to apply.";')) add("S102", lpF, "the employer links tooltip is not John's exact text");
+      if (!m.includes("export const MAX_APPLY_LINKS = 10;") || !m.includes("export const MAX_RECRUITER_FIRMS = 3;")) add("S102", lpF, "the maxima must be 10 application links and 3 recruiter firms");
+      for (const w of ['"No employer links"', '" official link"', '" official links"', '" employer link"', '" employer links"', '"No recruiter"', '"Recruiter involved"', '" recruiter link"', '" recruiter links"']) if (!m.includes(w)) add("S102", lpF, "the wording " + w + " is missing");
+    }
+    if (fs.existsSync(chF)) {
+      const c = stripJsComments(read(chF));
+      if (!c.includes('from "./link-pills.js') || !c.includes("chips.push(recruiterChip(p));") || !/chips\.push\(links\)/.test(c)) add("S102", chF, "the tile (js/chips.js) must be built with the recruiter pill and then the application links pill of js/link-pills.js");
+      if (c.includes("Third-party recruiter involved") || c.includes('"No recruiter"')) add("S102", chF, "the tile must not carry its own recruiter words: they live in js/link-pills.js");
+    }
+    if (fs.existsSync(apiF) && !stripJsComments(read(apiF)).includes("linkCountFieldsOk(r)")) add("S102", apiF, "the search answer check must judge the link counts (linkCountFieldsOk)");
+    for (const f of js) { const n = path.relative(root, f).replace(/\\/g, "/"); if (["js/link-pills.js", "js/chips.js", "js/api.js", "js/pages/comments.js"].includes(n)) continue; if (/link-pills\.js/.test(stripJsComments(read(f)))) add("S102", f, "only js/chips.js, js/api.js and the comments page use the link pills"); }
+    if (fs.existsSync(runF)) { const r = read(runF); for (const n of ["link-pills.unit.test.js", "link-pills.test.js"]) if (!r.includes('"' + n + '"')) add("S102", runF, n + " is not a step of the full run"); }
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed

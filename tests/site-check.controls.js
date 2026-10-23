@@ -1452,6 +1452,23 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("another page uses the hints", "S101", edit("js/pages/comments.js", (s) => s + '\nimport { refineHints } from "../refine-hint.js";\n'));
   control("the unit test is not a step", "S101", edit(RUN, (s) => s.replace('path.join(here, "refine-hint.unit.test.js")', 'path.join(here, "unit.test.js")')));
   control("the browser test is not a step", "S101", edit(RUN, (s) => s.replace('path.join(here, "refine-hint.test.js")', 'path.join(here, "unit.test.js")')));
+  // S102 (2026-10-23, prompt LK): the link count pills of the opening tile
+  control("the module is gone", "S102", (dir) => { fs.rmSync(path.join(dir, "js", "link-pills.js")); });
+  control("a word of the pills says verified", "S102", edit("js/link-pills.js", (s) => s.replace('" official links"', '" verified links"')));
+  control("a dash is put in a tooltip", "S102", edit("js/link-pills.js", (s) => s.replace("FightGhostJobs does not check that.", "FightGhostJobs does not check that " + String.fromCharCode(8212) + " ever.")));
+  control("the official tooltip is reworded", "S102", edit("js/link-pills.js", (s) => s.replace("The employer says these are the only places to apply for this opening.", "These are the only places to apply for this opening.")));
+  control("the employer tooltip is reworded", "S102", edit("js/link-pills.js", (s) => s.replace("The employer has not said these are the only places to apply.", "These may not be the only places to apply.")));
+  control("the pill reads the address of a link", "S102", edit("js/link-pills.js", (s) => s.replace('if (c.apply === 0) return { text: "No employer links" };', 'if (c.apply === 0) return { text: "No employer links" + row.url };')));
+  control("the pill reads a firm name", "S102", edit("js/link-pills.js", (s) => s.replace('typeof row.destination_links_exclusive !== "boolean") return null;', 'typeof row.destination_links_exclusive !== "boolean" || row.firm) return null;')));
+  control("the pill reads another key of the row", "S102", edit("js/link-pills.js", (s) => s.replace("if (!row || row.third_party_recruiter !== true)", "if (!row || row.third_party_recruiter !== true || row.status === 'x')")));
+  control("a maximum is changed", "S102", edit("js/link-pills.js", (s) => s.replace("export const MAX_APPLY_LINKS = 10;", "export const MAX_APPLY_LINKS = 20;")));
+  control("the wording for no links changes", "S102", edit("js/link-pills.js", (s) => s.replace('{ text: "No employer links" }', '{ text: "No links" }')));
+  control("the tile carries its own recruiter words again", "S102", edit("js/chips.js", (s) => s.replace("chips.push(recruiterChip(p));", 'chips.push(p.third_party_recruiter === true ? { text: "Third-party recruiter involved" } : { text: "No recruiter" });')));
+  control("the tile no longer builds the application links pill", "S102", edit("js/chips.js", (s) => s.replace("if (links !== null) chips.push(links);", "")));
+  control("the answer check no longer judges the counts", "S102", edit("js/api.js", (s) => s.replace("&& linkCountFieldsOk(r) &&", "&&")));
+  control("another page uses the link pills", "S102", edit("js/pages/search.js", (s) => s + '\nimport { linkCounts } from "../link-pills.js";\n'));
+  control("the unit test is not a step", "S102", edit(RUN, (s) => s.replace('path.join(here, "link-pills.unit.test.js")', 'path.join(here, "unit.test.js")')));
+  control("the browser test is not a step", "S102", edit(RUN, (s) => s.replace('path.join(here, "link-pills.test.js")', 'path.join(here, "unit.test.js")')));
 }
 
 // S100 (prompt ST1, October 14, 2026): the employer's optional statement of the kind of an opening

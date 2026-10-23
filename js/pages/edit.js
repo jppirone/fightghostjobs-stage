@@ -2,13 +2,13 @@
 // The server judges the rest (how much of the requirements text is kept, the location rule, duplicate req numbers) and this page shows its answer in words. Nothing here trusts the page for identity: the session token tells the server who is acting.
 // Unsaved work is never lost silently: a bar at the bottom of the window says what is not saved, the browser asks before the page is left, and the page's own links ask with a dialog (js/unsaved-guard.js; what counts as unsaved is js/dirty-state.js).
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=7a49eec3";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=8cda0927";
 import { rememberNext } from "../session.js?v=6dcc7750";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
 import { fmtClose, fmtStamp, waitText } from "../format.js?v=35ca37b5";
 import { kioBlock } from "../kio-block.js?v=1ed7e8ba";
 import { statusChip, actionsFor } from "../dashboard-model.js?v=a4bf4c30";
-import { runAction } from "../dashboard-actions.js?v=75d5bbbd";
+import { runAction } from "../dashboard-actions.js?v=ad832808";
 import { mountLimitHint } from "../limit-hint.js?v=1cfa5987";
 import { checkEdit, mapEditErrors, KIND_TEXT, plainChangeNote, checkLinks, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js?v=eb936068";
 import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
@@ -19,10 +19,10 @@ import { placeNodes } from "../place.js?v=0846848b";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js?v=b2985372";
 import { loadCatalog } from "../location-catalog.js?v=bb0c937e";
 import { mountLinkRowsById, mountLinkRows } from "../link-rows.js?v=1d36f594";
-import { mountLinkPanel } from "../link-panel.js?v=768e5695";
-import { mountFirmPanel } from "../firm-panel.js?v=f7a6bb96";
-import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=58401d30";
-import { mountPolicyPanel } from "../policy-panel.js?v=b1612a27";
+import { mountLinkPanel } from "../link-panel.js?v=336807de";
+import { mountFirmPanel } from "../firm-panel.js?v=e964f8c5";
+import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=4ffd0dc8";
+import { mountPolicyPanel } from "../policy-panel.js?v=71152543";
 import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js?v=5b8f0605";
 import { wireInfoIcons } from "../info-icon.js?v=66958a58";
 import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL, ACTION, ADDED_LABEL, panelsFirstText } from "../dirty-state.js?v=7d99ced4";

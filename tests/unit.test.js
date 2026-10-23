@@ -71,7 +71,7 @@ test("a live opening's chips, in the designed order", () => {
 test("cap, recruiter and last-edited variants", () => {
   const p = Object.assign({}, base, { applicant_cap: null, third_party_recruiter: true, ai_filtering: true, last_edited_at: "2026-09-20T09:00:00Z" });
   const t = postingChips(p, "UTC").map((c) => c.text);
-  assert.ok(t.includes("No applicant cap set")); assert.ok(t.includes("Third-party recruiter involved")); assert.ok(t.includes("AI-assisted filtering")); assert.ok(t.includes("Edited Sep 20 (UTC)"));
+  assert.ok(t.includes("No applicant cap set")); assert.ok(t.includes("Recruiter involved")); assert.ok(!t.includes("Third-party recruiter involved")); assert.ok(t.includes("AI-assisted filtering"));   // prompt LK (October 23, 2026): the recruiter pill with the switch on and no firm named now reads "Recruiter involved" (the employer's own toggle keeps its label "Third-party recruiter involved") assert.ok(t.includes("Edited Sep 20 (UTC)"));
 });
 
 test("status wording for every state a candidate can be shown", () => {

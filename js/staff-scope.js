@@ -8,7 +8,7 @@
 // THE CONTRACT WITH THE EXTENSION: the address carries scope=all in its query string, nothing else is new. Absent, empty, repeated or any other value means "live only", exactly as before.
 
 import { fmtDateTz, fmtClose } from "./format.js?v=35ca37b5";
-import { aiFilteringChip, aiInterviewChip, CLOSED_REASON_LABEL } from "./chips.js?v=bfb5e5e0";
+import { aiFilteringChip, aiInterviewChip, CLOSED_REASON_LABEL } from "./chips.js?v=851e7e8f";
 
 export const STAFF_BANNER = "Staff view: showing all openings, including ones that are not live.";
 // the line under the search boxes (#titleNote). For everyone else it says a title search will not show openings that are not live; in the staff view that is the opposite of true, so it says what the staff search does.

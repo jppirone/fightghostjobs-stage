@@ -2,8 +2,8 @@
 // this file is only the recruiter firms PROFILE: which words (js/firm-panel-model.js), which rows, and which three api calls. A firm saved without an address has no Check link button and says so.
 // Rules (tests/site-check.js S72 pins them): the address is never on the page; the three row actions call api.checkRecruiterFirm, api.editRecruiterFirm and api.removeRecruiterFirm with the stored position.
 
-import { isAuthFailure } from "./api.js?v=d028d9ae";
-import { FP, firmRows, firmMeta, firmSignature, planFirmEdit, firmConfirmText, firmRefusal, firmSuccess, firmWarn, checkAria, editAria, removeAria } from "./firm-panel-model.js?v=58401d30";
+import { isAuthFailure } from "./api.js?v=a2ca6d7d";
+import { FP, firmRows, firmMeta, firmSignature, planFirmEdit, firmConfirmText, firmRefusal, firmSuccess, firmWarn, checkAria, editAria, removeAria } from "./firm-panel-model.js?v=4ffd0dc8";
 import { mountRowPanel } from "./row-panel.js?v=2ab133e1";
 
 // ctx: { host, hintEl, api, getPostingId, openBlank, schedule, now, isBlocked, onSessionEnded, onStale, onChanged }

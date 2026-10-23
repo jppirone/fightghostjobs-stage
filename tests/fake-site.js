@@ -283,7 +283,10 @@ export function startFakeSite(root, opts = {}) {
         const vals = opts.registeredValues;
         const rows = RESULTS.filter((p) => p.company_name.toLowerCase().includes(co)).map((p, i) => { const q = { ...withKio(p) }; if (vals && i < vals.length) { if (vals[i] === "omit") delete q.is_registered; else q.is_registered = vals[i]; } return q; });
         // opts.placeOverrides: for each result in order an object merged into the row (locations, is_remote, source_location_text), for the tests of the display-only place text (AZ3)
-        const placed = opts.placeOverrides ? rows.map((r, i) => Object.assign({}, r, (opts.placeOverrides[i] || {}))) : rows;
+        const placed0 = opts.placeOverrides ? rows.map((r, i) => Object.assign({}, r, (opts.placeOverrides[i] || {}))) : rows;
+        // opts.linkCounts (October 23, 2026, prompt LK): for each result in order { apply, firms, exclusive, recruiter?, extra? }; the row then carries apply_link_count, recruiter_firm_count and destination_links_exclusive (what the database would
+        // count), third_party_recruiter when recruiter is given, and any extra keys (a test puts an address or a token there to prove the tile never shows it). The details answer below lists exactly that many links. Without it every row is as it always was.
+        const placed = opts.linkCounts ? placed0.map((r, i) => { const c = opts.linkCounts[i]; return c ? Object.assign({}, r, { apply_link_count: c.apply, recruiter_firm_count: c.firms, destination_links_exclusive: c.exclusive === true }, c.recruiter === undefined ? {} : { third_party_recruiter: c.recruiter }, c.extra || {}) : r; }) : placed0;
         // opts.resultCount (October 20, 2026): the title search answers exactly this many openings (copies of the first row with their own reference and title), and opts.truncated says the database stopped at its limit; for the refine hints
         const sized = opts.resultCount && rows.length ? Array.from({ length: opts.resultCount }, (_, i) => ({ ...(placed[0] || withKio(RESULTS[0])), title: "Support Analyst Number " + (i + 1), posting_ref: ("s" + i).padEnd(20, "x").slice(0, 20) })) : placed;
         return send(200, { mode: body.req ? "req" : body.code ? "code" : "phrase", truncated: opts.truncated === true, results: sized });
@@ -297,11 +300,14 @@ export function startFakeSite(root, opts = {}) {
       if (name === "candidate-posting-detail") {
         const p = RESULTS.find((x) => x.posting_ref === body.posting_ref);
         if (!p) return send(404, { error: "not_found", code: "not_found" });
-        const apply = opts.policyDetail === "only" ? [] : [{ position: 1, label: "Careers site" }, { position: 2, label: "Apply on LinkedIn, the employer's own page" }];
+        const lc = opts.linkCounts ? opts.linkCounts[RESULTS.indexOf(p)] : undefined;   // prompt LK: the links listed are exactly the counts the search row carried
+        const apply = lc ? Array.from({ length: lc.apply }, (_, k) => ({ position: k + 1, label: k === 0 ? "Careers site" : "Apply link number " + (k + 1) }))
+          : opts.policyDetail === "only" ? [] : [{ position: 1, label: "Careers site" }, { position: 2, label: "Apply on LinkedIn, the employer's own page" }];
         // opts.detailFirms: [{ firm, label }] named recruiter firms sent with the links (label null = a firm named without an address); prompt BG
-        const firmLinks = (opts.detailFirms || []).map((f, i) => ({ position: i + 1, kind: "recruiter", firm: f.firm, label: f.label === undefined ? "Employer's own site" : f.label }));
+        const firmLinks = (lc ? (lc.recruiter === true ? Array.from({ length: lc.firms }, (_, k) => ({ firm: "Firm " + (k + 1), label: k === 0 ? null : "Employer's own site" })) : []) : (opts.detailFirms || [])).map((f, i) => ({ position: i + 1, kind: "recruiter", firm: f.firm, label: f.label === undefined ? "Employer's own site" : f.label }));
         // opts.detailOverride (prompt BJ): merged into the posting the comments page and the details call receive (for example { locations: [], source_location_text: "Berlin, Germany" })
-        return send(200, { posting: opts.detailOverride ? { ...withKio(p), ...opts.detailOverride } : withKio(p), links: apply.concat(firmLinks, opts.policyDetail ? [POLICY_ENTRY] : []) });
+        const postingOut = lc ? { ...withKio(p), destination_links_exclusive: lc.exclusive === true, ...(lc.recruiter === undefined ? {} : { third_party_recruiter: lc.recruiter }) } : withKio(p);
+        return send(200, { posting: opts.detailOverride ? { ...postingOut, ...opts.detailOverride } : postingOut, links: apply.concat(firmLinks, opts.policyDetail ? [POLICY_ENTRY] : []) });
       }
       // with opts.policyDetail the one-time links are https addresses the page accepts (the page opens whatever it is given; the test replaces window.open and reads the address); without it the answer is as it always was
       if (name === "candidate-link-issue") return send(200, { expires_at: inDays(0.0014), links: [{ position: 1, label: "Careers site", go_url: opts.policyDetail || opts.detailFirms ? "https://go.example.invalid/f/apply-1" : SELF + "/404.html" }].concat(opts.detailFirms ? [{ position: 2, label: "Apply on LinkedIn, the employer's own page", go_url: "https://go.example.invalid/f/apply-2" }] : []).concat((opts.detailFirms || []).map((f, i) => ({ position: i + 1, kind: "recruiter", firm: f.firm, label: f.label === undefined ? "Employer's own site" : f.label, go_url: "https://go.example.invalid/f/firm-" + (i + 1) }))).concat(opts.policyDetail ? [{ position: 1, kind: "policy", label: "Employer's own site", go_url: "https://go.example.invalid/f/policy-1" }] : []) });

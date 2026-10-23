@@ -1,7 +1,7 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=7a49eec3";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=8cda0927";
 import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=6dcc7750";
 import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=63411616";
 import { savePending, takePending } from "../signin-handoff.js?v=882122ed";
@@ -13,7 +13,7 @@ import { makeAnnouncer } from "../search-status.js?v=7497036c";
 import { recapSentence } from "../search-recap.js?v=bd8e2e91";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js?v=ff147636";
 import { waitText } from "../format.js?v=35ca37b5";
-import { postingChips, notOpenMessage } from "../chips.js?v=bfb5e5e0";
+import { postingChips, notOpenMessage } from "../chips.js?v=851e7e8f";
 import { aiNotes } from "../ai-notes.js?v=35c5dc92";
 import { intentNotes } from "../intent-statement.js?v=d37f2b4b";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=5b8f0605";
@@ -23,7 +23,7 @@ import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, search
 import { isRegistered } from "../registered.js?v=f191c8c2";
 import { refineHints } from "../refine-hint.js?v=e1547c0e";
 import { placeNodes } from "../place.js?v=0846848b";
-import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=8c9c7a45";
+import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=c4e2613f";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
