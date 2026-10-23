@@ -1,7 +1,7 @@
 // limit-hint.js - a text box that stops typing at a limit says so (prompt BK, October 11, 2026): "Up to 200 characters.", a small live count ("37 of 200") and a sentence when typing or a paste meets the limit.
 // It is the same behavior the typed place box has had since prompt BJ (js/place-choice.js keeps its own copy, tied to that box's static markup), built for any single-line box or text area of the register page and
 // the opening editor. The limit is the box's own maxlength attribute: the page cannot say one number and enforce another. Nothing here changes a limit. Everything shown is text (dom.js), never HTML.
-import { h } from "./dom.js?v=ff147636";
+import { h } from "./dom.js?v=5c78a8cd";
 
 const fmt = (n) => Number(n).toLocaleString("en-US");
 

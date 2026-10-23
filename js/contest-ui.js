@@ -4,9 +4,9 @@
 //   * a comment is never edited, hidden or deleted from here: the only thing a contest changes on screen is the notice;
 //   * nothing the person typed goes anywhere but the one call; it is never put in the page's text outside the box it was typed in.
 
-import { h, alertBox } from "./dom.js?v=ff147636";
-import { isAuthFailure } from "./api.js?v=a2ca6d7d";
-import { CONTEST_NOTICE, CONTEST_CONFIRM, CONTEST_ALREADY, CONTEST_CATEGORIES, checkContestCategory, checkContestExplanation, contestCounter, contestLimits, contestRefusal } from "./comments-model.js?v=79765c80";
+import { h, alertBox } from "./dom.js?v=5c78a8cd";
+import { isAuthFailure } from "./api.js?v=195a7899";
+import { CONTEST_NOTICE, CONTEST_CONFIRM, CONTEST_ALREADY, CONTEST_CATEGORIES, checkContestCategory, checkContestExplanation, contestCounter, contestLimits, contestRefusal } from "./comments-model.js?v=051c8c16";
 import { fmtDate } from "./format.js?v=35ca37b5";
 
 // the bordered notice. employer: the owner's view also says "Under review" (with the date the contest was filed: from the reader after a reload, from the filing answer right after filing); candidates see the notice text alone.

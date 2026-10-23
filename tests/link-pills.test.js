@@ -39,6 +39,8 @@ const CARDS = `(() => Array.from(document.querySelectorAll('#results .card')).ma
   chips: Array.from(card.querySelectorAll('.chip')).map((chip) => { const icon = chip.querySelector('.info-icon'), clone = chip.cloneNode(true), ic = clone.querySelector('.info-icon'); if (ic) ic.remove();
     return { text: clone.textContent.trim(), icon: !!icon, aria: icon ? icon.getAttribute('aria-label') : null, tip: icon ? ((icon.querySelector('.info-tooltip') || {}).textContent || null) : null, tabindex: icon ? icon.getAttribute('tabindex') : null, role: icon ? icon.getAttribute('role') : null }; }) })))()`;
 async function modalRows(tab, i) {
+  // prompt LM (October 23, 2026): a tile whose counts are all zero has no details window and no View links button; its window holds nothing, so it lists no rows
+  if (await tab.eval(`!document.querySelectorAll('#results .card')[${i}].querySelector('.view-details')`)) return { rows: 0, policy: false, empty: false, noDetails: true };
   await tab.eval(`document.querySelectorAll('#results .card')[${i}].querySelector('.view-details').click()`);
   await tab.waitFor(`document.getElementById('modalBackdrop').classList.contains('open')`, 5000); await sleep(900);
   const r = await tab.eval(`({ rows: document.querySelectorAll('#modalLinks .source-row').length, policy: !document.getElementById('modalPolicy').hidden && document.querySelectorAll('#modalPolicy .source-row').length > 0, empty: !document.getElementById('modalEmpty').hidden })`);
@@ -148,7 +150,8 @@ const SCENARIOS = {
         const probe = (sel) => `(() => { const tip = ${sel}; if (!tip) return null; const icon = tip.parentElement, r = icon.getBoundingClientRect(), t = tip.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, shown: getComputedStyle(tip).display !== 'none' && t.width > 0, left: t.left, right: t.right, text: tip.textContent, vw: innerWidth, aria: icon.getAttribute('aria-label') }; })()`;
         // the icon of a pill by its text, and the icon of an existing AI pill to compare with
         const iconOf = (text) => `Array.from(document.querySelectorAll('#results .card')[0].querySelectorAll('.chip')).filter((c) => c.firstChild && c.firstChild.textContent.trim() === ${JSON.stringify(text)}).map((c) => c.querySelector('.info-tooltip'))[0]`;
-        const subjects = [["1 official link", OFFICIAL], ["AI-assisted filtering", null]];   // (the first fake opening discloses AI filtering: an existing pill with an icon to compare with)
+        // prompt LM: the AI pills have no "i" of their own any more (they are buttons when the employer wrote words), so the new icon is no longer compared with one; its own behavior is checked as before
+        const subjects = [["1 official link", OFFICIAL]];
         const seen = {};
         for (const [text, want] of subjects) {
           const at = tag + "'" + text + "': ";
@@ -173,20 +176,19 @@ const SCENARIOS = {
           seen[text] = { hidden0, hov, kb: !!(kb && kb.shown), kbText: kb && kb.text, tap: !!tap.shown, tapInside: tap.left >= -0.5 && tap.right <= tap.vw + 0.5 };
           await tab.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 5 });
         }
-        const a = seen["1 official link"], b = seen["AI-assisted filtering"];
-        if (a && b) {
+        const a = seen["1 official link"], b = null;
+        if (a) {
           if (!a.hidden0) bad.push(tag + "the new tooltip is visible before anything happens");
           if (!phone && !a.hov) bad.push(tag + "the new tooltip does not show on mouse over");
           if (!a.kb) bad.push(tag + "the new tooltip does not show on keyboard focus (Tab)");
           if (a.kb && a.kbText !== OFFICIAL) bad.push(tag + "the keyboard tooltip text is wrong");
           if (phone && !a.tap) bad.push(tag + "the new tooltip does not show on a tap");
           if (phone && a.tap && !a.tapInside) bad.push(tag + "the tapped tooltip runs off the screen");
-          for (const k of ["hov", "kb", "tap", "hidden0"]) if (a[k] !== b[k]) bad.push(tag + "the new icon and an AI icon differ for " + k + " (" + a[k] + " against " + b[k] + ")");
-          if (phone && b.tap && a.tapInside !== b.tapInside) bad.push(tag + "the new icon and an AI icon differ in where the tooltip lands");
+          void b;
         }
         const info = await tab.eval(CARDS);
-        const ia = info[0].chips.find((x) => x.text === "1 official link"), ib = info[0].chips.find((x) => x.text === "AI-assisted filtering");
-        if (!ia || !ib || ia.tabindex !== ib.tabindex || ia.role !== ib.role) bad.push(tag + "the new icon is built differently from an AI icon: " + JSON.stringify([ia && [ia.tabindex, ia.role], ib && [ib.tabindex, ib.role]]));
+        const ia = info[0].chips.find((x) => x.text === "1 official link");
+        if (!ia || ia.tabindex !== "0" || ia.role !== null) bad.push(tag + "the new icon is built differently from the other info icons (tabindex 0, no role): " + JSON.stringify(ia && [ia.tabindex, ia.role]));
         const second = info[1].chips.find((x) => x.text === "2 employer links");
         if (!second || second.tip !== EMPLOYER || second.aria !== EMPLOYER) bad.push(tag + "the employer links tooltip is " + JSON.stringify(second));
       });
@@ -253,7 +255,7 @@ const DEFECTS = [
   ["the recruiter pill gets an icon", ["states"], [[LP, (s) => s.replace('return { text: c.firms + (c.firms === 1 ? " recruiter link" : " recruiter links") };', 'return { text: c.firms + (c.firms === 1 ? " recruiter link" : " recruiter links"), tooltip: TOOLTIP_EMPLOYER };')]]],
   ["the address of a link is put on the pill", ["leak"], [[LP, (s) => s.replace('if (c.apply === 0) return { text: "No employer links" };', 'if (c.apply === 0) return { text: "No employer links" };\n  if (row.url) return { text: c.apply + " links: " + row.url };')]]],
   ["a firm address is put on the recruiter pill", ["leak"], [[LP, (s) => s.replace('return { text: c.firms + (c.firms === 1 ? " recruiter link" : " recruiter links") };', 'return { text: c.firms + " recruiter links " + (row.firm_url || "") };')]]],
-  ["the tile asks for the one-time links", ["leak"], [["js/pages/search.js", (s) => s.replace("  const chips = postingChips(row).map(chip);", "  const chips = postingChips(row).map(chip); api.candidateLinkIssue(row.posting_ref);")]]],
+  ["the tile asks for the one-time links", ["leak"], [["js/pages/search.js", (s) => s.replace("function renderCard(row) {", "function renderCard(row) {\n  api.candidateLinkIssue(row.posting_ref);")]]],
   ["a paused or expired opening loses the pill", ["statuses"], [[CH, (s) => s.replace("if (links !== null) chips.push(links);", "if (links !== null && p.status === \"live\") chips.push(links);")]]],
   ["an answer without counts says No employer links", ["absent"], [[LP, (s) => s.replace("if (c === null) return null;", 'if (c === null) return { text: "No employer links" };')]]],
   ["the policy link is counted by the comments page", ["comments"], [[LP, (s) => s.replace('apply_link_count: kinds.filter((k) => k === "apply").length,', 'apply_link_count: kinds.filter((k) => k !== "recruiter").length,')]]],

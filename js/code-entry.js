@@ -3,7 +3,7 @@
 // into the page that asked for the link, and the Auth service answers with the session right there. Used by the search page (candidates) and the employer sign-in page; both keep the link exactly as it was.
 // Nothing here stores the code or the address anywhere: they live in the form for as long as the page is open. The wording says "confirm", never "verify".
 
-import { h } from "./dom.js?v=ff147636";
+import { h } from "./dom.js?v=5c78a8cd";
 import { EMAIL_CODE_ENTRY } from "./config.js?v=41d402c7";
 
 export const CODE_ENABLED = EMAIL_CODE_ENTRY === true;

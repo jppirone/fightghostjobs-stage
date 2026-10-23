@@ -57,6 +57,23 @@ input[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--embe
 .source-row .go-open{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .source-row .go-icon{flex:none;display:block}
 .source-row-label{font-size:14px;font-weight:600;min-width:0;overflow-wrap:anywhere;margin-right:12px}
+/* prompt LM (October 23, 2026): the Registered mark with its "i", the Links heading with its "i", the pills that are buttons, the tile's Comments link and the small box behind an "i" (js/info-box.js; it reuses .modal and .modal-backdrop) */
+.reg-holder{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.links-head{display:flex;align-items:center;gap:8px;margin-top:18px}
+.links-head[hidden]{display:none}
+.links-heading{margin:0;font-size:15px;font-weight:700}
+.info-box-icon{cursor:pointer}
+.chip-button{border:0;font-family:inherit;color:inherit;cursor:pointer;text-align:left;line-height:inherit}
+.chip-button:hover{background:#ECE7DC}
+.chip-button:disabled{cursor:default;opacity:.75}
+.chip-button::before{content:"";position:absolute;inset:-6px 0}
+.chip-i{cursor:pointer}
+.tile-comments{font-size:14px;font-weight:600;color:var(--ember);white-space:nowrap;display:inline-flex;align-items:center;min-height:32px}
+.tile-comments-main{text-decoration:none}
+.info-box{width:440px}
+.info-box-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.info-box-title{font-size:17px;font-weight:700}
+.info-box-body{font-size:14px;color:var(--muted);line-height:1.6;margin-top:12px;overflow-wrap:anywhere}
 .empty-note{font-size:14px;color:var(--muted);line-height:1.6;background:var(--panel);border-radius:10px;padding:14px 16px;margin-top:16px}
 .refine-hint{font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 16px}
 .refine-hint p{margin:0 0 6px}
@@ -357,8 +374,10 @@ select{min-height:24px}
   /* the details window */
   .modal{width:calc(100vw - 24px);max-width:none;max-height:88vh;padding:20px 16px}
   .source-row{flex-direction:column;align-items:flex-start;gap:6px;min-height:44px}
-  #modalClose{min-width:44px;min-height:44px}
+  #modalClose,.info-box-close{min-width:44px;min-height:44px}
   #modalMore a{display:inline-flex;align-items:center;min-height:44px;margin-right:16px}
+  .tile-comments{min-height:44px}
+  .info-box{width:calc(100vw - 24px)}
 
   /* tables: one card per row; the table roles are in the markup, the visible label of each cell comes from its data-label (the column heading's own words) */
   .rtable,.rtable thead,.rtable tbody,.rtable tr,.rtable th,.rtable td{display:block}

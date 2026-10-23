@@ -1,29 +1,31 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=8cda0927";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=b05cf5b9";
 import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=6dcc7750";
-import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=63411616";
+import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=8a8e231f";
 import { savePending, takePending } from "../signin-handoff.js?v=882122ed";
 import { applyFragmentPrefill } from "../fragment-prefill.js?v=cee0c08f";
 import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js?v=f37507d8";
 import { lockScroll } from "../scroll-lock.js?v=b751eb4c";
-import { trapFocus } from "../dialog-focus.js?v=1dcc8c83";
+import { trapFocus } from "../dialog-focus.js?v=f788366d";
 import { makeAnnouncer } from "../search-status.js?v=7497036c";
 import { recapSentence } from "../search-recap.js?v=bd8e2e91";
-import { $, h, clear, alertBox, chip, safeHref } from "../dom.js?v=ff147636";
+import { $, h, clear, alertBox, chip, safeHref } from "../dom.js?v=5c78a8cd";
 import { waitText } from "../format.js?v=35ca37b5";
-import { postingChips, notOpenMessage } from "../chips.js?v=851e7e8f";
-import { aiNotes } from "../ai-notes.js?v=35c5dc92";
+import { postingChips, notOpenMessage } from "../chips.js?v=86f53ee7";
 import { intentNotes } from "../intent-statement.js?v=d37f2b4b";
+import { infoBoxIcon, openInfoBox } from "../info-box.js?v=2f309155";
+import { ABOUT_TITLE, ABOUT_TEXT, ABOUT_ICON_LABEL, LINKS_ABOUT_TITLE, LINKS_ABOUT_BEFORE, LINKS_ABOUT_BOLD, LINKS_ABOUT_AFTER, LINKS_ICON_LABEL, LINKS_HEADING } from "../about-text.js?v=ce89cdee";
+import { tileActions } from "../tile-actions.js?v=7180edbf";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=5b8f0605";
 import { COMMENTS_VISIBLE } from "../config.js?v=41d402c7";
-import { openUnit } from "../open-link.js?v=454df0f2";
+import { openUnit } from "../open-link.js?v=19175677";
 import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=cb774d1b";
 import { isRegistered } from "../registered.js?v=f191c8c2";
 import { refineHints } from "../refine-hint.js?v=e1547c0e";
 import { placeNodes } from "../place.js?v=0846848b";
-import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=c4e2613f";
+import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=e3b26035";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
@@ -95,24 +97,63 @@ const placeNodesOf = (row) => placeNodes(h, row);
 // the ID a candidate sees on a card and in the details window: the whole KIO ID when the answer carries it (the employer's req number stays masked), else the masked last four of an answer from before the database change
 const openingIdText = (row) => (typeof row.kio_id === "string" && row.kio_id !== "" ? row.kio_id : row.masked_code);
 
+// ---- the small boxes behind the "i" icons (prompt LM): the two explanation paragraphs that used to sit in the details window, word for word (js/about-text.js)
+const aboutIcon = () => infoBoxIcon({ label: ABOUT_ICON_LABEL, title: ABOUT_TITLE, body: () => [ABOUT_TEXT] });
+const linksAboutIcon = () => infoBoxIcon({ label: LINKS_ICON_LABEL, title: LINKS_ABOUT_TITLE, body: () => [h("p", { style: "margin:0;" }, LINKS_ABOUT_BEFORE, h("strong", {}, LINKS_ABOUT_BOLD), LINKS_ABOUT_AFTER)] });
+// the Registered mark (only for an opening the DATABASE says is registered: an active paid plan, or a pilot plan with an expiry date; one plain true in the row, nothing else about the plan, js/registered.js) and the "i" beside it.
+// An opening that is not Registered has no mark; its "i" stays, so the paragraph is still one tap away.
+const registeredMark = (row) => (isRegistered(row) ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }, "✓ Registered") : null);
+
+// a pill spec -> the pill: an AI pill with the employer's words becomes a button that opens them in a box (as plain text); the AI hiring policy pill creates its one-time link only when pressed
+function pillOf(spec, row) {
+  if (spec.note) return chip(Object.assign({}, spec, { press: (btn) => openInfoBox({ title: spec.note.title, nodes: [spec.note.text], opener: btn }) }));
+  if (spec.policy) return chip(Object.assign({}, spec, { press: (btn) => openPolicy(row, btn) }));
+  return chip(spec);
+}
+
 // ---- search
 function renderCard(row) {
-  const chips = postingChips(row).map(chip);
+  const chips = postingChips(row, undefined, { tile: true }).map((spec) => pillOf(spec, row));
+  const act = tileActions(row, COMMENTS_VISIBLE);
+  // the buttons: "View opening details" as it always was (no counts in the row), or "View links" with a small "Comments (n)" link, or only "Comments (n)" in the main slot (js/tile-actions.js)
+  const buttons = act.mode === "legacy" ? [h("button", { type: "button", class: "btn btn-outline view-details", style: "flex:1;justify-content:center;", onclick: (ev) => openDetails(row, ev.currentTarget) }, act.main)]
+    : act.mode === "links" ? [h("button", { type: "button", class: "btn btn-outline view-details", style: "flex:1;justify-content:center;", onclick: (ev) => openDetails(row, ev.currentTarget) }, act.main),
+      act.comments ? h("a", { class: "tile-comments", href: act.comments.href }, act.comments.text) : null]
+    : act.comments ? [h("a", { class: "btn btn-outline tile-comments-main", href: act.comments.href, style: "flex:1;justify-content:center;" }, act.comments.text)] : [];
   return h("div", { class: "card", "data-ref": row.posting_ref },
     h("div", { class: "res-head", style: "display:flex;justify-content:space-between;align-items:flex-start;" },
       h("div", {},
         h("div", { style: "font-size:12px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;" }, row.company_name),
         h("div", { style: "font-size:22px;font-weight:700;margin-top:4px;" }, row.title),
         h("div", { style: "font-size:14px;color:var(--muted);margin-top:2px;" }, placeNodesOf(row), " · KIO ID: " + openingIdText(row) + (row.masked_req ? " · Req " + row.masked_req : ""))),
-      // the check mark only for an opening the DATABASE says is registered (an active paid plan, or a pilot plan with an expiry date): one plain true in the row, nothing else about the plan (js/registered.js)
-      isRegistered(row) ? h("div", { class: "pill badge-verified", style: "flex-shrink:0;" }, "✓ Registered") : null),
+      h("div", { class: "reg-holder" }, registeredMark(row), aboutIcon())),
     h("div", { style: "display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;" }, chips),
-    // the employer's own words about their AI use (pass D): shown verbatim, plainly attributed, only under a toggle that is on
-    ...aiNotes(row).map((n) => h("div", { class: "ai-note", style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text)),
-    // prompt ST1: the employer's optional statement of the kind of the opening ("The employer says: ..."), beside the AI lines; nothing at all when not stated
+    // the employer's own words about their AI use (pass D) are now behind their pill (above); prompt ST1: the employer's optional statement of the kind of the opening ("The employer says: ..."), plainly attributed; nothing at all when not stated
     ...intentNotes(row).map((n) => h("div", { class: "ai-note intent-note", style: "margin-top:12px;padding:10px 14px;border-left:3px solid var(--line);font-size:14px;line-height:1.55;color:#4A453F;overflow-wrap:anywhere;" }, h("span", { style: "font-weight:600;color:var(--faint);font-size:12px;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:2px;" }, n.label), n.text)),
-    h("div", { style: "margin-top:22px;border-top:1px solid var(--line);padding-top:20px;display:flex;gap:12px;align-items:center;" },
-      h("button", { type: "button", class: "btn btn-outline view-details", style: "flex:1;justify-content:center;", onclick: (ev) => openDetails(row, ev.currentTarget) }, "View opening details")));
+    buttons.length ? h("div", { class: "tile-actions", style: "margin-top:22px;border-top:1px solid var(--line);padding-top:20px;display:flex;gap:12px;align-items:center;" }, ...buttons) : null);
+}
+
+// the AI hiring policy pill: the one-time link is made NOW, because the person asked for it, never when the results load. It is the same request the link rows of the details window make (candidate-link-issue); the answer
+// holds one entry per kind and the policy entry is opened in a new tab, the same way a link row opens one.
+async function openPolicy(row, button) {
+  if (button.disabled) return;
+  const text = button.firstChild, original = text.textContent;
+  button.disabled = true; text.textContent = "Opening…";
+  try {
+    const r = await api.candidateLinkIssue(row.posting_ref);
+    const found = r.ok ? r.data.links.find((x) => x.kind === "policy") : null;
+    if (!found) { text.textContent = r.ok ? "Unavailable" : r.error.code === "rate_limited" ? "Try again in " + waitText(r.error.retryAfter || 30) : r.status === 409 ? "Not open" : "Try again"; return; }
+    const url = safeHref(found.go_url);
+    const w = url ? window.open(url, "_blank", "noopener,noreferrer") : null;
+    if (w === null && url) {
+      // the browser held back the new tab: a real link the person can press themselves (it stays valid for 2 minutes)
+      button.replaceWith(h("a", { class: "chip chip-button", href: url, target: "_blank", rel: "noopener noreferrer", style: "text-decoration:none;" }, original, h("span", { class: "sr-only" }, " (opens in a new tab)")));
+      return;
+    }
+    text.textContent = "Opened ✓";
+  } finally {
+    setTimeout(() => { if (button.isConnected) { button.disabled = false; text.textContent = original; } }, 4000);
+  }
 }
 
 function showResults(data, searched) {
@@ -304,13 +345,15 @@ function openModal(row, opener) {
   // the place line, the same words as the result card and the comments page (prompt BJ): the list places and Remote, or the employer's own text with its small note, or "Location not stated"
   const place = $("#modalPlace"); clear(place); place.hidden = false;
   place.append(...placeNodesOf(row));
-  $("#modalIntro").textContent = "This opening was added through FightGhostJobs by the employer. The dates and disclosures are the employer's own. FightGhostJobs has not confirmed that the job exists, that the employer representative works for the company named, or that the employer will respond.";
-  clear($("#modalLinks")); clear($("#modalPolicy")); $("#modalPolicy").hidden = true; const empty = $("#modalEmpty"); empty.hidden = true; empty.textContent = ""; $("#modalLinksNote").hidden = true; $("#modalMore").hidden = true; clear($("#modalMore"));
+  // prompt LM: the Registered mark (when the opening has it) and the "i" that holds the paragraph that used to sit in this window's body
+  const reg = $("#modalRegistered"); clear(reg); reg.append(...[registeredMark(row), aboutIcon()].filter(Boolean));
+  const head = $("#modalLinksHead"); clear(head); head.hidden = true;
+  clear($("#modalLinks")); clear($("#modalPolicy")); $("#modalPolicy").hidden = true; const empty = $("#modalEmpty"); empty.hidden = true; empty.textContent = ""; $("#modalMore").hidden = true; clear($("#modalMore"));
   backdrop.classList.add("open");
   if (!unlockScroll) unlockScroll = lockScroll(document, window);   // the page behind does not scroll while the window is open; undone exactly in closeModal
   // focus moves into the window, Tab stays inside it, the page behind is inert; closing returns focus to the button that opened it (js/dialog-focus.js)
   if (!releaseFocus) releaseFocus = trapFocus({ doc: document, dialog: backdrop.querySelector(".modal"), backdrop, opener, fallback: resultsEl });
-  return { links: $("#modalLinks"), empty };
+  return { links: $("#modalLinks"), empty, head };
 }
 // the thread and the private wrong-link report live on the posting's own comments page (reached only with the posting's opaque reference; never listed anywhere)
 function moreLinks(row, count, withReport) {
@@ -341,8 +384,10 @@ async function openDetails(row, button) {
       } else {
         for (const l of applyLinks) m.links.append(linkRow(row, l));
       }
-      if (policy) { const pl = $("#modalPolicy"); pl.hidden = false; pl.append(linkRow(row, { position: policy.position, kind: "policy", firm: null, label: policy.where })); }
-      if (applyLinks.length > 0 || policy) $("#modalLinksNote").hidden = false;   // why the links look odd, and what to do when one is wrong (the note is hidden again each time the window opens)
+      // prompt LM: when the tile has the AI hiring policy pill (the row says has_policy_link) the policy link is reached from the pill and has no row here; a row without that flag keeps the row, as before
+      const policyRow = policy && row.has_policy_link !== true ? policy : null;
+      if (policyRow) { const pl = $("#modalPolicy"); pl.hidden = false; pl.append(linkRow(row, { position: policyRow.position, kind: "policy", firm: null, label: policyRow.where })); }
+      if (applyLinks.length > 0 || policyRow) { m.head.append(h("h3", { class: "links-heading" }, LINKS_HEADING), linksAboutIcon()); m.head.hidden = false; }   // the heading and the "i" with the one-time link paragraph exist only when the window shows links
       moreLinks(row, r.data.comment_count, applyLinks.length > 0);
       return;
     }

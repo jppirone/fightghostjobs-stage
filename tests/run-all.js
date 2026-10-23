@@ -63,6 +63,8 @@ const steps = [
   ["the gentle refine hints of the title search (October 20, 2026): the count line above 3 openings, the generic word line, both, neither; every result still shown; a plain note, spoken once inside the search's status; a new search clears them (real browser)", [path.join(here, "refine-hint.test.js")], true],
   ["the link count pills of the opening tile (prompt LK, October 23, 2026): the words, the counts, the exact tooltips (no browser)", [path.join(here, "link-pills.unit.test.js")], true],
   ["the link count pills of the opening tile (prompt LK): 0, 1, 2, 3 and the maximum, official or employer links, the recruiter pill, the sum equals the details window, counts only, every status, the icons by mouse, keyboard and touch, wrapping at five widths, the comments page recap (real browser)", [path.join(here, "link-pills.test.js")], true],
+  ["the opening tile and the details window (prompt LM, October 23, 2026): the two paragraphs byte for byte unchanged, the buttons by the counts, the AI pills, the policy pill, the words (no browser)", [path.join(here, "lm-cleanup.unit.test.js")], true],
+  ["the opening tile and the details window (prompt LM): the paragraphs moved behind the icons, the icons by mouse, keyboard and touch, a box over the window, View links and Comments (n), AI words as plain text, the policy link made only on a press, nothing leaked, five widths (real browser)", [path.join(here, "lm-cleanup.test.js")], true],
   ["static site rules", [path.join(here, "site-check.js")], false],
   ["static rules: negative controls", [path.join(here, "site-check.controls.js")], false],
   ["browser leak check: no browser process and no profile folder carries the test marker (starts no browser)", [path.join(here, "leak-check.js")], false],

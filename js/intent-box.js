@@ -1,7 +1,7 @@
 // intent-box.js - the "Kind of opening" choice on the register page and the opening editor (prompt ST1, October 14, 2026): one select (Not stated, or one of the four values the database offers) and a date box
 // that is in the page ONLY for the two values that take a date. Markup lives in register.html and edit.html (#intentRow, #intentSelect, #intentMeaning, #intentDateRow, #intentDateLabel, #intentDate and its error
 // line). The rule and the words are js/intent-statement.js; the labels come from the database's wording table (the page asks once), so staff can reword them with no deploy. Everything shown is text.
-import { $, h } from "./dom.js?v=ff147636";
+import { $, h } from "./dom.js?v=5c78a8cd";
 import { INTENT_WORDS, optionsFor, takesDate, dateLabelFor } from "./intent-statement.js?v=d37f2b4b";
 
 // onChange(): called after the choice or the date changed (the edit page refreshes its unsaved bar)    -> { get, set, setOptions, reset, hide, available, setLocked, focus }

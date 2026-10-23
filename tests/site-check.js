@@ -319,8 +319,11 @@ export function checkSite(root, opts = {}) {
   // wrong; search.js shows that note whenever links are listed; the employer pages say the label is theirs only and that shorteners are refused; api.js accepts shown_as and the check result.
   {
     const sh2 = path.join(root, "search.html");
-    if (fs.existsSync(sh2)) { const t = read(sh2); if (!t.includes('id="modalLinksNote"')) add("S26", sh2, "search.html is missing #modalLinksNote"); for (const need of ["look unusual on purpose", "one-time link through FightGhostJobs", "protected from scraping", "wherever the employer told us to send you", "we could not check it", "If a link does not lead to this job", "Report a wrong link"]) if (!t.includes(need)) add("S26", sh2, "the links note must say: " + need); }
-    const sj = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj) && !read(sj).includes('$("#modalLinksNote").hidden = false')) add("S26", sj, "search.js must show the links note when links are listed");
+    // prompt LM (October 23, 2026): the links note is no longer a paragraph in the details window; it sits behind the "i" beside the Links heading, and its words live in js/about-text.js (moved, not rewritten)
+    const abF = path.join(root, "js", "about-text.js");
+    if (fs.existsSync(sh2) && read(sh2).includes('id="modalLinksNote"')) add("S26", sh2, "search.html must not carry the links note paragraph any more; it sits behind the icon beside the Links heading");
+    if (!fs.existsSync(abF)) add("S26", abF, "js/about-text.js is missing"); else { const t = stripJsComments(read(abF)); for (const need of ["look unusual on purpose", "one-time link through FightGhostJobs", "protected from scraping", "wherever the employer told us to send you", "we could not check it", "If a link does not lead to this job", "Report a wrong link"]) if (!t.includes(need)) add("S26", abF, "the links note must say: " + need); }
+    const sj = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj) && !read(sj).includes("linksAboutIcon()")) add("S26", sj, "search.js must show the icon with the links note when links are listed");
     for (const name of ["register.html", "edit.html"]) { const p = path.join(root, name); if (fs.existsSync(p)) { const t = read(p); if (!t.includes("The label is a note for you only")) add("S26", p, name + " must say the label is the employer's note only"); if (!t.includes("a link shortener or redirect is not accepted")) add("S26", p, name + " must say shorteners are refused"); } }
     const aj = path.join(root, "js", "api.js"); if (fs.existsSync(aj) && !/linkExtras: \(x\) => \(x\.shown_as === undefined \|\| isNullable\(x\.shown_as, isStr\)\)/.test(read(aj))) add("S26", aj, "api.js must accept shown_as on a stored link");
   }
@@ -348,7 +351,10 @@ export function checkSite(root, opts = {}) {
     }
     for (const rel of ["js/register-form.js", "js/edit-form.js"]) { const p = path.join(root, rel); if (fs.existsSync(p) && !read(p).includes('import { aiNoteProblem } from "./ai-notes.js";')) add("S28", p, rel + " must check the notes with the shared rule"); }
     const an = path.join(root, "js", "ai-notes.js"); if (!fs.existsSync(an)) add("S28", an, "js/ai-notes.js is missing"); else { const c = read(an); if (!c.includes("MAX_AI_NOTE = 300")) add("S28", an, "the note cap must be 300"); if (!c.includes("www[.]") || !c.includes("://")) add("S28", an, "the rule must refuse web addresses"); }
-    const sj = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj) && !read(sj).includes("aiNotes(row).map(")) add("S28", sj, "search.js must show the employer's AI notes on the card");
+    // prompt LM: the employer's AI notes are shown behind their pill on the card (chips.js builds the note into the pill with the shared aiNotes rule; search.js asks for the tile form and opens the note in the box)
+    const sj = path.join(root, "js", "pages", "search.js"), chF2 = path.join(root, "js", "chips.js");
+    if (fs.existsSync(sj) && !read(sj).includes("{ tile: true }")) add("S28", sj, "search.js must show the employer's AI notes on the card (the tile form of the pills)");
+    if (fs.existsSync(chF2) && !read(chF2).includes("aiNotes(p).find(")) add("S28", chF2, "chips.js must build the employer's AI notes into the AI pills");
     if (fs.existsSync(an) && !read(an).includes("in the employer's words")) add("S28", an, "the notes must be attributed as the employer's words");
   }
   // S29 (candidate comments): the thread is a page of its own (comments.html: sign-in, thread, compose, the private wrong-link report, and the employer's read-only mode), reached ONLY with a
@@ -524,7 +530,7 @@ export function checkSite(root, opts = {}) {
     }
     const need = (rel, str, why) => { const p = path.join(root, rel); if (!fs.existsSync(p) || !read(p).includes(str)) add("S32", p, why); };
     need("js/pages/search.js", '"\u2713 Registered"', "the badge on every search result must say Registered");
-    need("js/pages/search.js", "This opening was added through FightGhostJobs by the employer. The dates and disclosures are the employer's own. FightGhostJobs has not confirmed that the job exists, that the employer representative works for the company named, or that the employer will respond.", "the details dialog must carry the approved sentence, including what FightGhostJobs has not confirmed");
+    need("js/about-text.js", "This opening was added through FightGhostJobs by the employer. The dates and disclosures are the employer's own. FightGhostJobs has not confirmed that the job exists, that the employer representative works for the company named, or that the employer will respond.", "the box behind the Registered icon must carry the approved sentence, including what FightGhostJobs has not confirmed (prompt LM moved it out of the details window, word for word)");
     need("index.html", '<div class="pill badge-verified">\u2713 Registered</div>', "the sample card badge must say Registered");
     need("index.html", ">A place to check job openings that employers disclose</div>", "the home pill must describe the site as a place to check job openings that employers disclose (never a registry)");
     need("index.html", "The facts candidates see are free for employers to publish on every tier, and free for job seekers to search. The destination links tier adds destination links.", "the home page tier sentence must be the approved one (it matches the marketing site: the destination links tier adds the destination links)");
@@ -1339,7 +1345,7 @@ export function checkSite(root, opts = {}) {
   // S59b (2026-10-09, prompt AZ): the destination link wording. The label a candidate sees for a link we have not recognised is "Employer-provided link, not checked by us" (public.dl_public_label, link-label-migration); the employer pages quote it in lower case
   // and the details window says "we could not check it". The new words are PINNED (so they cannot drift), the old ones are refused everywhere a person reads, and the two test fixtures that stand for the stored label carry the new exact label.
   {
-    const must = [["edit.html", '"employer-provided link, not checked by us"'], ["register.html", '"employer-provided link, not checked by us"'], ["search.html", "we could not check it"]];
+    const must = [["edit.html", '"employer-provided link, not checked by us"'], ["register.html", '"employer-provided link, not checked by us"'], ["js/about-text.js", "we could not check it"]];   // prompt LM: the sentence moved from search.html to js/about-text.js, word for word
     for (const [rel, str] of must) { const p = path.join(root, rel); if (!fs.existsSync(p) || !read(p).includes(str)) add("S59", p, "the link wording must say: " + str); }
     for (const rel of ["tests/api.test.js", "tests/edit.test.js"]) { const p = path.join(root, rel); if (fs.existsSync(p)) { const s = read(p); if (!s.includes("Employer-provided link, not checked by us")) add("S59", p, "the stored label fixture must be exactly: Employer-provided link, not checked by us"); if (/not verified by us/.test(s)) add("S59", p, "the old stored label (not verified by us) must not be used any more"); } }
   }
@@ -2191,8 +2197,42 @@ export function checkSite(root, opts = {}) {
       if (c.includes("Third-party recruiter involved") || c.includes('"No recruiter"')) add("S102", chF, "the tile must not carry its own recruiter words: they live in js/link-pills.js");
     }
     if (fs.existsSync(apiF) && !stripJsComments(read(apiF)).includes("linkCountFieldsOk(r)")) add("S102", apiF, "the search answer check must judge the link counts (linkCountFieldsOk)");
-    for (const f of js) { const n = path.relative(root, f).replace(/\\/g, "/"); if (["js/link-pills.js", "js/chips.js", "js/api.js", "js/pages/comments.js"].includes(n)) continue; if (/link-pills\.js/.test(stripJsComments(read(f)))) add("S102", f, "only js/chips.js, js/api.js and the comments page use the link pills"); }
+    for (const f of js) { const n = path.relative(root, f).replace(/\\/g, "/"); if (["js/link-pills.js", "js/chips.js", "js/api.js", "js/pages/comments.js", "js/tile-actions.js"].includes(n)) continue; if (/link-pills\.js/.test(stripJsComments(read(f)))) add("S102", f, "only js/chips.js, js/api.js, js/tile-actions.js and the comments page use the link pills"); }
     if (fs.existsSync(runF)) { const r = read(runF); for (const n of ["link-pills.unit.test.js", "link-pills.test.js"]) if (!r.includes('"' + n + '"')) add("S102", runF, n + " is not a step of the full run"); }
+  }
+  // S103 (2026-10-23, prompt LM): the opening tile and the details window. Everything that fits is on the tile; the details window holds only the link rows and the recruiter firms; the two explanation paragraphs sit behind small "i"
+  // icons (js/about-text.js, js/info-box.js); the buttons follow the link counts (js/tile-actions.js); an AI pill with the employer's words is a button that opens them as text; the AI hiring policy pill makes its one-time link only
+  // when pressed. The tile never holds an address or a one-time link.
+  {
+    const R = (rel) => path.join(root, rel);
+    const dash = new RegExp(String.fromCharCode(8212) + "|" + String.fromCharCode(8211));
+    for (const rel of ["js/about-text.js", "js/info-box.js", "js/tile-actions.js", "js/policy-pill.js"]) {
+      const p = R(rel);
+      if (!fs.existsSync(p)) { add("S103", p, rel + " is missing"); continue; }
+      const t = stripJsComments(read(p));
+      if (/verif/i.test(t) || dash.test(read(p))) add("S103", p, rel + " must carry no word starting verif and no dash");
+      if (/innerHTML|insertAdjacentHTML|outerHTML/.test(t)) add("S103", p, rel + " must build everything as text nodes, never HTML");
+      if (/\b(url|href|go_url|token)\b/.test(t.replace(/href: commentsHref\(row\)|comments\.html\?ref=/g, "")) && rel !== "js/info-box.js") add("S103", p, rel + " must not read or hold an address or a one-time link");
+    }
+    const shF = R("search.html"), sjF = R("js/pages/search.js"), ibF = R("js/info-box.js"), taF = R("js/tile-actions.js"), domF = R("js/dom.js"), chF = R("js/chips.js"), apiF = R("js/api.js"), dfF = R("js/dialog-focus.js"), ppF = R("js/policy-pill.js");
+    if (fs.existsSync(shF)) { const t = read(shF); if (t.includes('id="modalIntro"')) add("S103", shF, "the details window must not carry the first explanation paragraph any more (it is behind the Registered icon)"); for (const id of ["modalRegistered", "modalLinksHead"]) if (!t.includes('id="' + id + '"')) add("S103", shF, "search.html is missing #" + id); }
+    if (fs.existsSync(sjF)) {
+      const t = stripJsComments(read(sjF));
+      if (!t.includes("openInfoBox(") || !t.includes("tileActions(") || !t.includes("async function openPolicy(")) add("S103", sjF, "search.js must open the boxes with js/info-box.js, choose the buttons with js/tile-actions.js and make the policy link in openPolicy");
+      if ((t.match(/api\.candidateLinkIssue\(/g) || []).length !== 2) add("S103", sjF, "a one-time link may be asked for in exactly two places, a link row of the details window and the AI hiring policy pill, both on a press");
+      const card = t.slice(t.indexOf("function renderCard("), t.indexOf("async function openPolicy("));
+      if (/candidateLinkIssue|candidateDetail/.test(card)) add("S103", sjF, "the tile must not ask for a link or for details when it is drawn");
+      if (t.includes("modalIntro") || t.includes("modalLinksNote")) add("S103", sjF, "search.js must not use the two paragraph elements that were taken out of the details window");
+    }
+    if (fs.existsSync(ibF)) { const t = stripJsComments(read(ibF)); for (const need of ["trapFocus(", '"Escape"', '"aria-modal": "true"', "aria-labelledby", '"aria-label": "Close"', "ev.stopPropagation(); close();", "lockScroll("]) if (!t.includes(need)) add("S103", ibF, "js/info-box.js must have: " + need); }
+    if (fs.existsSync(taF)) { const t = stripJsComments(read(taF)); for (const need of ['"View links"', '"View opening details"', '"Comments (" + n + ")"', 'mode: "links"', 'mode: "comments"', 'mode: "legacy"', "c.apply > 0 || c.firms > 0"]) if (!t.includes(need)) add("S103", taF, "js/tile-actions.js must have: " + need); }
+    if (fs.existsSync(domF) && !/typeof spec\.press === "function"/.test(read(domF))) add("S103", domF, "chip() must make a pill a button when it has a press handler");
+    if (fs.existsSync(chF)) { const t = read(chF); if (!t.includes("tileAiChip(") || !t.includes("policyPillChip(p)")) add("S103", chF, "the tile form of the pills must build the AI pills with their notes and the AI hiring policy pill"); if (/note: \{[^}]*tooltip/.test(t)) add("S103", chF, "an AI pill with a note has no tooltip"); }
+    if (fs.existsSync(apiF)) { const t = stripJsComments(read(apiF)); if (!t.includes("commentCountFieldOk(r)") || !t.includes("policyFlagOk(r)")) add("S103", apiF, "the search answer check must judge comment_count and has_policy_link"); }
+    if (fs.existsSync(dfF) && !read(dfF).includes("stack[stack.length - 1] !== token")) add("S103", dfF, "windows stack: only the one opened last handles Tab");
+    if (fs.existsSync(ppF) && !read(ppF).includes("row.has_policy_link === true")) add("S103", ppF, "the policy pill is drawn only for a real true");
+    const runF = R("tests/run-all.js");
+    if (fs.existsSync(runF)) { const r = read(runF); for (const n of ["lm-cleanup.unit.test.js", "lm-cleanup.test.js"]) if (!r.includes('"' + n + '"')) add("S103", runF, n + " is not a step of the full run"); }
   }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed

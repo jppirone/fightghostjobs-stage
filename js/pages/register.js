@@ -1,24 +1,24 @@
 // register.js - an employer registers a posting: create it (a draft), then publish it (standard tier goes live immediately).
 // "Save draft" stops after the first step: the draft is then found and published from My postings (dashboard.html). Nothing here trusts the page for identity: the session token tells the server who is acting.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=8cda0927";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=b05cf5b9";
 import { rememberNext } from "../session.js?v=6dcc7750";
-import { $, $$, h, clear, alertBox } from "../dom.js?v=ff147636";
+import { $, $$, h, clear, alertBox } from "../dom.js?v=5c78a8cd";
 import { fmtClose, waitText } from "../format.js?v=35ca37b5";
-import { kioBlock } from "../kio-block.js?v=1ed7e8ba";
+import { kioBlock } from "../kio-block.js?v=1c5218de";
 import { checkGoLive, mapScheduleError } from "../schedule-form.js?v=b2985372";
 import { validateForm, buildCreateBody, mapServerErrors, isDuplicateReq, collectLinks, linksOutcome, collectFirms, firmsOutcome, collectPolicy, policyOutcome, mapPolicyError, linkProblems, checkReport } from "../register-form.js?v=cd1d7cff";
 import { mapLinksErrors, planNotice, addressProblem } from "../edit-form.js?v=eb936068";
 import { policyView, policyLapsedText } from "../policy-link.js?v=5b8f0605";
 import { registerSnapshot, summarizeRegister, REGISTER_UNSAVED, rowsTyped } from "../dirty-state.js?v=7d99ced4";
 import { mountUnsavedGuard } from "../unsaved-guard.js?v=2026d3b9";
-import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js?v=1d36f594";
-import { mountLocationPicker } from "../location-picker.js?v=ae8d9e28";
-import { mountPlaceChoice } from "../place-choice.js?v=f65a1b27";
-import { mountIntentBox } from "../intent-box.js?v=42ce2a47";
+import { mountLinkRowsById, mountFirmRowsById } from "../link-rows.js?v=57531f7b";
+import { mountLocationPicker } from "../location-picker.js?v=7a79be92";
+import { mountPlaceChoice } from "../place-choice.js?v=5a8b0172";
+import { mountIntentBox } from "../intent-box.js?v=d441f2b2";
 import { PLACE_WORDS, storedPlaceText, collapsePlaceText } from "../place-text.js?v=cb5d7506";
-import { wireInfoIcons } from "../info-icon.js?v=66958a58";
-import { mountLimitHint } from "../limit-hint.js?v=1cfa5987";
+import { wireInfoIcons } from "../info-icon.js?v=c3fb7b2b";
+import { mountLimitHint } from "../limit-hint.js?v=b703c80b";
 
 wireInfoIcons();
 // links: the destination-link rows, mounted only when the organization's plan allows links (null otherwise); linksSaved / linksProblem: what happened to them after the posting was created

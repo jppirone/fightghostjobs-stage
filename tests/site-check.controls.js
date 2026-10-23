@@ -127,9 +127,10 @@ control("the register page loses its link rows", "S25", edit("register.html", (s
 control("the register page loses the locked panel", "S25", edit("register.html", (s) => s.replace('id="linksLocked"', 'id="linksLockedX"')));
 control("register.js stops saving the links", "S25", edit("js/pages/register.js", (s) => s.replace("api.setDestinationLinks(", "api.somethingElse(")));
 control("the edit page grows its own rows again", "S25", edit("js/pages/edit.js", (s) => s.replace("mountLinkRowsById()", "myOwnRows()")));
-control("the details dialog loses the links note", "S26", edit("search.html", (s) => s.replace('id="modalLinksNote"', 'id="modalLinksNoteX"')));
-control("the links note stops saying what to do when a link is wrong", "S26", edit("search.html", (s) => s.replace("If a link does not lead to this job", "If you like this job")));
-control("search.js stops showing the links note", "S26", edit("js/pages/search.js", (s) => s.replace('$("#modalLinksNote").hidden = false;', "")));
+control("the links note paragraph comes back into the details window", "S26", edit("search.html", (s) => s.replace('<div id="modalLinks"></div>', '<p id="modalLinksNote">x</p><div id="modalLinks"></div>')));
+control("the links note stops saying what to do when a link is wrong", "S26", edit("js/about-text.js", (s) => s.replace("If a link does not lead to this job", "If you like this job")));
+control("the links note loses its bold Report a wrong link", "S26", edit("js/about-text.js", (s) => s.replace('LINKS_ABOUT_BOLD = "Report a wrong link"', 'LINKS_ABOUT_BOLD = "Report"')));
+control("search.js stops showing the icon with the links note", "S26", edit("js/pages/search.js", (s) => s.replace("linksAboutIcon());", "null);")));
 control("the edit page says the label is shown to candidates again", "S26", edit("edit.html", (s) => s.replace("The label is a note for you only", "The label is shown to candidates")));
 control("the register page loses its firm rows", "S27", edit("register.html", (s) => s.replace('id="firmRows"', 'id="firmRowsX"')));
 control("the edit page says coming soon again", "S27", edit("edit.html", (s) => s.replace("Up to 3 firms.", "Naming the recruiter firm: coming soon.")));
@@ -139,7 +140,8 @@ control("the edit page loses an AI note box", "S28", edit("edit.html", (s) => s.
 control("the register page's note box grows past 300", "S28", edit("register.html", (s) => s.replace('id="aiFilterNote" type="text" maxlength="300"', 'id="aiFilterNote" type="text" maxlength="500"')));
 control("the note label stops saying the words are shown to candidates", "S28", edit("register.html", (s) => s.replace("In your own words (optional, shown to candidates): how AI is used to filter", "In your own words (optional): how AI is used to filter")));
 control("the register form stops checking the notes with the shared rule", "S28", edit("js/register-form.js", (s) => s.replace('import { aiNoteProblem } from "./ai-notes.js";', "const aiNoteProblem = () => null;")));
-control("the search card stops showing the notes", "S28", edit("js/pages/search.js", (s) => s.replace("...aiNotes(row).map(", "...[].map(")));
+control("the search card stops showing the notes (asks for the old form of the pills)", "S28", edit("js/pages/search.js", (s) => s.replace("{ tile: true }", "{}")));
+control("the AI pills stop carrying the notes", "S28", edit("js/chips.js", (s) => s.replace("aiNotes(p).find(", "[].find(")));
 control("a page links to comments.html without a reference (a listing in the making)", "S29", append("index.html", '<a href="comments.html">All comments</a>'));
 control("the comments page names the author", "S29", edit("js/pages/comments.js", (s) => s.replace('"Candidate ' + String.fromCharCode(183) + ' "', '"Candidate #" + c.id + " ' + String.fromCharCode(183) + ' "')));
 control("the wrong-link report stops saying it is private", "S29", edit("comments.html", (s) => s.replace("Tell us here, privately:", "Tell us here:")));
@@ -320,8 +322,8 @@ control("a script says an employer can reply to a comment", "S36", append("js/pa
 control("the dashboard offers to contest a comment", "S36", append("js/pages/dashboard.js", 'const _ct = "Contest a comment on this opening";'));
 // S32: public wording (2026-09-30)
 control("the search badge goes back to Verified", "S32", edit("js/pages/search.js", (s) => s.replace('"\u2713 Registered"', '"\u2713 Verified"')));
-control("the details dialog says the listing is verified again", "S32", edit("js/pages/search.js", (s) => s.replace("This opening was added through FightGhostJobs by the employer.", "This listing is verified: a real employer registered it directly with FightGhostJobs.")));
-control("the details dialog loses what FightGhostJobs has not confirmed", "S32", edit("js/pages/search.js", (s) => s.replace(", that the employer representative works for the company named, or that the employer will respond.", ".")));
+control("the box behind the Registered icon says the listing is verified again", "S32", edit("js/about-text.js", (s) => s.replace("This opening was added through FightGhostJobs by the employer.", "This listing is verified: a real employer registered it directly with FightGhostJobs.")));
+control("the box behind the Registered icon loses what FightGhostJobs has not confirmed", "S32", edit("js/about-text.js", (s) => s.replace(", that the employer representative works for the company named, or that the employer will respond.", ".")));
 control("the sample card badge says Verified again", "S32", edit("index.html", (s) => s.replace('<div class="pill badge-verified">\u2713 Registered</div>', '<div class="pill badge-verified">\u2713 Verified</div>')));
 control("the home pill says a free public registry again", "S32", edit("index.html", (s) => s.replace(">A place to check job openings that employers disclose</div>", ">A free public registry</div>")));
 control("the home page promises free, always", "S32", edit("index.html", (s) => s.replace(">to add and disclose</div>", ">to add and disclose, always</div>")));
@@ -871,7 +873,7 @@ control("a text has an en dash", "S66", edit("search.html", (s) => s.replace("Se
 // S59 / S59b (2026-10-09): the link label words
 control("the employer page says not verified by us again", "S59", edit("edit.html", (s) => s.replace('"employer-provided link, not checked by us"', '"employer-provided link, not verified by us"')));
 control("the register page says not verified by us again", "S59", edit("register.html", (s) => s.replace('"employer-provided link, not checked by us"', '"employer-provided link, not verified by us"')));
-control("the details window says we could not verify it again", "S59", edit("search.html", (s) => s.replace("we could not check it", "we could not verify it")));
+control("the box behind the links icon says we could not verify it again", "S59", edit("js/about-text.js", (s) => s.replace("we could not check it", "we could not verify it")));
 control("the employer page loses the pinned label sentence", "S59", edit("edit.html", (s) => s.replace('"employer-provided link, not checked by us"', '"an employer-provided link"')));
 control("the stored label fixture goes back to the old label", "S59", edit("tests/edit.test.js", (s) => s.split("Employer-provided link, not checked by us").join("Employer-provided link, not verified by us")));
 control("the stored label fixture drifts", "S59", edit("tests/api.test.js", (s) => s.replace("Employer-provided link, not checked by us", "Employer-provided link, unchecked")));
@@ -1469,6 +1471,45 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("another page uses the link pills", "S102", edit("js/pages/search.js", (s) => s + '\nimport { linkCounts } from "../link-pills.js";\n'));
   control("the unit test is not a step", "S102", edit(RUN, (s) => s.replace('path.join(here, "link-pills.unit.test.js")', 'path.join(here, "unit.test.js")')));
   control("the browser test is not a step", "S102", edit(RUN, (s) => s.replace('path.join(here, "link-pills.test.js")', 'path.join(here, "unit.test.js")')));
+}
+
+// S103 (2026-10-23, prompt LM): the opening tile and the details window
+{
+  const D = String.fromCharCode(8212), RUN = "tests/run-all.js";
+  control("the first paragraph comes back into the details window", "S103", edit("search.html", (s) => s.replace('<div id="modalLinksHead"', '<p id="modalIntro"></p><div id="modalLinksHead"')));
+  control("the details window loses the Registered holder", "S103", edit("search.html", (s) => s.replace('id="modalRegistered"', 'id="modalRegisteredX"')));
+  control("the details window loses the Links heading holder", "S103", edit("search.html", (s) => s.replace('id="modalLinksHead"', 'id="modalLinksHeadX"')));
+  control("search.js stops using the box", "S103", edit("js/pages/search.js", (s) => s.split("openInfoBox(").join("openTheBox(")));
+  control("search.js stops choosing the buttons by the counts", "S103", edit("js/pages/search.js", (s) => s.replace("tileActions(row, COMMENTS_VISIBLE)", "{ mode: 'legacy', main: 'View opening details', comments: null }")));
+  control("the policy link is no longer made in its own function", "S103", edit("js/pages/search.js", (s) => s.replace("async function openPolicy(", "async function openPolicyX(")));
+  control("the tile asks for a one-time link when it is drawn", "S103", edit("js/pages/search.js", (s) => s.replace("function renderCard(row) {", "function renderCard(row) {\n  api.candidateLinkIssue(row.posting_ref);")));
+  control("the tile asks for the details when it is drawn", "S103", edit("js/pages/search.js", (s) => s.replace("function renderCard(row) {", "function renderCard(row) {\n  api.candidateDetail(row.posting_ref);")));
+  control("a third place asks for a one-time link", "S103", edit("js/pages/search.js", (s) => s + "\nasync function sneaky(row) { return api.candidateLinkIssue(row.posting_ref); }\n"));
+  control("the details window uses the removed paragraph element again", "S103", edit("js/pages/search.js", (s) => s.replace('const head = $("#modalLinksHead");', 'const head = $("#modalLinksHead"); $("#modalIntro");')));
+  control("the box stops closing on Escape", "S103", edit("js/info-box.js", (s) => s.replace('ev.key === "Escape"', 'ev.key === "Esc"')));
+  control("the box lets Escape through to the window under it", "S103", edit("js/info-box.js", (s) => s.replace("ev.stopPropagation(); close();", "close();")));
+  control("the box is no longer a modal dialog", "S103", edit("js/info-box.js", (s) => s.replace('"aria-modal": "true"', '"aria-modal": "false"')));
+  control("the box has no name", "S103", edit("js/info-box.js", (s) => s.replace('"aria-labelledby": titleId', '"data-x": titleId')));
+  control("the box has no close control name", "S103", edit("js/info-box.js", (s) => s.replace('"aria-label": "Close"', '"data-x": "Close"')));
+  control("the box does not trap focus", "S103", edit("js/info-box.js", (s) => s.replace("trapFocus({", "noTrap({")));
+  control("the box does not lock the page scroll", "S103", edit("js/info-box.js", (s) => s.replace("lockScroll(doc, win)", "(() => () => {})()")));
+  control("the box builds HTML", "S103", edit("js/info-box.js", (s) => s.replace('h("div", { class: "info-box-body" }, ...nodes)', 'h("div", { class: "info-box-body", html: 1 }, ...nodes)') + "\nconst _x = document.body.innerHTML;\n"));
+  control("the view links button is reworded", "S103", edit("js/tile-actions.js", (s) => s.replace('export const VIEW_LINKS = "View links";', 'export const VIEW_LINKS = "View details";')));
+  control("the comments label loses its count", "S103", edit("js/tile-actions.js", (s) => s.replace('"Comments (" + n + ")"', '"Comments"')));
+  control("the details window opens for application links only (a firm alone gets none)", "S103", edit("js/tile-actions.js", (s) => s.replace("c.apply > 0 || c.firms > 0", "c.apply > 0")));
+  control("the tile actions hold an address", "S103", edit("js/tile-actions.js", (s) => s.replace("const c = linkCounts(row);", "const c = linkCounts(row); const u = row.go_url;")));
+  control("the tile actions say verified", "S103", edit("js/tile-actions.js", (s) => s.replace('export const VIEW_LINKS = "View links";', 'export const VIEW_LINKS = "View verified links";')));
+  control("a dash is put in the box words", "S103", append("js/about-text.js", "\nexport const X_DASH = \"a " + D + " b\";\n"));
+  control("a pill stops being a button", "S103", edit("js/dom.js", (s) => s.replace('typeof spec.press === "function"', 'typeof spec.pressX === "function"')));
+  control("the AI pills stop being built with their notes", "S103", edit("js/chips.js", (s) => s.split("tileAiChip(").join("tileAiChipX(")));
+  control("the policy pill is no longer built", "S103", edit("js/chips.js", (s) => s.replace("policyPillChip(p)", "null")));
+  control("the search answer check stops judging the comment count", "S103", edit("js/api.js", (s) => s.replace("&& commentCountFieldOk(r) &&", "&&")));
+  control("the search answer check stops judging the policy flag", "S103", edit("js/api.js", (s) => s.replace("&& policyFlagOk(r)", "")));
+  control("windows no longer stack", "S103", edit("js/dialog-focus.js", (s) => s.replace("stack[stack.length - 1] !== token", "false")));
+  control("the policy pill is drawn for anything that looks true", "S103", edit("js/policy-pill.js", (s) => s.replace("row.has_policy_link === true", "!!row.has_policy_link")));
+  control("the unit test is not a step", "S103", edit(RUN, (s) => s.replace('path.join(here, "lm-cleanup.unit.test.js")', 'path.join(here, "unit.test.js")')));
+  control("the browser test is not a step", "S103", edit(RUN, (s) => s.replace('path.join(here, "lm-cleanup.test.js")', 'path.join(here, "unit.test.js")')));
+  control("a module is gone", "S103", (dir) => { fs.rmSync(path.join(dir, "js", "tile-actions.js")); });
 }
 
 // S100 (prompt ST1, October 14, 2026): the employer's optional statement of the kind of an opening

@@ -5,8 +5,8 @@
 //   * the three row actions call exactly these api functions with the stored position: api.checkDestinationLink, api.editDestinationLink, api.removeDestinationLink.
 
 import { checkWarnings } from "./edit-form.js?v=eb936068";
-import { LP, panelRows, rowMeta, rowsSignature, checkAria, editAria, removeAria, planEdit, confirmText, refusalFor, successText } from "./link-panel-model.js?v=cbace354";
-import { mountRowPanel } from "./row-panel.js?v=2ab133e1";
+import { LP, panelRows, rowMeta, rowsSignature, checkAria, editAria, removeAria, planEdit, confirmText, refusalFor, successText } from "./link-panel-model.js?v=4faa6a47";
+import { mountRowPanel } from "./row-panel.js?v=f647619f";
 
 // ctx: { host, hintEl, noteEl, api, getPostingId, openBlank, schedule, now, isBlocked, onSessionEnded, onStale, onChanged }
 //   api: needs checkDestinationLink, editDestinationLink, removeDestinationLink (the rest is the shared panel's: see js/row-panel.js)

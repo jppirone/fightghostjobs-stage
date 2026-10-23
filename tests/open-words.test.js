@@ -38,7 +38,7 @@ async function open(tab, site, width) {
   await tab.eval("(() => { document.querySelector('#company').value = 'Meridian'; document.querySelector('#titleq').value = 'Analyst'; document.querySelector('#searchForm').requestSubmit(); })()");
   await tab.waitFor("document.querySelectorAll('#results .card').length > 0 && !document.querySelector('#searchBtn').disabled", 12000); await sleep(400);
   await tab.eval("document.querySelectorAll('#results .view-details')[0].click()");
-  await tab.waitFor("document.querySelector('#modalBackdrop').classList.contains('open') && !document.querySelector('#modalIntro').hidden", 8000); await sleep(700);
+  await tab.waitFor("document.querySelector('#modalBackdrop').classList.contains('open') && !!document.querySelector('#modalRegistered .info-icon')", 8000); await sleep(700);   // prompt LM: the paragraph that used to be waited for moved behind the icon of the header
 }
 // what every row of the window looks like
 const ROWS = `(() => [...document.querySelectorAll('#modalLinks .source-row, #modalPolicy .source-row')].map((r) => {
@@ -135,7 +135,7 @@ const DEFECTS = [
   ["the word and the icon can break across lines", [["app.css", (s) => s.replace(".source-row .go-open{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}", ".source-row .go-open{display:block;white-space:normal;width:20px}")]], ["fit"]],
   ["a long firm name pushes the row out of the window", [["app.css", (s) => s.replace("min-width:0;overflow-wrap:anywhere;margin-right:12px}", "min-width:max-content;margin-right:12px}")]], ["fit"]],
   ["the fallback link is drawn without the unit", [["js/pages/search.js", (s) => s.replace('h("span", { class: "go" }, openUnit())));', 'h("span", { class: "go" }, "Open link →")));')]], ["newTab"]],
-  ["a row opens in the same tab", [["js/pages/search.js", (s) => s.replace('window.open(url, "_blank", "noopener,noreferrer")', 'window.open(url, "_self", "noopener,noreferrer")')]], ["newTab"]],
+  ["a row opens in the same tab", [["js/pages/search.js", (s) => s.split('window.open(url, "_blank", "noopener,noreferrer")').join('window.open(url, "_self", "noopener,noreferrer")')]], ["newTab"]],   // prompt LM: the AI hiring policy pill opens with the same call, so every place that opens a tab is changed, not the first
   ["the firm with no address gets the icon", [["js/pages/search.js", (s) => s.replace('h("span", { class: "go", style: "color:var(--faint);" }, "No link given")', 'h("span", { class: "go", style: "color:var(--faint);" }, openUnit())')]], ["words"]],
   ["the word does not come back after a click", [["js/pages/search.js", (s) => s.replace('if (go_.querySelector(".go-open") === null) go_.replaceChildren(openUnit());', "")]], ["states"]],
 ];

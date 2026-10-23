@@ -2,9 +2,9 @@
 // employer-analytics, which the server scopes to the signed-in session's organization -- this page never asks for, stores, or displays anyone else's numbers.
 // "Unmatched company-intent searches" (the sixth metric in the original brief) is not shown here: it is not computed yet (see pass24-migration.sql for why).
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=8cda0927";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=b05cf5b9";
 import { rememberNext } from "../session.js?v=6dcc7750";
-import { $, h, clear, alertBox } from "../dom.js?v=ff147636";
+import { $, h, clear, alertBox } from "../dom.js?v=5c78a8cd";
 import { waitText, plural } from "../format.js?v=35ca37b5";
 import { statusChip } from "../dashboard-model.js?v=a4bf4c30";
 import { DEFAULT_RANGE_DAYS, rangeToDates, sharePctLabel, clickThroughPct, clickThroughLabel, searchModeBreakdown, linkBreakdown, isThinData } from "../analytics-model.js?v=92224b01";

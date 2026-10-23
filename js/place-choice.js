@@ -1,7 +1,7 @@
 // place-choice.js - the choice "A place outside the US or not in the list" under the location picker (prompt BH, October 11, 2026). It shows one plain text box in place of the US list; the typed place and a place from
 // the list are never both, so while the choice is on the picker's places are neither shown nor sent (and the page sends them cleared on an edit). Markup lives in register.html and edit.html
 // (#locCatalog, #locOutside, #locTyped, #loctext and its error line). The rule and the words are js/place-text.js; everything shown is text.
-import { $ } from "./dom.js?v=ff147636";
+import { $ } from "./dom.js?v=5c78a8cd";
 import { PLACE_WORDS, MAX_PLACE_TEXT } from "./place-text.js?v=cb5d7506";
 
 // onChange(): called after the choice or the text changed (the edit page refreshes its unsaved bar)    -> { outside, text, set, reset, setLocked, focus }

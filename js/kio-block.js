@@ -2,7 +2,7 @@
 // page that confirms a new opening, for every status including a draft (the ID exists from the moment the opening is saved). It is text, never a field: nothing in it can be edited.
 //   kioBlock(stored, { live, win, idAttr }) -> a node.   stored: the postID the server sent (the KIO ID in its stored form, or an old 12 character code, which has no short link and no ad lines).
 //   live: whether the short link is live (js/config.js KIO_SHORT_LINK_LIVE): while false the ad lines carry only the "KIO ID:" line.
-import { h } from "./dom.js?v=ff147636";
+import { h } from "./dom.js?v=5c78a8cd";
 import { displayId, shortLinkOf, adLines, isKioShown } from "./kio.js?v=f3cb2b4d";
 import { KIO_SHORT_LINK_LIVE } from "./config.js?v=41d402c7";
 

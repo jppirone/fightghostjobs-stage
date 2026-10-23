@@ -18,7 +18,12 @@ export function focusablesIn(root) {
   });
 }
 
+// prompt LM: a small box (js/info-box.js) can open over the details window. Windows stack: only the one opened last handles Tab, so the box keeps its own Tab loop and the window under it does not pull focus back.
+const stack = [];
+
 export function trapFocus({ doc, dialog, backdrop, opener, fallback }) {
+  const token = {};
+  stack.push(token);
   // everything outside the window: the siblings of the window's backdrop, and of each of its ancestors, up to the body
   const made = [];
   for (let node = backdrop; node && node !== doc.body && node.parentElement; node = node.parentElement) {
@@ -33,7 +38,7 @@ export function trapFocus({ doc, dialog, backdrop, opener, fallback }) {
   dialog.focus({ preventScroll: true });
 
   const onKey = (ev) => {
-    if (ev.key !== "Tab" || ev.defaultPrevented) return;
+    if (ev.key !== "Tab" || ev.defaultPrevented || stack[stack.length - 1] !== token) return;
     const items = focusablesIn(dialog), first = items[0], last = items[items.length - 1], at = doc.activeElement;
     if (!items.length) { ev.preventDefault(); dialog.focus({ preventScroll: true }); return; }
     const inside = dialog.contains(at);
@@ -45,6 +50,7 @@ export function trapFocus({ doc, dialog, backdrop, opener, fallback }) {
   let done = false;
   return function release() {
     if (done) return; done = true;
+    const at = stack.indexOf(token); if (at >= 0) stack.splice(at, 1);
     doc.removeEventListener("keydown", onKey, true);
     for (const el of made) el.removeAttribute("inert");
     const usable = (el) => !!el && el.isConnected && !el.disabled && !el.hidden && !el.closest("[hidden]");

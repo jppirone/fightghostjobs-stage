@@ -3,6 +3,8 @@
 
 import { fmtDateTz, fmtClose } from "./format.js?v=35ca37b5";
 import { recruiterChip, applicationLinksChip } from "./link-pills.js?v=89324475";
+import { aiNotes } from "./ai-notes.js?v=35c5dc92";
+import { policyPillChip } from "./policy-pill.js?v=8c8de528";
 
 export const TOOLTIP_FILTERING = "Resume screening or keyword/ATS-style matching used to prioritize applications before a human reviews them.";
 export const TOOLTIP_INTERVIEW = "Any AI that interacts with a candidate directly, such as an AI-conducted interview or a chatbot screening call.";
@@ -30,11 +32,25 @@ export function statusChips(p, tz) {
   }
 }
 
-// Every chip of a search result / posting header, in the designed order.
-export function postingChips(p, tz) {
+// prompt LM: on the opening TILE an AI pill has no "i" of its own any more. When the employer wrote words under that toggle (js/ai-notes.js: only under a toggle that is on) the pill carries them as a note and the page
+// makes the pill a button that opens them in a small box; without words it is plain text. The generic meaning the old "i" gave is no longer on the tile (the Registered icon says the information is the employer's own).
+function tileAiChip(spec, p, key) {
+  const n = aiNotes(p).find((x) => x.key === key);
+  return n ? { text: spec.text, note: { title: n.label, text: n.text } } : { text: spec.text };
+}
+
+// Every chip of a search result / posting header, in the designed order. opts.tile (the opening tile on the search page): the AI pills as above, and the AI hiring policy pill when the row says the employer set one.
+export function postingChips(p, tz, opts) {
+  const tile = !!(opts && opts.tile);
   const chips = [{ text: "Added " + fmtDateTz(p.posted_at, tz) }];
   chips.push(...statusChips(p, tz));
-  chips.push(aiFilteringChip(p.ai_filtering), aiInterviewChip(p.ai_interview_other));
+  if (tile) {
+    chips.push(tileAiChip(aiFilteringChip(p.ai_filtering), p, "filtering"), tileAiChip(aiInterviewChip(p.ai_interview_other), p, "interview"));
+    const policy = policyPillChip(p);
+    if (policy !== null) chips.push(policy);
+  } else {
+    chips.push(aiFilteringChip(p.ai_filtering), aiInterviewChip(p.ai_interview_other));
+  }
   chips.push(recruiterChip(p));
   const links = applicationLinksChip(p);   // prompt LK: how many links the employer gave (counts only); left out when the row has no counts
   if (links !== null) chips.push(links);

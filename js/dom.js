@@ -39,7 +39,14 @@ export function infoIcon(tooltip) {
 }
 
 // One chip. spec = { text, bold?, tooltip? }
+// prompt LM: spec.press (a function) makes the pill a button: it is given the button when it is pressed. The employer's words behind an AI pill, and the AI hiring policy pill, are such buttons;
+// spec.note marks the first kind (a small "i" shows that more is behind it), spec.leaves marks the second (it leaves the page, so a screen reader is told it opens a new tab).
 export function chip(spec) {
+  if (typeof spec.press === "function") {
+    return h("button", { type: "button", class: "chip chip-button", "aria-haspopup": spec.note ? "dialog" : false, onclick: (ev) => spec.press(ev.currentTarget) }, spec.text,
+      spec.note ? h("span", { class: "info-icon chip-i", "aria-hidden": "true" }, "i") : null,
+      spec.leaves ? h("span", { class: "sr-only" }, " (opens in a new tab)") : null);
+  }
   return h("div", { class: "chip", style: spec.bold ? "font-weight:700;" : false }, spec.text, spec.tooltip ? infoIcon(spec.tooltip) : null);
 }
 

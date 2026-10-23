@@ -1,7 +1,7 @@
 // location-picker.js - the location picker on the register form: type a place, choose it from the list. Locations are CHOSEN from the catalog (never typed as free text) and are sent as catalog ids.
 // The rules it warns about (at most 3 cities/metro areas, 10 states, 13 in all; states only on a remote role; two or more need the one-opening statement) are the same ones the database enforces (js/location-rules.js).
 // Markup lives in register.html (#locq, #locList, #locChips, #locStatus, #attestRow, #attest). Everything shown is text (dom.js), never HTML.
-import { $, h, clear } from "./dom.js?v=ff147636";
+import { $, h, clear } from "./dom.js?v=5c78a8cd";
 import { loadCatalog } from "./location-catalog.js?v=bb0c937e";
 import { search, normalize } from "./location-search.js?v=37a4f60e";
 import { canAdd, problems } from "./location-rules.js?v=d6656595";

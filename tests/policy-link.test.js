@@ -53,12 +53,12 @@ async function runSearch(tab) {
 }
 async function openDetails(tab) {
   await tab.eval("document.querySelectorAll('#results .view-details')[0].click()");
-  await tab.waitFor("document.querySelector('#modalBackdrop').classList.contains('open') && !document.querySelector('#modalIntro').hidden", 8000); await sleep(700);
+  await tab.waitFor("document.querySelector('#modalBackdrop').classList.contains('open') && !!document.querySelector('#modalRegistered .info-icon')", 8000); await sleep(700);   // prompt LM: the paragraph that used to be waited for moved behind the icon of the header
 }
 const WINDOW = `(() => ({
   apply: [...document.querySelectorAll('#modalLinks .source-row')].map((e) => e.innerText.replace(/\\s+/g, ' ').trim()),
   policyHidden: document.querySelector('#modalPolicy').hidden, policy: [...document.querySelectorAll('#modalPolicy .source-row')].map((e) => e.innerText.replace(/\\s+/g, ' ').trim()),
-  empty: document.querySelector('#modalEmpty').hidden ? null : document.querySelector('#modalEmpty').innerText.trim(), noteShown: !document.querySelector('#modalLinksNote').hidden,
+  empty: document.querySelector('#modalEmpty').hidden ? null : document.querySelector('#modalEmpty').innerText.trim(), noteShown: !document.querySelector('#modalLinksHead').hidden && !!document.querySelector('#modalLinksHead .info-icon'),
   more: [...document.querySelectorAll('#modalMore a')].map((a) => a.innerText.replace(/\\s+/g, ' ').trim()), all: document.querySelector('.modal').innerText.replace(/\\s+/g, ' ').trim() }))()`;
 
 const SCENARIOS = {
@@ -257,7 +257,7 @@ const SCENARIOS = {
     const w = await tab.eval(WINDOW);
     if (w.policyHidden || w.policy.length !== 1 || w.policy[0] !== "AI and hiring policy: Employer's own site Open opens in a new tab") bad.push("the line is " + JSON.stringify(w.policy) + " (hidden " + w.policyHidden + ")");
     if (w.apply.length !== 2 || w.apply.some((t) => /AI and hiring policy/.test(t))) bad.push("the application links are " + JSON.stringify(w.apply));
-    if (!w.noteShown) bad.push("the note about the one-time links is not shown");
+    if (!w.noteShown) bad.push("the Links heading with its icon (the note about the one-time links is behind it, prompt LM) is not shown");
     if (!w.more.some((t) => /Report a wrong link/.test(t))) bad.push("the report link is gone");
     if (/verif|approv|complian|certif/i.test(w.policy.join(" "))) bad.push("the line makes a claim");
     // the application path: the first application row opens the application link, never the policy link (window.open is replaced so the test reads the address the page opens)
