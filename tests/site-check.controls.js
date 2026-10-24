@@ -884,7 +884,7 @@ control("the register page heading says Register an opening again", "S66", edit(
 control("the register page title says Register an Opening again", "S66", edit("register.html", (s) => s.replace("<title>FightGhostJobs | Add an Opening</title>", "<title>FightGhostJobs | Register an Opening</title>")));
 control("the register button says Register opening again", "S66", edit("js/pages/register.js", (s) => s.replace('"Add and schedule" : "Add opening"', '"Register and schedule" : "Register opening"')));
 control("the success heading says Registered again", "S66", edit("js/pages/register.js", (s) => s.replace('"Added. It is live now."', '"Registered. It is live now."')));
-control("the details window says registered through again", "S66", edit("js/pages/search.js", (s) => s.replace("This opening was added through FightGhostJobs by the employer.", "This opening was registered through FightGhostJobs by an employer.")));
+control("the details window says registered through again", "S66", edit("js/about-text.js", (s) => s.replace("This opening was added through FightGhostJobs by the employer.", "This opening was registered through FightGhostJobs by an employer.")));
 control("the My openings column says Registered again", "S66", edit("js/pages/dashboard.js", (s) => s.replace('["Title", "Req #", "KIO ID", ...', '["Title", "Registered", "KIO ID", ...')));
 control("the team page says who can register openings", "S66", edit("team.html", (s) => s.replace("who can add openings for your organization.", "who can register openings for your organization.")));
 control("a search result chip says Registered with a date again", "S66", edit("js/chips.js", (s) => s.replace('text: "Added " + fmtDateTz(p.posted_at, tz)', 'text: "Registered " + fmtDateTz(p.posted_at, tz)')));
