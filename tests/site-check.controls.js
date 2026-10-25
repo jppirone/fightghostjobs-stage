@@ -1057,8 +1057,8 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   const SR = "js/pages/search.js", OL = "js/open-link.js";
   control("a row brings back Continue", "S74", edit(SR, (s) => s.replace('const go_ = h("span", { class: "go" }, openUnit());', 'const go_ = h("span", { class: "go" }, "Continue →");')));
   control("the fallback link brings back Open link", "S74", edit(SR, (s) => s.replace('h("span", { class: "go" }, openUnit())));', 'h("span", { class: "go" }, "Open link →")));')));
-  control("a row opens in the same tab", "S74", edit(SR, (s) => s.replace('window.open(url, "_blank", "noopener,noreferrer")', 'window.open(url, "_self")')));
-  control("the fallback link has no noopener", "S74", edit(SR, (s) => s.replace('target: "_blank", rel: "noopener noreferrer"', 'target: "_blank"')));
+  control("a row opens in the same tab", "S74", edit(SR, (s) => s.replaceAll('window.open(url, "_blank", "noopener,noreferrer")', 'window.open(url, "_self")')));   // every copy: the policy pill (prompt LM) carries the same call, so one left alone would still satisfy the rule
+  control("the fallback link has no noopener", "S74", edit(SR, (s) => s.replaceAll('target: "_blank", rel: "noopener noreferrer"', 'target: "_blank"')));   // every copy, as above
   control("the unit does not come back after a state word", "S74", edit(SR, (s) => s.replace('if (go_.querySelector(".go-open") === null) go_.replaceChildren(openUnit());', "")));
   control("the unit module is not imported", "S74", edit(SR, (s) => s.replace('import { openUnit } from "../open-link.js";', "")));
   control("the icon is not hidden from assistive technology", "S74", edit(OL, (s) => s.replace('["aria-hidden", "true"], ', "")));
