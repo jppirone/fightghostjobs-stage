@@ -30,6 +30,7 @@ import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLin
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
 const recapEl = $("#recap"), recapTextEl = $("#recapText"), recapEditBtn = $("#recapEdit");
+const noticeEl = $("#searchNotice");   // prompt FK (October 29, 2026): one static sentence under the results, shown exactly when the recap is (a search has run, found or not); its text and link live in search.html
 let lastSearch = null;   // what was typed in the three boxes for the search that just ran: in memory only, never stored; "Edit this search" puts it back
 const backdrop = $("#modalBackdrop"), status = makeAnnouncer($("#searchStatus"), window);
 let session = null, busy = false, cooldownTimer = null;
@@ -177,7 +178,7 @@ function showResults(data, searched) {
 }
 
 // ---- the recap (Part C): once a search has run, the boxes are emptied and this read-only sentence sits between the form and the results. The one spoken message of the search is this same sentence (js/search-status.js).
-function hideRecap() { recapEl.hidden = true; recapTextEl.textContent = ""; }
+function hideRecap() { recapEl.hidden = true; recapTextEl.textContent = ""; noticeEl.hidden = true; }
 // prompt BS (October 12, 2026): the moment a new search attempt begins, nothing of the earlier one stays on the page: its results (with the mismatch notice inside them), its count line, its recap and its spoken message.
 // Only the new outcome shows, even when the attempt is refused on the page itself and nothing is sent. Focus is not touched, and Edit this search (which does not start an attempt) keeps the old results as before.
 function clearOutcome() { clear(resultsEl); countEl.hidden = true; countEl.textContent = ""; hideRecap(); lastSearch = null; status.clear(); }
@@ -185,7 +186,7 @@ function showRecap(typed, company, search, auto, extra) {
   lastSearch = typed;
   companyIn.value = ""; queryIn.value = ""; reqIn.value = "";
   const text = recapSentence(company, search);
-  recapTextEl.textContent = text; recapEl.hidden = false;
+  recapTextEl.textContent = text; recapEl.hidden = false; noticeEl.hidden = false;
   // the one spoken message of the search: the recap sentence AND the count, in the visible count line's own words (so a search that found nothing says "No matching postings" too); prompt BQ: and the mismatch notice, when there is one
   const spoken = text + " " + countEl.textContent + "." + (extra ? " " + extra : "");
   status.announce(spoken);

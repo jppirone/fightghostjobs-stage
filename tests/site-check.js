@@ -7,7 +7,7 @@
 //   S5  no way to turn text into HTML or code (innerHTML, outerHTML, insertAdjacentHTML, document.write, eval, new Function, string timers)
 //   S6  every import resolves to a real file
 //   S7  every local href / src / stylesheet exists
-//   S8  no network address other than the project's API appears in code, markup or styles (no CDN, no analytics, no font host); the exceptions are the pricing card's link to https://www.fightghostjobs.com/plans.html and the SVG namespace NAME in js/open-link.js (a name that is never requested)
+//   S8  no network address other than the project's API appears in code, markup or styles (no CDN, no analytics, no font host); the exceptions are the pricing card's link to https://www.fightghostjobs.com/plans.html, the Privacy Policy link of the notice under the search results (search.html only, https://www.fightghostjobs.com/privacy.html; prompt FK) and the SVG namespace NAME in js/open-link.js (a name that is never requested)
 //   S31 the brand and accessibility structure: skip link, header with the logo as the way home, main, footer, the darker palette, the shared accessibility rules
 //   S9  no secret: no secret key, no token, no database URL; the publishable key appears only in js/config.js
 //   S10 the vendored Auth client is byte-identical to the recorded hash
@@ -127,7 +127,7 @@ export function checkSite(root, opts = {}) {
     for (const m of s.matchAll(/\b(?:href|src)\s*=\s*"([^"]*)"/g)) {
       const u = m[1];
       if (u === "" || u.startsWith("#") || u.startsWith("mailto:")) continue;
-      if (/^https?:\/\//i.test(u)) { if (!u.startsWith(API_ORIGIN) && u !== "https://www.fightghostjobs.com/plans.html") add("S8", f, "external address in markup: " + u); continue; }   // the one exception: the pricing card's navigation link to the marketing plans page (rule S33 pins where it may appear)
+      if (/^https?:\/\//i.test(u)) { if (!u.startsWith(API_ORIGIN) && u !== "https://www.fightghostjobs.com/plans.html" && !(u === "https://www.fightghostjobs.com/privacy.html" && path.relative(root, f).replace(/\\/g, "/") === "search.html")) add("S8", f, "external address in markup: " + u); continue; }   // the exceptions: the pricing card's navigation link to the marketing plans page (rule S33 pins where it may appear), and (prompt FK, October 29, 2026) the Privacy Policy link of the one-sentence notice under the search results, in search.html only (tests/privacy-notice.test.js pins it)
       const target = u.split("#")[0].split("?")[0];
       const p = target.startsWith("/") ? path.join(root, target) : path.join(path.dirname(f), target);
       if (!fs.existsSync(p)) add("S7", f, "broken local reference: " + u);

@@ -59,6 +59,10 @@ control("an external stylesheet", "S8", edit("index.html", (s) => s.replace('<li
 control("an analytics beacon", "S8", append("js/pages/index.js", "navigator.sendBeacon('https://t.example.com/', 'x');"));
 control("a fetch outside api.js", "S8", append("js/pages/index.js", "fetch('/x');"));
 control("a hard-coded third-party address in code", "S8", append("js/format.js", "export const U = 'https://evil.example/collect';"));
+// prompt FK (October 29, 2026): the one allowance for the privacy page address is narrow: that address, in search.html only
+control("the privacy page address on another page", "S8", edit("comments.html", (s) => s.replace("</main>", '<a href="https://www.fightghostjobs.com/privacy.html">Privacy Policy</a></main>')));
+control("another external address in search.html", "S8", edit("search.html", (s) => s.replace('href="https://www.fightghostjobs.com/privacy.html"', 'href="https://example.com/privacy.html"')));
+control("a look-alike of the privacy page address in search.html", "S8", edit("search.html", (s) => s.replace('href="https://www.fightghostjobs.com/privacy.html"', 'href="https://www.fightghostjobs.com/privacy.html?x=1"')));
 control("a secret key in config.js", "S9", append("js/config.js", "export const K = 'sb_secret_ABCDEFGHIJKLMNOP';"));
 control("a JWT-looking token", "S9", append("js/format.js", "export const T = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijklmnop';"));
 control("a database URL", "S9", append("js/format.js", "export const D = 'postgresql://postgres:pw@db.example.com:5432/postgres';"));
