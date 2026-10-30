@@ -3,7 +3,7 @@
 // lands here. When the path is a KIO ID that passes the check, the browser is sent on to the search page with the ID in the fragment (search.html#k=KIO7K3M9Q2XW4T9): the page fills the ID box and the person presses Search, as
 // with the extension. Nothing is searched here, nothing is sent anywhere, no company or title is known. A path that has the shape of an ID but fails the check says so; every other path keeps the page's usual words.
 // What John configures for the short address knowitsopen.com (a 301 to this site's /<ID> path) is in the BQ report; until it is done the receiving page works for the site's own address.
-import { kioFromPath, looksLikeKio } from "./kio.js?v=f3cb2b4d";
+import { kioFromPath, looksLikeKio } from "./kio.js?v=e86dc586";
 
 const stored = kioFromPath(location.pathname);
 if (stored !== null) {

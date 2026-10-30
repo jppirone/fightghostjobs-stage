@@ -7,7 +7,7 @@
 //   code    : 12 characters of 0-9 A-Z minus I L O U (I and L read as 1, O as 0); spaces and hyphens ignored; at most 40 typed characters, printable ASCII only
 // The people-facing lookup boxes are "Req number" and ONE box for "PostID, or part of the title", so this decides which of the two the text in that box is.
 
-import { readKio, looksLikeKio } from "./kio.js?v=f3cb2b4d";
+import { readKio, looksLikeKio } from "./kio.js?v=e86dc586";
 
 const CODE_RE = /^[0-9A-HJKMNP-TV-Z]{12}$/;
 

@@ -1,7 +1,7 @@
 // chips.js - what a posting's facts are called on screen. Pure (no DOM): tested in Node.
 // The wording of the two AI disclosures and their tooltips is the FINAL design copy (design brief addendum, section 12): the tooltip describes the mechanism, never an outcome.
 
-import { fmtDateTz, fmtClose } from "./format.js?v=35ca37b5";
+import { fmtDateTz, fmtClose } from "./format.js?v=0b334448";
 import { recruiterChip, applicationLinksChip } from "./link-pills.js?v=89324475";
 import { aiNotes } from "./ai-notes.js?v=35c5dc92";
 import { policyPillChip } from "./policy-pill.js?v=8c8de528";

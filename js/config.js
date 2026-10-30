@@ -3,9 +3,9 @@
 // NEVER put a secret key, a database password or any token here: this file is served to everyone.
 export const SUPABASE_URL = "https://tpmvkjuhbbwftqoodzcn.supabase.co";
 export const PUBLISHABLE_KEY = "sb_publishable_b9ybhjQuSv_K8lIraieR3g_iBslDBOB";
-// ALLOW_INDEXING (October 6, 2026): the one flag for search engines. FALSE on stage: every page says noindex, nofollow and robots.txt disallows everything. TRUE only on a production site, deliberately: then the PUBLIC pages (index.html, privacy.html)
-// say index, follow and robots.txt allows crawling. Pages that need a sign-in or show a person's own data stay noindex in every environment, whatever this says. Changing it is two steps: edit this line, then run  node tests/apply-indexing.js  (it rewrites
-// robots.txt and the robots tag of the two public pages and nothing else); tests/indexing.test.js and the static rule S60 fail if the two disagree.
+// ALLOW_INDEXING (October 6, 2026): the one flag for search engines. FALSE on stage: every page says noindex, nofollow and robots.txt disallows everything. TRUE only on a production site, deliberately: then the one PUBLIC page (the home page, index.html)
+// says index, follow and robots.txt allows crawling. Every other page, privacy.html included (it only points to the policy on the website, prompt FO), says noindex, nofollow in every environment, whatever this says. Changing it is two steps: edit this line, then run  node tests/apply-indexing.js  (it rewrites
+// robots.txt and the robots tag of the home page and nothing else); tests/indexing.test.js and the static rule S60 fail if the two disagree.
 export const ALLOW_INDEXING = false;
 // EMAIL_CODE_ENTRY (October 6, 2026): TRUE shows a field "Or type the code from the email" on the search page and the employer sign-in page once a sign-in link has been requested, so the person can finish in the SAME tab. It only works
 // once the Supabase sign-in email shows the code ({{ .Token }}) next to the link (a dashboard change the owner makes, see the report). SHIPS FALSE (John's decision, October 6, 2026) and stays false until John has pasted the email template on stage

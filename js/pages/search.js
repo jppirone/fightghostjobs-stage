@@ -1,31 +1,31 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=b05cf5b9";
-import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=6dcc7750";
-import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=8a8e231f";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=eebb4b7a";
+import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=f9b6c351";
+import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=b43b79f2";
 import { savePending, takePending } from "../signin-handoff.js?v=882122ed";
-import { applyFragmentPrefill } from "../fragment-prefill.js?v=cee0c08f";
+import { applyFragmentPrefill } from "../fragment-prefill.js?v=3a9166bf";
 import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js?v=f37507d8";
 import { lockScroll } from "../scroll-lock.js?v=b751eb4c";
 import { trapFocus } from "../dialog-focus.js?v=f788366d";
 import { makeAnnouncer } from "../search-status.js?v=7497036c";
 import { recapSentence } from "../search-recap.js?v=bd8e2e91";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js?v=5c78a8cd";
-import { waitText } from "../format.js?v=35ca37b5";
-import { postingChips, notOpenMessage } from "../chips.js?v=86f53ee7";
+import { waitText } from "../format.js?v=0b334448";
+import { postingChips, notOpenMessage } from "../chips.js?v=55512ecf";
 import { intentNotes } from "../intent-statement.js?v=d37f2b4b";
 import { infoBoxIcon, openInfoBox } from "../info-box.js?v=2f309155";
 import { ABOUT_TITLE, ABOUT_TEXT, ABOUT_ICON_LABEL, LINKS_ABOUT_TITLE, LINKS_ABOUT_BEFORE, LINKS_ABOUT_BOLD, LINKS_ABOUT_AFTER, LINKS_ICON_LABEL, LINKS_HEADING } from "../about-text.js?v=ce89cdee";
 import { tileActions } from "../tile-actions.js?v=7180edbf";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=5b8f0605";
-import { COMMENTS_VISIBLE } from "../config.js?v=41d402c7";
+import { COMMENTS_VISIBLE } from "../config.js?v=cb962576";
 import { openUnit } from "../open-link.js?v=19175677";
-import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=cb774d1b";
+import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=77ea996a";
 import { isRegistered } from "../registered.js?v=f191c8c2";
-import { refineHints } from "../refine-hint.js?v=e1547c0e";
-import { placeNodes } from "../place.js?v=0846848b";
-import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=e3b26035";
+import { refineHints } from "../refine-hint.js?v=5ece29af";
+import { placeNodes } from "../place.js?v=811ff44d";
+import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=0cd5fab0";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");

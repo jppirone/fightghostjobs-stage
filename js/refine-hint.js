@@ -6,7 +6,7 @@
 //   1. MORE THAN REFINE_HINT_MAX_RESULTS (3) OPENINGS: "We found N openings. To narrow it, add a more specific word from the title, such as a team or function."  (with the limit reached: "We found more than 25 openings ...")
 //   2. THE TYPED TITLE IS ONE GENERIC WORD (the filler words and punctuation left out): "That word is common in many titles. Adding another word from the title will narrow the results."
 // Both can show at once (the count line first). None shows for a search that found nothing. The words are the ones John asked for; no word of fear, no "verified".
-import { REFINE_HINT_MAX_RESULTS, GENERIC_TITLE_WORDS, TITLE_FILLER_WORDS } from "./config.js?v=41d402c7";
+import { REFINE_HINT_MAX_RESULTS, GENERIC_TITLE_WORDS, TITLE_FILLER_WORDS } from "./config.js?v=cb962576";
 
 // the typed title as its words: lower case, letters and digits only, the filler words left out
 export function titleWords(text) {
