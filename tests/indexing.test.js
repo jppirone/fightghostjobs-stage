@@ -1,7 +1,7 @@
 // indexing.test.js - search engines and the stage site (October 6, 2026). No browser, no real project, no key: it serves the repo's own files with the fake site (tests/fake-site.js) and reads them over HTTP, the way a crawler would.
 // 1. Every page the site serves says noindex, nofollow, and robots.txt disallows everything, while ALLOW_INDEXING in js/config.js is false (the stage setting, pinned here: switching it on for production is a deliberate edit of this test too).
-// 2. The pages that need a sign-in or show a person's own data say noindex, nofollow whatever the flag says. Only index.html and privacy.html may ever be indexable.
-// 3. The tool tests/apply-indexing.js: with the flag true it makes exactly robots.txt, index.html and privacy.html indexable and touches nothing else; with the flag false again every file is byte for byte as before; run twice it changes nothing.
+// 2. The pages that need a sign-in or show a person's own data say noindex, nofollow whatever the flag says. Only index.html may ever be indexable (prompt FO, October 29, 2026: the app's own privacy.html is a link-only page and says noindex, nofollow in every environment, whatever the flag says).
+// 3. The tool tests/apply-indexing.js: with the flag true it makes exactly robots.txt and index.html indexable and touches nothing else (privacy.html stays noindex, nofollow); with the flag false again every file is byte for byte as before; run twice it changes nothing.
 // Then negative controls: one defect at a time on a copy of the repo, each must make a check fail. Run: node --test tests/indexing.test.js
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -12,7 +12,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { startFakeSite } from "./fake-site.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const PUBLIC = ["index.html", "privacy.html"];   // the only pages that may ever be indexable (written out here on purpose, apart from the tool's own list)
+const PUBLIC = ["index.html"];   // the only page that may ever be indexable (prompt FO: privacy.html is no longer one) (written out here on purpose, apart from the tool's own list)
 const NOINDEX = '<meta name="robots" content="noindex, nofollow">', INDEXABLE = '<meta name="robots" content="index, follow">';
 const SKIP = (src) => !/[\\/](\.git|node_modules)([\\/]|$)/.test(src);
 const flagOf = (root) => { const m = fs.readFileSync(path.join(root, "js", "config.js"), "utf8").match(/^export const ALLOW_INDEXING = (true|false);/m); return m ? m[1] === "true" : null; };
@@ -53,12 +53,12 @@ async function flip(root) {
   if (JSON.stringify(tool.applyIndexing(root)) !== "[]") bad.push("with the flag as shipped the tool changed files");
   fs.writeFileSync(cfg, text.replace("ALLOW_INDEXING = false;", "ALLOW_INDEXING = true;"));
   const on = tool.applyIndexing(root).sort();
-  if (JSON.stringify(on) !== JSON.stringify(["index.html", "privacy.html", "robots.txt"])) bad.push("with the flag true the tool must change exactly index.html, privacy.html and robots.txt, it changed: " + on.join(", "));
+  if (JSON.stringify(on) !== JSON.stringify(["index.html", "robots.txt"])) bad.push("with the flag true the tool must change exactly index.html and robots.txt (not privacy.html), it changed: " + on.join(", "));
   if (JSON.stringify(tool.applyIndexing(root)) !== "[]") bad.push("run a second time the tool changed files again");
   bad.push(...(await audit(root)).map((x) => "flag true: " + x));
   fs.writeFileSync(cfg, text);
   const off = tool.applyIndexing(root).sort();
-  if (JSON.stringify(off) !== JSON.stringify(["index.html", "privacy.html", "robots.txt"])) bad.push("with the flag false again the tool must change exactly index.html, privacy.html and robots.txt back, it changed: " + off.join(", "));
+  if (JSON.stringify(off) !== JSON.stringify(["index.html", "robots.txt"])) bad.push("with the flag false again the tool must change exactly index.html and robots.txt back, it changed: " + off.join(", "));
   const after = walk(root);
   for (const k of new Set([...Object.keys(before), ...Object.keys(after)])) if (!before[k] || !after[k] || Buffer.compare(before[k], after[k]) !== 0) bad.push(k + " is not byte for byte as before after switching on and off again");
   return bad;
@@ -70,7 +70,7 @@ test("every page and robots.txt keep search engines out on stage (flag false), a
   assert.deepEqual(bad, [], "indexing problems:\n" + bad.join("\n"));
 });
 
-test("the tool switches the two public pages and robots.txt together with the flag, touches nothing else, and switches back exactly", { timeout: 300000 }, async () => {
+test("the tool switches the one public page and robots.txt together with the flag, touches nothing else, and switches back exactly", { timeout: 300000 }, async () => {
   const dir = copyRepo();
   try { const bad = await flip(dir); assert.deepEqual(bad, [], "indexing tool problems:\n" + bad.join("\n")); } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
@@ -86,10 +86,13 @@ const DEFECTS = [
   ["the flag is switched on without running the tool", "audit", [["js/config.js", (s) => s.replace("ALLOW_INDEXING = false;", "ALLOW_INDEXING = true;")]]],
   ["the flag line is removed", "audit", [["js/config.js", (s) => s.replace("export const ALLOW_INDEXING = false;", "")]]],
   ["a new page is added without the tag", "audit", [["newpage.html", () => "<!doctype html><html><head><meta charset=\"utf-8\"><title>x</title></head><body>x</body></html>\n"]]],
-  ["the tool treats My openings as a public page", "flip", [["tests/apply-indexing.js", (s) => s.replace('["index.html", "privacy.html"]', '["index.html", "privacy.html", "dashboard.html"]')]]],
+  ["the app's own privacy page loses its noindex tag", "audit", [["privacy.html", (s) => s.replace(NOINDEX + "\n", "")]]],
+  ["the app's own privacy page says index, follow while the flag is false", "audit", [["privacy.html", (s) => s.replace(NOINDEX, INDEXABLE)]]],
+  ["the tool treats the app's own privacy page as a public page again (prompt FO)", "flip", [["tests/apply-indexing.js", (s) => s.replace('["index.html"]', '["index.html", "privacy.html"]')]]],
+  ["the tool treats My openings as a public page", "flip", [["tests/apply-indexing.js", (s) => s.replace('["index.html"]', '["index.html", "dashboard.html"]')]]],
   ["the tool does not rewrite robots.txt", "flip", [["tests/apply-indexing.js", (s) => s.replace('put("robots.txt", allow ? ROBOTS_ALLOW : ROBOTS_BLOCK_ALL);', "")]]],
   ["the tool never switches back to noindex", "flip", [["tests/apply-indexing.js", (s) => s.replace("allow ? INDEXABLE : NOINDEX", "INDEXABLE")]]],
-  ["the tool also edits the search page", "flip", [["tests/apply-indexing.js", (s) => s.replace('["index.html", "privacy.html"]', '["index.html", "privacy.html", "search.html"]')]]],
+  ["the tool also edits the search page", "flip", [["tests/apply-indexing.js", (s) => s.replace('["index.html"]', '["index.html", "search.html"]')]]],
 ];
 test("negative controls: each defect in the indexing setup makes a check fail", { timeout: 900000 }, async () => {
   const missed = [];

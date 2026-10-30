@@ -107,7 +107,7 @@ export function checkSite(root, opts = {}) {
     const csps = [...s.matchAll(/<meta http-equiv="Content-Security-Policy" content="([^"]*)">/g)].map((m) => m[1]);
     if (csps.length !== 1) add("S1", f, "expected exactly one Content-Security-Policy meta, found " + csps.length);
     else if (csps[0] !== (name === "404.html" ? EXPECTED_CSP_404 : EXPECTED_CSP)) add("S1", f, "the Content-Security-Policy is not the expected one");
-    if (!/<meta name="robots" content="noindex, nofollow">/.test(s) && !(idxOn && ["index.html", "privacy.html"].includes(name) && s.includes('<meta name="robots" content="index, follow">'))) add("S2", f, "missing noindex, nofollow");   // only a PUBLIC page may say index, follow, and only while ALLOW_INDEXING is true (S60 checks the rest)
+    if (!/<meta name="robots" content="noindex, nofollow">/.test(s) && !(idxOn && ["index.html"].includes(name) && s.includes('<meta name="robots" content="index, follow">'))) add("S2", f, "missing noindex, nofollow");   // only a PUBLIC page may say index, follow, and only while ALLOW_INDEXING is true (S60 checks the rest)
     const scripts = [...s.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
     for (const m of scripts) {
       const attrs = m[1];
@@ -283,8 +283,12 @@ export function checkSite(root, opts = {}) {
       const LINK_ONLY = '<main id="main">\n\n<div class="pg" style="max-width:760px;margin:0 auto;padding:56px 32px;display:flex;flex-direction:column;gap:22px;">\n  <h1 style="font-size:32px;font-weight:700;letter-spacing:-.01em;">Privacy Policy</h1>\n  <p class="privacy-p">Our <a href="https://www.fightghostjobs.com/privacy.html">Privacy Policy</a> is on the FightGhostJobs website.</p>\n</div>\n\n</main>';
       if (!t.includes(LINK_ONLY)) add("S22", ph, "privacy.html must be the link-only page: one heading (Privacy Policy) and one paragraph, Our Privacy Policy is on the FightGhostJobs website., with the link on the words Privacy Policy to https://www.fightghostjobs.com/privacy.html (same tab), and nothing else in the main region");
       if (/<h2\b|id="privacy(Emails|Comments|Contests)"|<code>|for as long as FightGhostJobs exists|We keep |We set no cookies/.test(t)) add("S22", ph, "privacy.html still holds older privacy text (a section heading, an id of the older paragraphs, or one of their sentences)");
+      // prompt FO: below the header the page holds exactly two links to the website's policy (the one in the sentence and the footer link) and the privacy contact, and no other link
+      const below = t.slice(t.indexOf("</header>")), hrefs = [...below.matchAll(/<a\b[^>]*\bhref="([^"]*)"/g)].map((x) => x[1]);
+      if (JSON.stringify(hrefs) !== JSON.stringify(["https://www.fightghostjobs.com/privacy.html", "https://www.fightghostjobs.com/privacy.html", "mailto:privacy@fightghostjobs.com"])) add("S22", ph, "below its header privacy.html must hold exactly two links to https://www.fightghostjobs.com/privacy.html (the sentence and the footer) and the privacy contact, nothing else, and none to the app's own privacy.html: " + hrefs.join(" | "));
     }
-    for (const f of html) { const t = read(f); const own = path.basename(f) === "privacy.html"; if (!(own ? /<a href="privacy\.html">Privacy<\/a>/ : /<a href="https:\/\/www\.fightghostjobs\.com\/privacy\.html">Privacy<\/a>/).test(t) || (!own && /<a href="privacy\.html"/.test(t))) add("S22", f, "every page must link to the marketing privacy page (https://www.fightghostjobs.com/privacy.html) from its footer, the app's own privacy.html only to itself (prompt FM)"); if (!t.includes('href="mailto:privacy@fightghostjobs.com"')) add("S22", f, "every page must carry the privacy contact"); }
+    // prompt FO (October 29, 2026): the footer Privacy link of EVERY page, the app's own link-only privacy.html included, goes to the website, and no page links to the app's own privacy.html (a link to itself does nothing)
+    for (const f of html) { const t = read(f); if (!/<a href="https:\/\/www\.fightghostjobs\.com\/privacy\.html">Privacy<\/a>/.test(t) || /<a href="privacy\.html"/.test(t)) add("S22", f, "every page must link to the marketing privacy page (https://www.fightghostjobs.com/privacy.html) from its footer, and no page may link to the app's own privacy.html (prompts FM and FO)"); if (!t.includes('href="mailto:privacy@fightghostjobs.com"')) add("S22", f, "every page must carry the privacy contact"); }
     if (fs.existsSync(sh) && !/never shown to anyone\. <a href="https:\/\/www\.fightghostjobs\.com\/privacy\.html">Privacy<\/a>\./.test(read(sh))) add("S22", sh, "the candidate email box must end with the privacy one-liner and link");
     const si = path.join(root, "employer-signin.html");
     if (fs.existsSync(si) && !/keep nothing else from this form\. <a href="https:\/\/www\.fightghostjobs\.com\/privacy\.html">Privacy<\/a>\./.test(read(si))) add("S22", si, "the employer email box must carry the privacy one-liner and link");
@@ -1251,12 +1255,13 @@ export function checkSite(root, opts = {}) {
     if (!fs.existsSync(tf)) add("S58", tf, "the test comments-switch.test.js must exist"); else if (fs.existsSync(raF) && !read(raF).includes("comments-switch.test.js")) add("S58", raF, "tests/run-all.js must run comments-switch.test.js");
   }
 
-  // S60 (2026-10-06, Phase 3): search engines. ALLOW_INDEXING in js/config.js is the one flag (false on stage). While false every page says noindex, nofollow and robots.txt disallows everything. While true only the PUBLIC pages (index.html,
-  // privacy.html) say index, follow and robots.txt allows crawling; every other page (anything that needs a sign-in or shows a person's own data) says noindex, nofollow in every environment. tests/apply-indexing.js makes the files agree with the flag;
+  // S60 (2026-10-06, Phase 3): search engines. ALLOW_INDEXING in js/config.js is the one flag (false on stage). While false every page says noindex, nofollow and robots.txt disallows everything. While true only the PUBLIC page (index.html;
+  // since prompt FO the app's own privacy.html is link-only and always noindex) says index, follow and robots.txt allows crawling; every other page (anything that needs a sign-in or shows a person's own data) says noindex, nofollow in every environment. tests/apply-indexing.js makes the files agree with the flag;
   // tests/indexing.test.js reads the pages and robots.txt over HTTP and tests the tool. This rule checks the files agree with the flag and that the tool, the test and the run-all step exist.
   {
     const cfF = path.join(root, "js", "config.js"), toolF = path.join(root, "tests", "apply-indexing.js"), rbF = path.join(root, "robots.txt"), raF = path.join(root, "tests", "run-all.js"), tf = path.join(root, "tests", "indexing.test.js");
-    const PUB = ["index.html", "privacy.html"], NO = '<meta name="robots" content="noindex, nofollow">', YES = '<meta name="robots" content="index, follow">';
+    const PUB = ["index.html"], NO = '<meta name="robots" content="noindex, nofollow">', YES = '<meta name="robots" content="index, follow">';   // prompt FO (October 29, 2026): privacy.html is no longer public in this sense: it says NO in every environment
+    if (fs.existsSync(toolF) && !/^export const PUBLIC_PAGES = \["index\.html"\];/m.test(read(toolF))) add("S60", toolF, "PUBLIC_PAGES of the indexing tool must be exactly [\"index.html\"]: the app's own privacy.html is link-only and always noindex, nofollow (prompt FO)");
     const m = fs.existsSync(cfF) ? stripJsComments(read(cfF)).match(/^export const ALLOW_INDEXING = (true|false);/m) : null;
     if (!m) add("S60", cfF, "js/config.js must export ALLOW_INDEXING = false; (or true)");
     else {

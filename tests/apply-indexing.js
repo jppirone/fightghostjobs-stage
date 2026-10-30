@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const PUBLIC_PAGES = ["index.html", "privacy.html"];
+export const PUBLIC_PAGES = ["index.html"];   // prompt FO (October 29, 2026): the app's own privacy.html is a link-only page that points to the website's policy; it says noindex, nofollow in every environment and this tool never rewrites it
 export const NOINDEX = '<meta name="robots" content="noindex, nofollow">';
 export const INDEXABLE = '<meta name="robots" content="index, follow">';
 export const ROBOTS_BLOCK_ALL = "User-agent: *\nDisallow: /\n";
