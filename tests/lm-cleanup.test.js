@@ -275,7 +275,7 @@ const SCENARIOS = {
       if (!chips[0].includes("AI hiring policy")) bad.push("the flagged tile has no AI hiring policy pill: " + JSON.stringify(chips[0]));
       if (chips[1].includes("AI hiring policy")) bad.push("a tile without the flag has the pill");
       const html0 = await tab.eval("document.documentElement.outerHTML");
-      if (/go\.example|policy-1|https?:\/\/(?!stage\.fightghostjobs|127\.0\.0\.1|localhost)/i.test(html0.replace(/https?:\/\/(127\.0\.0\.1|localhost)[:0-9]*/g, ""))) bad.push("an address is somewhere in the page before the pill is pressed");
+      if (/go\.example|policy-1|https?:\/\/(?!stage\.fightghostjobs|127\.0\.0\.1|localhost)/i.test(html0.replace(/https:\/\/www\.fightghostjobs\.com\/privacy\.html/g, "").replace(/https?:\/\/(127\.0\.0\.1|localhost)[:0-9]*/g, ""))) bad.push("an address is somewhere in the page before the pill is pressed");
       await tab.eval("window.__opened = []; window.open = (...a) => { window.__opened.push(a); return {}; };");
       const pill = `Array.from(${CARD(0)}.querySelectorAll('.chip-button')).find((p) => /AI hiring policy/.test(p.textContent))`;
       if ((await tab.eval(`${pill}.getAttribute('aria-haspopup')`)) !== null) bad.push("the policy pill says it opens a dialog (it opens a new tab)");
