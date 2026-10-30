@@ -301,7 +301,7 @@ const SCENARIOS = {
     if (!home.includes("Title, location, dates, and a KIO ID. Included on every tier.")) bad.push("the home page's first step does not say a KIO ID");
     if (!home.includes("or by company and KIO ID or title, before applying.")) bad.push("the home page's third step does not say KIO ID");
     await tab.goto(site.url + "/privacy.html"); await tab.waitFor("document.readyState === 'complete'", 10000); await sleep(300);
-    if (!((await text(tab, "#privacyEmails")) || "").includes("These emails carry the opening's title and KIO ID, never")) bad.push("the privacy page's email sentence does not say KIO ID");
+    // (prompt FN: the privacy page's email sentence, which said KIO ID, is on the FightGhostJobs website now; the app's own privacy.html is link-only and the sweep below still reads it)
     for (const p of ["index.html", "search.html", "privacy.html", "employer-signin.html", "404.html", "no-such-page"]) {
       await tab.goto(site.url + "/" + p); await sleep(500);
       const h = await tab.eval(SWEEP);
@@ -345,7 +345,7 @@ const DEFECTS = [
   ["the employer's comments line says Opening ID", ["commentsAndStaff"], [["js/pages/comments.js", (s) => s.replace('"KIO ID: " + groupCode(p.post_id)', '"Opening ID " + groupCode(p.post_id)')]]],
   ["the staff card line says Opening ID", ["staffView"], [["js/staff-scope.js", (s) => s.replace('" · KIO ID: " + row.opening_id', '" · Opening ID " + row.opening_id')]]],
   ["the home page sample says Opening ID", ["otherPages"], [["index.html", (s) => s.replace("Remote · KIO ID: <span", "Remote · Opening ID <span")]]],
-  ["the privacy page says Opening ID", ["otherPages"], [["privacy.html", (s) => s.replace("the opening's title and KIO ID, never", "the opening's title and Opening ID, never")]]],
+  ["the privacy page says Opening ID", ["otherPages"], [["privacy.html", (s) => s.replace("is on the FightGhostJobs website.", "is on the FightGhostJobs website. Your Opening ID is private.")]]],
   ["a draft whose window ended sorts with the open rows", ["deadDraft"], [["js/dashboard-model.js", (s) => s.replace("const ea = isEnded(a, nowMs), eb = isEnded(b, nowMs);", "const ea = isOver(a), eb = isOver(b);")]]],
   ["the ended rows go first in the descending order", ["deadDraft"], [["js/dashboard-model.js", (s) => s.replace("if (ea !== eb) return ea ? 1 : -1; const x", "if (ea !== eb) return ea ? (sign > 0 ? 1 : -1) : (sign > 0 ? -1 : 1); const x")]]],
   ["a dead draft is counted as time left in the Expiring pill", ["deadDraft"], [["js/dashboard-model.js", (s) => s.replace('export const isExpiring = (p, nowMs) => p.status === "draft" && leftWithinFlag(p, nowMs) !== null && !isClosingSoon(p, nowMs);', 'export const isExpiring = (p, nowMs) => p.status === "draft" && lapseAt(p) !== null && Date.parse(lapseAt(p)) - nowMs <= EXPIRY_FLAG_DAYS * DAY_MS && !isClosingSoon(p, nowMs);')]]],

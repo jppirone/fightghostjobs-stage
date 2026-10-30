@@ -7,7 +7,7 @@
 //   S5  no way to turn text into HTML or code (innerHTML, outerHTML, insertAdjacentHTML, document.write, eval, new Function, string timers)
 //   S6  every import resolves to a real file
 //   S7  every local href / src / stylesheet exists
-//   S8  no network address other than the project's API appears in code, markup or styles (no CDN, no analytics, no font host); the exceptions are the pricing card's link to https://www.fightghostjobs.com/plans.html, the one address https://www.fightghostjobs.com/privacy.html (the notice under the search results, prompt FK; the footer and email box Privacy links of every page except the app's own privacy.html, prompt FM) and the SVG namespace NAME in js/open-link.js (a name that is never requested)
+//   S8  no network address other than the project's API appears in code, markup or styles (no CDN, no analytics, no font host); the exceptions are the pricing card's link to https://www.fightghostjobs.com/plans.html, the one address https://www.fightghostjobs.com/privacy.html (the notice under the search results, prompt FK; the footer and email box Privacy links of every page except the app's own privacy.html, prompt FM; the one link of the app's own link-only privacy.html, prompt FN) and the SVG namespace NAME in js/open-link.js (a name that is never requested)
 //   S31 the brand and accessibility structure: skip link, header with the logo as the way home, main, footer, the darker palette, the shared accessibility rules
 //   S9  no secret: no secret key, no token, no database URL; the publishable key appears only in js/config.js
 //   S10 the vendored Auth client is byte-identical to the recorded hash
@@ -127,7 +127,7 @@ export function checkSite(root, opts = {}) {
     for (const m of s.matchAll(/\b(?:href|src)\s*=\s*"([^"]*)"/g)) {
       const u = m[1];
       if (u === "" || u.startsWith("#") || u.startsWith("mailto:")) continue;
-      if (/^https?:\/\//i.test(u)) { if (!u.startsWith(API_ORIGIN) && u !== "https://www.fightghostjobs.com/plans.html" && !(u === "https://www.fightghostjobs.com/privacy.html" && path.relative(root, f).replace(/\\/g, "/") !== "privacy.html")) add("S8", f, "external address in markup: " + u); continue; }   // the exceptions: the pricing card's navigation link to the marketing plans page (rule S33 pins where it may appear), and (prompts FK and FM, October 29, 2026) the one address https://www.fightghostjobs.com/privacy.html: the Privacy Policy link of the notice under the search results (tests/privacy-notice.test.js pins it) and the footer and email box Privacy links of every page except the app's own privacy.html (rule S22 pins the exact form)
+      if (/^https?:\/\//i.test(u)) { if (!u.startsWith(API_ORIGIN) && u !== "https://www.fightghostjobs.com/plans.html" && !(u === "https://www.fightghostjobs.com/privacy.html")) add("S8", f, "external address in markup: " + u); continue; }   // the exceptions: the pricing card's navigation link to the marketing plans page (rule S33 pins where it may appear), and (prompts FK and FM, October 29, 2026) the one address https://www.fightghostjobs.com/privacy.html: the Privacy Policy link of the notice under the search results (tests/privacy-notice.test.js pins it) the footer and email box Privacy links of every page except the app's own privacy.html, and (prompt FN) the one link of the app's own link-only privacy.html (rule S22 pins the exact form of all of them)
       const target = u.split("#")[0].split("?")[0];
       const p = target.startsWith("/") ? path.join(root, target) : path.join(path.dirname(f), target);
       if (!fs.existsSync(p)) add("S7", f, "broken local reference: " + u);
@@ -277,14 +277,13 @@ export function checkSite(root, opts = {}) {
     const ph = path.join(root, "privacy.html");
     if (!fs.existsSync(ph)) add("S22", ph, "privacy.html is missing");
     else {
+      // prompt FN (October 29, 2026): the app's own privacy.html is a LINK-ONLY page. The privacy text lives on the FightGhostJobs website (one page to keep right); this page keeps its address, its title, its indexing rule, the app's header and footer, and says one sentence with one link.
+      // Before prompt FN this rule pinned the whole older text (its sections, the cookie sentence, the emails paragraph, the contest sentences, the "said once" rule); those pins are gone with that text (listed in the FN report).
       const t = read(ph);
-      for (const need of ["If you look up openings", "If you add openings", "Cookies", "Who processes the data", "How long", "<code>__cf_bm</code>", "We set no cookies of our own", "privacy@fightghostjobs.com", "for as long as FightGhostJobs exists", "FightGhostJobs is a place to check job openings that employers disclose", "FightGhostJobs runs on Supabase", 'id="privacyEmails"', "five days and one day from closing", "at most one email in each six-hour period", "you confirm an email address", "the email-confirmed identity that asked", "until you sign out or your email confirmation expires", "Rate-limit counters are deleted within a day; the daily tally of refused requests is kept 30 days", "never its description, a comment's text or an apply link", "no unsubscribe for these operational messages yet"]) if (!t.includes(need)) add("S22", ph, "privacy.html must say: " + need);
-      // the contest email sentences (owner approved text) must sit INSIDE the emails paragraph, not elsewhere on the page
-      const em = /<p class="privacy-p" id="privacyEmails">([\s\S]*?)<\/p>/.exec(t);
-      for (const need of ["and when a comment you contested is decided (we email the outcome to the account that filed the contest).", "When a contest is filed, we may email our own staff the organization, opening and reason category.", "That email does not include the comment or your explanation."]) if (!em || !em[1].includes(need)) add("S22", ph, "the privacyEmails paragraph must say: " + need);
+      const LINK_ONLY = '<main id="main">\n\n<div class="pg" style="max-width:760px;margin:0 auto;padding:56px 32px;display:flex;flex-direction:column;gap:22px;">\n  <h1 style="font-size:32px;font-weight:700;letter-spacing:-.01em;">Privacy Policy</h1>\n  <p class="privacy-p">Our <a href="https://www.fightghostjobs.com/privacy.html">Privacy Policy</a> is on the FightGhostJobs website.</p>\n</div>\n\n</main>';
+      if (!t.includes(LINK_ONLY)) add("S22", ph, "privacy.html must be the link-only page: one heading (Privacy Policy) and one paragraph, Our Privacy Policy is on the FightGhostJobs website., with the link on the words Privacy Policy to https://www.fightghostjobs.com/privacy.html (same tab), and nothing else in the main region");
+      if (/<h2\b|id="privacy(Emails|Comments|Contests)"|<code>|for as long as FightGhostJobs exists|We keep |We set no cookies/.test(t)) add("S22", ph, "privacy.html still holds older privacy text (a section heading, an id of the older paragraphs, or one of their sentences)");
     }
-    // the contest-decided email is named ONCE on the page (October 9, 2026: it was said twice in the emails paragraph)
-    if (fs.existsSync(ph) && (read(ph).split("contested is decided").length - 1 !== 1 || read(ph).split("we email the outcome").length - 1 !== 1)) add("S22", ph, "the contest-decided email must be named exactly once on the privacy page");
     for (const f of html) { const t = read(f); const own = path.basename(f) === "privacy.html"; if (!(own ? /<a href="privacy\.html">Privacy<\/a>/ : /<a href="https:\/\/www\.fightghostjobs\.com\/privacy\.html">Privacy<\/a>/).test(t) || (!own && /<a href="privacy\.html"/.test(t))) add("S22", f, "every page must link to the marketing privacy page (https://www.fightghostjobs.com/privacy.html) from its footer, the app's own privacy.html only to itself (prompt FM)"); if (!t.includes('href="mailto:privacy@fightghostjobs.com"')) add("S22", f, "every page must carry the privacy contact"); }
     if (fs.existsSync(sh) && !/never shown to anyone\. <a href="https:\/\/www\.fightghostjobs\.com\/privacy\.html">Privacy<\/a>\./.test(read(sh))) add("S22", sh, "the candidate email box must end with the privacy one-liner and link");
     const si = path.join(root, "employer-signin.html");
@@ -376,7 +375,7 @@ export function checkSite(root, opts = {}) {
     }
     const sj2 = path.join(root, "js", "pages", "search.js"); if (fs.existsSync(sj2)) { const c = read(sj2); if (!c.includes('"comments.html?ref=" + encodeURIComponent(row.posting_ref)')) add("S29", sj2, "the details dialog must link to the opening's comments by its reference"); if (!c.includes("Report a wrong link")) add("S29", sj2, "the details dialog must offer Report a wrong link"); }
     const dj = path.join(root, "js", "pages", "dashboard.js"); if (fs.existsSync(dj) && !read(dj).includes('"comments.html?id=" + encodeURIComponent(p.id)')) add("S29", dj, "the dashboard must link each opening's comments");
-    const ph2 = path.join(root, "privacy.html"); if (fs.existsSync(ph2)) { const t = read(ph2); for (const need of ['id="privacyComments"', "never who wrote it", "read only by us"]) if (!t.includes(need)) add("S29", ph2, "privacy.html must say: " + need); }
+    // (prompt FN: the sentences about what a comment and a report keep are on the FightGhostJobs website now; the app's own privacy.html is link-only, rule S22 pins that)
   }
   // S30 (STAGE ONLY): while js/stage-gate.js exists, it is bound to the stage host by name, says so, and is loaded (once, in the head) by every app page so no page shows data without it.
   // When the site moves stage -> alpha the gate file and every script line go away together, and this rule then has nothing to check.
@@ -739,7 +738,8 @@ export function checkSite(root, opts = {}) {
     if (privSentence && TIME.test(privSentence)) add("S36", priv, "the privacy page must not promise a response time for a contest");
     if (fs.existsSync(chtml) && /<(button|a|input)\b[^>]*>[^<]*\b(hide|delete|remove|edit)\b/i.test(read(chtml))) add("S36", chtml, "comments.html offers a hide, delete, remove or edit control");
     // the privacy page says what a contest keeps, plainly
-    if (fs.existsSync(priv)) for (const need of ['id="privacyContests"', "contest a comment on it, once", "stays visible with a notice while it is under review", "FightGhostJobs.com decides", "kept in the review record", "not shown to candidates"]) if (!read(priv).includes(need)) add("S36", priv, "privacy.html must say: " + need);
+    // (prompt FN: the contest sentences of the privacy text are on the FightGhostJobs website now; the app's own privacy.html is link-only, rule S22 pins that. The page may still not promise a response time: the check above stays.)
+    if (fs.existsSync(priv) && /\bcontest/i.test(read(priv))) add("S36", priv, "privacy.html is link-only now and must not talk about contests");
     // the notice block is bordered (it must be unmissable, and still visible when colors are forced)
     const ac = P("app.css"); if (fs.existsSync(ac) && !read(ac).includes(".contest-notice{border:2px solid var(--ember-dark);")) add("S36", ac, "the contest notice must have a solid, visible border");
   }
@@ -2044,7 +2044,7 @@ export function checkSite(root, opts = {}) {
     for (const [rel, pin, why] of [
       [["dashboard.html"], 'aria-label="Filter by title, req number or KIO ID"', "the filter box's accessible name says KIO ID (the same word as its placeholder)"],
       [["register.html"], "<li>Title, location, dates, KIO ID</li>", "the free tier line says KIO ID"],
-      [["privacy.html"], "These emails carry the opening's title and KIO ID, never", "the emails sentence says KIO ID"],
+      // (prompt FN: the emails sentence of the privacy text, which said KIO ID, is on the FightGhostJobs website now; the app's own privacy.html is link-only)
     ]) { const f = P(...rel); if (fs.existsSync(f) && !read(f).includes(pin)) add("S85", f, "must keep: " + why); }
     const modF = P("js", "dashboard-model.js"), runF = P("tests", "run-all.js");
     if (fs.existsSync(modF)) {

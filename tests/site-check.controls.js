@@ -60,7 +60,7 @@ control("an analytics beacon", "S8", append("js/pages/index.js", "navigator.send
 control("a fetch outside api.js", "S8", append("js/pages/index.js", "fetch('/x');"));
 control("a hard-coded third-party address in code", "S8", append("js/format.js", "export const U = 'https://evil.example/collect';"));
 // prompts FK and FM (October 29, 2026): the one allowance for the privacy page address is narrow: that exact address, on every page except the app's own privacy.html
-control("the privacy page address in the app's own privacy.html", "S8", edit("privacy.html", (s) => s.replace("</main>", '<a href="https://www.fightghostjobs.com/privacy.html">Privacy Policy</a></main>')));
+control("a second link to the privacy page address added to the app's own privacy.html (prompt FN: the address is allowed there as its one link, so a second one is a failure of rule S22)", "S22", edit("privacy.html", (s) => s.replace("</main>", '<a href="https://www.fightghostjobs.com/privacy.html">Privacy Policy</a></main>')));
 control("another external address in search.html", "S8", edit("search.html", (s) => s.replace('href="https://www.fightghostjobs.com/privacy.html"', 'href="https://example.com/privacy.html"')));
 control("a look-alike of the privacy page address in search.html", "S8", edit("search.html", (s) => s.replace('href="https://www.fightghostjobs.com/privacy.html"', 'href="https://www.fightghostjobs.com/privacy.html?x=1"')));
 control("another external address in a footer", "S8", edit("comments.html", (s) => s.replace('<a href="https://www.fightghostjobs.com/privacy.html">Privacy</a><a href="mailto', '<a href="https://example.com/privacy.html">Privacy</a><a href="mailto')));
@@ -111,14 +111,22 @@ control("the go-live input is a plain text box", "S21", edit("register.html", (s
 control("the register form loses its 'on a date and time' choice", "S21", edit("register.html", (s) => s.replace('id="glLater"', 'id="glLaterX"')));
 control("the register page no longer schedules through the API", "S21", edit("js/pages/register.js", (s) => s.replace("api.schedulePosting(", "api.somethingElse(")));
 control("the edit page no longer schedules through the API", "S21", edit("js/pages/edit.js", (s) => s.replace("api.schedulePosting(", "api.somethingElse(")));
-control("privacy.html loses the cookie sentence", "S22", edit("privacy.html", (s) => s.replace("We set no cookies of our own", "We set cookies")));
-control("privacy.html loses the email paragraph", "S22", edit("privacy.html", (s) => s.replace('id="privacyEmails"', 'id="privacyEmailsX"')));
-control("privacy.html stops saying what an email never carries", "S22", edit("privacy.html", (s) => s.replace("never its description, a comment's text or an apply link", "never much")));
-control("privacy.html loses the sentence about the contest outcome email", "S22", edit("privacy.html", (s) => s.replace(" (we email the outcome to the account that filed the contest)", "")));
-control("privacy.html loses the sentence about the staff email when a contest is filed", "S22", edit("privacy.html", (s) => s.replace("When a contest is filed, we may email our own staff the organization, opening and reason category.", "")));
-control("privacy.html loses the sentence that the contest email carries no comment or explanation", "S22", edit("privacy.html", (s) => s.replace("That email does not include the comment or your explanation.", "")));
-control("the contest outcome sentence moves out of the emails paragraph", "S22", edit("privacy.html", (s) => s.replace(" (we email the outcome to the account that filed the contest)", "").replace('id="privacyContests">', 'id="privacyContests">When a comment you contested is decided, we email the outcome to the account that filed the contest. ')));
-control("the contest-decided email is said twice again", "S22", edit("privacy.html", (s) => s.replace("When a contest is filed, we may", "When a contest on a comment is decided, we email the outcome to the account that filed it. When a contest is filed, we may")));
+// prompt FN (October 29, 2026): the app's own privacy.html is a link-only page. The eight controls that planted mistakes in the older text (the cookie sentence, the emails paragraph, the contest sentences) are replaced by these, which plant mistakes in the link-only page
+control("the older cookie paragraph is back on the link-only privacy page", "S22", edit("privacy.html", (s) => s.replace("</div>\n\n</main>", '  <p class="privacy-p">We set no cookies of our own.</p>\n</div>\n\n</main>')));
+control("an older section heading is back on the link-only privacy page", "S22", edit("privacy.html", (s) => s.replace("</div>\n\n</main>", '  <h2 class="privacy-h">Cookies</h2>\n</div>\n\n</main>')));
+control("an id of the older emails paragraph is back", "S22", edit("privacy.html", (s) => s.replace('<p class="privacy-p">Our', '<p class="privacy-p" id="privacyEmails">Our')));
+control("the older retention sentence is back inside the paragraph", "S22", edit("privacy.html", (s) => s.replace("is on the FightGhostJobs website.", "is on the FightGhostJobs website. We keep these records for as long as FightGhostJobs exists.")));
+control("the link of the link-only privacy page goes to another address", "S22", edit("privacy.html", (s) => s.replace('href="https://www.fightghostjobs.com/privacy.html">Privacy Policy', 'href="https://www.fightghostjobs.com/privacy">Privacy Policy')));
+control("the link of the link-only privacy page opens a new tab", "S22", edit("privacy.html", (s) => s.replace('href="https://www.fightghostjobs.com/privacy.html">Privacy Policy', 'href="https://www.fightghostjobs.com/privacy.html" target="_blank">Privacy Policy')));
+control("the link of the link-only privacy page points back to the app's own privacy.html", "S22", edit("privacy.html", (s) => s.replace('href="https://www.fightghostjobs.com/privacy.html">Privacy Policy', 'href="privacy.html">Privacy Policy')));
+control("the link of the link-only privacy page is on other words", "S22", edit("privacy.html", (s) => s.replace(">Privacy Policy</a> is on", ">Privacy</a> is on")));
+control("the heading of the link-only privacy page is renamed", "S22", edit("privacy.html", (s) => s.replace(">Privacy Policy</h1>", ">Privacy</h1>")));
+control("the sentence of the link-only privacy page is reworded", "S22", edit("privacy.html", (s) => s.replace("is on the FightGhostJobs website.", "is on our website.")));
+control("a second paragraph is added to the link-only privacy page", "S22", edit("privacy.html", (s) => s.replace("</div>\n\n</main>", '  <p class="privacy-p">Questions? Write to us.</p>\n</div>\n\n</main>')));
+control("a second link to the same address is added to the link-only privacy page", "S22", edit("privacy.html", (s) => s.replace("</div>\n\n</main>", '  <p class="privacy-p"><a href="https://www.fightghostjobs.com/privacy.html">Privacy Policy</a></p>\n</div>\n\n</main>')));
+control("another external address in the link-only privacy page", "S8", edit("privacy.html", (s) => s.replace('href="https://www.fightghostjobs.com/privacy.html">Privacy Policy', 'href="https://example.com/privacy.html">Privacy Policy')));
+control("a look-alike of the privacy page address in the link-only privacy page", "S8", edit("privacy.html", (s) => s.replace('href="https://www.fightghostjobs.com/privacy.html">Privacy Policy', 'href="https://www.fightghostjobs.com/privacy.html?x=1">Privacy Policy')));
+control("the link-only privacy page talks about contests", "S36", edit("privacy.html", (s) => s.replace("is on the FightGhostJobs website.", "is on the FightGhostJobs website. A contest of a comment is decided by us.")));
 control("a page loses its privacy footer link", "S22", edit("dashboard.html", (s) => s.replace('<a href="https://www.fightghostjobs.com/privacy.html">Privacy</a>', '<a href="index.html">Privacy</a>')));
 control("the candidate email box loses the privacy one-liner", "S22", edit("search.html", (s) => s.replace('never shown to anyone. <a href="https://www.fightghostjobs.com/privacy.html">Privacy</a>.', "never shown to anyone.")));
 // prompt FM (October 29, 2026): the footer and the two email boxes link to the marketing privacy page; the app's own privacy.html is linked only from itself
@@ -217,7 +225,7 @@ control("the edit page stops mounting the panel", "S38", edit("js/pages/edit.js"
 control("the edit page draws the old stored sentence", "S38", append("js/pages/edit.js", '$("#linksStored");'));
 control("a row action stops using the stored position", "S38", edit(WRAP,(s) => s.replace("api.removeDestinationLink(ctx.getPostingId(), row.position)", "api.removeDestinationLink(ctx.getPostingId(), 1)")));
 control("the panel row style is dropped", "S38", edit("app.css", (s) => s.replace(".link-row{display:flex;", ".link-row{display:grid;")));
-control("the privacy page stops saying comments are anonymous", "S29", edit("privacy.html", (s) => s.replace("never who wrote it", "and who wrote it")));
+// (prompt FN: the S29 control "the privacy page stops saying comments are anonymous" is gone with the pin on the older privacy text; the sentences are on the FightGhostJobs website now)
 control("the stage gate stops checking the host (it would run on the real site)", "S30", edit("js/stage-gate.js", (s) => s.replace("if (location.hostname !== HOST) return;", "if (false) return;")));
 control("the stage gate is bound to the wrong host", "S30", edit("js/stage-gate.js", (s) => s.replace('HOST = "stage.fightghostjobs.com"', 'HOST = "fightghostjobs.com"')));
 control("the stage gate loses its MUST NOT SHIP flag", "S30", edit("js/stage-gate.js", (s) => s.replace("MUST NOT SHIP", "may ship")));
@@ -326,12 +334,7 @@ control("the owner is offered to remove a comment", "S36", append("js/pages/comm
 control("the owner is offered to disable a comment", "S36", append("js/pages/comments.js", 'const _s = "Disable this comment";'));
 control("the confirm step promises a response time", "S36", edit("js/comments-model.js", (s) => s.replace("while FightGhostJobs.com reviews it.", "while FightGhostJobs.com reviews it within two business days.")));
 control("a message promises a quick decision", "S36", append("js/contest-ui.js", 'const _q = "We will decide quickly";'));
-control("the privacy page promises a response time", "S36", edit("privacy.html", (s) => s.replace("FightGhostJobs.com decides whether it stays or is removed", "FightGhostJobs.com decides within 5 days whether it stays or is removed")));
-control("the privacy sentence is removed", "S36", edit("privacy.html", (s) => s.replace('id="privacyContests"', 'id="privacyContestsX"')));
-control("the privacy sentence stops saying the explanation is kept", "S36", edit("privacy.html", (s) => s.replace("kept in the review record", "discarded")));
-control("the privacy sentence stops saying who decides", "S36", edit("privacy.html", (s) => s.replace("FightGhostJobs.com decides whether it stays or is removed", "the comment may change")));
-control("the privacy sentence stops saying the comment stays visible", "S36", edit("privacy.html", (s) => s.replace("stays visible with a notice while it is under review", "is hidden while it is under review")));
-control("the privacy sentence says candidates see the explanation", "S36", edit("privacy.html", (s) => s.replace("not shown to candidates", "shown to candidates")));
+// (prompt FN: the six S36 controls on the contest sentence of the older privacy text are gone with that text; "the link-only privacy page talks about contests" (S22/S36 block above) replaces them)
 control("a script says employers can challenge a comment", "S36", append("js/pages/dashboard.js", 'const _ch = "Challenge a comment about your company";'));
 control("a script says an employer can reply to a comment", "S36", append("js/pages/dashboard.js", 'const _rp = "Reply to a comment from here";'));
 control("the dashboard offers to contest a comment", "S36", append("js/pages/dashboard.js", 'const _ct = "Contest a comment on this opening";'));
@@ -873,7 +876,7 @@ control("a third database function is called directly", "S65", edit("js/api.js",
 // S66 (2026-10-09): the opening vocabulary in anything a person reads
 control("the home page says listing again", "S66", edit("index.html", (s) => s.replace("Every opening here is disclosed by the employer:", "Every listing here is disclosed by the employer:")));
 control("the home page says registry again", "S66", edit("index.html", (s) => s.replace(">A place to check job openings that employers disclose</div>", ">A registry of job openings disclosed by employers</div>")));
-control("the privacy page says registry again", "S66", edit("privacy.html", (s) => s.replace("FightGhostJobs runs on Supabase", "The registry runs on Supabase")));
+control("the privacy page says registry again", "S66", edit("privacy.html", (s) => s.replace("is on the FightGhostJobs website.", "is on the registry website.")));
 control("the privacy page title has an em dash again", "S66", edit("privacy.html", (s) => s.replace("<title>FightGhostJobs | Privacy</title>", "<title>FightGhostJobs \u2014 Privacy</title>")));
 control("a button says Posting again", "S66", edit("js/pages/comments.js", (s) => s.replace('send.textContent = "Sending\u2026"', 'send.textContent = "Posting\u2026"')));
 control("the employer notice says posting comments again", "S66", edit("js/pages/comments.js", (s) => s.replace("Reading and leaving comments here", "Reading and posting comments here")));
@@ -903,7 +906,7 @@ control("the details window says registered through again", "S66", edit("js/abou
 control("the My openings column says Registered again", "S66", edit("js/pages/dashboard.js", (s) => s.replace('["Title", "Req #", "KIO ID", ...', '["Title", "Registered", "KIO ID", ...')));
 control("the team page says who can register openings", "S66", edit("team.html", (s) => s.replace("who can add openings for your organization.", "who can register openings for your organization.")));
 control("a search result chip says Registered with a date again", "S66", edit("js/chips.js", (s) => s.replace('text: "Added " + fmtDateTz(p.posted_at, tz)', 'text: "Registered " + fmtDateTz(p.posted_at, tz)')));
-control("the privacy heading says register openings again", "S66", edit("privacy.html", (s) => s.replace("If you add openings", "If you register openings")));
+// (prompt FN: the S66 control "the privacy heading says register openings again" is gone: the heading "If you add openings" is not on the link-only page)
 
 // S65 (2026-10-09, prompt AZ): the staff view says it keeps a private who-and-when record
 control("the staff note loses the private record sentence", "S65", edit("js/staff-scope.js", (s) => s.replace(" A private record is kept of who searched and when, never the words searched for.", "")));
