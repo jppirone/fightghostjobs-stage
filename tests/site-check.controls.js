@@ -59,10 +59,14 @@ control("an external stylesheet", "S8", edit("index.html", (s) => s.replace('<li
 control("an analytics beacon", "S8", append("js/pages/index.js", "navigator.sendBeacon('https://t.example.com/', 'x');"));
 control("a fetch outside api.js", "S8", append("js/pages/index.js", "fetch('/x');"));
 control("a hard-coded third-party address in code", "S8", append("js/format.js", "export const U = 'https://evil.example/collect';"));
-// prompt FK (October 29, 2026): the one allowance for the privacy page address is narrow: that address, in search.html only
-control("the privacy page address on another page", "S8", edit("comments.html", (s) => s.replace("</main>", '<a href="https://www.fightghostjobs.com/privacy.html">Privacy Policy</a></main>')));
+// prompts FK and FM (October 29, 2026): the one allowance for the privacy page address is narrow: that exact address, on every page except the app's own privacy.html
+control("the privacy page address in the app's own privacy.html", "S8", edit("privacy.html", (s) => s.replace("</main>", '<a href="https://www.fightghostjobs.com/privacy.html">Privacy Policy</a></main>')));
 control("another external address in search.html", "S8", edit("search.html", (s) => s.replace('href="https://www.fightghostjobs.com/privacy.html"', 'href="https://example.com/privacy.html"')));
 control("a look-alike of the privacy page address in search.html", "S8", edit("search.html", (s) => s.replace('href="https://www.fightghostjobs.com/privacy.html"', 'href="https://www.fightghostjobs.com/privacy.html?x=1"')));
+control("another external address in a footer", "S8", edit("comments.html", (s) => s.replace('<a href="https://www.fightghostjobs.com/privacy.html">Privacy</a><a href="mailto', '<a href="https://example.com/privacy.html">Privacy</a><a href="mailto')));
+control("a look-alike of the privacy page address in a footer", "S8", edit("dashboard.html", (s) => s.replace('href="https://www.fightghostjobs.com/privacy.html">Privacy</a><a href="mailto', 'href="https://www.fightghostjobs.com/privacy.html#top">Privacy</a><a href="mailto')));
+control("the http form of the privacy page address in a footer", "S8", edit("team.html", (s) => s.replace('href="https://www.fightghostjobs.com/privacy.html">Privacy</a><a href="mailto', 'href="http://www.fightghostjobs.com/privacy.html">Privacy</a><a href="mailto')));
+control("the privacy page address without www in an email box", "S8", edit("employer-signin.html", (s) => s.replace('form. <a href="https://www.fightghostjobs.com/privacy.html">', 'form. <a href="https://fightghostjobs.com/privacy.html">')));
 control("a secret key in config.js", "S9", append("js/config.js", "export const K = 'sb_secret_ABCDEFGHIJKLMNOP';"));
 control("a JWT-looking token", "S9", append("js/format.js", "export const T = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijklmnop';"));
 control("a database URL", "S9", append("js/format.js", "export const D = 'postgresql://postgres:pw@db.example.com:5432/postgres';"));
@@ -115,8 +119,15 @@ control("privacy.html loses the sentence about the staff email when a contest is
 control("privacy.html loses the sentence that the contest email carries no comment or explanation", "S22", edit("privacy.html", (s) => s.replace("That email does not include the comment or your explanation.", "")));
 control("the contest outcome sentence moves out of the emails paragraph", "S22", edit("privacy.html", (s) => s.replace(" (we email the outcome to the account that filed the contest)", "").replace('id="privacyContests">', 'id="privacyContests">When a comment you contested is decided, we email the outcome to the account that filed the contest. ')));
 control("the contest-decided email is said twice again", "S22", edit("privacy.html", (s) => s.replace("When a contest is filed, we may", "When a contest on a comment is decided, we email the outcome to the account that filed it. When a contest is filed, we may")));
-control("a page loses its privacy footer link", "S22", edit("dashboard.html", (s) => s.replace('<a href="privacy.html">Privacy</a>', '<a href="index.html">Privacy</a>')));
-control("the candidate email box loses the privacy one-liner", "S22", edit("search.html", (s) => s.replace('never shown to anyone. <a href="privacy.html">Privacy</a>.', "never shown to anyone.")));
+control("a page loses its privacy footer link", "S22", edit("dashboard.html", (s) => s.replace('<a href="https://www.fightghostjobs.com/privacy.html">Privacy</a>', '<a href="index.html">Privacy</a>')));
+control("the candidate email box loses the privacy one-liner", "S22", edit("search.html", (s) => s.replace('never shown to anyone. <a href="https://www.fightghostjobs.com/privacy.html">Privacy</a>.', "never shown to anyone.")));
+// prompt FM (October 29, 2026): the footer and the two email boxes link to the marketing privacy page; the app's own privacy.html is linked only from itself
+control("a page footer goes back to the app's own privacy.html", "S22", edit("comments.html", (s) => s.replace('<footer class="site-footer"><span>FightGhostJobs</span><a href="https://www.fightghostjobs.com/privacy.html">', '<footer class="site-footer"><span>FightGhostJobs</span><a href="privacy.html">')));
+control("the candidate email box goes back to the app's own privacy.html", "S22", edit("search.html", (s) => s.replace('never shown to anyone. <a href="https://www.fightghostjobs.com/privacy.html">', 'never shown to anyone. <a href="privacy.html">')));
+control("the employer email box goes back to the app's own privacy.html", "S22", edit("employer-signin.html", (s) => s.replace('keep nothing else from this form. <a href="https://www.fightghostjobs.com/privacy.html">', 'keep nothing else from this form. <a href="privacy.html">')));
+control("the employer email box loses the privacy one-liner", "S22", edit("employer-signin.html", (s) => s.replace('keep nothing else from this form. <a href="https://www.fightghostjobs.com/privacy.html">Privacy</a>.', "keep nothing else from this form.")));
+control("the app's own privacy.html footer points away from itself", "S22", edit("privacy.html", (s) => s.replace('<a href="privacy.html">Privacy</a>', '<a href="https://www.fightghostjobs.com/privacy.html">Privacy</a>')));
+control("a page carries the old relative link as well as the new one", "S22", edit("team.html", (s) => s.replace("</main>", '<a href="privacy.html">Privacy</a></main>')));
 control("the landing page promises a cross-posting count again", "S23", append("index.html", "<div>Posted in 2 places</div>"));
 control("the register page promises ATS import again", "S23", append("register.html", "<li>Bulk import from your ATS</li>"));
 control("the sample card stops saying it is fictional", "S23", edit("index.html", (s) => s.replace("(a fictional employer)", "")));

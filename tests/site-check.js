@@ -7,7 +7,7 @@
 //   S5  no way to turn text into HTML or code (innerHTML, outerHTML, insertAdjacentHTML, document.write, eval, new Function, string timers)
 //   S6  every import resolves to a real file
 //   S7  every local href / src / stylesheet exists
-//   S8  no network address other than the project's API appears in code, markup or styles (no CDN, no analytics, no font host); the exceptions are the pricing card's link to https://www.fightghostjobs.com/plans.html, the Privacy Policy link of the notice under the search results (search.html only, https://www.fightghostjobs.com/privacy.html; prompt FK) and the SVG namespace NAME in js/open-link.js (a name that is never requested)
+//   S8  no network address other than the project's API appears in code, markup or styles (no CDN, no analytics, no font host); the exceptions are the pricing card's link to https://www.fightghostjobs.com/plans.html, the one address https://www.fightghostjobs.com/privacy.html (the notice under the search results, prompt FK; the footer and email box Privacy links of every page except the app's own privacy.html, prompt FM) and the SVG namespace NAME in js/open-link.js (a name that is never requested)
 //   S31 the brand and accessibility structure: skip link, header with the logo as the way home, main, footer, the darker palette, the shared accessibility rules
 //   S9  no secret: no secret key, no token, no database URL; the publishable key appears only in js/config.js
 //   S10 the vendored Auth client is byte-identical to the recorded hash
@@ -127,7 +127,7 @@ export function checkSite(root, opts = {}) {
     for (const m of s.matchAll(/\b(?:href|src)\s*=\s*"([^"]*)"/g)) {
       const u = m[1];
       if (u === "" || u.startsWith("#") || u.startsWith("mailto:")) continue;
-      if (/^https?:\/\//i.test(u)) { if (!u.startsWith(API_ORIGIN) && u !== "https://www.fightghostjobs.com/plans.html" && !(u === "https://www.fightghostjobs.com/privacy.html" && path.relative(root, f).replace(/\\/g, "/") === "search.html")) add("S8", f, "external address in markup: " + u); continue; }   // the exceptions: the pricing card's navigation link to the marketing plans page (rule S33 pins where it may appear), and (prompt FK, October 29, 2026) the Privacy Policy link of the one-sentence notice under the search results, in search.html only (tests/privacy-notice.test.js pins it)
+      if (/^https?:\/\//i.test(u)) { if (!u.startsWith(API_ORIGIN) && u !== "https://www.fightghostjobs.com/plans.html" && !(u === "https://www.fightghostjobs.com/privacy.html" && path.relative(root, f).replace(/\\/g, "/") !== "privacy.html")) add("S8", f, "external address in markup: " + u); continue; }   // the exceptions: the pricing card's navigation link to the marketing plans page (rule S33 pins where it may appear), and (prompts FK and FM, October 29, 2026) the one address https://www.fightghostjobs.com/privacy.html: the Privacy Policy link of the notice under the search results (tests/privacy-notice.test.js pins it) and the footer and email box Privacy links of every page except the app's own privacy.html (rule S22 pins the exact form)
       const target = u.split("#")[0].split("?")[0];
       const p = target.startsWith("/") ? path.join(root, target) : path.join(path.dirname(f), target);
       if (!fs.existsSync(p)) add("S7", f, "broken local reference: " + u);
@@ -285,10 +285,10 @@ export function checkSite(root, opts = {}) {
     }
     // the contest-decided email is named ONCE on the page (October 9, 2026: it was said twice in the emails paragraph)
     if (fs.existsSync(ph) && (read(ph).split("contested is decided").length - 1 !== 1 || read(ph).split("we email the outcome").length - 1 !== 1)) add("S22", ph, "the contest-decided email must be named exactly once on the privacy page");
-    for (const f of html) { const t = read(f); if (!/<a href="privacy\.html">Privacy<\/a>/.test(t)) add("S22", f, "every page must link to privacy.html from its footer"); if (!t.includes('href="mailto:privacy@fightghostjobs.com"')) add("S22", f, "every page must carry the privacy contact"); }
-    if (fs.existsSync(sh) && !/never shown to anyone\. <a href="privacy\.html">Privacy<\/a>\./.test(read(sh))) add("S22", sh, "the candidate email box must end with the privacy one-liner and link");
+    for (const f of html) { const t = read(f); const own = path.basename(f) === "privacy.html"; if (!(own ? /<a href="privacy\.html">Privacy<\/a>/ : /<a href="https:\/\/www\.fightghostjobs\.com\/privacy\.html">Privacy<\/a>/).test(t) || (!own && /<a href="privacy\.html"/.test(t))) add("S22", f, "every page must link to the marketing privacy page (https://www.fightghostjobs.com/privacy.html) from its footer, the app's own privacy.html only to itself (prompt FM)"); if (!t.includes('href="mailto:privacy@fightghostjobs.com"')) add("S22", f, "every page must carry the privacy contact"); }
+    if (fs.existsSync(sh) && !/never shown to anyone\. <a href="https:\/\/www\.fightghostjobs\.com\/privacy\.html">Privacy<\/a>\./.test(read(sh))) add("S22", sh, "the candidate email box must end with the privacy one-liner and link");
     const si = path.join(root, "employer-signin.html");
-    if (fs.existsSync(si) && !/keep nothing else from this form\. <a href="privacy\.html">Privacy<\/a>\./.test(read(si))) add("S22", si, "the employer email box must carry the privacy one-liner and link");
+    if (fs.existsSync(si) && !/keep nothing else from this form\. <a href="https:\/\/www\.fightghostjobs\.com\/privacy\.html">Privacy<\/a>\./.test(read(si))) add("S22", si, "the employer email box must carry the privacy one-liner and link");
   }
   // S23: no page promises what is not built (launch readiness): no cross-posting count, no ATS import claim, no company-wide view, no unsourced statistic, no "upgrade to add" for the recruiter name.
   // The ONE place "Upgrade to add" is allowed: the locked destination-links panel on register.html (that editor genuinely exists for the destination links tier), between id="linksLocked" and <!-- /linksLocked -->.

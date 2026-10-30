@@ -50,9 +50,9 @@ function staticFindings(html, js, otherPages) {
   const nn = (js.match(/const noticeEl = \$\("#searchNotice"\);/g) || []).length;
   if (nn !== 1) bad.push("search.js does not look up the notice exactly once");
   if (!/function hideRecap\(\) \{[^}]*noticeEl\.hidden = true;[^}]*\}/.test(js)) bad.push("hideRecap does not hide the notice");
-  if (!/recapEl\.hidden = false; noticeEl\.hidden = false;/.test(js)) bad.push("showRecap does not show the notice together with the recap");
+  if (!/recapEl\.hidden = false; noticeEl\.hidden = staffMode;/.test(js)) bad.push("showRecap does not show the notice together with the recap for a candidate and keep it hidden in the staff view (it must read staffMode, the page's own flag)");
   if ((js.match(/noticeEl\./g) || []).length !== 2) bad.push("the notice is touched in more than the two places (show with the recap, hide with the recap)");
-  for (const line of js.split("\n").filter((l) => /noticeEl|searchNotice/.test(l))) if (/fetch|localStorage|sessionStorage|document\.cookie|XMLHttp|sendBeacon|window\.open|\.href\s*=/.test(line)) bad.push("a notice line stores, sends or opens something: " + line.trim().slice(0, 60));
+  if ((js.match(/searchNotice/g) || []).length !== 1) bad.push("search.js reaches the notice in more than the one lookup (a second route to the element)");  for (const line of js.split("\n").filter((l) => /noticeEl|searchNotice/.test(l))) if (/fetch|localStorage|sessionStorage|document\.cookie|XMLHttp|sendBeacon|window\.open|\.href\s*=/.test(line)) bad.push("a notice line stores, sends or opens something: " + line.trim().slice(0, 60));
   // no other page carries it
   for (const [name, text] of Object.entries(otherPages)) if (/searchNotice|We keep a record of your search/.test(text)) bad.push(name + " carries the notice, but shows no search");
   return bad;
@@ -68,26 +68,36 @@ test("PART 1: breakages are caught, a plant at nothing is not", () => {
   const html = rd("search.html"), js = rd("js/pages/search.js"), oth = others();
   const sw = (t, a, b) => { if (t.split(a).length !== 2) throw new Error("anchor not found once: " + a.slice(0, 50)); return t.replace(a, () => b); };
   const BREAK = [
-    ["the link is broken (another address)", () => [sw(html, LINK, "https://www.fightghostjobs.com/privacy"), js, oth]],
+    ["the link is broken (another address)", () => [sw(html, 'href="' + LINK + '">Privacy Policy', 'href="https://www.fightghostjobs.com/privacy">Privacy Policy'), js, oth]],
     ["the link is on other words", () => [sw(html, ">Privacy Policy</a>", ">Privacy</a>"), js, oth]],
-    ["the link opens a new tab", () => [sw(html, 'href="' + LINK + '"', 'href="' + LINK + '" target="_blank"'), js, oth]],
+    ["the link opens a new tab", () => [sw(html, 'href="' + LINK + '">Privacy Policy', 'href="' + LINK + '" target="_blank">Privacy Policy'), js, oth]],
     ["the notice text is changed", () => [sw(html, "Employers never see who searched.", "Employers see who searched."), js, oth]],
     ["the notice text loses a sentence", () => [sw(html, " Employers never see who searched.", ""), js, oth]],
     ["an em dash is added", () => [sw(html, "so we can count", "so we can count " + String.fromCharCode(8212)), js, oth]],
     ["the notice is shown before any search (hidden is gone)", () => [sw(html, '<p id="searchNotice" class="field-hint" hidden>', '<p id="searchNotice" class="field-hint">'), js, oth]],
     ["the notice gets its own colour", () => [sw(html, '<p id="searchNotice" class="field-hint" hidden>', '<p id="searchNotice" class="field-hint" style="color:#123456" hidden>'), js, oth]],
     ["the notice is moved above the results", () => { const n = html.match(/    <p id="searchNotice"[\s\S]*?<\/p>\n/)[0]; return [sw(html.replace(n, ""), '    <div id="results"', n + '    <div id="results"'), js, oth]; }],
-    ["the recap no longer shows it (script)", () => [html, sw(js, "recapEl.hidden = false; noticeEl.hidden = false;", "recapEl.hidden = false;"), oth]],
+    ["the recap no longer shows it (script)", () => [html, sw(js, "recapEl.hidden = false; noticeEl.hidden = staffMode;", "recapEl.hidden = false;"), oth]],
+    // prompt FM (October 29, 2026): hidden in the staff view, unchanged for a candidate
+    ["the notice is shown to staff again (the staff test is gone)", () => [html, sw(js, "recapEl.hidden = false; noticeEl.hidden = staffMode;", "recapEl.hidden = false; noticeEl.hidden = false;"), oth]],
+    ["the notice is hidden from candidates too (always hidden)", () => [html, sw(js, "recapEl.hidden = false; noticeEl.hidden = staffMode;", "recapEl.hidden = false; noticeEl.hidden = true;"), oth]],
+    ["the check reads the wrong state (the request flag, not the staff answer)", () => [html, sw(js, "recapEl.hidden = false; noticeEl.hidden = staffMode;", "recapEl.hidden = false; noticeEl.hidden = STAFF_REQUESTED;"), oth]],
+    ["the check is turned round (shown to staff, hidden from candidates)", () => [html, sw(js, "recapEl.hidden = false; noticeEl.hidden = staffMode;", "recapEl.hidden = false; noticeEl.hidden = !staffMode;"), oth]],
+    ["a second route shows the notice (a duplicate lookup)", () => [html, sw(js, "recapEl.hidden = false; noticeEl.hidden = staffMode;", "recapEl.hidden = false; noticeEl.hidden = staffMode; document.getElementById(\"searchNotice\").hidden = false;"), oth]],
+    ["the staff flag is kept in storage for the notice", () => [html, sw(js, "recapEl.hidden = false; noticeEl.hidden = staffMode;", "recapEl.hidden = false; noticeEl.hidden = localStorage.getItem('staff') === '1';"), oth]],
+    ["the notice is shown a second time in the page (a duplicate paragraph)", () => [sw(html, '    <p id="searchNotice" class="field-hint" hidden>', '    <p id="searchNotice2" class="field-hint">x</p>\n    <p id="searchNotice" class="field-hint" hidden>').replace('id="searchNotice2"', 'id="searchNotice"'), js, oth]],
     ["the recap no longer hides it (script)", () => [html, sw(js, "recapTextEl.textContent = \"\"; noticeEl.hidden = true;", "recapTextEl.textContent = \"\";"), oth]],
     ["a script is added to the page", () => [sw(html, "</body>", '<script type="module" src="js/x.js"></script></body>'), js, oth]],
-    ["the script stores something when the notice shows", () => [html, sw(js, "recapEl.hidden = false; noticeEl.hidden = false;", "recapEl.hidden = false; noticeEl.hidden = false; localStorage.setItem('n', '1');"), oth]],
+    ["the script stores something when the notice shows", () => [html, sw(js, "recapEl.hidden = false; noticeEl.hidden = staffMode;", "recapEl.hidden = false; noticeEl.hidden = staffMode; localStorage.setItem('n', '1');"), oth]],
     ["the notice is copied onto another page", () => [html, js, { ...oth, "index.html": oth["index.html"] + '<p id="searchNotice">x</p>' }]],
   ];
   const missed = [];
   for (const [what, f] of BREAK) { const [h, j, o] = f(); const bad = staticFindings(h, j, o); if (!bad.length) missed.push(what); }
   assert.deepEqual(missed, [], "breakages the findings missed");
   assert.ok(BREAK.length >= 5);
-  const PLANT = [() => [sw(html, "</head>", "<!-- nothing -->\n</head>"), js, oth], () => [html, js + "\n// a comment about nothing\n", oth], () => [sw(html, "<footer", "\n\n<footer"), js, oth]];
+  const PLANT = [() => [sw(html, "</head>", "<!-- nothing -->\n</head>"), js, oth], () => [html, js + "\n// a comment about nothing\n", oth], () => [sw(html, "<footer", "\n\n<footer"), js, oth],
+    () => [html, sw(js, "recapEl.hidden = false; noticeEl.hidden = staffMode;", "recapEl.hidden = false; noticeEl.hidden = staffMode;   // a comment that mentions the staff view and nothing else"), oth],
+    () => [html, js + "\n// staffMode is a plain word in a comment, nothing more\n", oth]];
   for (const f of PLANT) { const [h, j, o] = f(); assert.deepEqual(staticFindings(h, j, o), [], "a plant at nothing was flagged"); }
 });
 
@@ -165,6 +175,62 @@ for (const width of [360, 768, 1093, 1440]) {
     if (r.found.keys !== r.start.keys && r.found.keys.replace(/fgj-[a-z-]*/g, "") !== r.start.keys.replace(/fgj-[a-z-]*/g, "")) bad.push("storage keys changed during the search: " + r.start.keys + " -> " + r.found.keys);
     if (r.clickedTo !== LINK) bad.push("a click goes to " + r.clickedTo);
     if (r.index.has || r.comments.has) bad.push("the notice is on a page that shows no search");
+    assert.deepEqual(bad, []);
+  });
+}
+
+// ---- prompt FM (October 29, 2026): the staff view. A staff search is not recorded as a candidate search, so the notice about the record stays out of it. A person who is signed in but is NOT staff, with the same ?scope=all, gets the candidate page and the notice.
+async function walkScope(root, width, email, title) {
+  const site = await startFakeSite(root), tab = await browser.newTab(), out = {};
+  try {
+    await tab.focusEmulation(true);
+    const phone = width < 700;
+    await tab.viewport(width, phone, phone ? 700 : 900);
+    await tab.goto(site.url + "/404.html"); await tab.eval("try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}");
+    await tab.goto(site.url + "/_dev/link?kind=candidate&email=" + encodeURIComponent(email)); await tab.waitFor("location.pathname.indexOf('auth-callback') < 0 && !!localStorage.getItem('fgj-auth')", 10000); await sleep(500);
+    await tab.goto(site.url + "/search.html?scope=all");
+    await tab.waitFor("!!document.querySelector('#company') && document.readyState === 'complete'"); await tab.viewport(width, phone, phone ? 700 : 900); await sleep(900);
+    out.banner = await tab.eval(`!!document.getElementById("staffBanner")`);
+    out.start = await tab.eval(STATE);
+    out.calls0 = site.calls.length;
+    await fill(tab, "Meridian", title); await press(tab);
+    out.foundOk = !!(await tab.waitFor(`!document.getElementById("recap").hidden`, 8000)); await sleep(600);
+    out.found = await tab.eval(STATE);
+    out.foundCalls = site.calls.slice(out.calls0).map((c) => c.name);
+    out.foundCards = await tab.eval(`document.querySelectorAll("#results .card").length`);
+    await tab.eval(`document.getElementById("recapEdit").focus()`); await tab.key("Enter"); await sleep(400);
+    out.edited = await tab.eval(STATE);
+    await fill(tab, "Zzyzx Unknown", title); await press(tab);
+    out.noneOk = !!(await tab.waitFor(`!document.getElementById("recap").hidden`, 8000)); await sleep(600);
+    out.none = await tab.eval(STATE);
+    out.noneText = await tab.eval(`document.getElementById("results").innerText`);
+  } finally { await tab.close(); await site.close(); }
+  return out;
+}
+for (const width of [360, 1440]) {
+  test("PART 2 at " + width + " px, staff view: the recap shows, the notice does not (after a search that found openings, after one that found nothing, and while the recap stays)", async () => {
+    const r = await walkScope(ROOT, width, "staff@example.test", "Analyst"), bad = [];
+    if (!r.banner) bad.push("the staff banner is not there (the page is not in the staff view)");
+    if (r.start.shown) bad.push("the notice shows in the staff view before any search");
+    if (!r.foundOk) bad.push("no recap after the staff search that should find openings");
+    if (r.found.shown) bad.push("the notice shows in the staff view after a search that found openings");
+    if (r.foundCards < 1) bad.push("the staff search found no openings, so this run does not prove the found case");
+    if (!r.foundCalls.includes("rpc:staff_search_openings")) bad.push("the staff search did not go through the staff function: " + r.foundCalls.join(","));
+    if (r.edited.shown) bad.push("the notice shows after Edit this search");
+    if (!r.noneOk) bad.push("no recap after the staff search that should find nothing");
+    if (r.none.shown) bad.push("the notice shows in the staff view after a search that found nothing");
+    if (!/Nothing matches/.test(r.noneText)) bad.push("the staff search that should find nothing did not say so: " + r.noneText.slice(0, 60));
+    if (r.found.cookie !== "" || r.found.keys !== r.start.keys && r.found.keys.replace(/fgj-[a-z-]*/g, "") !== r.start.keys.replace(/fgj-[a-z-]*/g, "")) bad.push("a cookie or a storage key appeared in the staff view");
+    assert.deepEqual(bad, []);
+  });
+  test("PART 2 at " + width + " px, a signed-in person who is not staff with scope=all: the candidate page, the notice shows after a search as before", async () => {
+    const r = await walkScope(ROOT, width, "cand@example.test", "Nurse"), bad = [];
+    if (r.banner) bad.push("the staff banner shows for a person who is not staff");
+    if (r.start.shown) bad.push("the notice shows before any search");
+    if (!r.foundOk || !r.found.shown) bad.push("the notice is not shown after a search that found openings");
+    if (!r.noneOk || !r.none.shown) bad.push("the notice is not shown after a search that found nothing");
+    if (r.found.href !== LINK || r.found.text !== NOTICE_TEXT) bad.push("the notice text or link differs: " + r.found.text);
+    if (r.foundCalls.includes("rpc:staff_search_openings")) bad.push("a person who is not staff called the staff search");
     assert.deepEqual(bad, []);
   });
 }

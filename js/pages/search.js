@@ -186,7 +186,7 @@ function showRecap(typed, company, search, auto, extra) {
   lastSearch = typed;
   companyIn.value = ""; queryIn.value = ""; reqIn.value = "";
   const text = recapSentence(company, search);
-  recapTextEl.textContent = text; recapEl.hidden = false; noticeEl.hidden = false;
+  recapTextEl.textContent = text; recapEl.hidden = false; noticeEl.hidden = staffMode;   // prompt FM: a staff search is not recorded as a candidate search, so the notice about the record stays out of the staff view (staffMode is the page's own staff flag)
   // the one spoken message of the search: the recap sentence AND the count, in the visible count line's own words (so a search that found nothing says "No matching postings" too); prompt BQ: and the mismatch notice, when there is one
   const spoken = text + " " + countEl.textContent + "." + (extra ? " " + extra : "");
   status.announce(spoken);
