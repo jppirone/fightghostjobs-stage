@@ -33,12 +33,36 @@ export const NO_MATCH_NOTE = "An opening appears here only if an employer has ad
 
 const clip = (s, n) => { const t = String(s == null ? "" : s).replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1) + "…" : t; };
 
+// prompt HD (October 31, 2026): the three kinds of "nothing found" for a search that gave a company. The edge function (candidate-search, prompt HC) sends the kind in the field miss_kind; these are the ONLY words the page has for them,
+// in ONE place, so a word can be changed here. No button (the ask button is a later prompt). The word is "opening"; nothing here judges the employer or the person, lists an opening, or promises anything FightGhostJobs will do.
+export const MISS_MESSAGES = Object.freeze({
+  not_registered: Object.freeze(["This employer is not registered with FightGhostJobs yet. That says nothing about the employer or its openings."]),
+  registered_no_match: Object.freeze([
+    "This employer is registered with FightGhostJobs and has openings in our system, but none match the details you gave.",
+    "Check the KIO ID, title or req number against the opening you are looking at. If the employer is advertising it but it is not here, the employer has not registered it with us.",
+  ]),
+  registered_none_live: Object.freeze(["This employer is registered with FightGhostJobs. It has no live openings in our system right now."]),
+});
+// the lines of a miss kind, or null for anything that is not exactly one of the three names (no value, another word, a number, a name like "constructor")
+export function missMessage(kind) {
+  return typeof kind === "string" && Object.prototype.hasOwnProperty.call(MISS_MESSAGES, kind) ? MISS_MESSAGES[kind] : null;
+}
+
 // kind: "phrase" | "code"  ->  No postings found for "Acme Inc" + "Senior Analyst". <note>
 export function noMatchMessage(company, query, kind) {
   if (kind === "kio") return KIO_NOT_REGISTERED_MESSAGE;
   if (kind === "req") return "No openings found for \"" + clip(company, 80) + "\" with that req number. " + NO_MATCH_NOTE_REQ;
   const what = kind === "code" ? "code \"" + clip(query, 40) + "\"" : "\"" + clip(query, 80) + "\"";
   return "No openings found for \"" + clip(company, 80) + "\" + " + what + ". " + NO_MATCH_NOTE;
+}
+// prompt HD: when the answer carries one of the three miss kinds, the same echo ("No openings found for ...") is followed by that kind's lines INSTEAD of the note. Returns the lines (the page shows each on its own line), or null
+// when the kind is not exactly one of the three names or the search was a KIO ID (the old words then stay as they are).
+export function missEmptyLines(company, query, kind, missKind) {
+  const miss = missMessage(missKind);
+  if (!miss || kind === "kio") return null;
+  if (kind === "req") return ["No openings found for \"" + clip(company, 80) + "\" with that req number. " + miss[0], ...miss.slice(1)];
+  const what = kind === "code" ? "code \"" + clip(query, 40) + "\"" : "\"" + clip(query, 80) + "\"";
+  return ["No openings found for \"" + clip(company, 80) + "\" + " + what + ". " + miss[0], ...miss.slice(1)];
 }
 
 // The wording when a req-number lookup finds nothing: the req is never echoed (it was typed into a masked box).

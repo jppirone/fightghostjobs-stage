@@ -289,7 +289,10 @@ export function startFakeSite(root, opts = {}) {
         const placed = opts.linkCounts ? placed0.map((r, i) => { const c = opts.linkCounts[i]; return c ? Object.assign({}, r, { apply_link_count: c.apply, recruiter_firm_count: c.firms, destination_links_exclusive: c.exclusive === true }, c.recruiter === undefined ? {} : { third_party_recruiter: c.recruiter }, c.extra || {}) : r; }) : placed0;
         // opts.resultCount (October 20, 2026): the title search answers exactly this many openings (copies of the first row with their own reference and title), and opts.truncated says the database stopped at its limit; for the refine hints
         const sized = opts.resultCount && rows.length ? Array.from({ length: opts.resultCount }, (_, i) => ({ ...(placed[0] || withKio(RESULTS[0])), title: "Support Analyst Number " + (i + 1), posting_ref: ("s" + i).padEnd(20, "x").slice(0, 20) })) : placed;
-        return send(200, { mode: body.req ? "req" : body.code ? "code" : "phrase", truncated: opts.truncated === true, results: sized });
+        // opts.missKind (prompt HD, October 31, 2026): what the edge function's field miss_kind (prompt HC) would be on an EMPTY company based answer: a 404 for a req number or an old code, a 200 with an empty list for a title; opts.missKindOnFound
+        // also puts it (wrongly) on a found result, for the test of the page ignoring it there. Without these every answer is as it always was.
+        if (opts.missKind !== undefined && sized.length === 0) return body.req || body.code ? send(404, { error: "not_found", code: "not_found", miss_kind: opts.missKind }) : send(200, { mode: "phrase", truncated: false, results: [], miss_kind: opts.missKind });
+        return send(200, Object.assign({ mode: body.req ? "req" : body.code ? "code" : "phrase", truncated: opts.truncated === true, results: sized }, opts.missKindOnFound !== undefined && sized.length ? { miss_kind: opts.missKindOnFound } : {}));
       }
       if (name === "candidate-posting-detail" && body.posting_ref === NOLINKS_REF) return send(200, { posting: { ...RESULTS[0], posting_ref: NOLINKS_REF }, links: [], comment_count: 1 });
       if (name === "candidate-posting-detail" && body.posting_ref === CLOSED_REF) return send(409, { error: "posting_not_open", code: "posting_not_open", status: "closed", closed_reason: "filled" });

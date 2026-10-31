@@ -21,7 +21,7 @@ import { tileActions } from "../tile-actions.js?v=7180edbf";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=5b8f0605";
 import { COMMENTS_VISIBLE } from "../config.js?v=cb962576";
 import { openUnit } from "../open-link.js?v=19175677";
-import { checkCompany, resolveSearch, noMatchMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=77ea996a";
+import { checkCompany, resolveSearch, noMatchMessage, missEmptyLines, missMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=52d2c5ab";
 import { isRegistered } from "../registered.js?v=f191c8c2";
 import { refineHints } from "../refine-hint.js?v=5ece29af";
 import { placeNodes } from "../place.js?v=811ff44d";
@@ -164,7 +164,11 @@ function showResults(data, searched) {
   if (n === 0) {
     countEl.textContent = "No matching openings";
     // prompt BQ: an ID that is past its retention says so in its own words; every other empty answer is the page's usual note
-    resultsEl.append(h("div", { class: "empty-note", id: "emptyNote", style: "margin-top:0;" }, searched.gone === true ? KIO_GONE_MESSAGE : noMatchMessage(searched.company, searched.query, searched.kind)));
+    const emptyNote = h("div", { class: "empty-note", id: "emptyNote", style: "margin-top:0;" }, searched.gone === true ? KIO_GONE_MESSAGE : noMatchMessage(searched.company, searched.query, searched.kind));
+    // prompt HD: a company based search that found nothing and carries one of the three miss kinds says which miss it was, in place of the general note (the echo "No openings found for ..." stays; each line on its own line); any other value changes nothing
+    const missLines = searched.gone === true ? null : missEmptyLines(searched.company, searched.query, searched.kind, searched.missKind);
+    if (missLines) { clear(emptyNote); missLines.forEach((t, i) => emptyNote.append(h("p", { class: "miss-line", style: "margin:" + (i ? "8px" : "0") + " 0 0;" }, t))); }
+    resultsEl.append(emptyNote);
     return;
   }
   countEl.textContent = n + (n === 1 ? " matching opening" : " matching openings") + (data.truncated ? ": showing the first 25; add more of the title to narrow it" : "");
@@ -309,12 +313,14 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
     const wasKio = q.kind === "kio" || (!!q.alsoTryKio && r.ok && r.data.mode === "kio") || (!!q.alsoTryKio && !r.ok && r.status === 410);   // the words of an ID answer only when the text really was read as an ID
     let gone = false;
     if (!r.ok && r.status === 410 && r.error.code === "gone") { gone = true; r = { ok: true, data: { mode: "kio", truncated: false, results: [] } }; }   // an opening past its retention: its own words
-    if (!r.ok && r.status === 404 && r.error.code === "not_found") r = { ok: true, data: { mode: "code", truncated: false, results: [] } };   // a code that matches nothing is a plain "no such posting"
+    if (!r.ok && r.status === 404 && r.error.code === "not_found") r = { ok: true, data: { mode: "code", truncated: false, results: [], miss_kind: r.data && typeof r.data === "object" ? r.data.miss_kind : undefined } };   // prompt HD: the 404 body may carry the miss kind (candidate-search, prompt HC)   // a code that matches nothing is a plain "no such posting"
     if (!r.ok && r.status === 400 && r.error.field === "kio") { setFormError(KIO_INVALID_MESSAGE); queryIn.focus(); return; }
     if (r.ok) {
       const mismatchText = r.data.mismatch === true ? kioMismatchMessage(c.value, sentTitle) : "";
-      const hints = showResults(r.data, { company: c.value, query: q.value, kind: wasKio ? "kio" : q.kind, gone, title: sentTitle, mismatchText });
-      showRecap(typed, c.value, q, auto, [mismatchText, ...(hints || [])].filter(Boolean).join(" "));
+      const missKind = !wasKio && !gone && r.data.results.length === 0 ? r.data.miss_kind : undefined;   // prompt HD: only an EMPTY company based answer can carry a miss kind; a found result never shows one
+      const hints = showResults(r.data, { company: c.value, query: q.value, kind: wasKio ? "kio" : q.kind, gone, title: sentTitle, mismatchText, missKind });
+      const missSpoken = (missMessage(missKind) || []).join(" ");   // read out with the rest of the search's one spoken message
+      showRecap(typed, c.value, q, auto, [mismatchText, ...(hints || []), missSpoken].filter(Boolean).join(" "));
       return;
     }
     clear(resultsEl); countEl.hidden = true;
