@@ -14,6 +14,13 @@ export async function johnsWindow(tab, width, height = 900) {
   await tab.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: false });
   await tab.send("Emulation.setTouchEmulationEnabled", { enabled: false });
 }
+// prompt GQ (October 31, 2026): John accepts a small sideways overflow of the My openings table in ONE band of windows, 1090 to 1100 pixels (a page width, document.documentElement.clientWidth, of 1075 to 1085), with the whole KIO ID form:
+// up to 16 pixels (the card's scrollWidth minus its clientWidth). Everywhere else the rule is as strict as it was: no sideways scroll at all. The Closes date and time and the action words are still held to ONE line by their own checks.
+// sideOk(m) is the replacement of "!m.sideScroll" and columnsFit(m) of "!(m.sideScroll || m.pageScroll || m.lastTh > m.cardRight + 1)"; the ALLOWANCE object is exported so a planted defect can change it in a copy.
+export const ALLOWANCE = { from: 1075, to: 1085, max: 16 };
+export const inBand = (m) => m.client >= ALLOWANCE.from && m.client <= ALLOWANCE.to;
+export const sideOk = (m) => (inBand(m) ? Math.max(0, m.overflow || 0) <= ALLOWANCE.max : !m.sideScroll);
+export const columnsFit = (m) => !m.pageScroll && sideOk(m) && (inBand(m) ? m.lastTh - m.cardRight <= ALLOWANCE.max : m.lastTh <= m.cardRight + 1);
 export const barOf = (tab) => tab.eval("({ inner: window.innerWidth, client: document.documentElement.clientWidth, bar: window.innerWidth - document.documentElement.clientWidth })");
 
 export const DAY = 86400000;
@@ -33,6 +40,7 @@ export const shiftToLocal = (hour, minute) => { const d = new Date(); d.setHours
 export function johnsRows(now = testNow()) {
   return {
     plan: "verified",
+    kio: true,   // prompt GQ (October 31, 2026): the whole KIO ID form (KIO-XXXX-XXXX-XXXX) in the KIO ID column, as John sees it: the column is about 154 pixels, not the 121 to 125 of the short form
     mineOverrides: [
       { title: "Associate Product Manager", is_remote: true, locations: [], location_ids: [], source_location_text: "Paris, France", bump_used: true, bump_days: 15 },   // live, closes in 33 days
       { title: "Nurse Practitioner Specialist, Evenings and Weekends" },                                                                                                    // paused, closes in 9 days
@@ -68,7 +76,7 @@ export const MEASURE = `(() => {
       placeLine: (title.querySelector('[data-part="place"]') || {}).textContent || null, addedLine: (title.querySelector('[data-part="added"]') || {}).textContent || null,
       actSpare: spare(act, '.row-action'), closesSpare: spare(clo, '.nb'), note: nr ? { w: Math.round(nr.width), h: Math.round(nr.height) } : null, cells: Array.from(tr.querySelectorAll('td')).map((td) => td.getAttribute('data-label')) };
   });
-  return { inner: window.innerWidth, client: document.documentElement.clientWidth, cardW: Math.round(cr.width), cardRight: Math.round(cr.right), sideScroll: card.scrollWidth > card.clientWidth + 1,
+  return { inner: window.innerWidth, client: document.documentElement.clientWidth, cardW: Math.round(cr.width), cardRight: Math.round(cr.right), sideScroll: card.scrollWidth > card.clientWidth + 1, overflow: card.scrollWidth - card.clientWidth,
     pageScroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, ths, rows, lastTh: Math.round(document.querySelector('thead th:last-child').getBoundingClientRect().right),
     pills: Array.from(document.querySelectorAll('#filters .filter-pill')).map((b) => b.textContent.trim() + (b.classList.contains('on') ? '*' : '')) };
 })()`;

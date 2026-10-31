@@ -17,7 +17,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { startFakeSite, kioOf, KIO_CLOSED, KIO_GONE } from "./fake-site.js";
-import { johnsBrowser, johnsWindow, johnsRows, MEASURE, JOHN_WIDTH, SPARE_WIDTH } from "./johns-screen.js";
+import { johnsBrowser, johnsWindow, johnsRows, MEASURE, JOHN_WIDTH, SPARE_WIDTH, sideOk, columnsFit } from "./johns-screen.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -182,8 +182,8 @@ const SCENARIOS = {
         if (ids.some((x) => x.over)) bad.push(width + ": an ID is cut off in its cell");
         const m = await tab.eval(MEASURE);
         if (m.pageScroll) bad.push(width + ": the page scrolls sideways");
-        if (!phone && m.sideScroll) bad.push(width + ": the table scrolls sideways inside its card");
-        if (!phone && m.lastTh > m.cardRight + 1) bad.push(width + ": the last column runs past the card");
+        if (!phone && !sideOk(m)) bad.push(width + ": the table scrolls sideways inside its card (" + m.overflow + " pixels over)");   // prompt GQ: up to 16 pixels only at a page width of 1075 to 1085
+        if (!phone && !columnsFit(m)) bad.push(width + ": the last column runs past the card");
         const title = m.ths.find((t) => t.name === "Title");
         if (!phone && (!title || title.w < 176)) bad.push(width + ": the Title column is " + (title && title.w) + " pixels (176 at least)");
         if (!phone && m.rows.some((r) => r.actLines > 1 && r.words.length < 2)) bad.push(width + ": an Actions cell broke");

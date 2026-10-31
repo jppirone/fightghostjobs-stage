@@ -14,7 +14,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { startFakeSite, kioOf } from "./fake-site.js";
-import { johnsBrowser, johnsWindow, MEASURE, DAY } from "./johns-screen.js";
+import { johnsBrowser, johnsWindow, MEASURE, DAY, sideOk } from "./johns-screen.js";
 import { kioValid } from "../js/kio.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -77,7 +77,7 @@ const SCENARIOS = {
       if (c["Juliet Draft Alive"] !== "Publish by " + day(now + 6 * DAY)) bad.push(width + ": a draft with time left reads '" + c["Juliet Draft Alive"] + "'");
       if (c["Bravo Closed"] !== "Closed " + day(now - 5 * DAY)) bad.push(width + ": a closed row reads '" + c["Bravo Closed"] + "'");
       const m = await tab.eval(MEASURE);
-      if (m.pageScroll || m.sideScroll) bad.push(width + ": a sideways scroll bar");
+      if (m.pageScroll || !sideOk(m)) bad.push(width + ": a sideways scroll bar (" + m.overflow + " pixels over)");   // prompt GQ: up to 16 pixels only at a page width of 1075 to 1085
       const broken = m.rows.filter((r) => r.closes.some((x) => x.lines > 1));
       if (broken.length) bad.push(width + ": a date is broken inside in " + broken.map((r) => r.title).join(", "));
       // the same words in both Closes sorts and in the Draft pill (the position is BU's; the words must not depend on it)

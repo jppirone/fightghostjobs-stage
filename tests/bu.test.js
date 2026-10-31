@@ -12,9 +12,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { startFakeSite, kioOf } from "./fake-site.js";
-import { johnsBrowser, johnsWindow, johnsRows, MEASURE, DAY } from "./johns-screen.js";
+import { johnsBrowser, johnsWindow, johnsRows, MEASURE, DAY, sideOk } from "./johns-screen.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -96,7 +96,7 @@ const SCENARIOS = {
       if (names.some((n) => /opening\s*id/i.test(n))) bad.push(width + ": a header still says Opening ID");
       if (JSON.stringify(names.slice(0, 3)) !== JSON.stringify(["Title", "Req #", "KIO ID"])) bad.push(width + ": the first three headers are " + names.slice(0, 3).join("|"));
       if (m.pageScroll) bad.push(width + ": the page scrolls sideways");
-      if (m.sideScroll) bad.push(width + ": the table scrolls sideways inside its card");
+      if (!sideOk(m)) bad.push(width + ": the table scrolls sideways inside its card (" + m.overflow + " pixels over)");   // prompt GQ: up to 16 pixels only at a page width of 1075 to 1085
       const title = m.ths.find((t) => t.name === "Title");
       if (!title || title.w < 176) bad.push(width + ": the Title column is " + (title && title.w) + " pixels (176 at least)");
       const ids = await tab.eval(`Array.from(document.querySelectorAll('tbody td[data-label="KIO ID"]')).map((td) => { const r = document.createRange(); r.selectNodeContents(td); const cs = getComputedStyle(td);
@@ -314,6 +314,24 @@ const SCENARIOS = {
       if (h.length) bad.push(p.split("?")[0] + " still says Opening ID: " + q(h.slice(0, 3)));
     }
     return bad; })); },
+  // ---- (prompt GQ, October 31, 2026) the allowance for the sideways overflow. John accepts up to 16 pixels of overflow of the My openings table in ONE band of windows only: 1090 to 1100 pixels (a page width, clientWidth, of 1075 to 1085),
+  // with the whole KIO ID form; anywhere else none. allowanceRules asks the helper (the copy under test) about known cases, so a larger allowance or a wider band is caught; bandEdges measures the real page.
+  async allowanceRules(root) { const bad = [];
+    const H = await import(pathToFileURL(path.join(root, "tests", "johns-screen.js")).href + "?v=" + Date.now() + "-" + Math.random());
+    const m = (client, overflow) => ({ client, overflow, sideScroll: overflow > 1, pageScroll: false, lastTh: 1000 + overflow, cardRight: 1000 });
+    for (const [client, overflow, ok] of [[1078, 11, true], [1078, 16, true], [1075, 16, true], [1085, 16, true], [1078, 17, false], [1078, 20, false], [1085, 20, false], [1074, 3, false], [1086, 3, false], [1060, 5, false], [1105, 3, false], [1171, 2, false], [1078, 0, true], [1060, 0, true], [1250, 0, true]]) {
+      if (H.sideOk(m(client, overflow)) !== ok) bad.push("the allowance says " + (ok ? "no" : "yes") + " to " + overflow + " pixels of overflow at a page width of " + client + " (window " + (client + 15) + ")");
+      if (H.columnsFit(m(client, overflow)) !== ok) bad.push("the column check says " + (ok ? "no" : "yes") + " to " + overflow + " pixels past the card at a page width of " + client);
+    }
+    return bad; },
+  async bandEdges(root) { return withSite(root, johnsRows(), (site) => withTab(async (tab) => { const bad = [];
+    for (const width of [1090, 1093, 1100, 1110, 1130, 1171, 1250, 1366]) {
+      await openDash(tab, site, width);
+      const m = await tab.eval(MEASURE);
+      if (m.pageScroll) bad.push(width + ": the page scrolls sideways");
+      if (!sideOk(m)) bad.push(width + ": the table is " + m.overflow + " pixels wider than its card" + (m.client >= 1075 && m.client <= 1085 ? " (more than the 16 allowed in this band)" : " (none is allowed at this width)"));
+    }
+    return bad; })); },
 };
 
 test("BU: the label KIO ID on every page, the column rule that follows it, and a draft whose publish window ended sorted with the ended rows", { timeout: 1800000 }, async () => {
@@ -324,6 +342,11 @@ test("BU: the label KIO ID on every page, the column rule that follows it, and a
 
 // ---- negative controls: [label, scenarios, [[file, mutate]]]
 const DEFECTS = [
+  // prompt GQ: the allowance is part of the tests, so it has controls of its own (two of them on the helper, two on the real page)
+  ["the sideways allowance is raised to 40 pixels (20 pixels at a 1093 window would be accepted)", ["allowanceRules"], [["tests/johns-screen.js", (s) => s.replace("max: 16 }", "max: 40 }")]]],
+  ["the sideways allowance applies at every width (overflow outside the 1090 to 1100 band would be accepted)", ["allowanceRules"], [["tests/johns-screen.js", (s) => s.replace("{ from: 1075, to: 1085, max: 16 }", "{ from: 0, to: 99999, max: 16 }")]]],
+  ["a column is 109 pixels wider than it needs to be (overflow outside the band, at 1110 to 1366)", ["bandEdges"], [["app.css", (s) => s + '\n.my-openings td[data-label="Comments"]{min-width:200px}\n']]],
+  ["the Closes floor is 16rem (the overflow at 1093 is about 42 pixels, more than the 16 allowed)", ["bandEdges"], [["app.css", (s) => s.replace('.my-openings.tight td[data-label="Closes"]{min-width:14rem}', '.my-openings.tight td[data-label="Closes"]{min-width:16rem}')]]],
   ["the My openings header says Opening ID", ["myOpenings"], [["js/pages/dashboard.js", (s) => s.replace('["Title", "Req #", "KIO ID", ...', '["Title", "Req #", "Opening ID", ...')]]],
   ["the cell label says Opening ID", ["myOpenings"], [["js/pages/dashboard.js", (s) => s.replace('"data-label": "KIO ID", class: "mono"', '"data-label": "Opening ID", class: "mono"')]]],
   ["the column rule keeps the old label", ["myOpenings"], [["app.css", (s) => s.replace('.my-openings td[data-label="Closes"],.my-openings td[data-label="KIO ID"],.my-openings td[data-label="Comments"],.my-openings td[data-label="Status"]{width:1%;white-space:nowrap}', '.my-openings td[data-label="Closes"],.my-openings td[data-label="Opening ID"],.my-openings td[data-label="Comments"],.my-openings td[data-label="Status"]{width:1%;white-space:nowrap}')]]],

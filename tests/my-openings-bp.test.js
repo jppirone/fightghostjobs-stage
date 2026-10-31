@@ -11,7 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { startFakeSite } from "./fake-site.js";
-import { johnsBrowser, johnsWindow, barOf, johnsRows, MEASURE, JOHN_WIDTH, SPARE_WIDTH, BAR, DAY } from "./johns-screen.js";
+import { johnsBrowser, johnsWindow, barOf, johnsRows, MEASURE, JOHN_WIDTH, SPARE_WIDTH, BAR, DAY, sideOk, columnsFit } from "./johns-screen.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -112,7 +112,7 @@ const SCENARIOS = {
       const b = await barOf(tab);
       if (b.bar !== BAR) bad.push(width + ": the page's scroll bar is " + b.bar + " pixels (a classic bar is 15): the setup is not John's");
       const m = await tab.eval(MEASURE);
-      if (m.sideScroll || m.pageScroll || m.lastTh > m.cardRight + 1) bad.push(width + ": a sideways scroll bar shows or a column runs past the card");
+      if (!columnsFit(m)) bad.push(width + ": a sideways scroll bar shows or a column runs past the card (" + m.overflow + " pixels over)");   // prompt GQ: up to 16 pixels only at a page width of 1075 to 1085
       const title = m.ths.find((t) => t.name === "Title");
       if (!title || title.w < TITLE_MIN) bad.push(width + ": the Title column is " + (title && title.w) + " pixels (at least " + TITLE_MIN + ")");
       for (const r of m.rows) {
@@ -133,7 +133,7 @@ const SCENARIOS = {
   async at1100(root) { return withSite(root, johnsRows(), (site) => withTab(async (tab) => { const bad = [];
     await openDash(tab, site, 1100);
     const m = await tab.eval(MEASURE);
-    if (m.sideScroll || m.pageScroll) bad.push("1100: a sideways scroll bar shows");
+    if (m.pageScroll || !sideOk(m)) bad.push("1100: a sideways scroll bar shows (" + m.overflow + " pixels over)");   // prompt GQ: up to 16 pixels only at a page width of 1075 to 1085
     for (const r of m.rows) {
       if (r.words.length && r.actLines !== 1) bad.push("1100: '" + r.title + "': the action words are on " + r.actLines + " lines");
       if (r.closes.length && r.closesLines !== 1) bad.push("1100: '" + r.title + "': the Closes value is on " + r.closesLines + " lines");
@@ -149,7 +149,7 @@ const SCENARIOS = {
     for (const width of [1100, 1000]) {
       await openDash(tab, site, width);
       const m = await tab.eval(MEASURE);
-      if (m.sideScroll || m.pageScroll || m.lastTh > m.cardRight + 1) bad.push(width + ": a sideways scroll bar shows or a column runs past the card");
+      if (!columnsFit(m)) bad.push(width + ": a sideways scroll bar shows or a column runs past the card (" + m.overflow + " pixels over)");   // prompt GQ: up to 16 pixels only at a page width of 1075 to 1085
       const title = m.ths.find((t) => t.name === "Title");
       if (!title || title.w < TITLE_MIN) bad.push(width + ": the Title column is " + (title && title.w) + " pixels");
       for (const r of m.rows) {

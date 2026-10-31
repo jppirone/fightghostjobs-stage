@@ -15,7 +15,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { startFakeSite } from "./fake-site.js";
-import { johnsBrowser, johnsWindow, johnsRows, MEASURE, DAY, testNow, setPageClock, shiftToLocal, CLOCK_SHIFT_MS } from "./johns-screen.js";
+import { johnsBrowser, johnsWindow, johnsRows, MEASURE, DAY, testNow, setPageClock, shiftToLocal, CLOCK_SHIFT_MS, sideOk } from "./johns-screen.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -79,7 +79,7 @@ async function pillsOn(root, opts, wantAll) {
       await openDash(tab, site, width);
       const m = await tab.eval(MEASURE);
       if (m.pageScroll) bad.push(width + ": the page scrolls sideways");
-      if (m.sideScroll) bad.push(width + ": the table scrolls sideways inside its card");
+      if (!sideOk(m)) bad.push(width + ": the table scrolls sideways inside its card (" + m.overflow + " pixels over)");   // prompt GQ: up to 16 pixels are accepted only at a page width of 1075 to 1085 (johns-screen.js ALLOWANCE)
       const title = m.ths.find((x) => x.name === "Title");
       if (!title || title.w < 176) bad.push(width + ": the Title column is " + (title && title.w) + " pixels (176 at least)");
       const pills = await tab.eval(`Array.from(document.querySelectorAll('tbody td[data-label="Status"] .status')).map((p) => { const r = p.getBoundingClientRect(), td = p.closest('td').getBoundingClientRect(), cs = getComputedStyle(p);
@@ -154,7 +154,7 @@ const SCENARIOS = {
         for (const width of [1093, 1100]) {
           await openDash(tab, site, width, shift);
           const m = await tab.eval(MEASURE);
-          if (m.pageScroll || m.sideScroll) bad.push(label + " clock, " + width + ": the table or the page scrolls sideways");
+          if (m.pageScroll || !sideOk(m)) bad.push(label + " clock, " + width + ": the table or the page scrolls sideways (" + m.overflow + " pixels over)");
           for (const r of m.rows) if (r.closesLines > 1) bad.push(label + " clock, " + width + ": '" + r.title + "': the Closes value is on " + r.closesLines + " lines (the dates stay whole)");
         }
       }));
