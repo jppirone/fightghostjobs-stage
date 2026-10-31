@@ -173,7 +173,7 @@ a.row-action:hover{text-decoration:underline}
      (13.8rem = 221 pixels: the action words of the widest row on one line; 7.25rem = 116 pixels: the longest Status pill in two lines, never three), so the Closes floor does not take their width. Added up at the smallest the columns
      need 176 (Title) + 53 + 125 + 116 + 221 + 224 + 87 = about 1002 pixels; the card is 1014 pixels at a 1093 pixel window and the floors apply from a 1090 pixel window (card about 1011). Below that the table behaves as before. */
   .my-openings.tight thead th,.my-openings.tight td{padding-left:4px;padding-right:4px}
-  .my-openings.tight td[data-label="Actions"]{min-width:13.8rem}
+  .my-openings.tight td[data-label="Actions"]{min-width:14rem}
   .my-openings.tight td[data-label="Status"]{min-width:7.25rem}
 }
 .my-openings td[data-label="Status"] .status{display:inline-block;border-radius:14px}      /* prompt BR: one box on every width (the phone card list too) */
