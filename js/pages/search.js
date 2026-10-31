@@ -165,7 +165,7 @@ function showResults(data, searched) {
     countEl.textContent = "No matching openings";
     // prompt BQ: an ID that is past its retention says so in its own words; every other empty answer is the page's usual note
     const emptyNote = h("div", { class: "empty-note", id: "emptyNote", style: "margin-top:0;" }, searched.gone === true ? KIO_GONE_MESSAGE : noMatchMessage(searched.company, searched.query, searched.kind));
-    // prompt HD: a company based search that found nothing and carries one of the three miss kinds says which miss it was, in place of the general note (the echo "No openings found for ..." stays; each line on its own line); any other value changes nothing
+    // prompt HD: a company based search that found nothing and carries one of the three miss kinds says which miss it was, in place of the general note (the echo of what was searched stays; each line on its own line); any other value changes nothing
     const missLines = searched.gone === true ? null : missEmptyLines(searched.company, searched.query, searched.kind, searched.missKind);
     if (missLines) { clear(emptyNote); missLines.forEach((t, i) => emptyNote.append(h("p", { class: "miss-line", style: "margin:" + (i ? "8px" : "0") + " 0 0;" }, t))); }
     resultsEl.append(emptyNote);
