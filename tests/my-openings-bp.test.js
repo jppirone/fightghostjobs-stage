@@ -122,7 +122,7 @@ const SCENARIOS = {
       }
       // the numbers asked for: a one-line-title row, the Associate Product Manager row, the expired draft
       const apm = m.rows.find((r) => r.title === "Associate Product Manager"), exp = m.rows.find((r) => r.title === "Expired Draft Opening"), one = m.rows.find((r) => r.title === "Closing In Three Days");
-      if (!apm || apm.h > 78) bad.push(width + ": the Associate Product Manager row is " + (apm && apm.h) + " pixels (78 at most)");
+      if (!apm || apm.h > 87) bad.push(width + ": the Associate Product Manager row is " + (apm && apm.h) + " pixels (87 at most)");   // prompt GX: 78 was measured with the short KIO ID; with the whole ID the row is 85 at 1290 in every run, plus 2
       if (!one || one.h > 76) bad.push(width + ": a one-line-title row is " + (one && one.h) + " pixels (76 at most: title, place and Added line)");
       if (!exp || exp.h > 120) bad.push(width + ": the expired draft row is " + (exp && exp.h) + " pixels (about 120 at most)");
       const jpm = m.rows.find((r) => r.title === "Junior Project Manager");
@@ -142,7 +142,13 @@ const SCENARIOS = {
     // The padding of 8 still decides a window a little wider (about 1171 pixels, a card of about 1090): the snuggest layout needs about 1077 with 8 and about 1105 with 12, so with 12 the pills fall back to wrapping there.
     await openDash(tab, site, 1171);
     const wide = await tab.eval("Array.from(document.querySelectorAll('tbody td[data-label=\"Status\"] .status')).map((p) => ({ text: p.textContent.trim(), h: Math.round(p.getBoundingClientRect().height) }))");
-    for (const p of wide) if (p.h > 30) bad.push("1171: the pill '" + p.text + "' is " + p.h + " pixels high (one line fits here with the 8 pixel padding)");
+    // prompt GX: with the whole KIO ID (154 pixels) the longest pills take two lines at 1171 (38 pixels); three lines (about 56) are still a defect. Only this window is allowed two lines.
+    for (const p of wide) if (p.h > 40) bad.push("1171: the pill '" + p.text + "' is " + p.h + " pixels high (two lines at most, 40 pixels)");
+    // prompt GX: the one-line pill rule above used to be what the padding control below relied on. With the whole KIO ID the pills take two lines at 1171 either way (the wrap-status level has its own 6 pixel padding), so the 8 pixel base padding is now caught at 1250 (card 1171):
+    // with 8 the table holds the snug level there (the Status pills on one line, 187 pixels), with 12 it needs wrap-status.
+    await openDash(tab, site, 1250);
+    const lvl = await tab.eval("['tight','wrap-status'].filter((c) => document.querySelector('.my-openings').classList.contains(c))");
+    if (lvl.length) bad.push("1250: the table is at the " + lvl.join("+") + " level (the 8 pixel side padding holds the snug level here)");
     return bad; })); },
   async smallerWindows(root) { return withSite(root, johnsRows(), (site) => withTab(async (tab) => { const bad = [];
     let wrapped = 0;
@@ -400,6 +406,8 @@ const DEFECTS = [
   ["the table is not fitted to the card (no fallback)", [["js/pages/dashboard.js", (s) => s.replace("if (!wide.matches || level === \"tight\" || card.scrollWidth <= card.clientWidth + 1) break;", "break;")]], ["smallerWindows"]],
   ["the side padding is back at 12 pixels", [["app.css", (s) => s.replace("  .my-openings thead th,.my-openings td{padding-left:8px;padding-right:8px}\n", "")]], ["at1100"]],
   ["the columns are not shrunk to their words", [["app.css", (s) => s.replace('  .my-openings td[data-label="Actions"],.my-openings td[data-label="Closes"],.my-openings td[data-label="KIO ID"],.my-openings td[data-label="Comments"],.my-openings td[data-label="Status"]{width:1%;white-space:nowrap}\n', "")]], ["johnsSize"]],   // prompt BR: Status joined the list
+  ["a row is 100 pixels high at 1290 (prompt GX)", [["app.css", (s) => s + '\n.my-openings tbody tr{height:100px}\n']], ["johnsSize"]],
+  ["a Status pill takes three lines at 1171 (prompt GX)", [["app.css", (s) => s + '\n.my-openings td[data-label="Status"] .status{width:70px;white-space:normal;word-break:break-word}\n']], ["at1100"]],
   ["the date pieces sit straight in the cell (a phone grid takes each as an item)", [["js/pages/dashboard.js", (s) => s.replace('return h("span", { class: "dt" }, ...out);', "return out;")]], ["phoneList"]],
 ];
 test("negative controls: each defect makes a scenario fail", { timeout: 7200000 }, async () => {
