@@ -18,9 +18,19 @@ export const barOf = (tab) => tab.eval("({ inner: window.innerWidth, client: doc
 
 export const DAY = 86400000;
 const iso = (ms) => new Date(ms).toISOString();
+// prompt GP (October 30, 2026): a simulated clock, so a test does not depend on the hour it runs at (the clock times in the rows change the width of the Closes text, prompt GL). FGJ_CLOCK_SHIFT_H=<hours> moves the clock of the
+// sample rows AND of the page by the same whole hours; testNow() is "now" for the rows, setPageClock(tab, ms) moves the page's own Date (new Date() and Date.now()) before its scripts run. With no shift both are the real clock.
+export const CLOCK_SHIFT_MS = Number(process.env.FGJ_CLOCK_SHIFT_H || 0) * 3600000;
+export const testNow = () => Date.now() + CLOCK_SHIFT_MS;
+export async function setPageClock(tab, ms = CLOCK_SHIFT_MS) {
+  if (!ms) return;
+  await tab.send("Page.addScriptToEvaluateOnNewDocument", { source: "(() => { const D = Date, off = " + ms + "; class S extends D { constructor(...a) { if (a.length) super(...a); else super(D.now() + off); } static now() { return D.now() + off; } } Date = S; })();" });
+}
+// the clock shift (milliseconds from now) that makes the local time of day read hour:minute, today
+export const shiftToLocal = (hour, minute) => { const d = new Date(); d.setHours(hour, minute, 0, 0); return d.getTime() - Date.now(); };
 // the rows: the BN rows (a remote opening with a typed place and an extended close date, a long title, an expired draft with its note, a closed one, a scheduled draft, a draft with a Publish by line),
 // John's Junior Project Manager (four list places), and the rows that carry the flag: a live opening closing in 3 days, a draft with 5 days left of its window, a paused one closing in 4 days
-export function johnsRows(now = Date.now()) {
+export function johnsRows(now = testNow()) {
   return {
     plan: "verified",
     mineOverrides: [

@@ -15,7 +15,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { startFakeSite } from "./fake-site.js";
-import { johnsBrowser, johnsWindow, johnsRows, MEASURE, DAY } from "./johns-screen.js";
+import { johnsBrowser, johnsWindow, johnsRows, MEASURE, DAY, testNow, setPageClock, shiftToLocal, CLOCK_SHIFT_MS } from "./johns-screen.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -29,7 +29,7 @@ const day = (iso) => { const d = new Date(iso); return MONTHS[d.getMonth()] + " 
 const iso = (ms) => new Date(ms).toISOString();
 
 // ---- the light rows: every kind of row the Closes cell and the pill have to carry, short titles
-function rows(now = Date.now()) {
+function rows(now = testNow()) {
   const base = (title, o) => Object.assign({ title, is_remote: false, locations: ["Austin, TX"], location_ids: [], source_location_text: null, bump_used: false, bump_days: null, posted_at: iso(now - 12 * DAY), publish_by: null, go_live_at: null, closed_reason: null, created_at: iso(now - 20 * DAY) }, o);
   const list = [
     base("Alpha Live", { status: "live", stored_status: "live", expiration_date: iso(now + 20 * DAY) }),
@@ -46,20 +46,22 @@ function rows(now = Date.now()) {
 // John's rows (the BP set) with a real closing day on the closed one
 function johnsBr() {
   const r = johnsRows();
-  r.mineExtra = r.mineExtra.map((x) => (x.title === "Closed Opening" ? { ...x, closed_at: iso(Date.now() - 3 * DAY) } : x));
+  r.mineExtra = r.mineExtra.map((x) => (x.title === "Closed Opening" ? { ...x, closed_at: iso(testNow() - 3 * DAY) } : x));
   return r;
 }
 const TITLES_OPEN = ["Alpha Live", "Foxtrot Paused Soon", "Golf In Review"];        // the rows that are still open (prompt BU: the expired draft is not one of them)
 
 async function withSite(root, opts, fn) { const site = await startFakeSite(root, opts); try { return await fn(site); } finally { await site.close(); } }
 async function withTab(fn) { const tab = await browser.newTab(); try { return await fn(tab); } finally { await tab.close(); } }
-async function signIn(tab, site, kind) {
+const clocked = new WeakSet();   // prompt GP: the page's simulated clock is installed once per tab (a second script would add the shift twice)
+async function signIn(tab, site, kind, shiftMs = CLOCK_SHIFT_MS) {
   await tab.focusEmulation(true);
+  if (!clocked.has(tab)) { clocked.add(tab); await setPageClock(tab, shiftMs); }
   await tab.goto(site.url + "/404.html"); await tab.eval("try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}");
   await tab.goto(site.url + "/_dev/link?kind=" + kind); await tab.waitFor("location.pathname.indexOf('auth-callback') < 0 && !!localStorage.getItem('fgj-auth')", 10000); await sleep(500);
 }
-async function openDash(tab, site, width) {
-  await signIn(tab, site, "poster");
+async function openDash(tab, site, width, shiftMs = CLOCK_SHIFT_MS) {
+  await signIn(tab, site, "poster", shiftMs);
   await johnsWindow(tab, width, 500);
   await tab.goto(site.url + "/dashboard.html");
   await tab.waitFor("document.querySelectorAll('tbody tr').length > 0", 10000);
@@ -106,7 +108,7 @@ async function pillsOn(root, opts, wantAll) {
 
 const SCENARIOS = {
   // ---- 1. the Closes cell
-  async closesCell(root) { return withSite(root, rows(), (site) => withTab(async (tab) => { const bad = [], now = Date.now();
+  async closesCell(root) { return withSite(root, rows(), (site) => withTab(async (tab) => { const bad = [], now = testNow();
     await openDash(tab, site, 1093);
     const c = await closesOf(tab);
     const want = { "Bravo Closed Filled": "Closed " + day(now - 5 * DAY), "Charlie Closed Withdrawn": "Closed " + day(now - 2 * DAY), "Delta Expired": "Expired " + day(now - 4 * DAY), "Echo Closed Undated": "Closed" };
@@ -143,6 +145,21 @@ const SCENARIOS = {
     for (const [tag, opts, wantAll] of [["light rows", rows(), true], ["John's rows", johnsBr(), false]]) out.push(...(await pillsOn(root, opts, wantAll)).map((x) => tag + ": " + x));
     return out;
   },
+  // ---- 3b. (prompt GP, October 30, 2026) the worst case for the Closes value: the widest clock texts ("10:54 PM EST", "12:54 AM EST", "11:54 PM EST") at 1093 and 1100, on a simulated clock for BOTH the sample rows and the page, so the
+  // result does not depend on the hour the test runs at. The rule is the same as in the pills scenario above (line "the Closes value is on N lines"): the date and its time are on ONE line; two lines are not accepted at any width.
+  async closesWorstCase(root) { const bad = [];
+    for (const [hh, mm, label] of [[21, 54, "9:54 PM"], [22, 54, "10:54 PM"], [23, 54, "11:54 PM"], [0, 54, "12:54 AM"], [11, 54, "11:54 AM"]]) {
+      const shift = shiftToLocal(hh, mm);
+      await withSite(root, johnsRows(Date.now() + shift), (site) => withTab(async (tab) => {
+        for (const width of [1093, 1100]) {
+          await openDash(tab, site, width, shift);
+          const m = await tab.eval(MEASURE);
+          if (m.pageScroll || m.sideScroll) bad.push(label + " clock, " + width + ": the table or the page scrolls sideways");
+          for (const r of m.rows) if (r.closesLines > 1) bad.push(label + " clock, " + width + ": '" + r.title + "': the Closes value is on " + r.closesLines + " lines (the dates stay whole)");
+        }
+      }));
+    }
+    return bad; },
   // ---- 4. the stale saved line
   async savedLine(root) { return withSite(root, { postingStatus: "draft", plan: "verified" }, (site) => withTab(async (tab) => { const bad = [];
     await signIn(tab, site, "poster");
@@ -199,7 +216,11 @@ const DEFECTS = [
   ["closed rows are mixed in by their real day instead of going last", ["sorting"], [["js/dashboard-model.js", (s) => s.replace("const ea = isEnded(a, nowMs), eb = isEnded(b, nowMs); if (ea !== eb) return ea ? 1 : -1; const x", "const x")]]],
   ["closed rows go first in the descending order", ["sorting"], [["js/dashboard-model.js", (s) => s.replace("const ea = isEnded(a, nowMs), eb = isEnded(b, nowMs); if (ea !== eb) return ea ? 1 : -1; const x", "const ea = isEnded(a, nowMs), eb = isEnded(b, nowMs); if (ea !== eb) return ea ? -1 : 1; const x")]]],
   ["the pill is a run of text again", ["pills"], [["app.css", (s) => s.replace('.my-openings td[data-label="Status"] .status{display:inline-block;border-radius:14px}', "")]]],
-  ["the table has no level where the pills wrap before the dates do", ["pills"], [["js/pages/dashboard.js", (s) => s.replace('for (const level of ["", "snug", "wrap-status", "tight"]) {', 'for (const level of ["", "snug", "tight"]) {')]]],
+  ["the Closes column has no floor (prompt GP)", ["pills", "closesWorstCase"], [["app.css", (s) => s.replace('.my-openings td[data-label="Closes"]{min-width:14.5rem}', "")]]],
+  // prompt GP (October 30, 2026): the control "the table has no level where the pills wrap before the dates do" (removing "wrap-status" from the levels in js/pages/dashboard.js) is RETIRED. It was caught only because, without that level,
+  // the table went to "tight" at 1093 and 1100 and the dates broke between the day and the time. Since the Closes column has a floor from a 1020 pixel window up (app.css, and the control above), the dates no longer break at "tight"
+  // there, and below 1020 the table is at "tight" with or without that level; measured at windows 700 to 1190: the removal changes only column widths between 1105 and 1180 (Title and Actions), nothing BR asserts. The rule it guarded,
+  // the dates stay whole, is guarded by "the Closes column has no floor" above and by the worst case scenario (closesWorstCase).
   ["the saved line is never taken away", ["savedLine"], [["js/pages/edit.js", (s) => s.replace('if (anyUnsaved() && document.querySelector("[data-result]")) clearResults();', "")]]],
   ["the saved line is not marked as a result", ["savedLine"], [["js/pages/edit.js", (s) => s.replace('if (kind === "ok" || result === true) box.setAttribute("data-result", "1");', "")]]],
   ["the saved line comes back from the cache", ["savedLine"], [["js/pages/edit.js", (s) => s.replace('window.addEventListener("pageshow", (ev) => { if (ev.persisted) clearResults(); });', "")]]],
