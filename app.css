@@ -162,6 +162,14 @@ a.row-action:hover{text-decoration:underline}
   .my-openings.tight .act-note{min-width:0}
   .my-openings td{padding-top:10px;padding-bottom:10px}
 }
+/* prompt GP (October 30, 2026): a floor for the Closes column. At the "tight" level the browser shares the card width between the columns and gave Closes about 143 pixels at a 1093 pixel window (1078 of page), 12 to 15 pixels
+   short of the date plus the time ("Nov 3," and "7:59 PM EST") on one line, so the time dropped under the date for every row that has a time (which layout the browser picked changed with the time of day). The column now never
+   gets less than 14.5rem (232 pixels): 10rem (160) only fixed the rows with a date and a time, the scheduled row ("Goes live Nov 19," and the time, three no-wrap pieces) needs about 230 with the widest time text. The Title column
+   gives the width (it keeps its own floor of 11rem above). The header cell is in the same column, so the floor holds for it too. Only from a 1020 pixel window up: below that the Title column would have to go under its own 11rem
+   floor and the table would scroll sideways in its card (measured at 800 to 960), so there the dates keep wrapping between the day and the time as before. */
+@media (min-width:1020px){
+  .my-openings td[data-label="Closes"]{min-width:14.5rem}
+}
 .my-openings td[data-label="Status"] .status{display:inline-block;border-radius:14px}      /* prompt BR: one box on every width (the phone card list too) */
 /* the small lines under a title and under a date: the place, the day it was added, the flag. The flag is dark amber (contrast 6.7 to 1 on white) and always carries words, never colour alone. */
 .row-sub{font-size:12px;font-weight:400;color:var(--muted);margin-top:2px}
