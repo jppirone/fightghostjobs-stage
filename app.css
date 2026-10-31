@@ -167,8 +167,14 @@ a.row-action:hover{text-decoration:underline}
    gets less than 14.5rem (232 pixels): 10rem (160) only fixed the rows with a date and a time, the scheduled row ("Goes live Nov 19," and the time, three no-wrap pieces) needs about 230 with the widest time text. The Title column
    gives the width (it keeps its own floor of 11rem above). The header cell is in the same column, so the floor holds for it too. Only from a 1020 pixel window up: below that the Title column would have to go under its own 11rem
    floor and the table would scroll sideways in its card (measured at 800 to 960), so there the dates keep wrapping between the day and the time as before. */
-@media (min-width:1020px){
-  .my-openings td[data-label="Closes"]{min-width:14.5rem}
+@media (min-width:1090px){
+  .my-openings td[data-label="Closes"]{min-width:14rem}
+  /* prompt GP, option C (October 31, 2026): at the "tight" level the side padding of the cells is 4 pixels (8 before; the wrap-status level has 6), about 56 pixels in all, and the Actions and Status columns have floors of their own
+     (13.8rem = 221 pixels: the action words of the widest row on one line; 7.25rem = 116 pixels: the longest Status pill in two lines, never three), so the Closes floor does not take their width. Added up at the smallest the columns
+     need 176 (Title) + 53 + 125 + 116 + 221 + 224 + 87 = about 1002 pixels; the card is 1014 pixels at a 1093 pixel window and the floors apply from a 1090 pixel window (card about 1011). Below that the table behaves as before. */
+  .my-openings.tight thead th,.my-openings.tight td{padding-left:4px;padding-right:4px}
+  .my-openings.tight td[data-label="Actions"]{min-width:13.8rem}
+  .my-openings.tight td[data-label="Status"]{min-width:7.25rem}
 }
 .my-openings td[data-label="Status"] .status{display:inline-block;border-radius:14px}      /* prompt BR: one box on every width (the phone card list too) */
 /* the small lines under a title and under a date: the place, the day it was added, the flag. The flag is dark amber (contrast 6.7 to 1 on white) and always carries words, never colour alone. */
