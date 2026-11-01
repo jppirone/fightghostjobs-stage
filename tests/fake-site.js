@@ -263,6 +263,37 @@ export function startFakeSite(root, opts = {}) {
       if (!cand) return send(401, { error: "unauthorized", code: poster ? "not_a_candidate_session" : "unauthorized" });
       // prompt BQ: with opts.kio a search row carries the whole KIO ID (derived from the row's code, which is its posting_ref's first twelve characters)
       const withKio = (p) => (opts.kio ? { ...p, kio_id: kioOf(p.posting_ref.slice(0, 12).toUpperCase()).shown } : p);
+      // prompt HM (October 31, 2026): opts.failover stands in for the edge function's FAILOVER (candidate-search, prompt HL), answering exactly the shapes of its CONTRACT FOR HM and nothing else: a failed key (an unreadable KIO ID, a
+      // KIO ID nobody holds, one past its retention, or a req number that matches nothing: opts.failover.reqMatch is the one req number that does match) with a company AND a title gets the ordinary company and title search with
+      // failover { reason, tried_key } added: 200 with results, or 404 { error, code, miss_kind?, failover } when it finds nothing (miss_kind = opts.missKind when set). The request fields origin and origin_host are recorded in calls like any
+      // other. A KIO ID together with a req number is the old 400. Without opts.failover every answer is as it always was.
+      // opts.refuseKio (prompt HM): the edge function refuses every KIO ID request with the 400 for the field kio (for example an ID over 60 characters), so the page's handling of that answer can be seen
+      if (name === "candidate-search" && opts.refuseKio && body.kio !== undefined) return send(400, { error: "That ID is not valid. Check it and try again.", code: "invalid_request", field: "kio" });
+      if (name === "candidate-search" && opts.failover) {
+        const given = (v) => typeof v === "string" && v.trim() !== "";
+        const reasonFor = () => {
+          if (body.kio !== undefined && body.req !== undefined) return "both";
+          if (!given(body.company) || !given(body.phrase)) return null;
+          if (body.kio !== undefined) {
+            const r = readKio(String(body.kio));
+            if (r.kind !== "kio") return ["id_invalid", "kio"];
+            if (r.stored === KIO_GONE) return ["id_gone", "kio"];
+            const known = r.stored === KIO_CLOSED || RESULTS.some((p) => kioOf(p.posting_ref.slice(0, 12).toUpperCase()).stored === r.stored);
+            return known ? null : ["id_not_registered", "kio"];
+          }
+          if (body.req !== undefined && body.code === undefined) return body.req === (opts.failover.reqMatch || "") ? null : ["req_no_match", "req"];
+          return null;
+        };
+        const why = reasonFor();
+        if (why === "both") return send(400, { error: "Send the KIO ID by itself (company and title words may be added), not together with code or req.", code: "invalid_request", field: "search_key" });
+        if (why) {
+          const co2 = String(body.company).toLowerCase(), ph2 = String(body.phrase).toLowerCase();
+          const hits = RESULTS.filter((p) => p.company_name.toLowerCase().includes(co2) && p.title.toLowerCase().includes(ph2)).map(withKio);
+          const failover = { reason: why[0], tried_key: why[1] };
+          if (hits.length === 0) return send(404, Object.assign({ error: "not_found", code: "not_found" }, opts.missKind !== undefined ? { miss_kind: opts.missKind } : {}, { failover }));
+          return send(200, { mode: "phrase", truncated: false, results: hits, failover });
+        }
+      }
       if (name === "candidate-search" && body.kio !== undefined) {
         if (!opts.kio) return send(400, { error: "Unknown field. Only company, phrase, code and req are accepted.", code: "invalid_request", field: "kio" });
         const r = readKio(String(body.kio));
