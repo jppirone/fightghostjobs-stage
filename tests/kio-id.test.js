@@ -46,7 +46,8 @@ const openSearch = async (tab, site, hash = "") => {
 const fill = (tab, company, title, req = "") => tab.eval("(() => { const set = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); }; set('company', " + q(company) + "); set('titleq', " + q(title) + "); set('reqq', " + q(req) + "); })()");
 const boxes = (tab) => tab.eval("['company', 'titleq', 'reqq'].map((id) => document.getElementById(id).value).join('|')");
 const pressSearch = async (tab) => { await tab.eval("document.getElementById('searchBtn').focus()"); await tab.key("Enter"); };
-const searches = (site) => site.calls.filter((c) => c.name === "candidate-search");
+// prompt HM: every search request now also carries origin (and origin_host); the bodies are compared here without them (tests/failover.test.js pins origin and host)
+const searches = (site) => site.calls.filter((c) => c.name === "candidate-search").map((c) => { const { origin, origin_host, ...body } = c.body || {}; return { ...c, body }; });
 const results = (tab) => tab.eval("document.getElementById('results').innerText.replace(/\\s+/g, ' ').trim()");
 const text = (tab, sel) => tab.eval("(() => { const e = document.querySelector(" + q(sel) + "); return e ? e.innerText.replace(/\\s+/g, ' ').trim() : null; })()");
 const asCand = async (root, opts, fn) => { const site = await startFakeSite(root, { kio: true, ...opts }), tab = await browser.newTab(); try { await signIn(tab, site, "candidate"); return await fn(site, tab); } finally { await tab.close(); await site.close(); } };
@@ -136,7 +137,8 @@ const SCENARIOS = {
     const wrong = "KIO-" + UNKNOWN.shown.slice(4, 18).replace(/.$/, UNKNOWN.shown.endsWith("A") ? "B" : "A");
     await fill(tab, "", wrong); await pressSearch(tab); await settle(tab, 700);
     if ((await text(tab, "#formError")) !== NOT_VALID) bad.push("an ID that fails the check: the page says '" + (await text(tab, "#formError")) + "'");
-    if (searches(site).length !== 0) bad.push("an ID that fails the check was sent");
+    // prompt HM: the refusal's words are the page's own and no search is made (the limit is not touched), but the ID text alone is now sent to the edge function once, so it sees it (was: nothing sent)
+    if (searches(site).length !== 1 || JSON.stringify(searches(site)[0].body) !== JSON.stringify({ kio: wrong })) bad.push("an ID that fails the check: the request is " + JSON.stringify(searches(site).map((c) => c.body)));
     await fill(tab, "", UNKNOWN.shown); await pressSearch(tab); await settle(tab);
     if (!(await results(tab)).includes(NOT_REG)) bad.push("no opening under it: " + (await results(tab)).slice(0, 160));
     await tab.eval("document.getElementById('recapEdit').click()");
@@ -241,7 +243,7 @@ const DEFECTS = [
   ["an ID that fails the check is sent to the backend", ["answers"], [["js/search-input.js", (s) => s.replace("if (k.kind === \"none\" && looksLikeKio(t)) return { ok: false, message: KIO_INVALID_MESSAGE };", "")]]],
   ["the card shows the masked code instead of the whole ID", ["idAlone"], [["js/pages/search.js", (s) => s.replace("(typeof row.kio_id === \"string\" && row.kio_id !== \"\" ? row.kio_id : row.masked_code)", "row.masked_code")]]],
   ["the fragment takes a req number with an ID", ["fragmentRefused"], [["js/fragment-prefill.js", (s) => s.replace("if (found.has(\"p\") || found.has(\"r\")) return { ours: true, result: null };", "")]]],
-  ["the fragment takes an ID that fails the check", ["fragmentRefused"], [["js/fragment-prefill.js", (s) => s.replace("if (read.kind !== \"kio\") return { ours: true, result: null };", "")]]],
+  ["the fragment takes an ID that fails the check", ["fragmentRefused"], [["js/fragment-prefill.js", (s) => s.replace("if (read.kind !== \"kio\" && (cK === \"\" || tK === \"\")) return { ours: true, result: null };", "")]]],   // prompt HM: the line now refuses an ID that fails the check unless a company AND a title came with it
   ["the title words are put in the box", ["fragment"], [["js/fragment-prefill.js", (s) => s.replace("if (result.kind === \"req\") reqEl.value = result.value; else queryEl.value = result.value;", "if (result.kind === \"req\") reqEl.value = result.value; else queryEl.value = result.title || result.value;")]]],
   ["a fragment runs the search by itself", ["fragment"], [["js/pages/search.js", (s) => s.replace("let heldKio = null;", "let heldKio = null; setTimeout(() => { if (queryIn.value) form.requestSubmit(); }, 400);")]]],
   ["past the retention reads as not registered", ["answers"], [["js/pages/search.js", (s) => s.replace("searched.gone === true ? KIO_GONE_MESSAGE : noMatchMessage(", "noMatchMessage(")]]],

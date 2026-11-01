@@ -160,7 +160,7 @@ test("the local messages for the lookup boxes name what to enter, and nothing sa
   assert.equal(classifyQuery("--").message, "Enter some letters or digits from the job title, or a KIO ID.");
   assert.equal(classifyQuery("x".repeat(81)).message, "That title is too long (80 characters at most).");
   assert.equal(resolveSearch("", "").message, "Enter a req number, a KIO ID or part of the job title.");
-  assert.equal(resolveSearch("Analyst", "R-1").message, "Fill in the req number, or the KIO ID / title box, not both.");
+  assert.equal(resolveSearch("7777-7777-7777", "R-1").message, "A KIO ID cannot be used with a req number. Fill in one or the other.");   // prompt HM: was ("Analyst", "R-1"), "Fill in the req number, or the KIO ID / title box, not both."
   for (const n of [NO_MATCH_NOTE, NO_MATCH_NOTE_REQ]) assert.doesNotMatch(n, /does not exist|doesn't exist|no such|never existed|fake/i);
 });
 
@@ -262,7 +262,9 @@ test("resolveSearch: exactly one of the two boxes; each keeps its own rules; the
   assert.deepEqual(resolveSearch("", " FGJ-1234 "), { ok: true, kind: "req", value: "FGJ-1234" });
   assert.deepEqual(resolveSearch("", "").focus, "req");                                    // the req number box is the first lookup box now
   assert.equal(resolveSearch("", "").ok, false);
-  const both = resolveSearch("Analyst", "R-1"); assert.equal(both.ok, false); assert.equal(both.focus, "req");
+  // prompt HM: a title next to a req number is the fallback (kind req, title kept); a KIO ID or a postID next to a req number is refused
+  assert.deepEqual(resolveSearch("Analyst", "R-1"), { ok: true, kind: "req", value: "R-1", title: "Analyst" });
+  const both = resolveSearch("7777-7777-7777", "R-1"); assert.equal(both.ok, false); assert.equal(both.focus, "req");
   assert.equal(resolveSearch("", "---").focus, "req");
   assert.equal(resolveSearch("ab", "").ok, true);                                         // a 2 letter title goes to the backend now (it knows VP, SR, JR)
   assert.equal(resolveSearch("--", "").focus, "title");                                   // no letter or digit at all is still the title box's problem

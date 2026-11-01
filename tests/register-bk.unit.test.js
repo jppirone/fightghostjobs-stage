@@ -35,9 +35,11 @@ test("the limit words follow the box's own limit", () => {
 });
 
 test("the search refusal: only 'both boxes filled' asks the page to clear the old results", () => {
-  const both = resolveSearch("Nurse", "R-2026-0451");
+  // prompt HM: a plain title next to a req number is no longer refused (it is the fallback); the refusal that remains is an ID in the title box next to a req number
+  assert.equal(resolveSearch("Nurse", "R-2026-0451").ok, true);
+  const both = resolveSearch("7777-7777-7777", "R-2026-0451");
   assert.equal(both.ok, false);
-  assert.equal(both.message, "Fill in the req number, or the KIO ID / title box, not both.");
+  assert.equal(both.message, "A KIO ID cannot be used with a req number. Fill in one or the other.");
   assert.equal(both.clearResults, true);
   assert.equal(both.focus, "req");
   const others = [resolveSearch("", ""), resolveSearch("", "!!"), resolveSearch("x".repeat(81), "")].filter((r) => r.ok === false);

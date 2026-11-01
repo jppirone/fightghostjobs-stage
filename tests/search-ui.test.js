@@ -83,7 +83,7 @@ async function fieldProblems(tab, width, phone) {
 }
 
 // ---- the three boxes: Company (required), then ONE of the req number or the postID / title box (October 5, 2026). Wording is exact; the group is labelled; the visible "or" sits between the two; the three boxes keep their layout.
-const NEW_SENTENCE = "Company is required, unless you type a KIO ID. Then fill in one of the other two boxes: the req number, or the KIO ID / title box, not both. The req number is hidden as you type; press Show to check it.";
+const NEW_SENTENCE = "Company is required, unless you type a KIO ID. Then fill in the req number, the KIO ID / title box, or both: if the req number does not match, the title is used. A KIO ID cannot be used with a req number. The req number is hidden as you type; press Show to check it.";
 const FORM_CHECK = `(() => {
   const q = (s) => document.querySelector(s);
   const vis = (e) => { if (!e) return false; const c = getComputedStyle(e), r = e.getBoundingClientRect(); return c.display !== "none" && c.visibility !== "hidden" && r.width > 0 && r.height > 0; };

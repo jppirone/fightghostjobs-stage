@@ -105,7 +105,7 @@ const SCENARIOS = {
         if (width === 375) await shot(tab, "C-edit-restored-375.png");
         // a search stopped by a message: no recap, the boxes keep what was typed
         await fill(tab, "Meridian", "Nurse", ""); await search(tab); await tab.waitFor(`!document.getElementById("recap").hidden`, 6000); await sleep(300);
-        for (const [what, c, t, rq, wantMsg] of [["a missing company", "", "Nurse", "", "Enter the company name"], ["both boxes filled", "Meridian", "Nurse", REQ, "not both"]]) {
+        for (const [what, c, t, rq, wantMsg] of [["a missing company", "", "Nurse", "", "Enter the company name"], ["an ID and a req number filled", "Meridian", "7777-7777-7777", REQ, "cannot be used with a req number"]]) {   // prompt HM: was ["both boxes filled", "Meridian", "Nurse", REQ, "not both"]; a plain title next to a req number is a fallback now
           await fill(tab, c, t, rq); await search(tab); await sleep(500);
           const r = await tab.eval(RECAP), msg = await tab.eval(`document.getElementById("formError").hidden ? "" : document.getElementById("formError").textContent`);
           if (r.shown) bad.push(tag + what + ": the recap is still shown");

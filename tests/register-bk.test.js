@@ -337,8 +337,8 @@ const SCENARIOS = {
     if ((await tab.eval("document.querySelectorAll('#results .card').length")) !== 0) bad.push("a refusal for an empty search left the earlier results in place (prompt BS: any new attempt clears them)");
     if (await visible(tab, "#resultCount")) bad.push("the earlier count is still shown above an empty-search refusal");
     // both the req number and the title: the refusal, and nothing from the earlier search under it
-    await fill("Meridian", "Nurse", "R-2026-0451"); await run();
-    if ((await text(tab, "#formError")) !== "Fill in the req number, or the KIO ID / title box, not both.") bad.push("the refusal reads '" + (await text(tab, "#formError")) + "'");
+    await fill("Meridian", "7777-7777-7777", "R-2026-0451"); await run();   // prompt HM: a plain title next to a req number is a fallback now; an ID next to one is refused (was "Nurse", "Fill in the req number, or the KIO ID / title box, not both.")
+    if ((await text(tab, "#formError")) !== "A KIO ID cannot be used with a req number. Fill in one or the other.") bad.push("the refusal reads '" + (await text(tab, "#formError")) + "'");
     if ((await tab.eval("document.querySelectorAll('#results > *').length")) !== 0) bad.push("the earlier results are still under the refusal");
     if (await visible(tab, "#resultCount")) bad.push("the earlier count is still above the refusal");
     if (await visible(tab, "#recap")) bad.push("a recap is shown");

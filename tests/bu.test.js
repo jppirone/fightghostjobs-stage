@@ -212,7 +212,7 @@ const SCENARIOS = {
     const guide = (await text(tab, "#searchGuide")) || "";
     for (const s of ["Easiest and most exact: the KIO ID from the employer's job ad (no company name needed), or the company name plus the requisition (req) number.", "No KIO ID? Use the company name plus part of the job title, copied from the job ad if you can."]) if (!guide.includes(s)) bad.push("the explainer lacks: " + s);
     if (!((await text(tab, "#companyHint")) || "").endsWith("Not needed with a KIO ID.")) bad.push("the company hint says '" + (await text(tab, "#companyHint")) + "'");
-    if ((await text(tab, "#reqHint")) !== "Company is required, unless you type a KIO ID. Then fill in one of the other two boxes: the req number, or the KIO ID / title box, not both. The req number is hidden as you type; press Show to check it.") bad.push("the sentence under the form says '" + (await text(tab, "#reqHint")) + "'");
+    if ((await text(tab, "#reqHint")) !== "Company is required, unless you type a KIO ID. Then fill in the req number, the KIO ID / title box, or both: if the req number does not match, the title is used. A KIO ID cannot be used with a req number. The req number is hidden as you type; press Show to check it.") bad.push("the sentence under the form says '" + (await text(tab, "#reqHint")) + "'");
     if (!((await text(tab, "#titleNote")) || "").endsWith("Closed or expired openings are found only by KIO ID or req number.")) bad.push("the second line under the form says '" + (await text(tab, "#titleNote")) + "'");
     // the help text: the heading, the accessible names, the list items (grammar: a KIO ID)
     const tips = await tab.eval("Array.from(document.querySelectorAll('.info-icon')).map((e) => ({ aria: e.getAttribute('aria-label') || '', title: ((e.querySelector('.tip-title') || {}).textContent || '').trim(), items: Array.from(e.querySelectorAll('li')).map((l) => l.textContent.trim()) }))");
@@ -230,8 +230,8 @@ const SCENARIOS = {
     if ((await text(tab, "#formError")) !== "Enter the company name (at least 2 letters or digits).") bad.push("an empty form says '" + (await text(tab, "#formError")) + "'");
     await fill(tab, "Meridian Health", ""); await pressSearch(tab); await sleep(400);
     if ((await text(tab, "#formError")) !== "Enter a req number, a KIO ID or part of the job title.") bad.push("no lookup value says '" + (await text(tab, "#formError")) + "'");
-    await fill(tab, "Meridian Health", "Nurse", "R-1"); await pressSearch(tab); await sleep(400);
-    if ((await text(tab, "#formError")) !== "Fill in the req number, or the KIO ID / title box, not both.") bad.push("both boxes say '" + (await text(tab, "#formError")) + "'");
+    await fill(tab, "Meridian Health", "7777-7777-7777", "R-1"); await pressSearch(tab); await sleep(400);   // prompt HM: a plain title next to a req number is a fallback now; an ID next to one is refused with the new words
+    if ((await text(tab, "#formError")) !== "A KIO ID cannot be used with a req number. Fill in one or the other.") bad.push("both boxes say '" + (await text(tab, "#formError")) + "'");
     await fill(tab, "Meridian Health", "--"); await pressSearch(tab); await sleep(400);
     if ((await text(tab, "#formError")) !== "Enter some letters or digits from the job title, or a KIO ID.") bad.push("a title with no letters says '" + (await text(tab, "#formError")) + "'");
     // a search that finds nothing: the notes
