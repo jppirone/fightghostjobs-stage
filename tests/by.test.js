@@ -139,7 +139,7 @@ const DEFECTS = [
   ["the staff view asks for a company again", ["eachStatus", "forms"], [["js/pages/search.js", (s) => s.replace("const idAlone = q.ok && q.kind === \"kio\"", "const idAlone = !staffMode && q.ok && q.kind === \"kio\"")]]],
   ["an unknown ID says the company sentence", ["invalidAndUnknown"], [["js/pages/search.js", (s) => s.replace("idAlone === true ? KIO_NOT_REGISTERED_MESSAGE : \"Nothing matches that company and those words in any status.\"", "\"Nothing matches that company and those words in any status.\"")]]],
   ["the staff view sends the ID as words", ["eachStatus"], [["js/pages/search.js", (s) => s.replace("q.kind === \"code\" || q.kind === \"kio\" ? { p_code: q.value } : { p_phrase: q.value }", "{ p_phrase: q.value }")]]],
-  ["an ID that fails the check is sent to the staff function", ["invalidAndUnknown"], [["js/pages/search.js", (s) => s.replace("if (!q.ok && q.message === KIO_INVALID_MESSAGE) { setFormError(q.message); queryIn.focus(); return; }", "")]]],
+  ["an ID that fails the check is sent to the staff function", ["invalidAndUnknown"], [["js/pages/search.js", (s) => s.replace("    setFormError(q.message); queryIn.focus(); return;\n  }", "  }")]]],   // prompt HM: the refusal is a block now (it also sends the ID text once outside the staff view); the defect takes the refusal out of it
   ["any signed-in person gets the staff view", ["notStaff"], [["js/pages/search.js", (s) => s.replace("if (r.ok && r.data === true) enterStaffMode();", "if (r.ok) enterStaffMode();")]]],
   ["the staff view stays on after the database refuses", ["beforeSql"], [["js/pages/search.js", (s) => s.replace("    leaveStaffMode();\n    return false;\n  } finally {", "    return true;\n  } finally {")]]],
 ];
