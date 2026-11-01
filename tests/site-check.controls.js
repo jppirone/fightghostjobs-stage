@@ -842,8 +842,8 @@ control("the new test is not part of the full run", "S63", edit("tests/run-all.j
 // S62: the search page opened with the company and one other value in the URL fragment (extension hand-off)
 {
   control("the fragment is no longer taken out of the address bar", "S62", edit("js/fragment-prefill.js", (s) => s.replace("win.history.replaceState(", "win.history.pushState(")));
-  control("the search page never reads the fragment", "S62", edit("js/pages/search.js", (s) => s.replace("if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onKio: (k) => { heldKio = k.title ? { stored: k.stored, title: k.title } : null; } })) takePending(localStorage);", "")));
-  control("the fragment starts the search by itself", "S62", edit("js/pages/search.js", (s) => s.replace("title: k.title } : null; } })) takePending(localStorage);", "title: k.title } : null; } })) { takePending(localStorage); runSearch(); }")));
+  control("the search page never reads the fragment", "S62", edit("js/pages/search.js", (s) => s.replace("if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onKio: (k) => { heldKio = k.title || k.bad ? { stored: k.stored, title: k.title, shown: k.shown, bad: k.bad === true } : null; }, onOrigin: (o) => { heldOrigin = o || null; } })) takePending(localStorage);", "")));   // prompt HM: the call also holds a bad key and the origin
+  control("the fragment starts the search by itself", "S62", edit("js/pages/search.js", (s) => s.replace("heldOrigin = o || null; } })) takePending(localStorage);", "heldOrigin = o || null; } })) { takePending(localStorage); runSearch(); }")));
   control("the title limit is raised", "S62", edit("js/fragment-prefill.js", (s) => s.replace("req: 100, title: 80, kio: 24 };", "req: 100, title: 8000, kio: 24 };")));
   control("a key given twice is accepted", "S62", edit("js/fragment-prefill.js", (s) => s.replace("if (found.has(key)) { bad = true; continue; }", "if (found.has(key)) { continue; }")));
   control("a control character is accepted", "S62", edit("js/fragment-prefill.js", (s) => s.replace("if (hasControl(value)) { bad = true; continue; }", "")));
@@ -1401,7 +1401,7 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the receiving page reads the path itself", "S83", edit(RCV, (s) => s.replace("kioFromPath(location.pathname)", "location.pathname.slice(1)")));
   control("404.html does not load the receiving script", "S83", edit(F404, (s) => s.replace('<script type="module" src="/js/kio-receive.js"></script>', "")));
   control("an ID alone is asked for a company", "S83", edit(SJ, (s) => s.replace("const idAlone = q.ok && q.kind === \"kio\"", "const idAlone = false && q.kind === \"kio\"")));
-  control("an ID that fails the check is not refused on the page", "S83", edit(SJ, (s) => s.replace("if (!q.ok && q.message === KIO_INVALID_MESSAGE) { setFormError(q.message); queryIn.focus(); return; }", "")));
+  control("an ID that fails the check is not refused on the page", "S83", edit(SJ, (s) => s.replace("    setFormError(q.message); queryIn.focus(); return;\n  }", "  }")));   // prompt HM: the refusal is now a block (it also sends the ID text once); the defect takes the refusal out of it
   control("the edit page does not draw the block", "S83", edit(EJ, (s) => s.replace('import { kioBlock } from "../kio-block.js";', "")));
   control("the KIO test is not in the suite", "S83", edit(RUN, (s) => s.replace('path.join(here, "kio-id.test.js")', 'path.join(here, "unit.test.js")')));
   control("the KIO unit test is not in the suite", "S83", edit(RUN, (s) => s.replace('path.join(here, "kio.unit.test.js")', 'path.join(here, "unit.test.js")')));
@@ -1465,7 +1465,7 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the staff view asks for a company again", "S89", edit("js/pages/search.js", (s) => s.replace("const idAlone = q.ok && q.kind === \"kio\"", "const idAlone = !staffMode && q.ok && q.kind === \"kio\"")));
   control("an ID nobody has says the company sentence in the staff view", "S89", edit("js/pages/search.js", (s) => s.replace("idAlone === true ? KIO_NOT_REGISTERED_MESSAGE : \"Nothing matches that company and those words in any status.\"", "\"Nothing matches that company and those words in any status.\"")));
   control("the staff answer does not know the search was an ID alone", "S89", edit("js/pages/search.js", (s) => s.replace("showStaffResults(r.data, c.value === \"\" && q.kind === \"kio\");", "showStaffResults(r.data);")));
-  control("an ID that fails the check is no longer refused on the page", "S89", edit("js/pages/search.js", (s) => s.replace("if (!q.ok && q.message === KIO_INVALID_MESSAGE) { setFormError(q.message); queryIn.focus(); return; }", "")));
+  control("an ID that fails the check is no longer refused on the page", "S89", edit("js/pages/search.js", (s) => s.replace("    setFormError(q.message); queryIn.focus(); return;\n  }", "  }")));   // prompt HM: see S83 above
   control("the staff view starts on any answer", "S89", edit("js/pages/search.js", (s) => s.replace("if (r.ok && r.data === true) enterStaffMode();", "if (r.ok) enterStaffMode();")));
   control("the BY browser test is not in the suite", "S89", edit(RUN, (s) => s.replace('path.join(here, "by.test.js")', 'path.join(here, "unit.test.js")')));
   // S90 (prompt TEST2): every tests/*.test.js is a step of tests/run-all.js
@@ -1544,6 +1544,15 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the unit test is not a step", "S103", edit(RUN, (s) => s.replace('path.join(here, "lm-cleanup.unit.test.js")', 'path.join(here, "unit.test.js")')));
   control("the browser test is not a step", "S103", edit(RUN, (s) => s.replace('path.join(here, "lm-cleanup.test.js")', 'path.join(here, "unit.test.js")')));
   control("a module is gone", "S103", (dir) => { fs.rmSync(path.join(dir, "js", "tile-actions.js")); });
+  // S104 (prompt HM, October 31, 2026): the failover sentences and how the page shows them
+  control("a failover sentence is another reason's words", "S104", edit("js/search-input.js", (s) => s.replace('id_not_registered: "That KIO ID was not found, so these are the results for ",', 'id_not_registered: "That KIO ID is not valid, so these are the results for ",')));
+  control("a failover sentence holds a forbidden word", "S104", edit("js/search-input.js", (s) => s.replace('id_invalid: "That KIO ID is not valid, so', 'id_invalid: "That KIO ID is not verified, so')));
+  control("a failover sentence holds a dash", "S104", edit("js/search-input.js", (s) => s.replace('req_no_match: "That req number did not match, so', 'req_no_match: "That req number did not match — so')));
+  control("typed text is put into the page as markup", "S104", edit("js/pages/search.js", (s) => s + "\ndocument.body.innerHTML = \"\";\n"));
+  control("the failover sentence loses its element", "S104", edit("js/pages/search.js", (s) => s.replace('id: "failoverNotice"', 'id: "failoverNoticeX"')));
+  control("the failover sentence is not read out", "S104", edit("js/pages/search.js", (s) => s.replace("[failoverText, mismatchText, ...(hints || []), missSpoken]", "[mismatchText, ...(hints || []), missSpoken]")));
+  control("the notice loses the sentence about the record", "S104", edit("search.html", (s) => s.replace(" The record also holds any KIO ID or req number you typed or we read from the job page, and an ID you mistyped is kept as typed.", "")));
+  control("the failover test is not a step of the full run", "S104", edit("tests/run-all.js", (s) => s.replace('"failover.test.js"', '"failover-x.test.js"')));
 }
 
 // S100 (prompt ST1, October 14, 2026): the employer's optional statement of the kind of an opening

@@ -17,7 +17,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BASE_ROOT = process.env.FGJ_BASE_ROOT || "";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const rd = (p, root = ROOT) => fs.readFileSync(path.join(root, p), "utf8").replace(/\r\n/g, "\n");
-const NOTICE_TEXT = "We keep a record of your search, including the words you typed, so we can count what people look for. Employers never see who searched. Details are in our Privacy Policy.";
+const NOTICE_TEXT = "We keep a record of your search, including the words you typed, so we can count what people look for. The record also holds any KIO ID or req number you typed or we read from the job page, and an ID you mistyped is kept as typed. Employers never see who searched. Details are in our Privacy Policy.";
 const LINK = "https://www.fightghostjobs.com/privacy.html";
 const DASH = new RegExp(String.fromCharCode(8212) + "|" + String.fromCharCode(8211));
 const strip = (h) => h.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ");

@@ -155,7 +155,7 @@ const DEFECTS = [
   ["the message is shown on a found result", [["js/pages/search.js", (s) => s.replace("!wasKio && !gone && r.data.results.length === 0 ? r.data.miss_kind : undefined", "!wasKio && !gone ? r.data.miss_kind : undefined").replace("for (const row of data.results) resultsEl.append(renderCard(row));", "for (const row of data.results) resultsEl.append(renderCard(row));\n  if (searched.missKind && missMessage(searched.missKind)) resultsEl.append(h(\"p\", {}, missMessage(searched.missKind)[0]));")]], ["pageFound"]],
   ["an unknown kind value breaks the page", [["js/search-input.js", (s) => s.replace("Object.prototype.hasOwnProperty.call(MISS_MESSAGES, kind) ? MISS_MESSAGES[kind] : null", "MISS_MESSAGES[kind]").replace("if (!miss || kind === \"kio\") return null;", "if (kind === \"kio\") return null;")]], ["unitKinds", "pageOldWords"]],
   ["the general note is shown as well as the message", [["js/pages/search.js", (s) => s.replace("if (missLines) { clear(emptyNote);", "if (missLines) {")]], ["pageKinds"]],
-  ["the message is not read out", [["js/pages/search.js", (s) => s.replace("[mismatchText, ...(hints || []), missSpoken]", "[mismatchText, ...(hints || [])]")]], ["pageKinds"]],
+  ["the message is not read out", [["js/pages/search.js", (s) => s.replace("[failoverText, mismatchText, ...(hints || []), missSpoken]", "[failoverText, mismatchText, ...(hints || [])]")]], ["pageKinds"]],
   ["the 404 body's kind is dropped", [["js/pages/search.js", (s) => s.replace("miss_kind: r.data && typeof r.data === \"object\" ? r.data.miss_kind : undefined", "miss_kind: undefined")]], ["pageKinds"]],
 ];
 test("negative controls: each planted defect makes a check fail", { timeout: 7200000 }, async () => {

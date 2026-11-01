@@ -2239,6 +2239,30 @@ export function checkSite(root, opts = {}) {
     const runF = R("tests/run-all.js");
     if (fs.existsSync(runF)) { const r = read(runF); for (const n of ["lm-cleanup.unit.test.js", "lm-cleanup.test.js"]) if (!r.includes('"' + n + '"')) add("S103", runF, n + " is not a step of the full run"); }
   }
+  // S104 (2026-10-31, prompt HM): the failover. When the KIO ID or the req number failed and the company and title were searched instead, the search page says so in ONE plain sentence above the results, in the one strings place (js/search-input.js,
+  // FAILOVER_SENTENCES: four reasons, letter for letter, the company and the title put in as typed text, no forbidden word, no dash), shown as TEXT (never inserted as markup), read out with the search's one message; and the sentence under the
+  // results says the record also holds the KIO ID or req number text and that a mistyped ID is kept as typed. tests/failover.test.js proves it in a real browser and is a step of the full run.
+  {
+    const siF = path.join(root, "js", "search-input.js"), sj = path.join(root, "js", "pages", "search.js"), shF = path.join(root, "search.html"), runF = path.join(root, "tests", "run-all.js");
+    const WANT = {
+      id_invalid: "That KIO ID is not valid, so these are the results for ", id_not_registered: "That KIO ID was not found, so these are the results for ",
+      id_gone: "That opening is no longer on FightGhostJobs, so these are the results for ", req_no_match: "That req number did not match, so these are the results for ",
+    };
+    if (fs.existsSync(siF)) {
+      const t = stripJsComments(read(siF));
+      for (const [k, v] of Object.entries(WANT)) if (!t.includes(k + ': "' + v + '",')) add("S104", siF, "the failover sentence for " + k + " must be exactly: " + v + "<company> and <title>.");
+      const block = (t.match(/export const FAILOVER_SENTENCES = Object\.freeze\(\{([\s\S]*?)\}\);/) || [, ""])[1];
+      if (/verif|compliant|certif|scam|fake|fraud|suspicious|trusted|safe\b|guarantee|\bflag|detect|catch|expose|loophole|compliance|posting|[–—]/i.test(block.replace(/FightGhostJobs/g, ""))) add("S104", siF, "the failover sentences hold a forbidden word or a dash");
+    } else add("S104", siF, "js/search-input.js is missing");
+    if (fs.existsSync(sj)) {
+      const s = read(sj);
+      if (/innerHTML|insertAdjacentHTML|outerHTML/.test(s)) add("S104", sj, "the search page must never put typed text into the page as markup");
+      if (!s.includes('id: "failoverNotice"') || !s.includes("searched.failoverText")) add("S104", sj, "the failover sentence must be shown above the results as a text element");
+      if (!s.includes("[failoverText, mismatchText, ...(hints || []), missSpoken]")) add("S104", sj, "the failover sentence must be read out with the rest of the search's one spoken message");
+    }
+    if (fs.existsSync(shF) && !read(shF).includes("The record also holds any KIO ID or req number you typed or we read from the job page, and an ID you mistyped is kept as typed. Employers never see who searched.")) add("S104", shF, "the notice under the results must say that the record also holds the KIO ID or req number text and that a mistyped ID is kept as typed");
+    if (fs.existsSync(runF) && !read(runF).includes('"failover.test.js"')) add("S104", runF, "failover.test.js is not a step of the full run");
+  }
   // S75 (2026-10-10, prompt BG): version markers on every local script, style and module import (tests/stamp-versions.js). The site is served with Cache-Control: max-age=600 and no version in any file name, so a changed
   // script could be served from a cache for ten minutes. Every local reference carries ?v= and 8 hex digits of the hash of what it names (for a module, of its text and of the modules it imports), so a changed
   // file is a new address. This rule fails when a reference has no marker, or a marker that is not the current one (a changed file whose markers were not stamped again). Every other rule reads the pages and
