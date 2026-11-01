@@ -59,7 +59,7 @@ const UNIT = {
     for (const v of [undefined, null, "", "bogus", "constructor", "__proto__", "toString", 5, true, {}, [], "ID_INVALID", " id_invalid", "kio"]) if (m.failoverSentence(v, "A", "B") !== null) bad.push("a value that is not one of the four reasons gave a sentence: " + JSON.stringify(v));
     const all = Object.values(m.FAILOVER_SENTENCES).join(" ") + " " + m.KEY_WITH_REQ_MESSAGE;
     if (FORBIDDEN.test(all.replace(/FightGhostJobs/g, "FGJ"))) bad.push("a forbidden word is in the strings: " + (all.replace(/FightGhostJobs/g, "FGJ").match(FORBIDDEN) || [])[0]);
-    if (/[–—]/.test(all)) bad.push("a dash (em or en) is in the strings");
+    if (new RegExp("[" + String.fromCharCode(8211, 8212) + "]").test(all)) bad.push("a dash (em or en) is in the strings");
     if (m.KEY_WITH_REQ_MESSAGE !== KEY_WITH_REQ) bad.push("the KIO ID with a req number message changed: " + m.KEY_WITH_REQ_MESSAGE);
     // the company and the title are text, cut to 80 characters like the echo line, and never changed into markup
     const long = m.failoverSentence("id_invalid", "C".repeat(100), "T".repeat(100));
@@ -310,7 +310,7 @@ const DEFECTS = [
   ["the typed company and title are put into the page as HTML", [["js/pages/search.js", (s) => s.replace('h("div", { class: "alert alert-notice", id: "failoverNotice", style: "overflow-wrap:anywhere;" }, searched.failoverText)', '(() => { const d = h("div", { class: "alert alert-notice", id: "failoverNotice" }); d.innerHTML = searched.failoverText; return d; })()')]], ["pageEmpty"]],
   ["the miss message is shown on a found failover", [["js/pages/search.js", (s) => s.replace("for (const row of data.results) resultsEl.append(renderCard(row));\n  return hints;", 'for (const row of data.results) resultsEl.append(renderCard(row));\n  if (searched.failoverText) resultsEl.append(h("p", { class: "miss-line" }, missMessage("not_registered")[0]));\n  return hints;')]], ["pageFound"]],
   ["a forbidden word is in a new sentence (verified)", [["js/search-input.js", (s) => s.replace('id_invalid: "That KIO ID is not valid, so', 'id_invalid: "That KIO ID is not verified, so')]], ["unitWords"]],
-  ["a dash is in a new sentence", [["js/search-input.js", (s) => s.replace('req_no_match: "That req number did not match, so', 'req_no_match: "That req number did not match — so')]], ["unitWords"]],
+  ["a dash is in a new sentence", [["js/search-input.js", (s) => s.replace('req_no_match: "That req number did not match, so', 'req_no_match: "That req number did not match ' + String.fromCharCode(8212) + ' so')]], ["unitWords"]],
   ["the 400 for an ID the edge refuses clears the typed boxes", [["js/pages/search.js", (s) => s.replace('if (!r.ok && r.status === 400 && r.error.field === "kio") { setFormError(KIO_INVALID_MESSAGE);', 'if (!r.ok && r.status === 400 && r.error.field === "kio") { companyIn.value = ""; queryIn.value = ""; setFormError(KIO_INVALID_MESSAGE);')]], ["pageRefused"]],
   ["origin is not sent", [["js/pages/search.js", (s) => s.replace("const send = (b) => api.candidateSearch(Object.assign(b, ev));", "const send = (b) => api.candidateSearch(b);")]], ["pageOrigin", "pageFound"]],
   ["the host of the extension is not cleaned", [["js/fragment-prefill.js", (s) => s.replace('.replace(/^www\\./, "")', "")]], ["unitFragment", "pageOrigin"]],

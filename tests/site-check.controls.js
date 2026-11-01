@@ -1547,7 +1547,7 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   // S104 (prompt HM, October 31, 2026): the failover sentences and how the page shows them
   control("a failover sentence is another reason's words", "S104", edit("js/search-input.js", (s) => s.replace('id_not_registered: "That KIO ID was not found, so these are the results for ",', 'id_not_registered: "That KIO ID is not valid, so these are the results for ",')));
   control("a failover sentence holds a forbidden word", "S104", edit("js/search-input.js", (s) => s.replace('id_invalid: "That KIO ID is not valid, so', 'id_invalid: "That KIO ID is not verified, so')));
-  control("a failover sentence holds a dash", "S104", edit("js/search-input.js", (s) => s.replace('req_no_match: "That req number did not match, so', 'req_no_match: "That req number did not match — so')));
+  control("a failover sentence holds a dash", "S104", edit("js/search-input.js", (s) => s.replace('req_no_match: "That req number did not match, so', 'req_no_match: "That req number did not match ' + String.fromCharCode(8212) + ' so')));
   control("typed text is put into the page as markup", "S104", edit("js/pages/search.js", (s) => s + "\ndocument.body.innerHTML = \"\";\n"));
   control("the failover sentence loses its element", "S104", edit("js/pages/search.js", (s) => s.replace('id: "failoverNotice"', 'id: "failoverNoticeX"')));
   control("the failover sentence is not read out", "S104", edit("js/pages/search.js", (s) => s.replace("[failoverText, mismatchText, ...(hints || []), missSpoken]", "[mismatchText, ...(hints || []), missSpoken]")));

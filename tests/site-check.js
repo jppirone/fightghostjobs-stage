@@ -2252,7 +2252,7 @@ export function checkSite(root, opts = {}) {
       const t = stripJsComments(read(siF));
       for (const [k, v] of Object.entries(WANT)) if (!t.includes(k + ': "' + v + '",')) add("S104", siF, "the failover sentence for " + k + " must be exactly: " + v + "<company> and <title>.");
       const block = (t.match(/export const FAILOVER_SENTENCES = Object\.freeze\(\{([\s\S]*?)\}\);/) || [, ""])[1];
-      if (/verif|compliant|certif|scam|fake|fraud|suspicious|trusted|safe\b|guarantee|\bflag|detect|catch|expose|loophole|compliance|posting|[–—]/i.test(block.replace(/FightGhostJobs/g, ""))) add("S104", siF, "the failover sentences hold a forbidden word or a dash");
+      if (/verif|compliant|certif|scam|fake|fraud|suspicious|trusted|safe\b|guarantee|\bflag|detect|catch|expose|loophole|compliance|posting/i.test(block.replace(/FightGhostJobs/g, "")) || new RegExp("[" + String.fromCharCode(8211, 8212) + "]").test(block)) add("S104", siF, "the failover sentences hold a forbidden word or a dash");
     } else add("S104", siF, "js/search-input.js is missing");
     if (fs.existsSync(sj)) {
       const s = read(sj);
