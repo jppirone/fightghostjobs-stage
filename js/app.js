@@ -1,6 +1,6 @@
 // app.js - what every page shares: the API object wired to the real session, the top-bar account area, and the "you must be signed in as ..." guards.
 
-import { createApi, describeError, isAuthFailure } from "./api.js?v=ad6cda84";
+import { createApi, describeError, isAuthFailure } from "./api.js?v=81f2b28a";
 import { SUPABASE_URL, PUBLISHABLE_KEY } from "./config.js?v=cb962576";
 import { accessToken, currentSession, signOut, rememberNext } from "./session.js?v=f9b6c351";
 import { h, clear, alertBox } from "./dom.js?v=5c78a8cd";

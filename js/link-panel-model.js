@@ -6,7 +6,7 @@
 
 import { applyLinks, MAX_URL, MAX_LABEL } from "./edit-form.js?v=eb936068";
 import { waitText } from "./format.js?v=0b334448";
-import { isAuthFailure } from "./api.js?v=ad6cda84";
+import { isAuthFailure } from "./api.js?v=81f2b28a";
 
 const hasControl = (s) => Array.from(String(s)).some((ch) => { const c = ch.codePointAt(0); return c < 32 || c === 127; });
 

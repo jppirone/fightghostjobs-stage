@@ -34,6 +34,9 @@ const MASK_RE = /^\*{4}-\*{4}-[0-9A-HJKMNP-TV-Z]{4}$/;
 // the masked req number: at most 3 leading characters, a fixed block of four stars, at most 2 trailing characters (the full number is never sent to a candidate)
 const MASKED_REQ_RE = /^.{0,3}[*]{4}.{0,2}$/;
 const isStr = (v) => typeof v === "string";
+// prompt HM (October 31, 2026): a search answer may carry failover { reason, tried_key } (candidate-search, prompt HL): the ID or the req number failed and the company and title were searched instead. Absent = an ordinary answer.
+// Present = exactly one of the four reasons with the key it belongs to (the three ID reasons: kio; a req number that matched nothing: req); anything else fails the whole answer (fail closed).
+const failoverOk = (f) => f === undefined || (f !== null && typeof f === "object" && !Array.isArray(f) && ((["id_invalid", "id_not_registered", "id_gone"].includes(f.reason) && f.tried_key === "kio") || (f.reason === "req_no_match" && f.tried_key === "req")));
 const isBool = (v) => typeof v === "boolean";
 const isNullable = (v, t) => v === null || t(v);
 const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -85,7 +88,7 @@ export const shapes = {
     && isNullable(r.applicant_cap, Number.isInteger) && isNullable(r.ai_filtering, isBool) && isNullable(r.ai_interview_other, isBool) && isBool(r.third_party_recruiter)
     && isStr(r.opening_id) && /^(?:KIO-)?[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(r.opening_id) && isNullable(r.req_number, isStr),
   staffSearch: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req") && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.staffRow) && Object.keys(d).length === 3,
-  search: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req" || d.mode === "kio") && (d.mismatch === undefined || isBool(d.mismatch)) && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.searchRow),
+  search: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req" || d.mode === "kio") && (d.mismatch === undefined || isBool(d.mismatch)) && failoverOk(d.failover) && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.searchRow),
   // prompt BA (October 10, 2026): up to ten application links, three named recruiter firms and ONE entry of kind "policy" (the employer's AI and hiring policy link: position 1, a label saying where it goes, never a firm)
   detail: (d) => isObj(d) && isObj(d.posting) && shapes.searchRow(Object.assign({ }, d.posting)) && (d.comment_count === undefined || (Number.isInteger(d.comment_count) && d.comment_count >= 0)) && Array.isArray(d.links) && d.links.length <= 14 && linkCountsOk(d.links)
     && d.links.every((l) => isObj(l) && Number.isInteger(l.position) && l.position >= 1 && l.position <= 10 && isNullable(l.label, isStr) && (l.kind === undefined || l.kind === "apply" || l.kind === "recruiter" || l.kind === "policy") && (l.firm === undefined || isNullable(l.firm, isStr)) && (l.kind !== "recruiter" || isStr(l.firm))

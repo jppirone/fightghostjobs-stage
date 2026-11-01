@@ -43,6 +43,22 @@ export const MISS_MESSAGES = Object.freeze({
   ]),
   registered_none_live: Object.freeze(["This employer is registered with FightGhostJobs. It has no live openings in our system right now."]),
 });
+// prompt HM (October 31, 2026): the sentence above the results when the KIO ID or the req number failed and the company and title were searched instead (the edge function's field failover { reason, tried_key }, prompt HL). These are
+// the ONLY words the page has for it, in ONE place. The company and the title are what the person typed, put in as TEXT (the page never turns them into markup), cut to 80 characters like the echo line. The sentence says only
+// which key failed and that these are the results for the company and title; it claims nothing about any opening beyond the result rows.
+export const FAILOVER_SENTENCES = Object.freeze({
+  id_invalid: "That KIO ID is not valid, so these are the results for ",
+  id_not_registered: "That KIO ID was not found, so these are the results for ",
+  id_gone: "That opening is no longer on FightGhostJobs, so these are the results for ",
+  req_no_match: "That req number did not match, so these are the results for ",
+});
+// the sentence for one of the four reasons, or null for anything else (no value, another word, a number, a name like "constructor")
+export function failoverSentence(reason, company, title) {
+  if (typeof reason !== "string" || !Object.prototype.hasOwnProperty.call(FAILOVER_SENTENCES, reason)) return null;
+  return FAILOVER_SENTENCES[reason] + clip(company, 80) + " and " + clip(title, 80) + ".";
+}
+// a KIO ID cannot be searched together with a req number (the edge function refuses it; prompt HM: this is now the ONLY pair of boxes the page refuses on sight, a title next to a req number is a fallback)
+export const KEY_WITH_REQ_MESSAGE = "A KIO ID cannot be used with a req number. Fill in one or the other.";
 // the lines of a miss kind, or null for anything that is not exactly one of the three names (no value, another word, a number, a name like "constructor")
 export function missMessage(kind) {
   return typeof kind === "string" && Object.prototype.hasOwnProperty.call(MISS_MESSAGES, kind) ? MISS_MESSAGES[kind] : null;
@@ -121,7 +137,15 @@ export function checkReq(text) {
 // Two boxes, exactly one used: "Req number" or "PostID, or part of the title".  -> { ok:false, message, focus:"title"|"req" } | { ok:true, kind:"phrase"|"code"|"req", value, alsoTryCode? }
 export function resolveSearch(titleText, reqText) {
   const hasTitle = String(titleText || "").trim() !== "", hasReq = String(reqText || "").trim() !== "";
-  if (hasTitle && hasReq) return { ok: false, message: "Fill in the req number, or the KIO ID / title box, not both.", focus: "req", clearResults: true };   // prompt BK: the page clears the earlier results under this refusal
+  // prompt HM: a req number AND a title may both be filled: the req number is tried first and the title is the fallback (kind req, title = the title words). A KIO ID or an old postID in the title box next to a req number is still refused.
+  if (hasTitle && hasReq) {
+    const r = checkReq(reqText);
+    if (!r.ok) return { ok: false, message: r.message, focus: "req" };
+    const q = classifyQuery(titleText);
+    if (!q.ok) return Object.assign({ focus: "title" }, q);
+    if (q.kind !== "phrase") return { ok: false, message: KEY_WITH_REQ_MESSAGE, focus: "req", clearResults: true };   // prompt BK: the page clears the earlier results under this refusal
+    return { ok: true, kind: "req", value: r.value, title: q.value };
+  }
   if (!hasTitle && !hasReq) return { ok: false, message: "Enter a req number, a KIO ID or part of the job title.", focus: "req" };
   if (hasReq) { const r = checkReq(reqText); return r.ok ? { ok: true, kind: "req", value: r.value } : { ok: false, message: r.message, focus: "req" }; }
   const q = classifyQuery(titleText);

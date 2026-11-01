@@ -3,14 +3,14 @@
 // Prompt BP (October 11, 2026): the table has Title (with the place and the day it was added under it), Req #, Opening ID, Status (only in a view that can hold more than one status), Actions, Closes (with a flag line when
 // the date is near) and Comments; the sort box orders every loaded row; the Expiring pill gathers drafts near the end of their publish window.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=eebb4b7a";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=ea0bbf73";
 import { rememberNext } from "../session.js?v=f9b6c351";
 import { $, h, clear, alertBox } from "../dom.js?v=5c78a8cd";
 import { groupCode, waitText } from "../format.js?v=0b334448";
 import { placeNodes } from "../place.js?v=811ff44d";
 import { FILTERS, SORTS, SORT_ANNOUNCE, defaultSort, sortRows, showsStatusColumn, statusChip, matchesFilter, matchesText, reqCell, addedCell, closesCell, expiryFlag } from "../dashboard-model.js?v=70fac77f";
 import { actionsFor, publishWindowEnded } from "../dashboard-model.js?v=70fac77f";
-import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=19e6c2e4";
+import { runAction, ACTION_LABEL } from "../dashboard-actions.js?v=1cce7c82";
 import { COMMENTS_VISIBLE } from "../config.js?v=cb962576";
 
 const PAGE_CAP = 20;                       // 20 pages of 50: a hard stop, never an endless loop

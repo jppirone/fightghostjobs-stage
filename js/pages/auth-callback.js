@@ -2,7 +2,7 @@
 // this page then works out WHICH kind of session it got and sends the person on. An employer-intent link that did not produce an employer session (the address is not on a roster,
 // or the 10-minute consent window had passed) is explained, never silently treated as a candidate sign-in.
 
-import { api, go, signOut, describeError, posterInfo, forgetLocalState } from "../app.js?v=eebb4b7a";
+import { api, go, signOut, describeError, posterInfo, forgetLocalState } from "../app.js?v=ea0bbf73";
 import { currentSession, takeNext } from "../session.js?v=f9b6c351";
 import { $, h, clear } from "../dom.js?v=5c78a8cd";
 import { markLanded, landingKindForPage } from "../landing-notice.js?v=f37507d8";

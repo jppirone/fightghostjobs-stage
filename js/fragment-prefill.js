@@ -24,12 +24,15 @@ const hasControl = (s) => Array.from(s).some((ch) => { const c = ch.codePointAt(
 export function parseSearchFragment(hash) {
   const raw = String(hash == null ? "" : hash).replace(/^#/, "");
   const pieces = raw.split("&");
-  const found = new Map();
+  const found = new Map(), sent = new Map();
   let ours = false, bad = raw.length > MAX_TOTAL || pieces.length > MAX_PARTS;
   for (const piece of pieces.slice(0, MAX_PARTS)) {
     const eq = piece.indexOf("=");
     if (eq < 1) continue;
     const key = piece.slice(0, eq);
+    // prompt HM: o and h say where the search came from (the extension sends o=e and the host of the job page in h). They are read leniently (a wrong value or a second copy is ignored, never a reason to refuse the fragment) and do not
+    // make a fragment "ours" on their own
+    if (key === "o" || key === "h") { if (!sent.has(key)) { try { sent.set(key, decodeURIComponent(piece.slice(eq + 1)).trim()); } catch { /* ignored */ } } continue; }
     if (!Object.prototype.hasOwnProperty.call(FRAGMENT_KEYS, key)) continue;   // an unknown key (or "__proto__") is ignored
     ours = true;
     if (found.has(key)) { bad = true; continue; }
@@ -40,31 +43,47 @@ export function parseSearchFragment(hash) {
   }
   if (!ours) return { ours: false, result: null };
   if (bad) return { ours: true, result: null };
+  const origin = sent.get("o") === "e" ? originOf("e", sent.get("h")) : null;   // only a search from the extension carries its origin here; every other search is the site (the page says so itself)
   if (found.has("k")) {
     // the KIO ID: c and t are optional; p and r are never accepted with it
     if (found.has("p") || found.has("r")) return { ours: true, result: null };
     const cK = found.get("c") || "", tK = found.get("t") || "", kK = found.get("k");
     if (cK.length > FRAGMENT_MAX.company || tK.length > FRAGMENT_MAX.title || kK === "" || kK.length > FRAGMENT_MAX.kio) return { ours: true, result: null };
     const read = readKio(kK);
-    if (read.kind !== "kio") return { ours: true, result: null };
-    return { ours: true, result: { company: cK, kind: "kio", value: read.display, stored: read.stored, title: tK } };
+    // prompt HM: a k that is not a KIO ID that passes the check no longer throws away the company and the title that came with it: it is kept as typed (bad: true), and the search sends it as a failed key with them, so the answer is
+    // the company and title results (the failover). Without a company AND a title there is nothing to fall over to: the whole fragment is refused, as before.
+    if (read.kind !== "kio" && (cK === "" || tK === "")) return { ours: true, result: null };   // nothing to fall over to without BOTH a company and a title: refused whole, as before
+    if (read.kind !== "kio") return { ours: true, result: { company: cK, kind: "kio", value: kK, stored: null, title: tK, bad: true, ...(origin ? { origin } : {}) } };
+    return { ours: true, result: { company: cK, kind: "kio", value: read.display, stored: read.stored, title: tK, ...(origin ? { origin } : {}) } };
   }
   const company = found.get("c") || "", seconds = ["p", "r", "t"].filter((k) => found.has(k));
   if (company === "" || company.length > FRAGMENT_MAX.company || seconds.length !== 1) return { ours: true, result: null };
   const kind = FRAGMENT_KEYS[seconds[0]], value = found.get(seconds[0]);
   if (value === "" || value.length > FRAGMENT_MAX[kind]) return { ours: true, result: null };
-  return { ours: true, result: { company, kind, value } };
+  return { ours: true, result: { company, kind, value, ...(origin ? { origin } : {}) } };
+}
+
+// prompt HM: where the search came from. o=e is the browser extension; any other o (or none) is the site. The host (h) is cleaned the way the database cleans it: lower case, no scheme, path, query, fragment, user@, port, www. or
+// trailing dots, and kept only when it is a plain host of at most 253 characters. A search that did not come from the extension never carries a host.
+export function cleanHost(raw) {
+  let t = String(raw == null ? "" : raw).trim().toLowerCase();
+  t = t.replace(/^[a-z][a-z0-9+.-]*:\/\//, "").replace(/[/?#].*$/, "").replace(/^[^@]*@/, "").replace(/:[0-9]*$/, "").replace(/\.+$/, "").replace(/^www\./, "");
+  return t.length >= 1 && t.length <= 253 && /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(t) ? t : null;
+}
+export function originOf(o, h) {
+  return o === "e" ? { origin: "extension", host: h == null ? null : cleanHost(h) } : { origin: "site", host: null };
 }
 
 // win: the window; fills the boxes (text only) and removes the fragment from the address bar before anything else happens. -> true when the boxes were filled
 // onKio({ stored, shown, title }): called when the fragment carried a KIO ID, so the page can keep the title words (t) in memory for the mismatch notice; they are never put in a box.
-export function applyFragmentPrefill({ win, companyEl, queryEl, reqEl, onKio }) {
+export function applyFragmentPrefill({ win, companyEl, queryEl, reqEl, onKio, onOrigin }) {
   const { ours, result } = parseSearchFragment(win.location.hash);
   if (!ours) return false;
   try { win.history.replaceState(win.history.state, "", win.location.pathname + win.location.search); } catch { /* the address bar keeps the fragment; the boxes are still filled below */ }
   if (!result) return false;
   companyEl.value = result.company;
   if (result.kind === "req") reqEl.value = result.value; else queryEl.value = result.value;
-  if (result.kind === "kio" && typeof onKio === "function") onKio({ stored: result.stored, shown: result.value, title: result.title });
+  if (result.kind === "kio" && typeof onKio === "function") onKio({ stored: result.stored, shown: result.value, title: result.title, bad: result.bad === true });
+  if (typeof onOrigin === "function") onOrigin(result.origin);   // prompt HM: { origin, host }, kept in memory for the next search only
   return true;
 }

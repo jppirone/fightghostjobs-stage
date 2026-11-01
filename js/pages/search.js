@@ -1,11 +1,11 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=eebb4b7a";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=ea0bbf73";
 import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=f9b6c351";
 import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=b43b79f2";
 import { savePending, takePending } from "../signin-handoff.js?v=882122ed";
-import { applyFragmentPrefill } from "../fragment-prefill.js?v=3a9166bf";
+import { applyFragmentPrefill } from "../fragment-prefill.js?v=237380af";
 import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js?v=f37507d8";
 import { lockScroll } from "../scroll-lock.js?v=b751eb4c";
 import { trapFocus } from "../dialog-focus.js?v=f788366d";
@@ -21,7 +21,7 @@ import { tileActions } from "../tile-actions.js?v=7180edbf";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=5b8f0605";
 import { COMMENTS_VISIBLE } from "../config.js?v=cb962576";
 import { openUnit } from "../open-link.js?v=19175677";
-import { checkCompany, resolveSearch, noMatchMessage, missEmptyLines, missMessage, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=52d2c5ab";
+import { checkCompany, resolveSearch, noMatchMessage, missEmptyLines, missMessage, failoverSentence, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=97e235f3";
 import { isRegistered } from "../registered.js?v=f191c8c2";
 import { refineHints } from "../refine-hint.js?v=5ece29af";
 import { placeNodes } from "../place.js?v=811ff44d";
@@ -42,8 +42,17 @@ let staffMode = false, staffRobotsBefore = null, staffRobotsAdded = false, staff
 // and a search saved before the sign-in link is dropped so it can not run over what was filled in (js/fragment-prefill.js has the rules for this untrusted input)
 // prompt BQ: a fragment with a KIO ID (#k=...&c=...&t=...) puts the ID in the one box and, when it was sent, the company in the company box. The title words (t) are NOT put in a box: they are kept here, in memory only, so that the answer can say
 // whether the job ad's title differs from the record. They are used only for a search of that same ID, and dropped when the ID is changed.
-let heldKio = null;   // { stored, title } | null
-if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onKio: (k) => { heldKio = k.title ? { stored: k.stored, title: k.title } : null; } })) takePending(localStorage);
+// prompt HM (October 31, 2026): a fragment whose k is not a KIO ID that passes the check keeps its company and title (the module only does that when it has BOTH): the typed key text is put in the one box as typed and held here with the title
+// (bad: true), and the search sends it as a failed key with the company and title, so the answer is the company and title results with the failover sentence. heldOrigin: where the search came from (o=e, the extension, with the cleaned
+// host of the job page); in memory only, used by the NEXT search only, after which every search is the site's own.
+let heldKio = null;   // { stored, title, shown, bad } | null
+let heldOrigin = null;   // { origin, host } | null
+if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onKio: (k) => { heldKio = k.title || k.bad ? { stored: k.stored, title: k.title, shown: k.shown, bad: k.bad === true } : null; }, onOrigin: (o) => { heldOrigin = o || null; } })) takePending(localStorage);
+// the request fields origin and origin_host (candidate-search, prompt HL): "site" with no host for a search typed here, "extension" with the cleaned host for the search that arrived from the extension; they never change the answer
+function takeOriginFields() {
+  const o = heldOrigin; heldOrigin = null;
+  return o && o.origin === "extension" ? Object.assign({ origin: "extension" }, o.host ? { origin_host: o.host } : {}) : { origin: "site" };
+}
 
 function setFormError(text) { formError.hidden = !text; formError.textContent = text || ""; }
 function startCooldown(button, seconds, idleLabel) {
@@ -161,6 +170,8 @@ function showResults(data, searched) {
   clear(resultsEl);
   countEl.hidden = false;
   const n = data.results.length;
+  // prompt HM: the key failed and the company and title were searched: one plain sentence above everything else (text only; the company and the title are what the person typed). It is read out with the rest of the search's one message.
+  if (searched.failoverText) resultsEl.append(h("div", { class: "alert alert-notice", id: "failoverNotice", style: "overflow-wrap:anywhere;" }, searched.failoverText));
   if (n === 0) {
     countEl.textContent = "No matching openings";
     // prompt BQ: an ID that is past its retention says so in its own words; every other empty answer is the page's usual note
@@ -270,9 +281,15 @@ window.addEventListener("pagehide", () => { if (staffMode) { clear(resultsEl); c
 async function runSearch(auto) {   // auto: the saved search replayed after the sign-in link (the person did nothing, so the landing note stays)
   if (busy) return;
   setFormError(""); hideRecap(); clearOutcome();
-  const q = resolveSearch(queryIn.value, reqIn.value);
-  // prompt BQ: text that has the shape of an ID but fails the check is refused at once, whatever else is or is not filled in: nothing is sent and the search limit is not touched
-  if (!q.ok && q.message === KIO_INVALID_MESSAGE) { setFormError(q.message); queryIn.focus(); return; }
+  // prompt HM: the key text that came in the extension's fragment and is not a KIO ID that passes the check, still in the box as it was, with the company and the title that came with it: the search is a failed key plus company and title
+  const heldBad = !!(heldKio && heldKio.bad && heldKio.title && queryIn.value.trim() === heldKio.shown && reqIn.value.trim() === "" && String(companyIn.value || "").trim() !== "");
+  const q = heldBad ? { ok: true, kind: "kio", bad: true, value: heldKio.shown } : resolveSearch(queryIn.value, reqIn.value);
+  // prompt BQ: text that has the shape of an ID but fails the check is refused at once, whatever else is or is not filled in, with the same words as ever and without touching the search limit.
+  // prompt HM: it is also SENT (the ID text alone, signed in only) so that the answer for it is the edge function's own; what the page shows does not wait for or depend on that answer
+  if (!q.ok && q.message === KIO_INVALID_MESSAGE) {
+    if (session && session.isCandidate && !staffMode) { busy = true; try { await api.candidateSearch(Object.assign({ kio: queryIn.value.trim().slice(0, 80) }, takeOriginFields())); } catch { /* the words below are shown whatever happens */ } finally { busy = false; } }
+    setFormError(q.message); queryIn.focus(); return;
+  }
   // prompt BQ: the ID alone is enough. A company is asked for in every other kind of search, exactly as before; with an ID that passes the check it is optional (when it is typed it is still checked and, when it differs from the
   // record, it only raises the notice beside the answer)
   const idAlone = q.ok && q.kind === "kio" && String(companyIn.value || "").trim() === "";   // prompt BY: also in the staff view (the staff function takes an ID with no company since staff-search-id-migration; until that is run, a refusal puts the page back to the normal search, which answers the same ID)
@@ -285,7 +302,7 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
     (q.focus === "req" ? reqIn : queryIn).focus();
     return;
   }
-  if (staffMode && (await runStaffSearch(c, q, { company: companyIn.value, q: queryIn.value, r: reqIn.value }, auto))) return;   // staff scope: the staff answer; nothing is stored in the browser or counted for candidates (the database keeps its own private who-and-when record)
+  if (staffMode && !q.bad && (await runStaffSearch(c, q, { company: companyIn.value, q: queryIn.value, r: reqIn.value }, auto))) return;   // staff scope: the staff answer; nothing is stored in the browser or counted for candidates (the database keeps its own private who-and-when record)
   if (!session || !session.isCandidate) {
     // kept in localStorage (all tabs of this browser, one hour, removed when used, never sent anywhere): the emailed link opens in a NEW tab (signin-handoff.js)
     savePending(localStorage, { company: companyIn.value, q: queryIn.value, r: reqIn.value });
@@ -308,19 +325,30 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
       if (heldKio && heldKio.stored === stored) { b.phrase = heldKio.title; sentTitle = heldKio.title; }
       return b;
     };
-    let r = await api.candidateSearch(q.kind === "kio" ? kioBody(q.value) : q.kind === "req" ? { company: c.value, req: q.value } : q.kind === "code" ? { company: c.value, code: q.value } : { company: c.value, phrase: q.value });
-    if (q.alsoTryCode && r.ok && r.data.results.length === 0) r = await api.candidateSearch(q.alsoTryKio ? kioBody(q.alsoTryKio) : { company: c.value, code: q.value });
-    const wasKio = q.kind === "kio" || (!!q.alsoTryKio && r.ok && r.data.mode === "kio") || (!!q.alsoTryKio && !r.ok && r.status === 410);   // the words of an ID answer only when the text really was read as an ID
+    // prompt HM: origin (and its host) go with every search of this attempt; a failed key goes with the company and the title (the edge function then searches them: the failover)
+    const ev = takeOriginFields();
+    const send = (b) => api.candidateSearch(Object.assign(b, ev));
+    let failTitle = "";   // prompt HM: the title words that went with a key that may fail (the failover sentence names them)
+    let r = await send(q.bad ? (failTitle = heldKio.title, { kio: q.value, company: c.value, phrase: heldKio.title })
+      : q.kind === "kio" ? kioBody(q.value) : q.kind === "req" ? (q.title ? (failTitle = q.title, { company: c.value, req: q.value, phrase: q.title }) : { company: c.value, req: q.value }) : q.kind === "code" ? { company: c.value, code: q.value } : { company: c.value, phrase: q.value });
+    if (q.alsoTryCode && r.ok && r.data.results.length === 0) r = await send(q.alsoTryKio ? kioBody(q.alsoTryKio) : { company: c.value, code: q.value });
+    // prompt HM: the edge function's failover { reason, tried_key }: only one of the four known reasons counts (anything else is no failover); it comes with a 200 (results) or a 404 (nothing found)
+    const failOf = (d) => (d && typeof d === "object" && d.failover && typeof d.failover === "object" && failoverSentence(d.failover.reason, "", "") !== null ? d.failover.reason : null);
+    const failReason = failOf(r.data);
+    if (failReason !== null && failTitle === "" && sentTitle !== "") failTitle = sentTitle;
+    const failed = failReason !== null && failTitle !== "";   // the sentence names the title that was searched; without one there is no failover to describe
+    const wasKio = !failed && (q.kind === "kio" || (!!q.alsoTryKio && r.ok && r.data.mode === "kio") || (!!q.alsoTryKio && !r.ok && r.status === 410));   // the words of an ID answer only when the text really was read as an ID
     let gone = false;
     if (!r.ok && r.status === 410 && r.error.code === "gone") { gone = true; r = { ok: true, data: { mode: "kio", truncated: false, results: [] } }; }   // an opening past its retention: its own words
-    if (!r.ok && r.status === 404 && r.error.code === "not_found") r = { ok: true, data: { mode: "code", truncated: false, results: [], miss_kind: r.data && typeof r.data === "object" ? r.data.miss_kind : undefined } };   // prompt HD: the 404 body may carry the miss kind (candidate-search, prompt HC)   // a code that matches nothing is a plain "no such posting"
-    if (!r.ok && r.status === 400 && r.error.field === "kio") { setFormError(KIO_INVALID_MESSAGE); queryIn.focus(); return; }
+    if (!r.ok && r.status === 404 && r.error.code === "not_found") r = { ok: true, data: { mode: failed ? "phrase" : "code", truncated: false, results: [], miss_kind: r.data && typeof r.data === "object" ? r.data.miss_kind : undefined } };   // prompt HD: the 404 body may carry the miss kind (candidate-search, prompt HC)   // a code that matches nothing is a plain "no such posting"
+    if (!r.ok && r.status === 400 && r.error.field === "kio") { setFormError(KIO_INVALID_MESSAGE); queryIn.focus(); return; }   // prompt HM: an ID the edge refuses (for example over 60 characters): the usual words, and the boxes keep what was typed
     if (r.ok) {
       const mismatchText = r.data.mismatch === true ? kioMismatchMessage(c.value, sentTitle) : "";
       const missKind = !wasKio && !gone && r.data.results.length === 0 ? r.data.miss_kind : undefined;   // prompt HD: only an EMPTY company based answer can carry a miss kind; a found result never shows one
-      const hints = showResults(r.data, { company: c.value, query: q.value, kind: wasKio ? "kio" : q.kind, gone, title: sentTitle, mismatchText, missKind });
+      const failoverText = failed ? failoverSentence(failReason, c.value, failTitle) : null;
+      const hints = showResults(r.data, { company: c.value, query: failed ? failTitle : q.value, kind: failed ? "phrase" : wasKio ? "kio" : q.kind, gone, title: sentTitle, mismatchText, missKind, failoverText });
       const missSpoken = (missMessage(missKind) || []).join(" ");   // read out with the rest of the search's one spoken message
-      showRecap(typed, c.value, q, auto, [mismatchText, ...(hints || []), missSpoken].filter(Boolean).join(" "));
+      showRecap(typed, c.value, q.bad ? { kind: "code" } : q, auto, [failoverText, mismatchText, ...(hints || []), missSpoken].filter(Boolean).join(" "));
       return;
     }
     clear(resultsEl); countEl.hidden = true;

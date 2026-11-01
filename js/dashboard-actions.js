@@ -1,7 +1,7 @@
 // dashboard-actions.js - the row actions on "My postings": publish a draft, pause, resume, extend (the one-time bump) and close. Each one opens a small confirmation dialog that says what will happen,
 // then calls the backend (which has already been verified: it decides who may do what to which posting and refuses anything else). Everything shown is text (dom.js), never HTML.
 import { h } from "./dom.js?v=5c78a8cd";
-import { isAuthFailure, describeError } from "./api.js?v=ad6cda84";
+import { isAuthFailure, describeError } from "./api.js?v=81f2b28a";
 import { checkBump, checkClose, MAX_BUMP_DAYS, MAX_REASON, MAX_CLOSE_DETAIL } from "./dashboard-model.js?v=70fac77f";
 import { fmtClose } from "./format.js?v=0b334448";
 import { focusWithRing } from "./focus-ring.js?v=98307f3f";
