@@ -92,7 +92,7 @@ control("app.css loaded before styles.css", "S13", edit("register.html", (s) => 
 control("the closed-or-expired sentence removed from the note", "S14", edit("js/search-input.js", (s) => s.replace(" A title search finds only openings that are live: closed or expired openings are found only by KIO ID or req number.", "")));
 control("the sentence reworded", "S14", edit("js/search-input.js", (s) => s.replace("are found only by KIO ID or req number.", "may be found by KIO ID or req number.")));
 control("search.js goes back to its own hand-written message", "S14", edit("js/pages/search.js", (s) => s.replace("noMatchMessage(searched.company, searched.query, searched.kind))", "\"No openings found. Check the name.\")")));
-control("search.js no longer imports the message builder", "S14", edit("js/pages/search.js", (s) => s.replace("resolveSearch, noMatchMessage, searchErrorMessage", "resolveSearch, searchErrorMessage")));
+control("search.js no longer imports the message builder", "S14", edit("js/pages/search.js", (s) => s.replace("resolveSearch, noMatchMessage, missEmptyLines", "resolveSearch, missEmptyLines")));   // prompt HM: the import line has named missEmptyLines since prompt HD; this anchor was already stale on the stage base 56a87a8 (the controls run stopped here)
 control("the message stops echoing what was searched", "S14", edit("js/search-input.js", (s) => s.split("return \"No openings found for").join("return \"Nothing for")));
 control("the message stops carrying the note", "S14", edit("js/search-input.js", (s) => s.replace("+ what + \". \" + NO_MATCH_NOTE;", "+ what + \".\";")));
 
