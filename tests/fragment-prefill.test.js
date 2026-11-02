@@ -12,6 +12,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 import { launchBrowser } from "./cdp-tabs.js";
 import { startFakeSite } from "./fake-site.js";
 
@@ -136,7 +137,106 @@ const SCENARIOS = {
     }
     return bad;
   },
+  // prompt IA (November 1, 2026): the key o. A classic address with o=m (the phone entry) sends origin "mobile" and no origin_host, o=e sends the extension with its cleaned host, anything else is the site; the search still starts only when the person presses Search
+  async originSent(root) {
+    const site = await startFakeSite(root), bad = [], tab = await browser.newTab();
+    const base = "#c=" + enc("Meridian Health") + "&t=" + enc("Senior Data Analyst");
+    const CASES = [
+      ["o=m", base + "&o=m", { origin: "mobile" }], ["o=m with a host", base + "&o=m&h=" + enc("jobs.example.invalid"), { origin: "mobile" }], ["o=m first, then o=e", base + "&o=m&o=e&h=" + enc("jobs.example.invalid"), { origin: "mobile" }],
+      ["o=e with a host", base + "&o=e&h=" + enc("https://www.Jobs.Example.invalid/x?y"), { origin: "extension", origin_host: "jobs.example.invalid" }], ["o=e with no host", base + "&o=e", { origin: "extension" }],
+      ["no o", base, { origin: "site" }], ["o=x", base + "&o=x", { origin: "site" }], ["an empty o", base + "&o=", { origin: "site" }], ["o=M (capital)", base + "&o=M&h=" + enc("jobs.example.invalid"), { origin: "site" }],
+    ];
+    try {
+      await tab.focusEmulation(true); await become(tab, site, "candidate");
+      for (const [label, hash, want] of CASES) {
+        site.calls.length = 0;
+        await open(tab, site, hash);
+        const s = await state(tab);
+        if (s.c !== "Meridian Health" || s.q !== "Senior Data Analyst" || s.r !== "") bad.push(label + ": the boxes are not company / title only: " + JSON.stringify([s.c, s.q, s.r]));
+        if (s.hash !== "" || /#/.test(s.href)) bad.push(label + ": the fragment is still in the address bar: " + s.href);
+        await sleep(800);
+        if (searches(site).length !== 0) bad.push(label + ": a search ran by itself");
+        await tab.eval("document.getElementById('searchForm').requestSubmit()");
+        if (!(await tab.waitFor("document.querySelectorAll('#results .card').length > 0", 8000))) bad.push(label + ": pressing Search did not show results");
+        const sent = searches(site);
+        if (sent.length !== 1) { bad.push(label + ": pressing Search ran " + sent.length + " searches"); continue; }
+        const b = sent[0].body;
+        if (b.origin !== want.origin || b.origin_host !== want.origin_host || ("origin_host" in b) !== ("origin_host" in want)) bad.push(label + ": the search carried origin " + JSON.stringify([b.origin, b.origin_host]) + ", wanted " + JSON.stringify([want.origin, want.origin_host]));
+        if (b.company !== "Meridian Health" || b.phrase !== "Senior Data Analyst") bad.push(label + ": the search words changed: " + JSON.stringify(b));
+        if (Object.keys(b).some((k) => !["company", "phrase", "origin", "origin_host"].includes(k))) bad.push(label + ": the search carried more than company, phrase and the origin: " + Object.keys(b).join(","));
+      }
+    } finally { await tab.close(); await site.close(); }
+    return bad;
+  },
+  // the search saved while a signed out person waits for the emailed link carries the origin, and the search that runs by itself afterwards is sent with it (the link may open in a new tab, which has forgotten everything but the saved search)
+  async originHandoff(root) {
+    const bad = [];
+    const base = "#c=" + enc("Meridian Health") + "&t=" + enc("Senior Data Analyst");
+    const comeBack = async (tab, site) => {   // the person opens the emailed link: a session appears, then the search page starts and runs the saved search by itself
+      await tab.goto(site.url + "/_dev/link?kind=candidate"); await tab.waitFor("location.pathname.indexOf('auth-callback') < 0 && !!localStorage.getItem('fgj-auth')", 10000); await sleep(500);
+      await tab.goto(site.url + "/search.html"); await tab.waitFor("document.readyState === 'complete' && !!document.getElementById('company')", 15000);
+      await tab.waitFor("document.querySelectorAll('#results .card').length > 0", 8000); await sleep(500);
+    };
+    const CASES = [
+      ["mobile", base + "&o=m", { origin: "mobile", host: null }, { origin: "mobile" }], ["mobile with a host", base + "&o=m&h=" + enc("jobs.example.invalid"), { origin: "mobile", host: null }, { origin: "mobile" }],
+      ["extension with its host", base + "&o=e&h=" + enc("https://www.Jobs.Example.invalid/x"), { origin: "extension", host: "jobs.example.invalid" }, { origin: "extension", origin_host: "jobs.example.invalid" }],
+      ["extension with no host", base + "&o=e", { origin: "extension", host: null }, { origin: "extension" }], ["no origin (the site)", base, { origin: "site", host: null }, { origin: "site" }],
+    ];
+    for (const [label, hash, savedWant, sentWant] of CASES) {
+      const site = await startFakeSite(root), tab = await browser.newTab();
+      try {
+        await tab.focusEmulation(true); await become(tab, site, "out");
+        await open(tab, site, hash);
+        await tab.eval("document.getElementById('searchForm').requestSubmit()"); await sleep(700);
+        const kept = JSON.parse((await state(tab)).pending || "null");
+        if (!kept) { bad.push(label + ": nothing was saved"); continue; }
+        if (Object.keys(kept.v).sort().join(",") !== "company,host,origin,q,r") bad.push(label + ": the saved search holds " + Object.keys(kept.v).sort().join(",") + " (exactly company, host, origin, q, r are allowed)");
+        if (kept.v.origin !== savedWant.origin || kept.v.host !== savedWant.host) bad.push(label + ": the saved origin is " + JSON.stringify([kept.v.origin, kept.v.host]));
+        if (kept.exp - Date.now() > 3600000 + 5000 || kept.exp - Date.now() < 3600000 - 60000) bad.push(label + ": the saved search is not kept for one hour (" + (kept.exp - Date.now()) + " ms left)");
+        if (searches(site).length !== 0) bad.push(label + ": a search ran while signed out");
+        await comeBack(tab, site);
+        const sent = searches(site);
+        if (sent.length !== 1) { bad.push(label + ": after the link the saved search ran " + sent.length + " times"); continue; }
+        const b = sent[0].body;
+        if (b.origin !== sentWant.origin || b.origin_host !== sentWant.origin_host || ("origin_host" in b) !== ("origin_host" in sentWant)) bad.push(label + ": the search that ran by itself carried origin " + JSON.stringify([b.origin, b.origin_host]) + ", wanted " + JSON.stringify([sentWant.origin, sentWant.origin_host]));
+        if (b.company !== "Meridian Health" || b.phrase !== "Senior Data Analyst") bad.push(label + ": the search words changed: " + JSON.stringify(b));
+        if ((await state(tab)).pending !== null) bad.push(label + ": the saved search was not removed after it ran");
+      } finally { await tab.close(); await site.close(); }
+    }
+    // a saved search from before this change (no origin), a damaged one (unknown word, a host that is not text), a mobile one that carries a host: each runs once, and is sent as the site or as mobile without a host; never an error
+    const SAVED = [
+      ["saved before this change (no origin)", { company: "Meridian Health", q: "Senior Data Analyst", r: "" }, { origin: "site" }],
+      ["an unknown origin word", { company: "Meridian Health", q: "Senior Data Analyst", r: "", origin: "phone", host: "x.example.invalid" }, { origin: "site" }],
+      ["a capital letter", { company: "Meridian Health", q: "Senior Data Analyst", r: "", origin: "Mobile", host: null }, { origin: "site" }],
+      ["an extension host that is not text", { company: "Meridian Health", q: "Senior Data Analyst", r: "", origin: "extension", host: 12345 }, { origin: "extension" }],
+      ["a mobile search saved with a host", { company: "Meridian Health", q: "Senior Data Analyst", r: "", origin: "mobile", host: "x.example.invalid" }, { origin: "mobile" }],
+    ];
+    for (const [label, v, sentWant] of SAVED) {
+      const site = await startFakeSite(root), tab = await browser.newTab();
+      try {
+        await tab.focusEmulation(true); await become(tab, site, "out");
+        await tab.eval("localStorage.setItem('fgj-pending-search', JSON.stringify({ v: " + JSON.stringify(v) + ", exp: Date.now() + 3600000 }))");
+        await comeBack(tab, site);
+        const sent = searches(site);
+        if (sent.length !== 1) { bad.push(label + ": the saved search ran " + sent.length + " times"); continue; }
+        const b = sent[0].body;
+        if (b.origin !== sentWant.origin || ("origin_host" in b) !== ("origin_host" in sentWant)) bad.push(label + ": the search carried " + JSON.stringify([b.origin, b.origin_host]) + ", wanted " + JSON.stringify(sentWant));
+        if (await tab.eval("!document.getElementById('formError').hidden")) bad.push(label + ": the person was shown an error");
+      } finally { await tab.close(); await site.close(); }
+    }
+    return bad;
+  },
+  // the pure parts, in the copy under test (so a defect made in a copy of the code is seen by the unit tests as well)
+  async unitFragment(root) { return runUnit(root, "fragment-prefill.unit.test.js"); },
+  async unitHandoff(root) { return runUnit(root, "signin-handoff.test.js"); },
 };
+function runUnit(root, file) {
+  const env = Object.assign({}, process.env); delete env.NODE_TEST_CONTEXT;
+  const r = spawnSync(process.execPath, ["--test", path.join(root, "tests", file)], { cwd: root, env, encoding: "utf8", timeout: 300000 });
+  if (r.status === 0) return [];
+  const first = (r.stdout.match(/^\s*(?:✖|not ok \d+ -) (.+?)(?: \(\d[\d.]*ms\))?$/m) || [])[1];
+  return [file + " fails: " + (first || String(r.stderr || r.stdout).slice(0, 120)).slice(0, 160)];
+}
 const ALL = Object.keys(SCENARIOS);
 
 test("the search page opened with a fragment: filled, no automatic search, signed out and signed in, hostile input refused", { timeout: 600000 }, async () => {
@@ -164,6 +264,16 @@ const DEFECTS = [
   ["the fragment text is put into the page as markup", ["hostile"], FP, (s) => s.replace("companyEl.value = result.company;", "companyEl.value = result.company; companyEl.insertAdjacentHTML(\"afterend\", result.company);")],
   ["the req number goes into the Opening ID/title box", ["signedOutReq"], FP, (s) => s.replace("if (result.kind === \"req\") reqEl.value = result.value; else queryEl.value = result.value;", "queryEl.value = result.value;")],
   ["the company is not filled", ["signedOutReq", "signedInTitleAndPostid"], FP, (s) => s.replace("companyEl.value = result.company;", "")],
+  // prompt IA (November 1, 2026): the origin mobile and the origin in the saved search
+  ["IA: o=m is ignored (a phone search is counted as the site)", ["unitFragment", "originSent"], FP, (s) => s.replace('oSent === "e" || oSent === "m" ? originOf(', 'oSent === "e" ? originOf(')],
+  ["IA: a mobile search keeps the host that came with it", ["unitFragment", "originSent"], "js/search-origin.js", (s) => s.replace('if (o === "m") return { origin: "mobile", host: null };', 'if (o === "m") return { origin: "mobile", host: h == null ? null : cleanHost(h) };')],
+  ["IA: a mobile origin read from the saved search keeps a host", ["unitFragment", "originHandoff"], "js/search-origin.js", (s) => s.replace('if (o.origin === "mobile") return { origin: "mobile" };', 'if (o.origin === "mobile") { const host = typeof o.host === "string" ? cleanHost(o.host) : null; return host ? { origin: "mobile", origin_host: host } : { origin: "mobile" }; }')],
+  ["IA: any o value is taken as an origin", ["unitFragment"], FP, (s) => s.replace('oSent === "e" || oSent === "m" ? originOf(', 'oSent !== undefined ? originOf(')],
+  ["IA: the saved search loses the origin (the page does not hand it over)", ["originHandoff"], SP, (s) => s.replace('r: reqIn.value, origin: heldOrigin ? heldOrigin.origin : "site", host: heldOrigin ? heldOrigin.host : null });', 'r: reqIn.value });')],
+  ["IA: the search that runs by itself after the link ignores the saved origin", ["originHandoff"], SP, (s) => s.replace('heldOrigin = p.origin === "site" ? null : { origin: p.origin, host: p.host };', "")],
+  ["IA: the saved search is written without the origin", ["unitHandoff", "originHandoff"], "js/signin-handoff.js", (s) => s.replace('r: p.r === undefined ? "" : p.r, ...originOfSaved(p.origin, p.host) }, now);', 'r: p.r === undefined ? "" : p.r }, now);')],
+  ["IA: the saved search keeps the KIO title words", ["unitHandoff"], "js/signin-handoff.js", (s) => s.replace('r: p.r === undefined ? "" : p.r, ...originOfSaved(p.origin, p.host) }, now);', 'r: p.r === undefined ? "" : p.r, title: p.title, ...originOfSaved(p.origin, p.host) }, now);')],
+  ["IA: the saved origin is not checked again when it is read back", ["unitHandoff", "originHandoff"], "js/signin-handoff.js", (s) => s.replace("{ company: v.company, q: v.q, r: v.r, ...originOfSaved(v.origin, v.host) }", "{ company: v.company, q: v.q, r: v.r, origin: v.origin, host: v.host }")],
 ];
 test("negative controls: each deliberate defect in the fragment handling makes a scenario fail", { timeout: 3000000 }, async () => {
   const missed = [];

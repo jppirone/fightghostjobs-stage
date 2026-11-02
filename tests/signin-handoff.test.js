@@ -12,9 +12,73 @@ test("a saved search lasts one hour, is used once, and is removed when used", ()
   const s = memory();
   assert.equal(savePending(s, { company: "Meridian Health", q: "Analyst", r: "4471" }, NOW), true);
   assert.equal(hasPending(s, NOW + 1000), true);
-  assert.deepEqual(takePending(s, NOW + 59 * 60000), { company: "Meridian Health", q: "Analyst", r: "4471" });
+  assert.deepEqual(takePending(s, NOW + 59 * 60000), { company: "Meridian Health", q: "Analyst", r: "4471", origin: "site", host: null }, "a search saved with no origin word is read as the site (prompt IA)");
   assert.equal(s.getItem(PENDING_SEARCH_KEY), null, "removed once used");
   assert.equal(takePending(s, NOW + 59 * 60000), null, "cannot be used twice");
+});
+// ---- prompt IA (November 1, 2026): the saved search also carries WHERE the search was asked from (the origin word, and the host for the extension only)
+test("the saved search holds exactly company, q, r, origin and host: nothing else is ever saved (not the KIO title, not any extra field)", () => {
+  const s = memory();
+  assert.equal(savePending(s, { company: "Meridian", q: "Analyst", r: "", origin: "mobile", host: "jobs.example.invalid", title: "Senior Data Analyst", kioTitle: "x", stored: "KIO7K3M9Q2XW4T9" }, NOW), true);
+  const raw = JSON.parse(s.getItem(PENDING_SEARCH_KEY));
+  assert.deepEqual(Object.keys(raw.v).sort(), ["company", "host", "origin", "q", "r"], "the exact set of saved keys");
+  assert.deepEqual(Object.keys(raw).sort(), ["exp", "v"]);
+  assert.equal(raw.exp, NOW + HANDOFF_TTL_MS, "kept for the same hour as before");
+  assert.deepEqual(raw.v, { company: "Meridian", q: "Analyst", r: "", origin: "mobile", host: null }, "a mobile search has no host, even when one is passed");
+});
+test("the saved origin comes back as it was saved: mobile with no host, extension with its host, site with none", () => {
+  const s = memory();
+  savePending(s, { company: "A", q: "b", r: "", origin: "mobile", host: null }, NOW);
+  assert.deepEqual(takePending(s, NOW + 1000), { company: "A", q: "b", r: "", origin: "mobile", host: null });
+  savePending(s, { company: "A", q: "b", r: "", origin: "extension", host: "jobs.example.invalid" }, NOW);
+  assert.deepEqual(takePending(s, NOW + 1000), { company: "A", q: "b", r: "", origin: "extension", host: "jobs.example.invalid" });
+  savePending(s, { company: "A", q: "b", r: "", origin: "site", host: null }, NOW);
+  assert.deepEqual(takePending(s, NOW + 1000), { company: "A", q: "b", r: "", origin: "site", host: null });
+  savePending(s, { company: "A", q: "b", r: "", origin: "extension", host: null }, NOW);
+  assert.deepEqual(takePending(s, NOW + 1000), { company: "A", q: "b", r: "", origin: "extension", host: null }, "an extension search with no host keeps no host");
+});
+test("the origin is checked again when saved and when read back: the host is cleaned the same way, a site never keeps one, a bad word is the site", () => {
+  const s = memory();
+  savePending(s, { company: "A", q: "b", r: "", origin: "extension", host: "HTTPS://www.Jobs.Example.invalid:8080/x?y#z" }, NOW);
+  assert.equal(takePending(s, NOW + 1000).host, "jobs.example.invalid", "cleaned on the way in");
+  savePending(s, { company: "A", q: "b", r: "", origin: "site", host: "jobs.example.invalid" }, NOW);
+  assert.deepEqual(takePending(s, NOW + 1000), { company: "A", q: "b", r: "", origin: "site", host: null });
+  for (const word of ["phone", "Mobile", "MOBILE", " mobile", "", "tablet", 5, null, {}, ["mobile"]]) {
+    savePending(s, { company: "A", q: "b", r: "", origin: word, host: "jobs.example.invalid" }, NOW);
+    assert.deepEqual(takePending(s, NOW + 1000), { company: "A", q: "b", r: "", origin: "site", host: null }, "origin " + JSON.stringify(word));
+  }
+  // a value saved by an older page (no origin), or damaged by hand in the browser, still runs and counts as the site: never an error and never null
+  s.setItem(PENDING_SEARCH_KEY, JSON.stringify({ v: { company: "A", q: "b", r: "" }, exp: NOW + 5000 }));
+  assert.deepEqual(takePending(s, NOW), { company: "A", q: "b", r: "", origin: "site", host: null }, "saved before this change");
+  s.setItem(PENDING_SEARCH_KEY, JSON.stringify({ v: { company: "A", q: "b", r: "", origin: "phone", host: "x.example.invalid" }, exp: NOW + 5000 }));
+  assert.deepEqual(takePending(s, NOW), { company: "A", q: "b", r: "", origin: "site", host: null }, "an unknown word");
+  s.setItem(PENDING_SEARCH_KEY, JSON.stringify({ v: { company: "A", q: "b", r: "", origin: "mobile", host: "x.example.invalid" }, exp: NOW + 5000 }));
+  assert.deepEqual(takePending(s, NOW), { company: "A", q: "b", r: "", origin: "mobile", host: null }, "a mobile search read back never has a host");
+  s.setItem(PENDING_SEARCH_KEY, JSON.stringify({ v: { company: "A", q: "b", r: "", origin: "extension", host: 12345 }, exp: NOW + 5000 }));
+  assert.deepEqual(takePending(s, NOW), { company: "A", q: "b", r: "", origin: "extension", host: null }, "a host that is not text is dropped");
+  s.setItem(PENDING_SEARCH_KEY, JSON.stringify({ v: { company: "A", q: "b", r: "", origin: "extension", host: "not a host!" }, exp: NOW + 5000 }));
+  assert.deepEqual(takePending(s, NOW), { company: "A", q: "b", r: "", origin: "extension", host: null }, "a host that is not a plain host is dropped");
+});
+test("the saved search with an origin still lasts one hour and is used once", () => {
+  const s = memory();
+  savePending(s, { company: "A", q: "b", r: "", origin: "mobile" }, NOW);
+  assert.equal(hasPending(s, NOW + HANDOFF_TTL_MS - 1), true);
+  assert.equal(hasPending(s, NOW + HANDOFF_TTL_MS + 1), false);
+  assert.equal(takePending(s, NOW + HANDOFF_TTL_MS + 1), null, "expired");
+  savePending(s, { company: "A", q: "b", r: "", origin: "mobile" }, NOW);
+  assert.equal(takePending(s, NOW + 1000).origin, "mobile");
+  assert.equal(takePending(s, NOW + 1000), null, "used once");
+});
+test("a save with no origin is still accepted, and an oversized field still refuses the save", () => {
+  const s = memory();
+  assert.equal(savePending(s, { company: "A", q: "b", r: "" }, NOW), true);
+  assert.equal(savePending(s, { company: "x".repeat(301), q: "b", r: "", origin: "mobile" }, NOW), false);
+});
+test("signing out clears a saved search that has an origin, like any other", () => {
+  const s = memory();
+  savePending(s, { company: "A", q: "b", r: "", origin: "mobile" }, NOW);
+  clearHandoff(s);
+  assert.equal(s.getItem(PENDING_SEARCH_KEY), null);
 });
 test("a saved search past its expiry is not returned and is removed", () => {
   const s = memory();
