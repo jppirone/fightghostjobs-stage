@@ -1,11 +1,12 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=ea0bbf73";
-import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=f9b6c351";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=6906dc3e";
+import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=4532c706";
 import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=b43b79f2";
-import { savePending, takePending } from "../signin-handoff.js?v=882122ed";
-import { applyFragmentPrefill } from "../fragment-prefill.js?v=237380af";
+import { savePending, takePending } from "../signin-handoff.js?v=ab47bf72";
+import { applyFragmentPrefill } from "../fragment-prefill.js?v=192a60cc";
+import { requestOrigin } from "../fragment-prefill.js?v=192a60cc";
 import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js?v=f37507d8";
 import { lockScroll } from "../scroll-lock.js?v=b751eb4c";
 import { trapFocus } from "../dialog-focus.js?v=f788366d";
@@ -44,14 +45,15 @@ let staffMode = false, staffRobotsBefore = null, staffRobotsAdded = false, staff
 // whether the job ad's title differs from the record. They are used only for a search of that same ID, and dropped when the ID is changed.
 // prompt HM (October 31, 2026): a fragment whose k is not a KIO ID that passes the check keeps its company and title (the module only does that when it has BOTH): the typed key text is put in the one box as typed and held here with the title
 // (bad: true), and the search sends it as a failed key with the company and title, so the answer is the company and title results with the failover sentence. heldOrigin: where the search came from (o=e, the extension, with the cleaned
-// host of the job page); in memory only, used by the NEXT search only, after which every search is the site's own.
+// host of the job page; o=m, the phone entry, with no host); in memory only, used by the NEXT search only, after which every search is the site's own. While a signed out person waits for the emailed link it is also saved with the search (prompt IA).
 let heldKio = null;   // { stored, title, shown, bad } | null
 let heldOrigin = null;   // { origin, host } | null
 if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onKio: (k) => { heldKio = k.title || k.bad ? { stored: k.stored, title: k.title, shown: k.shown, bad: k.bad === true } : null; }, onOrigin: (o) => { heldOrigin = o || null; } })) takePending(localStorage);
 // the request fields origin and origin_host (candidate-search, prompt HL): "site" with no host for a search typed here, "extension" with the cleaned host for the search that arrived from the extension; they never change the answer
+// prompt IA: "mobile" (the phone entry, o=m) is sent with no host; requestOrigin (js/fragment-prefill.js) is the one place that decides the fields, and the saved search of the sign in hand-off reads its origin back through it too
 function takeOriginFields() {
   const o = heldOrigin; heldOrigin = null;
-  return o && o.origin === "extension" ? Object.assign({ origin: "extension" }, o.host ? { origin_host: o.host } : {}) : { origin: "site" };
+  return requestOrigin(o);
 }
 
 function setFormError(text) { formError.hidden = !text; formError.textContent = text || ""; }
@@ -305,7 +307,7 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
   if (staffMode && !q.bad && (await runStaffSearch(c, q, { company: companyIn.value, q: queryIn.value, r: reqIn.value }, auto))) return;   // staff scope: the staff answer; nothing is stored in the browser or counted for candidates (the database keeps its own private who-and-when record)
   if (!session || !session.isCandidate) {
     // kept in localStorage (all tabs of this browser, one hour, removed when used, never sent anywhere): the emailed link opens in a NEW tab (signin-handoff.js)
-    savePending(localStorage, { company: companyIn.value, q: queryIn.value, r: reqIn.value });
+    savePending(localStorage, { company: companyIn.value, q: queryIn.value, r: reqIn.value, origin: heldOrigin ? heldOrigin.origin : "site", host: heldOrigin ? heldOrigin.host : null });   // prompt IA: the origin word and the host ride with it, nothing else new
     if (session && session.isPoster) { applySession(); return; }
     showSignIn("Confirm your email first. We keep your search in this browser for one hour and run it when you open the link in this browser. If the link opens somewhere else, enter your search again.");
     $("#candEmail").focus();
@@ -476,6 +478,7 @@ function resumePending() {
   const p = takePending(localStorage);
   if (!p) return false;
   companyIn.value = p.company; queryIn.value = p.q; reqIn.value = p.r;
+  heldOrigin = p.origin === "site" ? null : { origin: p.origin, host: p.host };   // prompt IA: the search runs with the origin it was asked with (a saved search with none, or a damaged one, is the site); used by this search only
   runSearch(true);
   return true;
 }

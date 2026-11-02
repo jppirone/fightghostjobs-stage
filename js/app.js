@@ -2,7 +2,7 @@
 
 import { createApi, describeError, isAuthFailure } from "./api.js?v=81f2b28a";
 import { SUPABASE_URL, PUBLISHABLE_KEY } from "./config.js?v=cb962576";
-import { accessToken, currentSession, signOut, rememberNext } from "./session.js?v=f9b6c351";
+import { accessToken, currentSession, signOut, rememberNext } from "./session.js?v=4532c706";
 import { h, clear, alertBox } from "./dom.js?v=5c78a8cd";
 import { takeLanded, landingText, landingKindForPage } from "./landing-notice.js?v=f37507d8";
 import { initials } from "./format.js?v=0b334448";

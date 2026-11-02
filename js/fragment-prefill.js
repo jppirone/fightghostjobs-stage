@@ -13,7 +13,12 @@
 // prompt BQ (October 12, 2026): a fifth key, k, the KIO ID in its stored form (what the extension sends). k rides with c and t at most: a k with p or r refuses the whole fragment (no req number is ever sent with an ID), a k that is not a
 // KIO ID that passes the check refuses it, and the company is optional (the ID alone drives the search). t is kept in the page's memory ONLY, to say whether the job ad's title differs from the record: the page has one box for the ID
 // and the title words, so the ID goes in that box and t is not shown anywhere. Nothing here is ever sent anywhere by this module, and no email or personal data is read: only c, k and t.
+// prompt IA (November 1, 2026): the key o says where the search came from and is read leniently (a wrong value, an empty one or a second copy is ignored and the search counts as the site): o=e is the browser extension (with the host of the
+// job page in h) and o=m is the phone entry (mobile, which never carries a host: an h that comes with o=m is ignored). Both are only a tag the sender claims, the same as before. requestOrigin turns a read origin into the fields the search
+// request carries, and is also what the saved search of the sign in hand-off is read back through, so a saved origin is checked again the same way. The classic rules (keys, caps, 700 characters, 12 parts) are unchanged; the key x of the phone
+// entry is not handled here.
 import { readKio } from "./kio.js?v=e86dc586";
+import { cleanHost, originOf, requestOrigin } from "./search-origin.js?v=b0cdfe2e";
 
 export const FRAGMENT_KEYS = { c: "company", p: "postid", r: "req", t: "title", k: "kio" };
 export const FRAGMENT_MAX = { company: 200, postid: 14, req: 100, title: 80, kio: 24 };
@@ -43,7 +48,8 @@ export function parseSearchFragment(hash) {
   }
   if (!ours) return { ours: false, result: null };
   if (bad) return { ours: true, result: null };
-  const origin = sent.get("o") === "e" ? originOf("e", sent.get("h")) : null;   // only a search from the extension carries its origin here; every other search is the site (the page says so itself)
+  const oSent = sent.get("o");
+  const origin = oSent === "e" || oSent === "m" ? originOf(oSent, sent.get("h")) : null;   // only a search from the extension (e) or the phone entry (m) carries its origin here; every other search is the site (the page says so itself)
   if (found.has("k")) {
     // the KIO ID: c and t are optional; p and r are never accepted with it
     if (found.has("p") || found.has("r")) return { ours: true, result: null };
@@ -63,16 +69,9 @@ export function parseSearchFragment(hash) {
   return { ours: true, result: { company, kind, value, ...(origin ? { origin } : {}) } };
 }
 
-// prompt HM: where the search came from. o=e is the browser extension; any other o (or none) is the site. The host (h) is cleaned the way the database cleans it: lower case, no scheme, path, query, fragment, user@, port, www. or
-// trailing dots, and kept only when it is a plain host of at most 253 characters. A search that did not come from the extension never carries a host.
-export function cleanHost(raw) {
-  let t = String(raw == null ? "" : raw).trim().toLowerCase();
-  t = t.replace(/^[a-z][a-z0-9+.-]*:\/\//, "").replace(/[/?#].*$/, "").replace(/^[^@]*@/, "").replace(/:[0-9]*$/, "").replace(/\.+$/, "").replace(/^www\./, "");
-  return t.length >= 1 && t.length <= 253 && /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(t) ? t : null;
-}
-export function originOf(o, h) {
-  return o === "e" ? { origin: "extension", host: h == null ? null : cleanHost(h) } : { origin: "site", host: null };
-}
+// prompt HM, prompt IA: where the search came from. cleanHost, originOf and requestOrigin live in js/search-origin.js (a small file with no imports, so the sign in hand-off can check an origin without loading this reader); they are
+// exported from here as before.
+export { cleanHost, originOf, requestOrigin };
 
 // win: the window; fills the boxes (text only) and removes the fragment from the address bar before anything else happens. -> true when the boxes were filled
 // onKio({ stored, shown, title }): called when the fragment carried a KIO ID, so the page can keep the title words (t) in memory for the mismatch notice; they are never put in a box.

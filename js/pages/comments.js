@@ -3,8 +3,8 @@
 // Posting a comment: the page checks length and plain text, the backend applies the whole rule (no web address, no naming where the posting was found unless this posting already shows
 // that platform, no slurs or profanity) and says why in words. Wrong links go to a private report, not to the thread.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js?v=ea0bbf73";
-import { requestLink, watchOtherTabSignIn } from "../session.js?v=f9b6c351";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure, currentSession } from "../app.js?v=6906dc3e";
+import { requestLink, watchOtherTabSignIn } from "../session.js?v=4532c706";
 import { $, h, clear, alertBox, chip } from "../dom.js?v=5c78a8cd";
 import { waitText, groupCode } from "../format.js?v=0b334448";
 import { placeNodes } from "../place.js?v=811ff44d";

@@ -11,6 +11,7 @@
 // elsewhere (the Auth client stores the session in localStorage, so the browser's "storage" event reaches every other tab; coming back to the tab is checked as well, in case an event was missed).
 //
 // Pure functions over an injected storage / window, so they are unit tested without a browser; the browser test (tests/signin-tabs.test.js) proves it with two real tabs.
+import { requestOrigin } from "./search-origin.js?v=b0cdfe2e";
 
 export const HANDOFF_TTL_MS = 60 * 60 * 1000;
 export const PENDING_SEARCH_KEY = "fgj-pending-search";
@@ -35,13 +36,17 @@ function drop(store, key) { try { store.removeItem(key); } catch { /* ignore */ 
 
 const isText = (x) => typeof x === "string" && x.length <= MAX_FIELD;
 
+// prompt IA (November 1, 2026): the saved search also holds WHERE the search was asked from, so that the search that runs by itself after the emailed link (often in a new tab, which has forgotten it) is counted the same way: only the origin
+// word (site, extension or mobile) and, for the extension alone, the cleaned host of the job page. Nothing else is added (the KIO title words the extension path holds are not saved). Both are checked again through requestOrigin when they are
+// saved and when they are read back; a value saved before this change has no origin and is read as site, and a damaged or unknown word is read as site: never an error.
+const originOfSaved = (o, h) => { const f = requestOrigin({ origin: o, host: h }); return { origin: f.origin, host: f.origin_host === undefined ? null : f.origin_host }; };
 export function savePending(store, p, now = Date.now()) {
   if (!p || !isText(p.company) || !isText(p.q) || !(p.r === undefined || isText(p.r))) return false;
-  return write(store, PENDING_SEARCH_KEY, { company: p.company, q: p.q, r: p.r === undefined ? "" : p.r }, now);
+  return write(store, PENDING_SEARCH_KEY, { company: p.company, q: p.q, r: p.r === undefined ? "" : p.r, ...originOfSaved(p.origin, p.host) }, now);
 }
 export function takePending(store, now = Date.now()) {
   const v = take(store, PENDING_SEARCH_KEY, now);
-  return v && isText(v.company) && isText(v.q) && isText(v.r) ? { company: v.company, q: v.q, r: v.r } : null;
+  return v && isText(v.company) && isText(v.q) && isText(v.r) ? { company: v.company, q: v.q, r: v.r, ...originOfSaved(v.origin, v.host) } : null;
 }
 export const hasPending = (store, now = Date.now()) => { try { const o = JSON.parse(store.getItem(PENDING_SEARCH_KEY) || "null"); return !!(o && typeof o.exp === "number" && o.exp > now); } catch { return false; } };
 
