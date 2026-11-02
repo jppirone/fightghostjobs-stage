@@ -1384,7 +1384,7 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("the table is never fitted to the card", "S82", edit(DJ, (s) => s.replace('for (const level of ["", "snug", "wrap-status", "tight"]) {', 'for (const level of [""]) {')));
   control("the day added is no longer under the title", "S82", edit(DJ, (s) => s.replace('h("div", { class: "row-sub", "data-part": "added" }, addedCell(p))', "null")));
   control("the flag colour is pale", "S82", edit(CSS, (s) => s.replace("color:#8A4B00;margin-top:2px}", "color:#D9A35B;margin-top:2px}")));
-  control("the tight layout is gone", "S82", edit(CSS, (s) => s.replace('.my-openings.tight td[data-label="Actions"]', '.my-openings.tightGone td[data-label="Actions"]')));
+  control("the tight layout is gone", "S82", edit(CSS, (s) => s.replaceAll('.my-openings.tight td[data-label="Actions"]', '.my-openings.tightGone td[data-label="Actions"]')));
   control("the note stays wide when it does not fit", "S82", edit(CSS, (s) => s.replace(".my-openings.snug .act-note{min-width:0}", "")));
   control("the browser test is not in the suite", "S82", edit("tests/run-all.js", (s) => s.replace('path.join(here, "my-openings-bp.test.js")', 'path.join(here, "unit.test.js")')));
 }
