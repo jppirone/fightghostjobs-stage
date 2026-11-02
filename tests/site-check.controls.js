@@ -850,6 +850,11 @@ control("the new test is not part of the full run", "S63", edit("tests/run-all.j
   control("more than one second value is accepted", "S62", edit("js/fragment-prefill.js", (s) => s.replace("seconds.length !== 1", "seconds.length < 1")));
   control("the fragment text goes into the page as markup", "S62", edit("js/fragment-prefill.js", (s) => s.replace("companyEl.value = result.company;", "companyEl.value = result.company; companyEl.insertAdjacentHTML(\"afterend\", result.company);")));
   control("the fragment test is not run", "S62", edit("tests/run-all.js", (s) => s.replace("fragment-prefill.test.js", "fragment-prefill-old.test.js")));
+  // prompt IA (November 1, 2026): the origin mobile and the origin in the saved search
+  control("IA: a mobile origin keeps the host that came with it", "S62", edit("js/search-origin.js", (s) => s.replace('if (o === "m") return { origin: "mobile", host: null };', 'if (o === "m") return { origin: "mobile", host: h == null ? null : cleanHost(h) };')));
+  control("IA: any value of o is taken as an origin", "S62", edit("js/fragment-prefill.js", (s) => s.replace('oSent === "e" || oSent === "m" ? originOf(', 'oSent !== undefined ? originOf(')));
+  control("IA: the saved search drops the origin", "S62", edit("js/pages/search.js", (s) => s.replace('r: reqIn.value, origin: heldOrigin ? heldOrigin.origin : "site", host: heldOrigin ? heldOrigin.host : null });', 'r: reqIn.value });')));
+  control("IA: the saved search is read back without the origin check", "S62", edit("js/signin-handoff.js", (s) => s.replace("...originOfSaved(v.origin, v.host) }", "origin: v.origin, host: v.host }")));
 }
 
 // S61: the emailed one-time code typed in the same tab (Phase 4)
