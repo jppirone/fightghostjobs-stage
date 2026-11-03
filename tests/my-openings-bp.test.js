@@ -146,9 +146,14 @@ const SCENARIOS = {
     for (const p of wide) if (p.h > 40) bad.push("1171: the pill '" + p.text + "' is " + p.h + " pixels high (two lines at most, 40 pixels)");
     // prompt GX: the one-line pill rule above used to be what the padding control below relied on. With the whole KIO ID the pills take two lines at 1171 either way (the wrap-status level has its own 6 pixel padding), so the 8 pixel base padding is now caught at 1250 (card 1171):
     // with 8 the table holds the snug level there (the Status pills on one line, 187 pixels), with 12 it needs wrap-status.
-    await openDash(tab, site, 1250);
-    const lvl = await tab.eval("['tight','wrap-status'].filter((c) => document.querySelector('.my-openings').classList.contains(c))");
-    if (lvl.length) bad.push("1250: the table is at the " + lvl.join("+") + " level (the 8 pixel side padding holds the snug level here)");
+    // prompt IK (November 3, 2026): the same check at 1230 as well as 1250. Measured: with 8 pixel padding the snug level holds from a window of about 1205 up, with 12 pixels only from about 1253, so 1250 is 3 pixels inside the
+    // 12 pixel edge and the width of the digits in the Closes times (a "1" in the minutes is narrower than a "2") decided in the push check of November 3 whether the planted defect overflowed by more than 1 pixel. 1230 lies
+    // in the middle of the two edges (about 25 pixels each way), so the defect is caught at any time of day and the real page holds at any time of day. Nothing is lowered: 1250 is still checked, and the planted defect is caught if either width shows it.
+    for (const w of [1230, 1250]) {
+      await openDash(tab, site, w);
+      const lvl = await tab.eval("['tight','wrap-status'].filter((c) => document.querySelector('.my-openings').classList.contains(c))");
+      if (lvl.length) bad.push(w + ": the table is at the " + lvl.join("+") + " level (the 8 pixel side padding holds the snug level here)");
+    }
     return bad; })); },
   async smallerWindows(root) { return withSite(root, johnsRows(), (site) => withTab(async (tab) => { const bad = [];
     let wrapped = 0;
