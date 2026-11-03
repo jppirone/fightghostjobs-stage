@@ -121,6 +121,7 @@ let failed = 0;
 (async () => {
   for (const [name, files, isTest, skipControls] of list) {
     const lim = limitMin(files);
+    console.log("-> starting: " + name + " (time limit " + lim + " min)");
     const r = await runStep(isTest ? ["--test", ...(skipControls ? ["--test-skip-pattern=negative controls"] : []), ...files] : files, { limitMs: lim * 60000, env: { FGJ_SUITE_START: String(t00) } });
     const out = r.out;
     for (const m of out.matchAll(/^[✔✖] (.+?) \((\d+(?:\.\d+)?)ms\)$/gm)) slow.push([Number(m[2]), name, m[1]]);
@@ -132,6 +133,7 @@ let failed = 0;
     else console.log(tail.filter((l) => /^(ℹ (tests|pass|fail|cancelled)|site-check|browser leak check)/.test(l)).join("\n"));
     // a failed step also prints what failed (the failing test names and the first assertion or error lines), so the exact message is in the log
     if (!ok) console.log(out.split("\n").filter((l) => /^\s*(✖ |AssertionError|Error|TypeError|ReferenceError|SyntaxError)/.test(l)).slice(0, 30).join("\n"));
+    if (!ok) console.log("---- full output of the failed step ----\n" + out + "\n---- end of the full output ----");
     if (!ok) failed++;
   }
   const total = Date.now() - t00;
