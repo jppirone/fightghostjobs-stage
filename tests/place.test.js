@@ -85,7 +85,7 @@ const SCENARIOS = {
     const sent = site.calls.slice(s0).filter((c) => c.name === "candidate-search");
     if (sent.length !== 1) return ["expected one candidate-search call, got " + sent.length];
     const keys = Object.keys(sent[0].body || {}).sort().join(",");
-    if (keys !== "company,phrase") bad.push("the search request carries more than the typed company and phrase: " + keys);
+    if (keys !== "company,origin,phrase") bad.push("the search request carries more than the typed company and phrase and the origin word (prompt HM): " + keys);
     if (/Japan|as given by/.test(JSON.stringify(sent[0].body))) bad.push("the place text went into the search request");
     return bad; })); },
   // the staff view: the same rule (the draft without a catalog place shows its text with the note; the live one with a catalog place does not)
