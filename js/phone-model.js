@@ -47,7 +47,7 @@ export function limitText(text) {
   if (isBreak(t[TEXT_CAP])) return { text: head, cut: true };
   let at = -1;
   for (let i = head.length - 1; i >= 0; i--) if (isBreak(head[i])) { at = i; break; }
-  if (at > 0) return { text: head.slice(0, at), cut: true };
+  if (at > 0) return { text: head.slice(0, at).replace(/\r$/, ""), cut: true };   // a CR LF break is one break
   // no line break in the first part at all: the only cut possible is in the middle of the line (never between the two halves of one character)
   const last = head.charCodeAt(head.length - 1);
   return { text: last >= 0xd800 && last <= 0xdbff ? head.slice(0, -1) : head, cut: true };

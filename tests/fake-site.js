@@ -68,7 +68,7 @@ const ANALYTICS = { live_postings: 4, searches: 1284, detail_views: 406, link_cl
 // opts.pageCache: Cache-Control for the pages and scripts (default no-store, as always). opts.commentsOff: serve js/config.js with the comments switch turned OFF (COMMENTS_VISIBLE false), to test the pages in that state. By default the fake site serves the file exactly as shipped, which is ON since October 6, 2026, so every test written for the pages with comments keeps covering them
 export function startFakeSite(root, opts = {}) {
   root = path.resolve(root);
-  const calls = [], hits = []; let SELF = "";      // hits (prompt BM): every request the browser made, "METHOD /path", whatever it was for
+  const calls = [], hits = [], wire = []; let SELF = "";      // hits (prompt BM): every request the browser made, "METHOD /path", whatever it was for
   const createGate = {}; createGate.promise = new Promise((r) => { createGate.release = r; });      // opts.createHold (prompt BW): create-posting is answered only when the test calls site.releaseCreate()
   const state = { published: false };   // prompt BK: what a call changed that a later read must show (the opening is live after Publish)
   // prompt ST1 (October 14, 2026): opts.intent = true makes this the MIGRATED database for the optional statement of the kind of an opening: the rpc intent_statement_options answers (opts.intentOptions: the
@@ -84,7 +84,11 @@ export function startFakeSite(root, opts = {}) {
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://x");
     hits.push(req.method + " " + url.pathname);
-    const send = (status, body, extra) => { res.writeHead(status, Object.assign({ "Content-Type": "application/json", "Cache-Control": "no-store" }, extra || {})); res.end(typeof body === "string" ? body : JSON.stringify(body)); };
+    // prompt IB (November 3, 2026): wire = every request in full { method, url (path and query), body }, for the proof that a page sent nothing it must not send. The body is read here only for a request to a path that is not one of the fake backend's
+    // (/rest, /functions, /auth: their bodies are read by their own handlers and kept in calls), so no answer changes.
+    const rec = { method: req.method, url: req.url, body: "" }; wire.push(rec);
+    if (!/^(GET|HEAD|OPTIONS)$/.test(req.method) && !/^\/(rest|functions|auth)\//.test(url.pathname)) rec.body = await new Promise((ok) => { let s = ""; req.on("data", (c) => (s += c)); req.on("end", () => ok(s)); });
+    const send =(status, body, extra) => { res.writeHead(status, Object.assign({ "Content-Type": "application/json", "Cache-Control": "no-store" }, extra || {})); res.end(typeof body === "string" ? body : JSON.stringify(body)); };
     const readBody = () => new Promise((ok) => { let s = ""; req.on("data", (c) => (s += c)); req.on("end", () => { try { ok(JSON.parse(s || "{}")); } catch { ok({}); } }); });
     const claimsOf = () => { try { return JSON.parse(Buffer.from(String(req.headers.authorization || "").replace(/^Bearer /, "").split(".")[1], "base64url").toString()); } catch { return null; } };
     // the two database functions of the staff scope, called as PostgREST rpc with the person's own token (opts.noRpc: the functions do not exist, as before the SQL is run; opts.rpcFail: the database errors;
@@ -385,5 +389,5 @@ export function startFakeSite(root, opts = {}) {
     if (rel === "/js/config.js" && opts.codeOn) data = Buffer.from(data.toString("utf8").replace("EMAIL_CODE_ENTRY = false", "EMAIL_CODE_ENTRY = true"));   // opts.codeOn: the emailed-code field switched ON (it ships OFF, so every other test sees the sign-in pages as shipped)
     res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": opts.pageCache || "no-store" }); res.end(data);   // opts.pageCache: the Cache-Control the real stage serves (max-age=600), for the test that needs the browser's back/forward cache to be allowed; the default is unchanged
   });
-  return new Promise((resolve) => server.listen(0, "127.0.0.1", () => { SELF = "http://127.0.0.1:" + server.address().port; resolve({ url: SELF, calls, hits, releaseCreate: () => createGate.release(), close: () => new Promise((r) => { server.close(r); if (server.closeAllConnections) server.closeAllConnections(); }) }); }));
+  return new Promise((resolve) => server.listen(0, "127.0.0.1", () => { SELF = "http://127.0.0.1:" + server.address().port; resolve({ url: SELF, calls, hits, wire, releaseCreate: () => createGate.release(), close: () => new Promise((r) => { server.close(r); if (server.closeAllConnections) server.closeAllConnections(); }) }); }));
 }
