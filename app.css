@@ -244,6 +244,19 @@ main a:not(.btn):not(td a){text-decoration:underline;text-decoration-thickness:1
 .srch-guide{max-width:1080px;margin:8px 0 22px 0;font-size:15px;color:var(--muted);line-height:1.6}
 .srch-guide p{margin:0 0 6px 0}
 .srch-guide .srch-lead{color:var(--ink);font-weight:600}
+/* the phone entry (prompt IB): the panel above the form, the notes under the boxes, the list of other openings; every tap is at least 44 by 44 pixels; nothing is wider than the screen */
+.phone-panel{max-width:1080px;margin:0 0 12px 0}
+.phone-body{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--ember);border-radius:10px;padding:12px 14px;font-size:15px;line-height:1.55;color:var(--ink);overflow-wrap:anywhere}
+.phone-body p{margin:0}
+.phone-body p+p{margin-top:8px}
+.phone-body .phone-pick,.phone-body .phone-choice{min-height:44px;min-width:44px;box-sizing:border-box;vertical-align:middle}
+.phone-body .phone-pick{margin:0 2px;padding:8px 12px}
+.phone-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.phone-list-head{font-weight:600}
+.phone-body .phone-choice{width:100%;max-width:100%;justify-content:flex-start;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.phone-link{display:inline-block;min-height:44px;line-height:44px}
+.phone-note{font-size:12px;line-height:1.5;color:var(--ink);margin-top:6px;font-weight:600}
+.phone-privacy{margin:0 0 14px 0}
 @media (max-width:760px){.srch-form{flex-direction:column!important}.srch-form .srch-sep{display:none}.srch-form .btn{align-self:flex-start;margin:4px 12px 8px 12px}}
 
 /* ---- edit page (edit.html): the unsaved-changes bar and the leave dialog. Classes are prefixed unsaved-.
