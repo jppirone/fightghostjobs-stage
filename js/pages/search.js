@@ -1,32 +1,32 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=6906dc3e";
-import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=4532c706";
-import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=b43b79f2";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=251de542";
+import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=43ff0655";
+import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=f5151bcc";
 import { savePending, takePending } from "../signin-handoff.js?v=ab47bf72";
-import { applyFragmentPrefill } from "../fragment-prefill.js?v=192a60cc";
-import { requestOrigin } from "../fragment-prefill.js?v=192a60cc";
+import { applyFragmentPrefill } from "../fragment-prefill.js?v=48ef3781";
+import { requestOrigin } from "../fragment-prefill.js?v=48ef3781";
 import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js?v=f37507d8";
 import { lockScroll } from "../scroll-lock.js?v=b751eb4c";
 import { trapFocus } from "../dialog-focus.js?v=f788366d";
 import { makeAnnouncer } from "../search-status.js?v=7497036c";
 import { recapSentence } from "../search-recap.js?v=bd8e2e91";
 import { $, h, clear, alertBox, chip, safeHref } from "../dom.js?v=5c78a8cd";
-import { waitText } from "../format.js?v=0b334448";
-import { postingChips, notOpenMessage } from "../chips.js?v=55512ecf";
+import { waitText } from "../format.js?v=ebadcb99";
+import { postingChips, notOpenMessage } from "../chips.js?v=010113d7";
 import { intentNotes } from "../intent-statement.js?v=d37f2b4b";
 import { infoBoxIcon, openInfoBox } from "../info-box.js?v=2f309155";
 import { ABOUT_TITLE, ABOUT_TEXT, ABOUT_ICON_LABEL, LINKS_ABOUT_TITLE, LINKS_ABOUT_BEFORE, LINKS_ABOUT_BOLD, LINKS_ABOUT_AFTER, LINKS_ICON_LABEL, LINKS_HEADING } from "../about-text.js?v=ce89cdee";
 import { tileActions } from "../tile-actions.js?v=7180edbf";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=5b8f0605";
-import { COMMENTS_VISIBLE } from "../config.js?v=cb962576";
+import { COMMENTS_VISIBLE } from "../config.js?v=62c9e3b1";
 import { openUnit } from "../open-link.js?v=19175677";
-import { checkCompany, resolveSearch, noMatchMessage, missEmptyLines, missMessage, failoverSentence, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=97e235f3";
+import { checkCompany, resolveSearch, noMatchMessage, missEmptyLines, missMessage, failoverSentence, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=a852f69f";
 import { isRegistered } from "../registered.js?v=f191c8c2";
-import { refineHints } from "../refine-hint.js?v=5ece29af";
-import { placeNodes } from "../place.js?v=811ff44d";
-import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=0cd5fab0";
+import { refineHints } from "../refine-hint.js?v=7ead894b";
+import { placeNodes } from "../place.js?v=2e036978";
+import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=00ac28f5";
 
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
@@ -48,7 +48,13 @@ let staffMode = false, staffRobotsBefore = null, staffRobotsAdded = false, staff
 // host of the job page; o=m, the phone entry, with no host); in memory only, used by the NEXT search only, after which every search is the site's own. While a signed out person waits for the emailed link it is also saved with the search (prompt IA).
 let heldKio = null;   // { stored, title, shown, bad } | null
 let heldOrigin = null;   // { origin, host } | null
-if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onKio: (k) => { heldKio = k.title || k.bad ? { stored: k.stored, title: k.title, shown: k.shown, bad: k.bad === true } : null; }, onOrigin: (o) => { heldOrigin = o || null; } })) takePending(localStorage);
+// prompt IB (November 3, 2026): an address with the key x is the phone entry (the Shortcut: search.html#x=<the text read out of a screenshot>). Its whole fragment is handled by js/phone-entry.js, loaded only then (again when the fragment changes
+// on this page); the classic prefill below is skipped for it, and a search saved before a sign-in link is dropped so it cannot run over what is read. Without an x nothing below changes.
+const PHONE_X = /^#(?:[^#]*&)?x=/;
+const runPhone = () => import("../phone-entry.js?v=070bc776").then((m) => m.runPhoneEntry({ win: window, doc: document, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onOrigin: (o) => { heldOrigin = o || null; } })).catch(() => { /* the page stays the ordinary search page */ });
+window.addEventListener("hashchange", () => { if (PHONE_X.test(location.hash)) { takePending(localStorage); runPhone(); } });
+if (PHONE_X.test(location.hash)) { takePending(localStorage); runPhone(); }
+else if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onKio: (k) => { heldKio = k.title || k.bad ? { stored: k.stored, title: k.title, shown: k.shown, bad: k.bad === true } : null; }, onOrigin: (o) => { heldOrigin = o || null; } })) takePending(localStorage);
 // the request fields origin and origin_host (candidate-search, prompt HL): "site" with no host for a search typed here, "extension" with the cleaned host for the search that arrived from the extension; they never change the answer
 // prompt IA: "mobile" (the phone entry, o=m) is sent with no host; requestOrigin (js/fragment-prefill.js) is the one place that decides the fields, and the saved search of the sign in hand-off reads its origin back through it too
 function takeOriginFields() {

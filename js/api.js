@@ -8,7 +8,7 @@
 //   * the session's access token goes in the Authorization header, the publishable key in apikey; the identity is NEVER sent in a body (the backend refuses poster_id / organization_id and reads who you are from the token).
 
 import { PLACE_FIELD } from "./place-text.js?v=cb5d7506";
-import { POST_ID_RE, isKioShown } from "./kio.js?v=e86dc586";
+import { POST_ID_RE, isKioShown } from "./kio.js?v=098cba42";
 import { intentOptionsOk, INTENT_CODES } from "./intent-statement.js?v=d37f2b4b";
 import { MAX_APPLY_LINKS, MAX_RECRUITER_FIRMS } from "./link-pills.js?v=89324475";
 import { MAX_COMMENT_COUNT } from "./tile-actions.js?v=7180edbf";

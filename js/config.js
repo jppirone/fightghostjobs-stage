@@ -22,6 +22,9 @@ export const COMMENTS_VISIBLE = true;
 export const KIO_PREFIX = "KIO";
 export const KIO_SHORT_LINK_HOST = "knowitsopen.com";
 export const KIO_SHORT_LINK_LIVE = false;
+// THE PHONE ENTRY (prompt IB, November 3, 2026; js/phone-entry.js). EXTENSION_PAGE_URL: the address of the page where a person can get the browser extension, on THIS site (a path such as "extension.html" or an address with this site's own origin).
+// While it is empty (it ships empty) the message shown on a computer ("This page is for phones. On a computer, use the browser extension.") has no link after it. An address on another site is never shown as a link. Do not invent an address: it is set when that page exists.
+export const EXTENSION_PAGE_URL = "";
 // THE REFINE HINTS (October 20, 2026; js/refine-hint.js): two plain lines above the results of a TITLE search, never a block. REFINE_HINT_MAX_RESULTS: more openings than this (3) shows "We found N openings. To narrow it ...".
 // GENERIC_TITLE_WORDS: a title that is only ONE of these words (after the filler words are left out) shows "That word is common in many titles ...". TITLE_FILLER_WORDS: the words that carry no meaning in a title; the database keeps
 // the same list (its setting title_filler_words, used by the search itself), this copy is only for the second hint. All three are the ONE place to change these on the page.

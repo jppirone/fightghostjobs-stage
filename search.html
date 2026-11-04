@@ -9,7 +9,7 @@
 <script src="js/stage-gate.js?v=d48925c1"></script>
 <title>FightGhostJobs | Search</title>
 <link rel="stylesheet" href="styles.css?v=4cea5b1e">
-<link rel="stylesheet" href="app.css?v=a51c274f">
+<link rel="stylesheet" href="app.css?v=4cf4ef73">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -34,6 +34,14 @@
       <p>Easiest and most exact: the KIO ID from the employer's job ad (no company name needed), or the company name plus the requisition (req) number.</p>
       <p>No KIO ID? Use the company name plus part of the job title, copied from the job ad if you can.</p>
     </div>
+    <div id="phonePanel" class="phone-panel" aria-live="polite">
+      <div id="phoneBody" class="phone-body" hidden>
+        <p id="phoneLine" class="phone-line"></p>
+        <p id="phoneMore" class="phone-more" hidden></p>
+        <div id="phoneList" class="phone-list" hidden></div>
+      </div>
+    </div>
+    <p id="phonePrivacy" class="field-hint phone-privacy" hidden style="max-width:1080px;"></p>
     <form id="searchForm" class="srch-form" novalidate style="display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;max-width:1080px;">
       <div class="srch-company" style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
         <label for="company" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;">Company <span class="srch-req">(required)</span></label>
@@ -136,6 +144,6 @@
 
 <footer class="site-footer"><span>FightGhostJobs</span><a href="https://www.fightghostjobs.com/privacy.html">Privacy</a><a href="mailto:privacy@fightghostjobs.com">privacy@fightghostjobs.com</a></footer>
 
-<script type="module" src="js/pages/search.js?v=6d851082"></script>
+<script type="module" src="js/pages/search.js?v=c9fbe1c6"></script>
 </body>
 </html>

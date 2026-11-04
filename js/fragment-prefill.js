@@ -17,7 +17,7 @@
 // job page in h) and o=m is the phone entry (mobile, which never carries a host: an h that comes with o=m is ignored). Both are only a tag the sender claims, the same as before. requestOrigin turns a read origin into the fields the search
 // request carries, and is also what the saved search of the sign in hand-off is read back through, so a saved origin is checked again the same way. The classic rules (keys, caps, 700 characters, 12 parts) are unchanged; the key x of the phone
 // entry is not handled here.
-import { readKio } from "./kio.js?v=e86dc586";
+import { readKio } from "./kio.js?v=098cba42";
 import { cleanHost, originOf, requestOrigin } from "./search-origin.js?v=b0cdfe2e";
 
 export const FRAGMENT_KEYS = { c: "company", p: "postid", r: "req", t: "title", k: "kio" };

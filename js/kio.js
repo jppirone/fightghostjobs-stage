@@ -5,7 +5,7 @@
 //   THE 12 CHARACTERS: 11 random characters and 1 check character over the 32 character alphabet (digits and capital letters without I, L, O and U).
 // WHAT IS ACCEPTED as input: any case; spaces and hyphens ignored; I and L read as 1; O reads as 0; the prefix with or without its hyphen; and a code WITHOUT the prefix when its 12 characters pass the check.
 // Nothing is guessed: a code that does not pass the check is never a KIO ID. An old 12 character code that fails the check goes through exactly as it always did.
-import { KIO_PREFIX, KIO_SHORT_LINK_HOST, KIO_SHORT_LINK_LIVE } from "./config.js?v=cb962576";
+import { KIO_PREFIX, KIO_SHORT_LINK_HOST, KIO_SHORT_LINK_LIVE } from "./config.js?v=62c9e3b1";
 
 export const KIO_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 export { KIO_PREFIX };

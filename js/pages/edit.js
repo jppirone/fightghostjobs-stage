@@ -2,27 +2,27 @@
 // The server judges the rest (how much of the requirements text is kept, the location rule, duplicate req numbers) and this page shows its answer in words. Nothing here trusts the page for identity: the session token tells the server who is acting.
 // Unsaved work is never lost silently: a bar at the bottom of the window says what is not saved, the browser asks before the page is left, and the page's own links ask with a dialog (js/unsaved-guard.js; what counts as unsaved is js/dirty-state.js).
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=6906dc3e";
-import { rememberNext } from "../session.js?v=4532c706";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=251de542";
+import { rememberNext } from "../session.js?v=43ff0655";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=5c78a8cd";
-import { fmtClose, fmtStamp, waitText } from "../format.js?v=0b334448";
-import { kioBlock } from "../kio-block.js?v=96a42a46";
-import { statusChip, actionsFor } from "../dashboard-model.js?v=70fac77f";
-import { runAction } from "../dashboard-actions.js?v=1cce7c82";
+import { fmtClose, fmtStamp, waitText } from "../format.js?v=ebadcb99";
+import { kioBlock } from "../kio-block.js?v=abd231ff";
+import { statusChip, actionsFor } from "../dashboard-model.js?v=50a1ba68";
+import { runAction } from "../dashboard-actions.js?v=3ba17db4";
 import { mountLimitHint } from "../limit-hint.js?v=b703c80b";
 import { checkEdit, mapEditErrors, KIND_TEXT, plainChangeNote, checkLinks, mapLinksErrors, planNotice, checkWarnings, applyLinks, recruiterFirms } from "../edit-form.js?v=eb936068";
 import { mountLocationPicker } from "../location-picker.js?v=7a79be92";
 import { mountPlaceChoice } from "../place-choice.js?v=5a8b0172";
 import { mountIntentBox } from "../intent-box.js?v=d441f2b2";
 import { storedPlaceText } from "../place-text.js?v=cb5d7506";
-import { placeNodes } from "../place.js?v=811ff44d";
+import { placeNodes } from "../place.js?v=2e036978";
 import { checkGoLive, toLocalInput, mapScheduleError } from "../schedule-form.js?v=b2985372";
 import { loadCatalog } from "../location-catalog.js?v=bb0c937e";
 import { mountLinkRowsById, mountLinkRows } from "../link-rows.js?v=57531f7b";
-import { mountLinkPanel } from "../link-panel.js?v=154a3524";
-import { mountFirmPanel } from "../firm-panel.js?v=818fe367";
-import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=0280f180";
-import { mountPolicyPanel } from "../policy-panel.js?v=de24a167";
+import { mountLinkPanel } from "../link-panel.js?v=53393dde";
+import { mountFirmPanel } from "../firm-panel.js?v=8a4e7cb7";
+import { FP, planFirmAdd, firmRefusal, firmSuccess, firmWarn } from "../firm-panel-model.js?v=399dc376";
+import { mountPolicyPanel } from "../policy-panel.js?v=efba6a4e";
 import { policyView, policyStoredText, policyLapsedText, policySavedText, mapPolicyError, checkPolicyUrl, policyLink } from "../policy-link.js?v=5b8f0605";
 import { wireInfoIcons } from "../info-icon.js?v=c3fb7b2b";
 import { snapshotOf, rowsTyped, earlyRules, UNSAVED, PANEL, ACTION, ADDED_LABEL, panelsFirstText } from "../dirty-state.js?v=7d99ced4";

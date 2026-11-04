@@ -1,5 +1,5 @@
 // format.js - pure display helpers (no DOM, no network): tested in Node by tests/unit.test.js.
-import { displayId } from "./kio.js?v=e86dc586";
+import { displayId } from "./kio.js?v=098cba42";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
