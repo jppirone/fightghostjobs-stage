@@ -1579,6 +1579,39 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("a fourth database function is called directly (S65 holds the list)", "S65", edit("js/api.js", (s) => s.replace("    intentOptions: () => rpc(", '    anything: () => rpc("operator_list_postings", {}),\n    intentOptions: () => rpc(')));
 }
 
+// S105 (prompt IB, November 3, 2026): the phone entry
+{
+  const PE = "js/phone-entry.js", PM = "js/phone-model.js", PT = "js/phone-text.js";
+  control("IB: innerHTML added to the phone module (also S5)", "S105", append(PE, "export const putText = (e, t) => { e.innerHTML = t; };"));
+  control("IB: innerHTML added to the phone module (the general rule S5 sees it too)", "S5", append(PE, "export const putText = (e, t) => { e.innerHTML = t; };"));
+  control("IB: localStorage used by the phone module", "S105", append(PE, "export const keep = (t) => { try { localStorage.setItem('last', t); } catch (e) { /* planted */ } };"));
+  control("IB: a cookie written by the phone model", "S105", append(PM, "export const keep = (t) => { document.cookie = 'last=' + t; };"));
+  control("IB: the text is logged by the phone model", "S105", append(PM, "export const say = (t) => { console.log(t); };"));
+  control("IB: a sentence reworded in js/phone-text.js", "S105", edit(PT, (s) => s.replace("Check the boxes, then press Search.", "Check the boxes, then press Go.")));
+  control("IB: a fourteenth sentence added", "S105", edit(PT, (s) => s.replace('  13: "We never receive', '  14: "Another sentence here.",\n  13: "We never receive')));
+  control("IB: the privacy sentence reworded", "S105", edit(PT, (s) => s.replace("Nothing is sent until you press Search.", "Nothing is sent until you press Go.")));
+  control("IB: a sentence written in the phone module instead of js/phone-text.js", "S105", append(PE, 'export const note = "Check the boxes and press Search";'));
+  control("IB: a reader copy edited by one character (kio.js)", "S105", edit("js/mobile/kio.js", (s) => s.replace('export const KIO_PREFIX = "KIO";', 'export const KIO_PREFIX = "KIX";')));
+  control("IB: a reader copy edited by one character (reader.js)", "S105", edit("js/mobile/mobile-reader/reader.js", (s) => s.replace("words: 14,", "words: 15,")));
+  control("IB: the hash of a copy changed in FROM-EXTENSION.txt", "S105", edit("js/mobile/FROM-EXTENSION.txt", (s) => s.replace("sha256 kio.js: b", "sha256 kio.js: a")));
+  control("IB: a page file of the extension copied next to the reader", "S105", (dir) => fs.writeFileSync(path.join(dir, "js", "mobile", "address.js"), "export const a = 1;\n"));
+  control("IB: the module imported statically by the search page", "S105", edit("js/pages/search.js", (s) => s.replace("import { applyFragmentPrefill }", 'import "../phone-entry.js";\nimport { applyFragmentPrefill }')));
+  control("IB: another page loads the reader copy", "S105", append("js/chips.js", 'import { readKio as phoneKio } from "./mobile/kio.js";'));
+  control("IB: the hook on hashchange removed", "S105", edit("js/pages/search.js", (s) => s.replace('window.addEventListener("hashchange", () => { if (PHONE_X.test(location.hash)) { takePending(localStorage); runPhone(); } });', "")));
+  control("IB: the classic prefill no longer runs when there is no x", "S105", edit("js/pages/search.js", (s) => s.replace("else if (applyFragmentPrefill(", "else if (false && applyFragmentPrefill(")));
+  control("IB: x accepted together with the classic keys", "S105", edit(PM, (s) => s.replace("if (old || xCount > 1 ||", "if (xCount > 1 ||")));
+  control("IB: the classic address reader learns the key x", "S105", edit("js/fragment-prefill.js", (s) => s.replace('t: "title", k: "kio" };', 't: "title", k: "kio", x: "text" };')));
+  control("IB: an outside address added to the phone module (also S8)", "S105", append(PE, "export const away = 'https://example.invalid/collect';"));
+  control("IB: an outside address added to the phone module (the general rule S8 sees it too)", "S8", append(PE, "export const away = 'https://example.invalid/collect';"));
+  control("IB: the panel is not a live region", "S105", edit("search.html", (s) => s.replace('<div id="phonePanel" class="phone-panel" aria-live="polite">', '<div id="phonePanel" class="phone-panel">')));
+  control("IB: a phone sentence written in search.html", "S105", edit("search.html", (s) => s.replace('<p id="phoneLine" class="phone-line"></p>', '<p id="phoneLine" class="phone-line">Only the first part of the screenshot text was used.</p>')));
+  control("IB: a link to the phone entry on a page", "S105", edit("search.html", (s) => s.replace('<footer class="site-footer">', '<footer class="site-footer"><a href="search.html#x=hello">phone</a>')));
+  control("IB: the extension page address does not ship empty", "S105", edit("js/config.js", (s) => s.replace('export const EXTENSION_PAGE_URL = "";', 'export const EXTENSION_PAGE_URL = "extension.html";')));
+  control("IB: the word paid anywhere else in the reader folder is still caught by the wording rule (only the phrase paid time off is left out)", "S32", append("js/mobile/kio.js", "export const note = 'a paid plan';"));
+  control("IB: the phrase paid time off outside js/mobile is still caught by the wording rule", "S32", append("js/chips.js", "export const w = 'paid time off';"));
+  control("IB: the drift test is not a step of the full run", "S105", edit("tests/run-all.js", (s) => s.replace('path.join(here, "reader-drift.test.js")', 'path.join(here, "reader-drift-gone.js")')));
+}
+
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed" + (ONLY ? "   RESTRICTED RUN (rules " + ONLY.join(", ") + " only): NOT a full run, not evidence for a push" : ""));
 process.exit(missed ? 1 : 0);

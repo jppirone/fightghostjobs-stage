@@ -57,6 +57,7 @@
 //   S62 the search page opened with the company and one other value in the URL fragment (extension hand-off): only c, p, r, t, the site's limits, plain text, refuse on doubt, fragment removed at once, never an automatic search
 //   S61 the emailed one-time code typed in the same tab (Phase 4): EMAIL_CODE_ENTRY, the Auth call as type email, the field on the search page and the employer sign-in page, no landing note after a typed code, the test runs
 //   S60 search engines (Phase 3): the flag ALLOW_INDEXING in js/config.js (false on stage) agrees with every page's robots tag and with robots.txt; sign-in pages are noindex in every environment; the tool and the test exist and run
+//   S105 the phone entry (prompt IB): the phone files never turn text into HTML and never store, log or send it, the 13 sentences letter for letter, the dynamic import is the only way the module and the reader copies load, x is refused with the classic keys, the reader copies equal FROM-EXTENSION.txt, the panel, nothing links to it
 //   S102 the link count pills of the opening tile (prompt LK, October 23, 2026): js/link-pills.js reads only the counts and the statement, says only what the employer disclosed (no "verified", no dash), the tile is built in js/chips.js only, the tooltips are exact, both tests are steps
 //   S101 the gentle refine hints of the title search (October 20, 2026): the three lists in js/config.js, js/refine-hint.js, only the search page shows them (never the staff view), a plain note (no alert), plain words, both tests are steps
 //   S90 every tests/*.test.js is a step of tests/run-all.js (a test file that is not a step is never run by a full run) (prompt TEST2)
@@ -2587,6 +2588,118 @@ export function checkSite(root, opts = {}) {
     const af = path.join(root, "js", "api.js"); if (fs.existsSync(af) && !read(af).includes('rpc("intent_statement_options"')) add("S100", af, "api.js must read the labels of the kind of opening from the database (intent_statement_options)");
     for (const rel of ["js/register-form.js", "js/edit-form.js"]) { const p = path.join(root, rel); if (fs.existsSync(p) && !/from "\.\/intent-statement\.js(\?v=[0-9a-f]{8})?"/.test(read(p))) add("S100", p, rel + " must judge the kind of opening with the shared rule (js/intent-statement.js)"); }
     for (const rel of ["js/pages/register.js", "js/pages/edit.js"]) { const p = path.join(root, rel); if (fs.existsSync(p) && !read(p).includes("mountIntentBox(")) add("S100", p, rel + " must mount the kind of opening choice"); }
+  }
+
+  // S105 (2026-11-03, prompt IB): the phone entry. The Shortcut opens search.html#x=<the text a phone read out of a screenshot>; js/phone-entry.js (loaded ONLY by a dynamic import from js/pages/search.js, when the address holds x) fills the boxes with the copy
+  // of the extension's reader (js/mobile/, tests/copy-reader.js). The screenshot text must never be sent, stored, logged or shown as HTML, and nothing outside js/phone-text.js may be a sentence of the page. Pinned here: the three phone files and
+  // their rules (no HTML from text, no storage, no log, no network, no address, no dash), the 13 sentences letter for letter, the import graph (the dynamic import is the only way the module and the reader copies load), x never combined with the classic
+  // keys, the classic reader of the address untouched, the reader copies equal to js/mobile/FROM-EXTENSION.txt and nothing else in that folder, the panel in search.html (a polite live region, no sentence in the markup), nothing that links to the phone entry,
+  // EXTENSION_PAGE_URL shipping empty, and the three tests as steps of the full run.
+  {
+    const R = (rel) => path.join(root, rel), rel2 = (f) => path.relative(root, f).replace(/\\/g, "/");
+    const dashRe = new RegExp("[" + String.fromCharCode(8211, 8212) + "]");
+    const SENTENCES_13 = [
+      "Read from your screenshot. Check the boxes, then press Search.", "This looks cut off. Check it.", "Found in the title, not labelled. Check it.", "A word in the title looks broken. Type the title.", "Not found. Type it if the opening shows it.", null,
+      "Other openings on your screen:", "You picked this opening. Check the boxes.", "We could not find an opening in the screenshot. Type the company and the job title, the req number or the KIO ID.",
+      "We could not read the text from your screenshot. Type the company and the job title, the req number or the KIO ID.", "Only the first part of the screenshot text was used.", "This page is for phones. On a computer, use the browser extension.",
+      "We never receive your screenshot. Your phone reads the text and this page keeps it in the page only. Nothing is sent until you press Search. Then only the values in the boxes are sent, and the search is recorded like any other.",
+    ];
+    const PHONE_FILES = ["js/phone-entry.js", "js/phone-model.js", "js/phone-text.js"];
+    for (const rel of PHONE_FILES) {
+      const p = R(rel);
+      if (!fs.existsSync(p)) { add("S105", p, rel + " is missing"); continue; }
+      const raw = read(p), t = stripJsComments(raw);
+      if (!/^js\/[a-z0-9-]+\.js$/.test(rel)) add("S105", p, "the name of " + rel + " is not a valid module name");
+      if (/\.innerHTML\b|\.outerHTML\b|insertAdjacentHTML|document\.write|createContextualFragment|\beval\s*\(|new\s+Function/.test(t)) add("S105", p, rel + " must never turn text into HTML or code");
+      if (/localStorage|sessionStorage|indexedDB|\.cookie\b|\bwin\.name\b|window\.name|\bcaches\b|console\.|sendBeacon|XMLHttpRequest|\bfetch\s*\(|WebSocket|clipboard|\.setItem\s*\(/.test(t)) add("S105", p, rel + " must not store, log or send anything (no storage API, no cookie, no window.name, no console, no request)");
+      if (/https?:\/\//.test(t) || /\/\/[a-z0-9.-]+\.[a-z]{2,}\//i.test(t.replace(/\.\.?\//g, ""))) add("S105", p, rel + " must hold no network address");
+      if (dashRe.test(raw)) add("S105", p, rel + " must hold no dash");
+      if (rel !== "js/phone-text.js") {
+        // no sentence of the page outside js/phone-text.js: a string of three words or more that starts with a capital letter
+        for (const m of t.matchAll(/"([A-Z][^"\\]*)"/g)) if (m[1].split(/\s+/).filter(Boolean).length >= 3) add("S105", p, rel + " holds a sentence of its own (" + m[1].slice(0, 40) + "): every sentence lives in js/phone-text.js");
+      }
+    }
+    const tx = R("js/phone-text.js");
+    if (fs.existsSync(tx)) {
+      const m = stripJsComments(read(tx));
+      const entries = [...m.matchAll(/^\s+(\d+): (?:"((?:[^"\\]|\\.)*)"|MORE_BEFORE \+ MORE_BUTTON \+ MORE_AFTER),?\s*$/gm)];
+      if (entries.length !== 13) add("S105", tx, "js/phone-text.js must hold exactly the 13 sentences (found " + entries.length + ")");
+      SENTENCES_13.forEach((want, i) => {
+        const e = entries[i];
+        if (!e || e[1] !== String(i + 1)) { add("S105", tx, "sentence " + (i + 1) + " is missing or out of order"); return; }
+        if (want !== null && e[2] !== want) add("S105", tx, "sentence " + (i + 1) + " must be exactly: " + want);
+      });
+      if (!m.includes('export const MORE_BEFORE = "Not the one you meant? ", MORE_BUTTON = "Pick another opening", MORE_AFTER = ".";')) add("S105", tx, "sentence 6 must be Not the one you meant? Pick another opening. with the last three words as the button");
+      if (!m.includes('export const EXTENSION_LINK_TEXT = "Get the browser extension";')) add("S105", tx, 'the link text must be "Get the browser extension"');
+      if (/verif|compliant|certif|scam|fake|fraud|suspicious|trusted|safe\b|guarantee|\bflag|detect|catch|expose|loophole|compliance|posting|ghost/i.test(m)) add("S105", tx, "the phone sentences hold a forbidden word");
+    }
+    // the import graph: who may load what
+    const ALLOWED = {
+      "js/phone-entry.js": { dynamic: ["js/pages/search.js"], stat: [] }, "js/phone-model.js": { dynamic: [], stat: ["js/phone-entry.js"] }, "js/phone-text.js": { dynamic: [], stat: ["js/phone-entry.js"] },
+      "js/mobile/mobile-reader/reader.js": { dynamic: [], stat: ["js/phone-model.js"] }, "js/mobile/extractor.js": { dynamic: [], stat: ["js/mobile/mobile-reader/reader.js"] }, "js/mobile/kio.js": { dynamic: [], stat: ["js/mobile/mobile-reader/reader.js", "js/mobile/extractor.js"] },
+    };
+    for (const f of js) {
+      const from = rel2(f), t = stripJsComments(read(f));
+      const found = [];
+      for (const m of t.matchAll(/(?:\bfrom\s*|\bimport\s*)["'](\.{1,2}\/[^"']+)["']/g)) found.push(["stat", m[1]]);
+      for (const m of t.matchAll(/\bimport\(\s*["'](\.{1,2}\/[^"']+)["']/g)) found.push(["dynamic", m[1]]);
+      for (const [kind, spec] of found) {
+        const target = rel2(path.resolve(path.dirname(f), spec.split("?")[0]));
+        const rule = ALLOWED[target];
+        if (rule && !rule[kind].includes(from)) add("S105", f, from + " loads " + target + " by a " + (kind === "stat" ? "static import" : "dynamic import") + ": the phone files load only through the dynamic import in js/pages/search.js and the imports among themselves");
+        if (!rule && /^js\/mobile\//.test(target)) add("S105", f, from + " loads " + target + ": nothing but the phone files may load the reader copies");
+      }
+    }
+    const searchF = R("js/pages/search.js");
+    if (fs.existsSync(searchF)) {
+      const s = stripJsComments(read(searchF));
+      if ((s.match(/import\("\.\.\/phone-entry\.js"\)/g) || []).length !== 1) add("S105", searchF, 'js/pages/search.js must load the phone entry with exactly one dynamic import("../phone-entry.js")');
+      if (!s.includes('window.addEventListener("hashchange", () => { if (PHONE_X.test(location.hash)) { takePending(localStorage); runPhone(); } });')) add("S105", searchF, "the hook must run again when the fragment changes (hashchange), for the Shortcut opening the same page again");
+      if (!s.includes("const PHONE_X = /^#(?:[^#]*&)?x=/;") || !s.includes("else if (applyFragmentPrefill(")) add("S105", searchF, "the hook must test for the key x only, and the classic prefill must stay for every address without x");
+      const hookLines = s.split("\n").filter((l) => /PHONE_X|runPhone|phone-entry/.test(l)).length;
+      if (hookLines > 6) add("S105", searchF, "the hook in js/pages/search.js must stay a few lines (found " + hookLines + ")");
+    }
+    // x is never combined with the classic keys, and the classic reader of the address knows nothing of x
+    const pm = R("js/phone-model.js");
+    if (fs.existsSync(pm)) {
+      const m = stripJsComments(read(pm));
+      if (!m.includes('const CLASSIC_KEYS = new Set(["c", "p", "r", "t", "k", "o", "h"]);') || !m.includes("if (old || xCount > 1 ||")) add("S105", pm, "an address with x and any of c, p, r, t, k, o, h, or with x twice, must be refused as a whole");
+      if (!m.includes("decodeURIComponent(value)") || !m.includes("hasBadControl(text)")) add("S105", pm, "the text must be decoded with decodeURIComponent and refused when it holds a control character");
+      if (!m.includes("export const TEXT_CAP = 600,")) add("S105", pm, "the text cap is 600 characters");
+    }
+    const fpF = R("js/fragment-prefill.js");
+    if (fs.existsSync(fpF)) { const t = stripJsComments(read(fpF)); if (!t.includes('export const FRAGMENT_KEYS = { c: "company", p: "postid", r: "req", t: "title", k: "kio" };') || /["']x["']/.test(t)) add("S105", fpF, "the classic address reader must stay as it was: the keys c, p, r, t and k, and no x"); }
+    // the reader copies: equal to the note, nothing else in the folder
+    const note = R("js/mobile/FROM-EXTENSION.txt");
+    if (!fs.existsSync(note)) add("S105", note, "js/mobile/FROM-EXTENSION.txt is missing");
+    else {
+      const n = fs.readFileSync(note, "utf8");
+      const COPIES = [["mobile-reader/reader.js", "js/mobile/mobile-reader/reader.js"], ["extractor.js", "js/mobile/extractor.js"], ["kio.js", "js/mobile/kio.js"]];
+      for (const [from, to] of COPIES) {
+        const p = R(to), want = (n.match(new RegExp("^sha256 " + from.replace(/[./]/g, "\\$&") + ": ([0-9a-f]{64})$", "m")) || [])[1];
+        if (!fs.existsSync(p)) { add("S105", p, to + " is missing"); continue; }
+        if (!want) { add("S105", note, "FROM-EXTENSION.txt holds no hash for " + from); continue; }
+        if (!/^[a-z0-9-]+\.js$/.test(path.basename(p))) add("S105", p, "the name of " + to + " is not a valid module name");
+        if (crypto.createHash("sha256").update(Buffer.from(read(p).replace(/\r/g, ""), "utf8")).digest("hex") !== want) add("S105", p, to + " is not the file of the extension tag in FROM-EXTENSION.txt: a copy is never edited by hand (node tests/copy-reader.js)");
+      }
+      const inFolder = walk(R("js/mobile")).map((f) => path.relative(R("js/mobile"), f).replace(/\\/g, "/")).sort().join(",");
+      if (inFolder !== "FROM-EXTENSION.txt,extractor.js,kio.js,mobile-reader/reader.js") add("S105", R("js/mobile"), "js/mobile/ must hold only the three copies and the note (found " + inFolder + ")");
+    }
+    // the panel in search.html: one polite live region, every id once, no sentence in the markup
+    const sh = R("search.html");
+    if (fs.existsSync(sh)) {
+      const h = read(sh);
+      for (const id of ["phonePanel", "phoneBody", "phoneLine", "phoneMore", "phoneList", "phonePrivacy"]) if ((h.match(new RegExp('id="' + id + '"', "g")) || []).length !== 1) add("S105", sh, 'search.html must hold id="' + id + '" exactly once');
+      if (!/<div id="phonePanel"[^>]*aria-live="polite"/.test(h)) add("S105", sh, "the phone panel must be a polite live region");
+      if (!/<div id="phoneBody"[^>]*\shidden/.test(h) || !/<p id="phonePrivacy"[^>]*\shidden/.test(h)) add("S105", sh, "the phone panel and its privacy sentence are hidden until the module shows them");
+      for (const s of SENTENCES_13) if (s && h.includes(s)) add("S105", sh, "search.html holds a phone sentence: they live in js/phone-text.js only");
+    }
+    // nothing links to the phone entry; the setting for the extension page ships empty
+    for (const f of html.concat(js)) { const t = f.endsWith(".html") ? read(f) : stripJsComments(read(f)); if (/href\s*[:=]\s*["'][^"']*#x=/.test(t)) add("S105", f, "nothing may link to the phone entry (#x=)"); }
+    const cfg = R("js/config.js");
+    if (fs.existsSync(cfg) && !stripJsComments(read(cfg)).includes('export const EXTENSION_PAGE_URL = "";')) add("S105", cfg, 'EXTENSION_PAGE_URL ships empty (export const EXTENSION_PAGE_URL = "";) until the page for the extension exists');
+    const runF = R("tests/run-all.js");
+    if (fs.existsSync(runF)) { const r = read(runF); for (const n of ["phone-entry.test.js", "phone-entry.unit.test.js", "reader-drift.test.js"]) if (!r.includes('"' + n + '"')) add("S105", runF, n + " is not a step of the full run"); }
   }
 
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");
