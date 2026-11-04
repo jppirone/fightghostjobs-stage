@@ -528,7 +528,9 @@ export function checkSite(root, opts = {}) {
       [/itself worth knowing/i, "a missing opening must not be presented as meaningful about the job"],
     ];
     for (const f of html.concat(js)) {
-      const t = f.endsWith(".html") ? read(f).replace(/<!--[\s\S]*?-->/g, "") : stripJsComments(read(f));
+      let t = f.endsWith(".html") ? read(f).replace(/<!--[\s\S]*?-->/g, "") : stripJsComments(read(f));
+      // prompt IB (November 3, 2026): the phone reader copied from the extension (js/mobile/) holds the benefit word list "... pto|paid time off|bonus ...", the words it RECOGNISES in a screenshot; they are never shown. Only that phrase, and only in that folder, is left out of this check.
+      if (/[\\/]js[\\/]mobile[\\/]/.test(f)) t = t.replace(/paid time off/g, "");
       for (const [re, why] of RETIRED) if (re.test(t)) add("S32", f, why);
     }
     const need = (rel, str, why) => { const p = path.join(root, rel); if (!fs.existsSync(p) || !read(p).includes(str)) add("S32", p, why); };
