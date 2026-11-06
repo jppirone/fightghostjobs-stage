@@ -88,6 +88,13 @@ export const shapes = {
     && isNullable(r.applicant_cap, Number.isInteger) && isNullable(r.ai_filtering, isBool) && isNullable(r.ai_interview_other, isBool) && isBool(r.third_party_recruiter)
     && isStr(r.opening_id) && /^(?:KIO-)?[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(r.opening_id) && isNullable(r.req_number, isStr),
   staffSearch: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req") && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.staffRow) && Object.keys(d).length === 3,
+  // prompt IV (November 6, 2026): the staff page "Companies to invite". One row per company the system does not know (exactly the nine keys public.staff_invite_list returns), and one row per typed title (exactly the four keys of public.staff_invite_list_titles).
+  // Nothing else is accepted: an extra key, a missing key or a wrong type is a broken answer and the page shows its plain error line instead of the data.
+  inviteRow: (r) => isObj(r) && Object.keys(r).length === 9 && isStr(r.company) && isStr(r.company_key) && Number.isInteger(r.searches) && r.searches >= 0 && Number.isInteger(r.different_people) && r.different_people >= 0 && isBool(r.people_exact)
+    && isStr(r.first_month) && isStr(r.last_month) && isStr(r.months_seen) && isNullable(r.status, isStr),
+  inviteList: (d) => Array.isArray(d) && d.length <= 20000 && d.every(shapes.inviteRow),
+  inviteTitleRow: (r) => isObj(r) && Object.keys(r).length === 4 && isStr(r.company) && isStr(r.company_key) && isStr(r.title) && Number.isInteger(r.searches) && r.searches >= 0,
+  inviteTitles: (d) => Array.isArray(d) && d.length <= 20000 && d.every(shapes.inviteTitleRow),
   search: (d) => isObj(d) && (d.mode === "phrase" || d.mode === "code" || d.mode === "req" || d.mode === "kio") && (d.mismatch === undefined || isBool(d.mismatch)) && failoverOk(d.failover) && isBool(d.truncated) && Array.isArray(d.results) && d.results.length <= 25 && d.results.every(shapes.searchRow),
   // prompt BA (October 10, 2026): up to ten application links, three named recruiter firms and ONE entry of kind "policy" (the employer's AI and hiring policy link: position 1, a label saying where it goes, never a firm)
   detail: (d) => isObj(d) && isObj(d.posting) && shapes.searchRow(Object.assign({ }, d.posting)) && (d.comment_count === undefined || (Number.isInteger(d.comment_count) && d.comment_count >= 0)) && Array.isArray(d.links) && d.links.length <= 14 && linkCountsOk(d.links)
@@ -303,6 +310,9 @@ export function createApi({ baseUrl, key, getToken, fetchImpl }) {
     intentOptions: () => rpc("intent_statement_options", {}, { validate: shapes.intentOptions }),
     isStaff: () => rpc("is_staff", {}, { validate: isBool }),
     staffSearch: (q) => rpc("staff_search_openings", q, { validate: shapes.staffSearch }),
+    // prompt IV: the staff page "Companies to invite". Both ask the database with the person's own token; the database checks is_staff() first. q = { p_from, p_to, p_company, p_min_searches }
+    staffInviteList: (q) => rpc("staff_invite_list", q, { validate: shapes.inviteList }),
+    staffInviteListTitles: (q) => rpc("staff_invite_list_titles", q, { validate: shapes.inviteTitles }),
     candidateSearch: (q) => call("candidate-search", q, { validate: shapes.search }),
     candidateDetail: (postingRef) => call("candidate-posting-detail", { posting_ref: postingRef }, { validate: shapes.detail }),
     candidateLinkIssue: (postingRef) => call("candidate-link-issue", { posting_ref: postingRef }, { validate: shapes.linkIssue }),

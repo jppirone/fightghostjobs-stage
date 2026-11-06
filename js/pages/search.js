@@ -1,7 +1,7 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=251de542";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=fc8efa20";
 import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=43ff0655";
 import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=f5151bcc";
 import { savePending, takePending } from "../signin-handoff.js?v=ab47bf72";

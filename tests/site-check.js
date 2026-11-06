@@ -2550,14 +2550,15 @@ export function checkSite(root, opts = {}) {
       if (!c.includes('window.addEventListener("pagehide", () => { if (staffMode) {')) add("S65", sj, "staff results must be cleared when the page is left (pagehide)");
     }
     if (fs.existsSync(shF) && /staff/i.test(read(shF))) add("S65", shF, "search.html must not mention staff: the shell is the same for everybody");
-    for (const f of js) { const n = path.relative(root, f).replace(/\\/g, "/"); if (["js/pages/search.js", "js/api.js", "js/staff-scope.js"].includes(n)) continue; if (/\b(isStaff|staffSearch|staff_search_openings|is_staff)\b/.test(stripJsComments(read(f)))) add("S65", f, "only js/pages/search.js may use the staff functions"); }
+    for (const f of js) { const n = path.relative(root, f).replace(/\\/g, "/"); if (["js/pages/search.js", "js/api.js", "js/staff-scope.js"].includes(n)) continue; if (n === "js/pages/staff-invite.js" && !/\b(staffSearch|staff_search_openings)\b/.test(stripJsComments(read(f)))) continue; /* prompt IV: the staff invite page may ask is_staff, never the staff search (rule S106 holds the rest) */ if (/\b(isStaff|staffSearch|staff_search_openings|is_staff)\b/.test(stripJsComments(read(f)))) add("S65", f, "only js/pages/search.js may use the staff functions (and js/pages/staff-invite.js may ask isStaff)"); }
     if (fs.existsSync(apiF)) {
       const c = read(apiF), i = c.indexOf("async function rpc("), j = c.indexOf("const postingAnswer");
       if (i < 0 || j < i || !c.slice(i, j).includes('cache: "no-store"') || !c.slice(i, j).includes('"/rest/v1/rpc/"')) add("S65", apiF, 'the rpc helper must never cache (cache: "no-store") and must call /rest/v1/rpc/');
       const names = [...c.matchAll(/\brpc\("([a-z_]+)"/g)].map((m) => m[1]).sort().join(",");
       // prompt ST1 (October 14, 2026): a third read-only function, intent_statement_options (the labels of the optional kind-of-opening choice, read by the employer's pages with the poster's own token); it takes no
       // argument and returns only the four codes with their employer labels and meanings, so it opens nothing about any opening or person (rule S100 holds it to that)
-      if (names !== "intent_statement_options,is_staff,staff_search_openings") add("S65", apiF, "the only database functions api.js may call directly are intent_statement_options, is_staff and staff_search_openings (found: " + names + ")");
+      // prompt IV (November 6, 2026): two more, staff_invite_list and staff_invite_list_titles, for the staff page "Companies to invite" (each checks is_staff() inside the database; rule S106 holds that page)
+      if (names !== "intent_statement_options,is_staff,staff_invite_list,staff_invite_list_titles,staff_search_openings") add("S65", apiF, "the only database functions api.js may call directly are intent_statement_options, is_staff, staff_invite_list, staff_invite_list_titles and staff_search_openings (found: " + names + ")");
     }
   }
 

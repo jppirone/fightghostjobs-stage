@@ -1,7 +1,7 @@
 // register.js - an employer registers a posting: create it (a draft), then publish it (standard tier goes live immediately).
 // "Save draft" stops after the first step: the draft is then found and published from My postings (dashboard.html). Nothing here trusts the page for identity: the session token tells the server who is acting.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=251de542";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=fc8efa20";
 import { rememberNext } from "../session.js?v=43ff0655";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=5c78a8cd";
 import { fmtClose, waitText } from "../format.js?v=ebadcb99";

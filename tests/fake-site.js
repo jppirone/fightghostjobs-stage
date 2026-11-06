@@ -64,6 +64,22 @@ const ANALYTICS = { live_postings: 4, searches: 1284, detail_views: 406, link_cl
   by_posting: [{ posting_id: "3f1d5b1e-0000-4000-8000-000000000001", title: "Senior Data Analyst", status: "live", closed_reason: null, expiration_date: inDays(17), searches: 412, detail_views: 138, link_clicks: 61 }, { posting_id: "3f1d5b1e-0000-4000-8000-000000000002", title: "Nurse Practitioner", status: "paused", closed_reason: null, expiration_date: inDays(9), searches: 163, detail_views: 52, link_clicks: 18 }, { posting_id: "3f1d5b1e-0000-4000-8000-000000000003", title: "Support Engineer II", status: "closed", closed_reason: "filled", expiration_date: inDays(-2), searches: 44, detail_views: 13, link_clicks: 3 }],
   by_link: [{ link_id: "4f1d5b1e-0000-4000-8000-000000000001", posting_id: "3f1d5b1e-0000-4000-8000-000000000001", source_label: "Careers site, primary listing", kind: "apply", firm_name: null, display_order: 1, clicks: 88 }, { link_id: "4f1d5b1e-0000-4000-8000-000000000003", posting_id: "3f1d5b1e-0000-4000-8000-000000000002", source_label: null, kind: "recruiter", firm_name: "Recruiter-provided link", display_order: 1, clicks: 16 }],
   by_search_mode: { phrase: 61, code: 24, req: 15 } };
+// prompt IV (November 6, 2026): the rows the fake database answers for public.staff_invite_list and public.staff_invite_list_titles (the nine and the four keys of the real functions). Invented names only.
+// Four companies, not in order of searches on purpose: the page sorts. Zeta has an inexact people count (people_exact false) and a status; the others have none.
+export const INVITE_ROWS = [
+  { company: "Northwind Traders", company_key: "northwind traders", searches: 7, different_people: 5, people_exact: true, first_month: "2026-08-01", last_month: "2026-10-01", months_seen: "2026-08, 2026-09, 2026-10", status: null },
+  { company: "Zeta Works", company_key: "zeta works", searches: 12, different_people: 6, people_exact: false, first_month: "2026-09-01", last_month: "2026-10-01", months_seen: "2026-09, 2026-10", status: "registered, free" },
+  { company: "Acme Rockets", company_key: "acme rockets", searches: 3, different_people: 3, people_exact: true, first_month: "2026-10-01", last_month: "2026-10-01", months_seen: "2026-10", status: null },
+  { company: "Pilot Example Co", company_key: "pilot example", searches: 1, different_people: 1, people_exact: true, first_month: "2026-10-01", last_month: "2026-10-01", months_seen: "2026-10", status: "pilot partner" },
+];
+export const INVITE_TITLES = [
+  { company: "Zeta Works", company_key: "zeta works", title: "data analyst", searches: 8 },
+  { company: "Zeta Works", company_key: "zeta works", title: "(lookup by code)", searches: 4 },
+  { company: "Northwind Traders", company_key: "northwind traders", title: "buyer", searches: 5 },
+  { company: "Northwind Traders", company_key: "northwind traders", title: "planner", searches: 2 },
+  { company: "Acme Rockets", company_key: "acme rockets", title: "engineer", searches: 3 },
+  { company: "Pilot Example Co", company_key: "pilot example", title: "analyst", searches: 1 },
+];
 
 // opts.pageCache: Cache-Control for the pages and scripts (default no-store, as always). opts.commentsOff: serve js/config.js with the comments switch turned OFF (COMMENTS_VISIBLE false), to test the pages in that state. By default the fake site serves the file exactly as shipped, which is ON since October 6, 2026, so every test written for the pages with comments keeps covering them
 export function startFakeSite(root, opts = {}) {
@@ -117,6 +133,24 @@ export function startFakeSite(root, opts = {}) {
         // opts.staffPlaceOverrides: for each staff result in order an object merged into the row (locations, source_location_text), for the tests of the display-only place text (AZ3)
         const outPlaced = opts.staffPlaceOverrides ? out.map((r, i) => Object.assign({}, r, (opts.staffPlaceOverrides[i] || {}))) : out;
         return send(200, { mode: body.p_req ? "req" : body.p_code ? "code" : "phrase", truncated: false, results: outPlaced });
+      }
+      // prompt IV: the two staff invite list functions. Like the real ones: a person who is not staff gets the plain not found; an exact whole-name match on the company key (blank = every company); a minimum (null or below 1 = 1);
+      // from after to is refused (FG400). The rows come from opts.inviteRows / opts.inviteTitles (default INVITE_ROWS / INVITE_TITLES), most searches first. opts.inviteFails: the database errors; opts.inviteBadShape: an answer with an extra key;
+      // opts.inviteSlow: milliseconds to wait before answering (for the race checks); opts.inviteTitlesFail: only the titles call errors.
+      if (fn === "staff_invite_list" || fn === "staff_invite_list_titles") {
+        if (!staff) return send(404, { code: "FG404", message: "not found" });
+        if (opts.inviteFails || (fn === "staff_invite_list_titles" && opts.inviteTitlesFail)) return send(500, { code: "XX000", message: "boom SECRET-DB-TEXT" });
+        if (typeof body.p_from !== "string" || typeof body.p_to !== "string" || body.p_from > body.p_to) return send(400, { code: "FG400", message: "a valid date range is required (from not after to)" });
+        if (opts.inviteSlow) await new Promise((ok) => setTimeout(ok, opts.inviteSlow));
+        const key = typeof body.p_company === "string" ? body.p_company.trim().toLowerCase() : "", min = Number.isInteger(body.p_min_searches) && body.p_min_searches > 1 ? body.p_min_searches : 1;
+        const base = (opts.inviteRows || INVITE_ROWS), totals = new Map(base.map((r) => [r.company_key, r.searches]));
+        const keep = (k) => (key === "" || k === key) && (totals.get(k) || 0) >= min;
+        if (fn === "staff_invite_list") {
+          let out = base.filter((r) => keep(r.company_key)).sort((a, b) => b.searches - a.searches || (a.company_key < b.company_key ? -1 : 1));
+          if (opts.inviteBadShape) out = out.map((r) => ({ ...r, account_hash: "x" }));
+          return send(200, out);
+        }
+        return send(200, (opts.inviteTitles || INVITE_TITLES).filter((t) => keep(t.company_key)));
       }
       return send(404, { code: "PGRST202", message: "Could not find the function" });
     }

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src https://tpmvkjuhbbwftqoodzcn.supabase.co; base-uri 'self'; form-action 'self'; object-src 'none'">
+<meta name="referrer" content="same-origin">
+<meta name="robots" content="noindex, nofollow">
+<script src="js/stage-gate.js?v=d48925c1"></script>
+<title>FightGhostJobs | Companies to invite</title>
+<link rel="stylesheet" href="styles.css?v=4cea5b1e">
+<link rel="stylesheet" href="app.css?v=4cf4ef73">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav">
+  <a class="nav-logo" href="index.html" aria-label="FightGhostJobs home"><svg class="nav-mark" width="44" height="44" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect x="4.5" y="4.5" width="40" height="40" rx="10" fill="var(--ink)" fill-opacity=".16" stroke="var(--ink)" stroke-opacity=".55" stroke-width="2.4" stroke-dasharray="5 4"/><rect x="18" y="18" width="42" height="42" rx="10" fill="var(--ember)"/><path d="M29 40 L37 48 L50 31" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="nav-wordmark"><span class="wm-fight">Fight</span><span class="wm-ghost">Ghost</span><span class="wm-jobs">Jobs</span></span></a>
+  <nav class="nav-links" aria-label="Main">
+    <a href="index.html#candidates">For Candidates</a>
+    <a href="index.html#employers">For Employers</a>
+    <a href="search.html">Search Openings</a>
+  </nav>
+  <div id="navAccount" style="display:flex;align-items:center;"></div>
+</header>
+
+<main id="main">
+
+<div class="pg" style="max-width:1100px;margin:0 auto;padding:44px 32px;display:flex;flex-direction:column;gap:24px;">
+  <div>
+    <div style="font-size:13px;font-weight:700;color:var(--faint);">Staff only</div>
+    <h1 id="pageHeading" tabindex="-1" style="font-size:28px;font-weight:700;margin-top:4px;">Companies to invite</h1>
+    <p id="lead" style="font-size:14px;color:var(--muted);margin:4px 0 0 0;">Companies that people searched for and the system does not know. Counts are exact except where a row says "at least".</p>
+  </div>
+
+  <div id="gate" class="card" role="status" hidden>
+    <p id="gateText" style="font-size:15px;line-height:1.6;margin:0;"></p>
+  </div>
+
+  <div id="area" hidden>
+    <div style="display:flex;flex-direction:column;gap:24px;">
+      <form id="filters" class="card" novalidate style="display:flex;flex-direction:column;gap:16px;">
+        <div style="font-size:14px;font-weight:700;">Date range and filters</div>
+        <div class="grid2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+          <div><label for="fFrom">From</label><input id="fFrom" type="date"><div class="field-error" data-error-for="fFrom" hidden></div></div>
+          <div><label for="fTo">To</label><input id="fTo" type="date"><div class="field-error" data-error-for="fTo" hidden></div></div>
+          <div><label for="fCompany">Company</label><input id="fCompany" type="text" maxlength="200" autocomplete="off" aria-describedby="companyHint"><div class="field-error" data-error-for="fCompany" hidden></div></div>
+          <div><label for="fMin">Minimum searches</label><input id="fMin" type="number" inputmode="numeric" min="1" step="1" value="1"><div class="field-error" data-error-for="fMin" hidden></div></div>
+          <div><label for="fSort">Sort by searches</label><select id="fSort"><option value="most" selected>Most first</option><option value="fewest">Fewest first</option></select></div>
+        </div>
+        <div id="companyHint" style="font-size:13px;color:var(--muted);line-height:1.6;">Type the company's name. The box matches the whole name, not part of it. Leave it empty to see every company.</div>
+        <div><button type="submit" id="showBtn" class="btn btn-dark btn-sm">Show companies</button></div>
+      </form>
+
+      <div id="listAlert" hidden></div>
+      <div id="countLine" role="status" aria-live="polite" style="font-size:14px;color:var(--muted);"></div>
+
+      <div id="listCard" class="card flush" data-scroll-area="Companies table" style="padding:0;overflow-x:auto;" hidden>
+        <table class="dash-table rtable" role="table">
+          <thead role="rowgroup"><tr role="row"><th role="columnheader">Company</th><th role="columnheader">Searches</th><th role="columnheader">Different people</th><th role="columnheader">First month</th><th role="columnheader">Last month</th><th role="columnheader">Status</th><th role="columnheader">Titles</th></tr></thead>
+          <tbody id="rows" role="rowgroup"></tbody>
+        </table>
+        <div id="peopleNote" class="empty-note" style="margin:0;border-radius:0;" hidden>"At least" means the count of different people could be higher: it is the largest single month figure for an earlier month.</div>
+      </div>
+      <div id="emptyNote" class="empty-note" hidden></div>
+
+      <section id="titlesPanel" class="card flush" aria-labelledby="titlesHeading" hidden style="padding:0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 16px 0 16px;">
+          <h2 id="titlesHeading" tabindex="-1" style="font-size:18px;font-weight:700;margin:0;"></h2>
+          <button type="button" id="titlesClose" class="btn btn-outline btn-sm">Back to the list</button>
+        </div>
+        <div id="titlesAlert" hidden style="padding:0 16px;"></div>
+        <div id="titlesCard" data-scroll-area="Titles table" style="overflow-x:auto;" hidden>
+          <table class="dash-table rtable" role="table">
+            <thead role="rowgroup"><tr role="row"><th role="columnheader">Title</th><th role="columnheader">Searches</th></tr></thead>
+            <tbody id="titleRows" role="rowgroup"></tbody>
+          </table>
+        </div>
+        <div id="titlesEmpty" class="empty-note" style="margin:16px;" hidden></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<footer class="site-footer"><span>FightGhostJobs</span><a href="https://www.fightghostjobs.com/privacy.html">Privacy</a><a href="mailto:privacy@fightghostjobs.com">privacy@fightghostjobs.com</a></footer>
+
+<script type="module" src="js/pages/staff-invite.js?v=4c5851a1"></script>
+</body>
+</html>
