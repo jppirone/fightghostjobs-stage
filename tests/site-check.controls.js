@@ -1612,6 +1612,44 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("IB: the drift test is not a step of the full run", "S105", edit("tests/run-all.js", (s) => s.replace('path.join(here, "reader-drift.test.js")', 'path.join(here, "reader-drift-gone.js")')));
 }
 
+// S106 (2026-11-06, prompt IV): the staff page "Companies to invite"
+{
+  const PGJ = "js/pages/staff-invite.js", MDJ = "js/staff-invite-model.js", HTM = "staff-invite.html";
+  control("IV: the staff page loses its noindex tag", "S106", edit(HTM, (s) => s.replace('<meta name="robots" content="noindex, nofollow">', '<meta name="robots" content="index, follow">')));
+  control("IV: the staff page loads another module", "S106", edit(HTM, (s) => s.replace('src="js/pages/staff-invite.js', 'src="js/pages/team.js')));
+  control("IV: the page calls the staff search", "S106", append(PGJ, "api.staffSearch({});"));
+  control("IV: the page asks the older report function through the generic call", "S106", edit(PGJ, (s) => s.replace("api.staffInviteList(checked.args)", 'api.call("search_event_invite_list_report_staff", checked.args)')));
+  control("IV: the page makes a network call of its own", "S106", append(PGJ, 'fetch("/x");'));
+  control("IV: the page stores something in localStorage", "S106", append(PGJ, 'localStorage.setItem("a", "b");'));
+  control("IV: the page stores something in sessionStorage", "S106", append(PGJ, 'sessionStorage.setItem("a", "b");'));
+  control("IV: the page makes HTML from data", "S106", append(PGJ, 'rowsEl.innerHTML = "<b>x</b>";'));
+  control("IV: the page logs", "S106", append(PGJ, 'console.log("x");'));
+  control("IV: the staff check is trusted on any answer", "S106", edit(PGJ, (s) => s.replace("staff.ok && staff.data === true", "staff.ok")));
+  control("IV: the signed out line is removed", "S106", edit(PGJ, (s) => s.replace("showGate(SIGNED_OUT_TEXT)", "showGate(NOT_AVAILABLE_TEXT)")));
+  control("IV: the rows stay when the page is left", "S106", edit(PGJ, (s) => s.replace('window.addEventListener("pagehide", () => { wipe(); });', "")));
+  control("IV: the titles use the dates typed since", "S106", edit(PGJ, (s) => s.replace("p_from: shown.p_from, p_to: shown.p_to,", "p_from: fFrom.value, p_to: shown.p_to,")));
+  control("IV: a sign in that ended is not handled", "S106", edit(PGJ, (s) => s.replace('if (kind === "session") { showGate(SESSION_ENDED_TEXT); return; }', "")));
+  control("IV: the range limit changes", "S106", edit(MDJ, (s) => s.replace("export const MAX_MONTHS = 36;", "export const MAX_MONTHS = 48;")));
+  control("IV: the empty state sentence changes", "S106", edit(MDJ, (s) => s.replace("No searches for companies outside the system in this date range.", "Nothing found.")));
+  control("IV: a company with no status gets another word", "S106", edit(MDJ, (s) => s.replace('"No match"', '"Unknown"')));
+  control("IV: the sort does not start as Most first", "S106", edit(HTM, (s) => s.replace('<option value="most" selected>', '<option value="most">')));
+  control("IV: a control loses its label", "S106", edit(HTM, (s) => s.replace('<label for="fMin">Minimum searches</label>', "")));
+  control("IV: the company note no longer says whole name", "S106", edit(HTM, (s) => s.replace("The box matches the whole name, not part of it.", "The box matches part of the name.")));
+  control("IV: an export button is added", "S106", edit(HTM, (s) => s.replace('<div id="listAlert" hidden></div>', '<div id="listAlert" hidden></div><button type="button" id="exportBtn">Export</button>')));
+  control("IV: a link is added to the page", "S106", edit(HTM, (s) => s.replace('<div id="listAlert" hidden></div>', '<div id="listAlert" hidden></div><a href="search.html">Search</a>')));
+  control("IV: the page says posting", "S106", edit(HTM, (s) => s.replace("Companies that people searched for", "Postings that people searched for")));
+  control("IV: a dash in the page", "S106", edit(HTM, (s) => s.replace("Staff only", "Staff" + String.fromCharCode(8212) + "only")));
+  control("IV: the service key named in a browser file", "S106", append("js/pages/team.js", 'const k = "service_role";'));
+  control("IV: a report function named in a browser file", "S106", append("js/chips.js", 'export const f = "search_event_invite_list_report_staff";'));
+  control("IV: the gated not found report named in a browser file", "S106", append("js/dom.js", 'export const g = "search_event_not_found_report";'));
+  control("IV: an account code named in a browser file", "S106", append("js/dom.js", 'export const a = "account_hash";'));
+  control("IV: the staff invite function named outside api.js", "S106", append("js/chips.js", 'export const n = "staff_invite_list";'));
+  control("IV: a public page links to the staff page", "S106", edit("index.html", (s) => s.replace("</footer>", '<a href="staff-invite.html">Staff</a></footer>')));
+  control("IV: the answer check of the list is loosened", "S106", edit("js/api.js", (s) => s.replace("Object.keys(r).length === 9 && ", "")));
+  control("IV: the browser test is not a step of the full run", "S106", edit("tests/run-all.js", (s) => s.replace('path.join(here, "staff-invite.test.js")', 'path.join(here, "staff-invite-gone.js")')));
+  control("IV: the staff page may use the staff search (S65 still holds the rest)", "S65", append(PGJ, "api.staffSearch({});"));
+}
+
 fs.rmSync(tmpBase, { recursive: true, force: true });
 console.log("site-check controls: " + n + " defects, " + missed + " missed" + (ONLY ? "   RESTRICTED RUN (rules " + ONLY.join(", ") + " only): NOT a full run, not evidence for a push" : ""));
 process.exit(missed ? 1 : 0);

@@ -2703,6 +2703,50 @@ export function checkSite(root, opts = {}) {
     if (fs.existsSync(runF)) { const r = read(runF); for (const n of ["phone-entry.test.js", "phone-entry.unit.test.js", "reader-drift.test.js"]) if (!r.includes('"' + n + '"')) add("S105", runF, n + " is not a step of the full run"); }
   }
 
+  // S106 (2026-11-06, prompt IV): the staff page "Companies to invite" (staff-invite.html). For a signed in staff person only: the page asks the database is_staff() with the person's own token and shows nothing unless the answer is a clear true; the list
+  // and the titles come from two database functions (public.staff_invite_list, public.staff_invite_list_titles), each of which checks is_staff() again. Pinned here: the three page files, noindex, the only calls the page makes, no network call of its own,
+  // no storage, no HTML made from data, no log, the gate lines, the rows removed on leaving, the model's limits and sentences, a label on every control, no export or mail or digest, no word of the kinds kept out of public wording, no dash; and for
+  // EVERY browser file: no service key, no name of a report function (the ones the database keeps for the service role), no table of search events and no account code; only js/api.js names the two functions; nothing links to the page.
+  {
+    const R = (rel) => path.join(root, rel), rel2 = (f) => path.relative(root, f).replace(/\\/g, "/");
+    const dashRe = new RegExp("[" + String.fromCharCode(8211, 8212) + "]");
+    const PG = R("js/pages/staff-invite.js"), MD = R("js/staff-invite-model.js"), HT = R("staff-invite.html");
+    const present = [PG, MD, HT].filter((p) => fs.existsSync(p));
+    for (const p of [PG, MD, HT]) if (!fs.existsSync(p)) add("S106", p, rel2(p) + " is missing");
+    if (present.length === 3) {
+      const pg = stripJsComments(read(PG)), md = stripJsComments(read(MD)), ht = read(HT);
+      const main = ht.slice(ht.indexOf("<main"), ht.indexOf("</main>"));
+      if (!ht.includes('<meta name="robots" content="noindex, nofollow">')) add("S106", HT, "the staff page must say noindex, nofollow");
+      if (!/<script type="module" src="js\/pages\/staff-invite\.js(\?v=[0-9a-f]{8})?"><\/script>/.test(ht)) add("S106", HT, "the page must load js/pages/staff-invite.js as its one module");
+      const used = [...pg.matchAll(/\bapi\.([A-Za-z]+)\(/g)].map((m) => m[1]).filter((v, i, a) => a.indexOf(v) === i).sort().join(",");
+      if (used !== "isStaff,staffInviteList,staffInviteListTitles") add("S106", PG, "the page may call only api.isStaff, api.staffInviteList and api.staffInviteListTitles (found: " + used + ")");
+      if (/\b(fetch|XMLHttpRequest|sendBeacon|WebSocket|EventSource|importScripts)\b/.test(pg)) add("S106", PG, "the page makes no network call of its own: only the three api calls");
+      if (/\b(localStorage|sessionStorage|indexedDB|caches)\b|document\.cookie|history\.(push|replace)State|window\.name|\bsavePending\b|\btakePending\b/.test(pg)) add("S106", PG, "the page stores nothing: no storage, cookie, history state or window name");
+      if (/\b(innerHTML|outerHTML|insertAdjacentHTML|document\.write|createContextualFragment|eval|Function)\b\s*[(=]/.test(pg) || /\.(innerHTML|outerHTML)\b/.test(pg)) add("S106", PG, "the page makes no HTML from data (textContent and the h() helper only)");
+      if (/\bconsole\./.test(pg + md)) add("S106", PG, "the staff page logs nothing");
+      for (const s of ["staff.ok && staff.data === true", "showGate(SIGNED_OUT_TEXT)", 'window.addEventListener("pagehide", () => { wipe(); });', 'if (kind === "session") { showGate(SESSION_ENDED_TEXT); return; }', "p_from: shown.p_from, p_to: shown.p_to, p_company: row.company_key, p_min_searches: 1"]) if (!pg.includes(s)) add("S106", PG, "the page must keep this line: " + s);
+      if (/\bapi\.(staffSearch|candidate|poster|createPosting|call)/.test(pg)) add("S106", PG, "the page calls no search, candidate or employer function");
+      if (!/export const MAX_MONTHS = 36;/.test(md) || !md.includes('export const EMPTY_TEXT = "No searches for companies outside the system in this date range.";')) add("S106", MD, "the model must keep MAX_MONTHS = 36 and the empty state sentence");
+      if (!md.includes('"No match"') || !md.includes('"at least "')) add("S106", MD, "the model must keep the words No match and at least");
+      if (!ht.includes('<option value="most" selected>Most first</option>')) add("S106", HT, "the sort starts as Most first");
+      for (const id of ["fFrom", "fTo", "fCompany", "fMin", "fSort"]) if (!new RegExp('<label for="' + id + '">[A-Za-z ]+</label>').test(ht)) add("S106", HT, "the control " + id + " needs its own label");
+      if (!ht.includes("Type the company's name. The box matches the whole name, not part of it. Leave it empty to see every company.")) add("S106", HT, "the page must say that the company box needs the name and matches the whole name");
+      if (/\b(export|download|csv|digest|newsletter|email me|send)\b|mailto:/i.test(main.replace(/<[^>]*>/g, " ") + pg.replace(/"[^"]*"/g, "")) || /<a\b/.test(main)) add("S106", HT, "the page has no export, download, email or digest, and no link");
+      if (/\bposting|\bghost\b|\bfake\b|\bscam|\bfraud|\bsuspicious|\bverified\b|\bcertified\b|\btrusted\b|\bcompliant\b|\bguaranteed\b|\bloophole|\bcompliance\b|\bdetect|\bflag\b|\bexpose\b/i.test(main.replace(/<[^>]*>/g, " ") + "\n" + md.replace(/\(verified\)/g, ""))) add("S106", HT, "the page's words use a word kept out of the product's wording (opening, never posting)");
+      if (dashRe.test(ht + pg + md)) add("S106", HT, "no em or en dash in the staff page");
+      for (const f of ["js/api.js"]) { const t = stripJsComments(read(R(f))); if (!t.includes("Object.keys(r).length === 9") || !t.includes("Object.keys(r).length === 4")) add("S106", R(f), "the answer checks of the two staff functions must name exactly nine and four keys"); }
+    }
+    // every browser file: no service key, no report function, no table of search events, no account code; only js/api.js names the two functions; nothing links to the page
+    for (const f of html.concat(js)) {
+      const n = rel2(f), t = f.endsWith(".html") ? read(f) : stripJsComments(read(f));
+      if (/search_event_invite_list|search_event_not_found_report|search_events\b|search_event_monthly|search_event_archive|account_hash|service_role|SERVICE_ROLE|SUPABASE_SERVICE/i.test(t)) add("S106", f, "no browser file may name a report function, a table of search events, an account code or the service key");
+      if (n !== "js/api.js" && /staff_invite_list/.test(t)) add("S106", f, "only js/api.js names the staff invite list functions");
+      if (!/^(staff-invite\.html|js\/pages\/staff-invite\.js|js\/staff-invite-model\.js)$/.test(n) && /staff-invite/.test(t.replace(/\?v=[0-9a-f]{8}/g, ""))) add("S106", f, "nothing may link to or name the staff page");
+    }
+    const runF = R("tests/run-all.js");
+    if (fs.existsSync(runF)) { const r = read(runF); for (const n of ["staff-invite.unit.test.js", "staff-invite.test.js"]) if (!r.includes('"' + n + '"')) add("S106", runF, n + " must be a step of the full run"); }
+  }
+
   const vendor = path.join(root, "vendor", "auth-js.min.mjs"), rec =path.join(root, "tests", "vendor-hash.txt");
   if (!fs.existsSync(vendor) || !fs.existsSync(rec)) add("S10", vendor, "vendored Auth client or its recorded hash is missing");
   else if (crypto.createHash("sha256").update(fs.readFileSync(vendor)).digest("hex") !== fs.readFileSync(rec, "utf8").trim()) add("S10", vendor, "the vendored Auth client does not match tests/vendor-hash.txt");

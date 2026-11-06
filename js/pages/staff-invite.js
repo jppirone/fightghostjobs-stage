@@ -23,7 +23,7 @@ function showErrors(byField) {
 // every row of data is taken off the page: used when the sign-in ends, when a call is refused, and when the page is left
 function wipe() {
   rows = []; shown = null; listSeq++; titlesSeq++; returnTo = null;
-  clear(rowsEl); clear(titleRows);
+  clear(rowsEl); clear(titleRows); titlesHeading.textContent = "";
   listCard.hidden = true; emptyNote.hidden = true; peopleNote.hidden = true; titlesPanel.hidden = true; titlesCard.hidden = true; titlesEmpty.hidden = true;
   say(listAlert, "error", ""); say(titlesAlert, "error", ""); countLine.textContent = "";
 }
