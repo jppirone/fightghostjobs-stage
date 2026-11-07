@@ -2,8 +2,8 @@
 // Two steps, in this order (the backend requires it): (1) poster-login-intent records "this address is about to sign in" (a 10-minute consent stamp; it answers the same 202 whether or not the address is
 // on any roster, so this page can never be used to find out who is a customer); (2) the Auth service emails the link. The page never says whether the address is on a roster either.
 
-import { api, mountAccount, go, describeError } from "../app.js?v=fc8efa20";
-import { requestLink, currentSession, watchOtherTabSignIn, rememberedNext, confirmEmailCode } from "../session.js?v=43ff0655";
+import { api, mountAccount, go, describeError } from "../app.js?v=167f01ea";
+import { requestLink, currentSession, watchOtherTabSignIn, rememberedNext, confirmEmailCode } from "../session.js?v=b29af1cf";
 import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=f5151bcc";
 import { $, h, clear, alertBox } from "../dom.js?v=5c78a8cd";
 import { waitText } from "../format.js?v=ebadcb99";

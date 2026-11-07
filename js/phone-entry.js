@@ -6,7 +6,8 @@
 // On a computer (a mouse, a window of 900 pixels or more) the page shows sentence 12 and does not fill anything.
 import { h, clear } from "./dom.js?v=5c78a8cd";
 import { SENTENCES, MORE_BEFORE, MORE_BUTTON, MORE_AFTER, EXTENSION_LINK_TEXT, choiceText } from "./phone-text.js?v=6a7d6316";
-import { readFragment, cardBoxes } from "./phone-model.js?v=da42e423";
+import { SOURCE_PHONE_SENTENCE } from "./source-text.js?v=e5d38ff7";
+import { readFragment, cardBoxes } from "./phone-model.js?v=2c1fe20b";
 import { EXTENSION_PAGE_URL } from "./config.js?v=62c9e3b1";
 
 export const COMPUTER_QUERY = "(hover: hover) and (pointer: fine) and (min-width: 900px)";
@@ -20,8 +21,8 @@ export function extensionLink(win, setting = EXTENSION_PAGE_URL) {
 
 let wired = false, current = null;   // current: what the person is looking at, in memory only
 
-export function runPhoneEntry({ win = window, doc = document, companyEl, queryEl, reqEl, onOrigin }) {
-  const panel = doc.getElementById("phonePanel"), body = doc.getElementById("phoneBody"), line = doc.getElementById("phoneLine"), more = doc.getElementById("phoneMore"), list = doc.getElementById("phoneList"), privacy = doc.getElementById("phonePrivacy");
+export function runPhoneEntry({ win = window, doc = document, companyEl, queryEl, reqEl, sourceEl = null, onOrigin }) {
+  const panel = doc.getElementById("phonePanel"), body = doc.getElementById("phoneBody"), line = doc.getElementById("phoneLine"), more = doc.getElementById("phoneMore"), list = doc.getElementById("phoneList"), privacy = doc.getElementById("phonePrivacy"), sourceNote = doc.getElementById("phoneSource");
   if (!panel || !body || !line || !more || !list || !privacy) return false;
   const parsed = readFragment(win.location.hash);
   if (!parsed.x) return false;
@@ -47,7 +48,7 @@ export function runPhoneEntry({ win = window, doc = document, companyEl, queryEl
   const fill = (f) => { companyEl.value = f.company; queryEl.value = f.query; reqEl.value = f.req; };
   const setNotes = (n) => { for (const name of Object.keys(boxes)) setNote(name, n[name]); };
 
-  function resetPanel() { clear(line); clear(more); more.hidden = true; clear(list); list.hidden = true; body.hidden = true; privacy.hidden = true; }
+  function resetPanel() { clear(line); clear(more); more.hidden = true; clear(list); list.hidden = true; body.hidden = true; privacy.hidden = true; if (sourceNote) sourceNote.hidden = true; }
   function say(text) { clear(line); line.append(text); }
   function showBody() { body.hidden = false; }
 
@@ -57,7 +58,7 @@ export function runPhoneEntry({ win = window, doc = document, companyEl, queryEl
     for (const name of Object.keys(boxes)) boxes[name].addEventListener("input", () => clearNote(name));
     // once a search has run the page shows its recap and empties the boxes: the sentences about the screenshot are done (the privacy sentence stays)
     const recap = doc.getElementById("recap");
-    if (recap && win.MutationObserver) new win.MutationObserver(() => { if (!recap.hidden) { clearNotes(); resetPanel(); privacy.hidden = !current; } }).observe(recap, { attributes: true, attributeFilter: ["hidden"] });
+    if (recap && win.MutationObserver) new win.MutationObserver(() => { if (!recap.hidden) { clearNotes(); resetPanel(); privacy.hidden = !current; if (sourceNote) sourceNote.hidden = !current; } }).observe(recap, { attributes: true, attributeFilter: ["hidden"] });
   }
 
   // ---- the computer: sentence 12 only; nothing is filled, the fragment goes
@@ -83,6 +84,9 @@ export function runPhoneEntry({ win = window, doc = document, companyEl, queryEl
   if (typeof onOrigin === "function") onOrigin({ origin: "mobile", host: null });
   current = { index: 0 };
   privacy.textContent = SENTENCES[13]; privacy.hidden = false;
+  // prompt JD: the optional source (key s of the address) goes into its own field with .value only, so the person sees exactly what will be sent; a new address with no s empties it. Not part of the text, not read by the reader.
+  if (sourceEl) { sourceEl.value = typeof parsed.source === "string" ? parsed.source : ""; }
+  if (sourceNote) { sourceNote.textContent = SOURCE_PHONE_SENTENCE; sourceNote.hidden = false; }
   if (parsed.state === "nothing") {
     fill({ company: "", query: "", req: "" });
     say(SENTENCES[9]);

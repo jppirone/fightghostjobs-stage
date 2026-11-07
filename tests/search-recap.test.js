@@ -144,7 +144,7 @@ test("search recap: boxes emptied, read-only recap between form and results, req
 });
 
 const DEFECTS = [
-  ["the boxes are not emptied after a search", ["kinds"], [["js/pages/search.js", (s) => s.replace('companyIn.value = ""; queryIn.value = ""; reqIn.value = "";\n  const text', "const text")]]],
+  ["the boxes are not emptied after a search", ["kinds"], [["js/pages/search.js", (s) => s.replace('companyIn.value = ""; queryIn.value = ""; reqIn.value = ""; sourceIn.value = "";   // prompt JD: the optional source goes with the other boxes\n  const text', "const text")]]],
   ["the req number is shown in clear", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"req\" ? RECAP.REQ", "search.kind === \"req\" ? \"req \" + search.value")]]],
   ["the old code is shown in clear", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" ? \"KIO ID: \" + search.value : search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE")]]],   // prompt BQ: the search-recap.js text now also names the kio kind; the defect is the same
   ["twelve plain letters are printed as a title", ["kinds"], [["js/search-recap.js", (s) => s.replace("search.kind === \"code\" || search.kind === \"kio\" || search.alsoTryCode ? RECAP.CODE", "search.kind === \"code\" || search.kind === \"kio\" ? RECAP.CODE")]]],
@@ -152,7 +152,7 @@ const DEFECTS = [
   ["the recap sentence is reworded", ["kinds"], [["js/search-recap.js", (s) => s.replace('TAIL: " Your results are below."', 'TAIL: " The results are below."')]]],
   ["the recap sits under the results", ["kinds"], [["search.html", (s) => { const a = s.indexOf('    <div id="recap" class="recap" hidden>'), b = s.indexOf('    <div id="searchStatus"'), blk = s.slice(a, b), rest = s.slice(0, a) + s.slice(b), at = rest.indexOf('    <div id="results"'), end = rest.indexOf("</div>", at) + 7; return rest.slice(0, end) + blk + rest.slice(end); }]]],
   ["the Edit this search button is a plain link-looking span", ["kinds"], [["search.html", (s) => s.replace('<button type="button" id="recapEdit" class="btn btn-outline btn-sm">Edit this search</button>', '<span id="recapEdit" tabindex="0" class="btn btn-outline btn-sm">Edit this search</span>')]]],
-  ["Edit this search does not put the values back", ["kinds"], [["js/pages/search.js", (s) => s.replace("if (lastSearch) { companyIn.value = lastSearch.company; queryIn.value = lastSearch.q; reqIn.value = lastSearch.r; }", "")]]],
+  ["Edit this search does not put the values back", ["kinds"], [["js/pages/search.js", (s) => s.replace("if (lastSearch) { companyIn.value = lastSearch.company; queryIn.value = lastSearch.q; reqIn.value = lastSearch.r; sourceIn.value = lastSearch.source || \"\"; }", "")]]],
   ["Edit this search does not move the cursor to Company", ["kinds"], [["js/pages/search.js", (s) => s.replace("lastSearch = null; hideRecap(); companyIn.focus();", "lastSearch = null; hideRecap();")]]],
   ["Edit this search leaves the recap showing", ["kinds"], [["js/pages/search.js", (s) => s.replace("lastSearch = null; hideRecap(); companyIn.focus();", "lastSearch = null; companyIn.focus();")]]],
   ["a new search that is stopped by a message leaves the old recap showing", ["kinds"], [["js/pages/search.js", (s) => s.replace('setFormError(""); hideRecap(); clearOutcome();', 'setFormError("");')]]],

@@ -3,7 +3,7 @@
 // an error, an odd answer) shows one plain line and NO data. The list comes from public.staff_invite_list and the titles from public.staff_invite_list_titles; both check is_staff() again inside the database. Nothing is stored in the
 // browser, nothing is written anywhere, and when the page is left (or kept for Back) the rows are removed from it. The page has no link from any public page; staff open it by its address.
 
-import { api, mountAccount, currentSession } from "../app.js?v=fc8efa20";
+import { api, mountAccount, currentSession } from "../app.js?v=167f01ea";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=5c78a8cd";
 import { focusWithRing } from "../focus-ring.js?v=98307f3f";
 import { defaultRange, checkInputs, monthLabel, peopleText, statusText, sortRows, countText, failureKind, EMPTY_TEXT, TITLES_EMPTY_TEXT, SIGNED_OUT_TEXT, NOT_AVAILABLE_TEXT, CHECK_FAILED_TEXT, LOAD_FAILED_TEXT, TITLES_FAILED_TEXT, RANGE_REFUSED_TEXT, SESSION_ENDED_TEXT } from "../staff-invite-model.js?v=ee8cf2a6";

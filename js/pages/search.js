@@ -1,10 +1,11 @@
 // search.js - a verified candidate looks up ONE posting they already know about: company + (req number, postID or part of the title). No browsing, ever: the backend refuses anything else.
 // Flow: [sign in once by email] -> search -> result cards -> "View posting details" (records the view, lists the employer's destinations) -> a destination click (issues a 2-minute single-use link, opened in a new tab).
 
-import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=fc8efa20";
-import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=43ff0655";
+import { api, mountAccount, go, signOut, describeError, isAuthFailure, clearLandingNote } from "../app.js?v=167f01ea";
+import { requestLink, currentSession, watchOtherTabSignIn, confirmEmailCode } from "../session.js?v=b29af1cf";
 import { CODE_ENABLED, mountCodeEntry } from "../code-entry.js?v=f5151bcc";
-import { savePending, takePending } from "../signin-handoff.js?v=ab47bf72";
+import { savePending, takePending } from "../signin-handoff.js?v=2f9c4abe";
+import { limitSource } from "../source-clean.js?v=228d1fb3";
 import { applyFragmentPrefill } from "../fragment-prefill.js?v=48ef3781";
 import { requestOrigin } from "../fragment-prefill.js?v=48ef3781";
 import { roleNoteKind, BOTH_ROLES_TEXT } from "../landing-notice.js?v=f37507d8";
@@ -28,7 +29,7 @@ import { refineHints } from "../refine-hint.js?v=7ead894b";
 import { placeNodes } from "../place.js?v=2e036978";
 import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLine, staffStatusLabel, staffCountText } from "../staff-scope.js?v=00ac28f5";
 
-const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
+const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), sourceIn = $("#sourceq"), sourceBlock = $("#sourceBlock"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
 const recapEl = $("#recap"), recapTextEl = $("#recapText"), recapEditBtn = $("#recapEdit");
 const noticeEl = $("#searchNotice");   // prompt FK (October 29, 2026): one static sentence under the results, shown exactly when the recap is (a search has run, found or not); its text and link live in search.html
@@ -51,7 +52,7 @@ let heldOrigin = null;   // { origin, host } | null
 // prompt IB (November 3, 2026): an address with the key x is the phone entry (the Shortcut: search.html#x=<the text read out of a screenshot>). Its whole fragment is handled by js/phone-entry.js, loaded only then (again when the fragment changes
 // on this page); the classic prefill below is skipped for it, and a search saved before a sign-in link is dropped so it cannot run over what is read. Without an x nothing below changes.
 const PHONE_X = /^#(?:[^#]*&)?x=/;
-const runPhone = () => import("../phone-entry.js?v=06ca7a9a").then((m) => m.runPhoneEntry({ win: window, doc: document, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onOrigin: (o) => { heldOrigin = o || null; } })).catch(() => { /* the page stays the ordinary search page */ });
+const runPhone = () => import("../phone-entry.js?v=467edc08").then((m) => m.runPhoneEntry({ win: window, doc: document, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, sourceEl: sourceIn, onOrigin: (o) => { heldOrigin = o || null; } })).catch(() => { /* the page stays the ordinary search page */ });
 window.addEventListener("hashchange", () => { if (PHONE_X.test(location.hash)) { takePending(localStorage); runPhone(); } });
 if (PHONE_X.test(location.hash)) { takePending(localStorage); runPhone(); }
 else if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onKio: (k) => { heldKio = k.title || k.bad ? { stored: k.stored, title: k.title, shown: k.shown, bad: k.bad === true } : null; }, onOrigin: (o) => { heldOrigin = o || null; } })) takePending(localStorage);
@@ -207,7 +208,7 @@ function hideRecap() { recapEl.hidden = true; recapTextEl.textContent = ""; noti
 function clearOutcome() { clear(resultsEl); countEl.hidden = true; countEl.textContent = ""; hideRecap(); lastSearch = null; status.clear(); }
 function showRecap(typed, company, search, auto, extra) {
   lastSearch = typed;
-  companyIn.value = ""; queryIn.value = ""; reqIn.value = "";
+  companyIn.value = ""; queryIn.value = ""; reqIn.value = ""; sourceIn.value = "";   // prompt JD: the optional source goes with the other boxes
   const text = recapSentence(company, search);
   recapTextEl.textContent = text; recapEl.hidden = false; noticeEl.hidden = staffMode;   // prompt FM: a staff search is not recorded as a candidate search, so the notice about the record stays out of the staff view (staffMode is the page's own staff flag)
   // the one spoken message of the search: the recap sentence AND the count, in the visible count line's own words (so a search that found nothing says "No matching postings" too); prompt BQ: and the mismatch notice, when there is one
@@ -218,7 +219,7 @@ function showRecap(typed, company, search, auto, extra) {
   if (!auto && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) recapEl.scrollIntoView({ block: "start", behavior: "smooth" });
 }
 recapEditBtn.addEventListener("click", () => {
-  if (lastSearch) { companyIn.value = lastSearch.company; queryIn.value = lastSearch.q; reqIn.value = lastSearch.r; }
+  if (lastSearch) { companyIn.value = lastSearch.company; queryIn.value = lastSearch.q; reqIn.value = lastSearch.r; sourceIn.value = lastSearch.source || ""; }
   lastSearch = null; hideRecap(); companyIn.focus();
 });
 
@@ -244,7 +245,7 @@ function showStaffResults(data, idAlone) {
   for (const row of data.results) resultsEl.append(renderStaffCard(row));
 }
 function enterStaffMode() {
-  staffMode = true;
+  staffMode = true; sourceBlock.hidden = true;   // prompt JD: the staff search sends no source
   const robots = document.querySelector('meta[name="robots"]');
   staffRobotsBefore = robots ? robots.getAttribute("content") : null;
   if (robots) robots.setAttribute("content", "noindex, nofollow");
@@ -255,7 +256,7 @@ function enterStaffMode() {
   applySession();
 }
 function leaveStaffMode() {
-  staffMode = false;
+  staffMode = false; sourceBlock.hidden = false;
   const banner = $("#staffBanner"); if (banner) banner.remove();
   const note = $("#titleNote"); if (note && staffTitleNoteBefore !== null) { note.textContent = staffTitleNoteBefore; staffTitleNoteBefore = null; }
   const robots = document.querySelector('meta[name="robots"]');
@@ -313,14 +314,14 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
   if (staffMode && !q.bad && (await runStaffSearch(c, q, { company: companyIn.value, q: queryIn.value, r: reqIn.value }, auto))) return;   // staff scope: the staff answer; nothing is stored in the browser or counted for candidates (the database keeps its own private who-and-when record)
   if (!session || !session.isCandidate) {
     // kept in localStorage (all tabs of this browser, one hour, removed when used, never sent anywhere): the emailed link opens in a NEW tab (signin-handoff.js)
-    savePending(localStorage, { company: companyIn.value, q: queryIn.value, r: reqIn.value, origin: heldOrigin ? heldOrigin.origin : "site", host: heldOrigin ? heldOrigin.host : null });   // prompt IA: the origin word and the host ride with it, nothing else new
+    savePending(localStorage, { company: companyIn.value, q: queryIn.value, r: reqIn.value, source: sourceIn.value, origin: heldOrigin ? heldOrigin.origin : "site", host: heldOrigin ? heldOrigin.host : null });   // prompt IA: the origin word and the host ride with it, nothing else new
     if (session && session.isPoster) { applySession(); return; }
     showSignIn("Confirm your email first. We keep your search in this browser for one hour and run it when you open the link in this browser. If the link opens somewhere else, enter your search again.");
     $("#candEmail").focus();
     return;
   }
   const hadFocus = document.activeElement === searchBtn;   // a disabled button drops the focus: it is given back when the search is over (the screen-reader message that follows is spoken with the focus where it was)
-  const typed = { company: companyIn.value, q: queryIn.value, r: reqIn.value };
+  const typed = { company: companyIn.value, q: queryIn.value, r: reqIn.value, source: sourceIn.value };
   busy = true; searchBtn.disabled = true; const label = "Search"; searchBtn.textContent = "Searching…";
   status.clear();
   let cooldown = 0;
@@ -334,7 +335,8 @@ async function runSearch(auto) {   // auto: the saved search replayed after the 
       return b;
     };
     // prompt HM: origin (and its host) go with every search of this attempt; a failed key goes with the company and the title (the edge function then searches them: the failover)
-    const ev = takeOriginFields();
+    const src = limitSource(sourceIn.value);   // prompt JD: what the field shows, limited; nothing is sent when it is empty
+    const ev = Object.assign(takeOriginFields(), src !== "" ? { source: src } : {});
     const send = (b) => api.candidateSearch(Object.assign(b, ev));
     let failTitle = "";   // prompt HM: the title words that went with a key that may fail (the failover sentence names them)
     let r = await send(q.bad ? (failTitle = heldKio.title, { kio: q.value, company: c.value, phrase: heldKio.title })
@@ -483,7 +485,7 @@ function linkRow(row, link) {
 function resumePending() {
   const p = takePending(localStorage);
   if (!p) return false;
-  companyIn.value = p.company; queryIn.value = p.q; reqIn.value = p.r;
+  companyIn.value = p.company; queryIn.value = p.q; reqIn.value = p.r; sourceIn.value = p.source || "";   // prompt JD: the saved search brings its source back into the field
   heldOrigin = p.origin === "site" ? null : { origin: p.origin, host: p.host };   // prompt IA: the search runs with the origin it was asked with (a saved search with none, or a damaged one, is the site); used by this search only
   runSearch(true);
   return true;

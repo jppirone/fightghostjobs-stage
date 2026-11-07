@@ -8,7 +8,7 @@
 
 import { GoTrueClient } from "../vendor/auth-js.min.mjs?v=e56ca995";
 import { SUPABASE_URL, PUBLISHABLE_KEY, STORAGE_KEY, NEXT_KEY, KIND_KEY } from "./config.js?v=62c9e3b1";
-import { saveLanding, takeLanding, clearHandoff, watchSignIn, isSafePage } from "./signin-handoff.js?v=ab47bf72";
+import { saveLanding, takeLanding, clearHandoff, watchSignIn, isSafePage } from "./signin-handoff.js?v=2f9c4abe";
 
 let client = null;
 // The client is created WITHOUT the library's cross-tab channel. The library opens a BroadcastChannel on every page and posts every sign-in event on it; a page the browser has kept for Back (its back/forward cache)

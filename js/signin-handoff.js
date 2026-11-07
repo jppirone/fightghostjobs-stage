@@ -12,6 +12,7 @@
 //
 // Pure functions over an injected storage / window, so they are unit tested without a browser; the browser test (tests/signin-tabs.test.js) proves it with two real tabs.
 import { requestOrigin } from "./search-origin.js?v=b0cdfe2e";
+import { limitSource } from "./source-clean.js?v=228d1fb3";
 
 export const HANDOFF_TTL_MS = 60 * 60 * 1000;
 export const PENDING_SEARCH_KEY = "fgj-pending-search";
@@ -40,13 +41,16 @@ const isText = (x) => typeof x === "string" && x.length <= MAX_FIELD;
 // word (site, extension or mobile) and, for the extension alone, the cleaned host of the job page. Nothing else is added (the KIO title words the extension path holds are not saved). Both are checked again through requestOrigin when they are
 // saved and when they are read back; a value saved before this change has no origin and is read as site, and a damaged or unknown word is read as site: never an error.
 const originOfSaved = (o, h) => { const f = requestOrigin({ origin: o, host: h }); return { origin: f.origin, host: f.origin_host === undefined ? null : f.origin_host }; };
+// the source is part of the saved search ONLY when there is one (a search with none is saved and read back exactly as before)
+const sourceOfSaved = (s) => { const v = limitSource(s); return v === "" ? {} : { source: v }; };
 export function savePending(store, p, now = Date.now()) {
   if (!p || !isText(p.company) || !isText(p.q) || !(p.r === undefined || isText(p.r))) return false;
-  return write(store, PENDING_SEARCH_KEY, { company: p.company, q: p.q, r: p.r === undefined ? "" : p.r, ...originOfSaved(p.origin, p.host) }, now);
+  // prompt JD (November 7, 2026): the optional source (where the person found the job) rides in the saved search too, limited the same way (js/source-clean.js), so a first time person, who always searches signed out first, does not lose it. One hour, removed when used, like the rest.
+  return write(store, PENDING_SEARCH_KEY, { company: p.company, q: p.q, r: p.r === undefined ? "" : p.r, ...originOfSaved(p.origin, p.host), ...sourceOfSaved(p.source) }, now);
 }
 export function takePending(store, now = Date.now()) {
   const v = take(store, PENDING_SEARCH_KEY, now);
-  return v && isText(v.company) && isText(v.q) && isText(v.r) ? { company: v.company, q: v.q, r: v.r, ...originOfSaved(v.origin, v.host) } : null;
+  return v && isText(v.company) && isText(v.q) && isText(v.r) ? { company: v.company, q: v.q, r: v.r, ...originOfSaved(v.origin, v.host), ...sourceOfSaved(v.source) } : null;
 }
 export const hasPending = (store, now = Date.now()) => { try { const o = JSON.parse(store.getItem(PENDING_SEARCH_KEY) || "null"); return !!(o && typeof o.exp === "number" && o.exp > now); } catch { return false; } };
 

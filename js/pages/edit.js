@@ -2,8 +2,8 @@
 // The server judges the rest (how much of the requirements text is kept, the location rule, duplicate req numbers) and this page shows its answer in words. Nothing here trusts the page for identity: the session token tells the server who is acting.
 // Unsaved work is never lost silently: a bar at the bottom of the window says what is not saved, the browser asks before the page is left, and the page's own links ask with a dialog (js/unsaved-guard.js; what counts as unsaved is js/dirty-state.js).
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=fc8efa20";
-import { rememberNext } from "../session.js?v=43ff0655";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=167f01ea";
+import { rememberNext } from "../session.js?v=b29af1cf";
 import { $, $$, h, clear, alertBox } from "../dom.js?v=5c78a8cd";
 import { fmtClose, fmtStamp, waitText } from "../format.js?v=ebadcb99";
 import { kioBlock } from "../kio-block.js?v=abd231ff";

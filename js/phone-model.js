@@ -8,10 +8,12 @@
 //     cards: the complete cards in the order they were read, only when there is more than one (the first one fills the boxes; the others are offered)
 // THE FRAGMENT IS UNTRUSTED INPUT FROM ANY SOURCE. Rules (all pinned by the unit test):
 //   - the key x holds the text; x together with any of c, p, r, t, k, o, h refuses the whole fragment; x twice refuses it; other unknown keys are ignored (as on the classic address)
+//   - the key s (prompt JD) holds where the person found the job: a separate piece (parsePhoneFragment().source, readFragment().source), limited by js/source-clean.js, never inside the text, never a reason to refuse the text
 //   - decodeURIComponent, so a plus sign stays a plus sign; a bad percent escape, or any control character other than a line break after decoding, refuses the whole fragment
 //   - a fragment of more than MAX_FRAGMENT characters or more than MAX_PARTS parts is refused (the page never decodes an unbounded string)
 //   - the text is cut at TEXT_CAP characters at the last whole line (before it is read); the page says so
 import { readText } from "./mobile/mobile-reader/reader.js?v=0810e537";
+import { limitSource } from "./source-clean.js?v=228d1fb3";
 
 export const TEXT_CAP = 600, MAX_FRAGMENT = 50000, MAX_PARTS = 12;
 const CLASSIC_KEYS = new Set(["c", "p", "r", "t", "k", "o", "h"]);
@@ -19,24 +21,29 @@ const isBreak = (ch) => ch === "\n" || ch === "\r" || ch === "â€¨" || ch === "â€
 // a control character is any code below 32, 127 to 159, other than a line break (line feed, carriage return and the two Unicode line separators)
 const hasBadControl = (s) => { for (const ch of s) { if (isBreak(ch)) continue; const c = ch.codePointAt(0); if (c < 32 || (c >= 127 && c <= 159)) return true; } return false; };
 
-// -> { x: boolean, refused: boolean, text: string }
+// -> { x: boolean, refused: boolean, text: string, source: string }
+// prompt JD (November 7, 2026): the key s holds where the person found the job (the Shortcut asks, optionally). It is a SEPARATE piece: never part of the text, never read by the reader, and never a reason to refuse the text (s is not a classic key).
+// source is the decoded value after limitSource (js/source-clean.js): "" when there is no s, an empty s, two or more s pieces, or a bad percent sequence in it (the search itself is kept in every one of those cases). A refused address has no source.
 export function parsePhoneFragment(hash) {
   const raw = String(hash == null ? "" : hash).replace(/^#/, "");
   const pieces = raw.split("&");
-  let xCount = 0, value = "", old = false;
+  let xCount = 0, value = "", old = false, sCount = 0, sValue = "";
   for (const piece of pieces.slice(0, MAX_PARTS)) {
     const eq = piece.indexOf("=");
     if (eq < 1) continue;
     const key = piece.slice(0, eq);
     if (key === "x") { xCount++; if (xCount === 1) value = piece.slice(eq + 1); }
+    else if (key === "s") { sCount++; if (sCount === 1) sValue = piece.slice(eq + 1); }
     else if (CLASSIC_KEYS.has(key)) old = true;
   }
-  if (xCount === 0) return { x: false, refused: false, text: "" };
-  if (old || xCount > 1 || raw.length > MAX_FRAGMENT || pieces.length > MAX_PARTS) return { x: true, refused: true, text: "" };
+  if (xCount === 0) return { x: false, refused: false, text: "", source: "" };
+  if (old || xCount > 1 || raw.length > MAX_FRAGMENT || pieces.length > MAX_PARTS) return { x: true, refused: true, text: "", source: "" };
   let text;
-  try { text = decodeURIComponent(value); } catch { return { x: true, refused: true, text: "" }; }
-  if (hasBadControl(text)) return { x: true, refused: true, text: "" };
-  return { x: true, refused: false, text };
+  try { text = decodeURIComponent(value); } catch { return { x: true, refused: true, text: "", source: "" }; }
+  if (hasBadControl(text)) return { x: true, refused: true, text: "", source: "" };
+  let source = "";
+  if (sCount === 1) { try { source = limitSource(decodeURIComponent(sValue)); } catch { source = ""; } }
+  return { x: true, refused: false, text, source };
 }
 
 // the cap: at most TEXT_CAP characters, ending at a whole line (the cut is done by the page). -> { text, cut }
@@ -98,5 +105,5 @@ export function readFragment(hash) {
   if (!p.x) return { x: false };
   if (p.refused) return { x: true, refused: true };
   const lim = limitText(p.text);
-  return { x: true, refused: false, cut: lim.cut, ...readingOf(lim.text) };
+  return { x: true, refused: false, cut: lim.cut, source: p.source, ...readingOf(lim.text) };
 }

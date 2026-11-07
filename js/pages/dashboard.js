@@ -3,8 +3,8 @@
 // Prompt BP (October 11, 2026): the table has Title (with the place and the day it was added under it), Req #, Opening ID, Status (only in a view that can hold more than one status), Actions, Closes (with a flag line when
 // the date is near) and Comments; the sort box orders every loaded row; the Expiring pill gathers drafts near the end of their publish window.
 
-import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=fc8efa20";
-import { rememberNext } from "../session.js?v=43ff0655";
+import { api, requirePoster, mountAccount, go, signOut, describeError, isAuthFailure } from "../app.js?v=167f01ea";
+import { rememberNext } from "../session.js?v=b29af1cf";
 import { $, h, clear, alertBox } from "../dom.js?v=5c78a8cd";
 import { groupCode, waitText } from "../format.js?v=ebadcb99";
 import { placeNodes } from "../place.js?v=2e036978";

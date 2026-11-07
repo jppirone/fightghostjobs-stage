@@ -51,7 +51,7 @@ test("no dash, no bad word, no 'posting' in any sentence or link text", () => {
 });
 
 test("the x parser: percent escapes, a plus sign stays a plus sign, line breaks stay", () => {
-  assert.deepEqual(parsePhoneFragment("#x=" + enc(A)), { x: true, refused: false, text: A });
+  assert.deepEqual(parsePhoneFragment("#x=" + enc(A)), { x: true, refused: false, text: A, source: "" });   // prompt JD: the parser also returns the optional source ("" when there is none)
   assert.equal(parsePhoneFragment("#x=a+b%20c").text, "a+b c");
   assert.equal(parsePhoneFragment("#x=a%0D%0Ab%0Ac%E2%80%A8d").text, "a\r\nb\nc d");
   assert.equal(parsePhoneFragment("x=hello").text, "hello", "the leading # is optional");
@@ -75,7 +75,7 @@ test("the x parser: refused as a whole (sentence 10)", () => {
 });
 
 test("the x parser: empty text, only spaces and unknown keys are not refused", () => {
-  assert.deepEqual(parsePhoneFragment("#x="), { x: true, refused: false, text: "" });
+  assert.deepEqual(parsePhoneFragment("#x="), { x: true, refused: false, text: "", source: "" });
   assert.equal(parsePhoneFragment("#x=%20%20").refused, false);
   assert.equal(parsePhoneFragment("#x=" + enc(A) + "&utm_source=mail&zz=1").text, A, "an unknown key is ignored, as on the classic address");
   assert.equal(parsePhoneFragment("#x=" + enc(A) + "&__proto__=1").refused, false);
