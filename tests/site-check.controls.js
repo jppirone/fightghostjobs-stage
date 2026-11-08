@@ -1633,7 +1633,7 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("IB: the phrase paid time off outside js/mobile is still caught by the wording rule", "S32", append("js/chips.js", "export const w = 'paid time off';"));
   control("IB: the drift test is not a step of the full run", "S105", edit("tests/run-all.js", (s) => s.replace('path.join(here, "reader-drift.test.js")', 'path.join(here, "reader-drift-gone.js")')));
   // prompt JE (November 8, 2026): the check this note
-  control("JE: the note words are changed", "S105", edit("js/phone-text.js", (s) => s.replace("Please check both boxes before you search.", "Please check the boxes.")));
+  control("JE: the note words are changed", "S105", edit("js/phone-text.js", (s) => s.replace("are correct, then click Search.", "are correct.")));
   control("JE: the note container is gone from the page", "S105", edit("search.html", (s) => s.replace('      <div id="orderNote" class="order-note" role="status" aria-live="polite"></div>\n', "")));
   control("JE: the note is not a status region", "S105", edit("search.html", (s) => s.replace('<div id="orderNote" class="order-note" role="status" aria-live="polite">', '<div id="orderNote" class="order-note">')));
   control("JE: the note sits below the Search button", "S105", edit("search.html", (s) => s.replace('      <div id="orderNote" class="order-note" role="status" aria-live="polite"></div>\n', "").replace("    </form>\n", '    </form>\n      <div id="orderNote" class="order-note" role="status" aria-live="polite"></div>\n')));

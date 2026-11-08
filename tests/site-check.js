@@ -2658,7 +2658,7 @@ export function checkSite(root, opts = {}) {
       if (!m.includes('export const EXTENSION_LINK_TEXT = "Get the browser extension";')) add("S105", tx, 'the link text must be "Get the browser extension"');
       if (/verif|compliant|certif|scam|fake|fraud|suspicious|trusted|safe\b|guarantee|\bflag|detect|catch|expose|loophole|compliance|posting|ghost/i.test(m)) add("S105", tx, "the phone sentences hold a forbidden word");
       // prompt JE (November 8, 2026): the "check this" note of the phone entry. Its words are an export outside the 13 sentences; its place is a status region inside the search box, under the three fields and above the optional line; the page sets it as text only
-      if (!m.includes('export const ORDER_NOTE = "We could not tell which line is the job title and which is the company. Please check both boxes before you search.";')) add("S105", tx, "ORDER_NOTE must be exactly: We could not tell which line is the job title and which is the company. Please check both boxes before you search.");
+      if (!m.includes('export const ORDER_NOTE = "Check that the company and the job title are correct, then click Search.";')) add("S105", tx, "ORDER_NOTE must be exactly: Check that the company and the job title are correct, then click Search.");
       const shJE = R("search.html"), peJE = R("js/phone-entry.js");
       if (fs.existsSync(shJE)) {
         const hJE = read(shJE), formJE = (hJE.match(/<form id="searchForm"[\s\S]*?<\/form>/) || [""])[0];

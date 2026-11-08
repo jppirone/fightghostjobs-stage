@@ -24,7 +24,7 @@ let browser;
 before(async () => { browser = await launchBrowser(); });
 after(async () => { if (browser) await browser.close(); });
 
-const NOTE = "We could not tell which line is the job title and which is the company. Please check both boxes before you search.";
+const NOTE = "Check that the company and the job title are correct, then click Search.";   // John's sentence of November 8, 2026 (prompt JN)
 const FLAGGED = [["a bracket title over a company", "Customer Success (Remote)\nAxiom"], ["two lines with no title word", "Brand Strategy\nOrion Labs"], ["two unrelated plain lines", "Share this job\nReport this job"]];
 const PLAIN = [["the Indeed pair", "Chief Project Technician\nAxiom"], ["the pair turned round", "Axiom\nChief Project Technician"], ["a title and a company with an ampersand", "Quality System Manager\nPratt & Whitney"],
   ["the LinkedIn lines with the alumni badge", "S\nOperational Improvement\nConsultant\nSlalom • Boston, MA\n16 school alumni"], ["a normal card", "Senior Logistics Analyst\nContoso Freight\nAustin, TX\n$85K/yr - $110K/yr\nViewed"],
@@ -45,7 +45,8 @@ async function openAt(tab, site, size, text, source = "") {
 }
 const SNAP = `(() => { const g = (id) => document.getElementById(id), r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top + scrollY, b: b.bottom + scrollY, w: b.width, h: b.height }; }, n = g('orderNote'), form = g('searchForm');
   const words = (e) => e.innerText.replace(/\\s+/g, ' ').trim().split(' ').filter(Boolean).length;
-  return { has: !!n, text: n ? n.textContent : null, rendered: !!n && n.getClientRects().length > 0, role: n ? n.getAttribute('role') : null, live: n ? n.getAttribute('aria-live') : null, inForm: !!n && !!n.closest('#searchForm'),
+  const lines = n && n.getClientRects().length ? Math.round((n.getBoundingClientRect().height - 4) / (parseFloat(getComputedStyle(n).fontSize) * 1.5)) : 0;   // prompt JN: the lines the note takes
+  return { lines, has: !!n, text: n ? n.textContent : null, rendered: !!n && n.getClientRects().length > 0, role: n ? n.getAttribute('role') : null, live: n ? n.getAttribute('aria-live') : null, inForm: !!n && !!n.closest('#searchForm'),
     note: r(n), card: r(form), src: r(g('sourceBlock')), btn: r(g('searchBtn')), top: r(document.querySelector('.srch-top')), sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth,
     company: g('company').value, title: g('titleq').value, formWords: form ? words(form) : 0, state: g('phoneBody') ? !g('phoneBody').hidden : false }; })()`;
 const type = (tab, id, v) => tab.eval(`(() => { const e = document.getElementById(${JSON.stringify(id)}); e.value = ${JSON.stringify(v)}; e.dispatchEvent(new Event("input", { bubbles: true })); })()`);
@@ -85,6 +86,8 @@ const SCENARIOS = {
         if (!s.rendered) { bad.push(L + "the note is not on the page"); continue; }
         for (const k of ["note", "src", "btn"]) if (!inside(s[k], s.card)) bad.push(L + k + " lies outside the box of the form");
         if (!(s.top.b <= s.note.t + 0.5)) bad.push(L + "the note is not under the three fields");
+        if (s.lines > 2) bad.push(L + "the note takes " + s.lines + " lines (two at most)");
+        if (process.env.FGJ_JE_REPORT) console.log("NOTE LINES at " + size.n + ": " + s.lines);
         if (!(s.note.b <= s.src.t + 0.5)) bad.push(L + "the note is not above the optional line (note bottom " + Math.round(s.note.b) + ", optional line top " + Math.round(s.src.t) + ")");
         if (size.stacked) {
           if (!(s.note.b <= s.btn.t + 0.5 && s.src.b <= s.btn.t + 0.5)) bad.push(L + "the note or the optional line is not above Search");
@@ -157,7 +160,7 @@ const DEFECTS = [
   ["the note is below the Search button", ["place", "shown"], [[H, NOTE_DIV, ""], [H, '    </form>\n    <div id="formError"', "    </form>\n" + NOTE_DIV + '    <div id="formError"']]],
   ["the note is between the optional line and Search", ["place"], [[H, NOTE_DIV, ""], [H, '      </div>\n      <button type="submit" id="searchBtn"', NOTE_DIV + '      </div>\n      <button type="submit" id="searchBtn"']]],
   ["the note blocks Search", ["search"], [[PE, "if (on === true && e) e.textContent = ORDER_NOTE;", 'if (on === true && e) { e.textContent = ORDER_NOTE; doc.getElementById("searchBtn").disabled = true; }']]],
-  ["the note words are changed", ["shown"], [["js/phone-text.js", "Please check both boxes before you search.", "Please check the boxes."]]],
+  ["the note words are changed", ["shown"], [["js/phone-text.js", "are correct, then click Search.", "are correct."]]],
   ["the old reader is copied back", ["shown"], "OLD_READER"],
 ];
 test("planted breakages: each deliberate defect in the note makes a scenario fail", { timeout: 6000000 }, async () => {

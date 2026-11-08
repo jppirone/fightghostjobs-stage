@@ -5,7 +5,7 @@
 // THE SCREENSHOT TEXT IS NEVER SENT, STORED, LOGGED OR SHOWN: it goes into the boxes with .value only, it is not in any request, and this file uses no localStorage, sessionStorage, IndexedDB, cookie, window.name or console.
 // On a computer (a mouse, a window of 900 pixels or more) the page shows sentence 12 and does not fill anything.
 import { h, clear } from "./dom.js?v=5c78a8cd";
-import { SENTENCES, ORDER_NOTE, MORE_BEFORE, MORE_BUTTON, MORE_AFTER, EXTENSION_LINK_TEXT, choiceText } from "./phone-text.js?v=76610ceb";
+import { SENTENCES, ORDER_NOTE, MORE_BEFORE, MORE_BUTTON, MORE_AFTER, EXTENSION_LINK_TEXT, choiceText } from "./phone-text.js?v=104f014c";
 import { SOURCE_PHONE_SENTENCE } from "./source-text.js?v=0a1a7868";
 import { readFragment, cardBoxes } from "./phone-model.js?v=d0aa752b";
 import { EXTENSION_PAGE_URL } from "./config.js?v=62c9e3b1";

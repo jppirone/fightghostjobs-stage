@@ -15,7 +15,7 @@ import { MANIFEST, sha256, EXTENSION_REPO } from "./copy-reader.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const enc = encodeURIComponent;
-const NOTE = "We could not tell which line is the job title and which is the company. Please check both boxes before you search.";
+const NOTE = "Check that the company and the job title are correct, then click Search.";   // John's sentence of November 8, 2026 (prompt JN)
 const A = "Senior Logistics Analyst\nContoso Freight\nAustin, TX\n$85K/yr - $110K/yr\nViewed";
 const B = "Route Planner\nBluebird Logistics\nDenver, CO (On-site)\nPromoted";
 const LI = "S\nOperational Improvement\nConsultant\nSlalom • Boston, MA";
@@ -97,7 +97,7 @@ const PLANTS = [
   ["the flag is lost for a listed card", [[PM, "titleBroken: false, orderAssumed: c.orderAssumed === true });", "titleBroken: false });"]]],
   ["a reading with a KIO ID carries the flag", [[PM, "req: null }, orderAssumed: false };", "req: null }, orderAssumed: p.orderAssumed === true };"]]],
   ["the page sets the flag false when the reader said true (single reading)", [[PM, "orderAssumed: r.orderAssumed === true };\n  } else if", "orderAssumed: false };\n  } else if"]]],
-  ["the note words are changed", [["js/phone-text.js", "Please check both boxes before you search.", "Please check the boxes."]]],
+  ["the note words are changed", [["js/phone-text.js", "are correct, then click Search.", "are correct."]]],
   ["a pinned sentence is added to the 13", [["js/phone-text.js", "13: \"We never receive", "14: \"x\",\n  13: \"We never receive"]]],
   ["the reader copy is edited by hand", [["js/mobile/mobile-reader/reader.js", "export function readText", "export function readTextX"]]],
   ["the reader copy is the old reader-v1", "OLD_READER"],
