@@ -13,12 +13,12 @@ import { fileURLToPath } from "node:url";
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const EXTENSION_REPO = process.env.FGJ_EXTENSION_REPO || path.resolve(ROOT, "..", "fightghostjobs", "extension");
-// the manifest of the Extension Dev (prompt HY, fgx-hy-reader-v1-manifest.txt): the hashes are of the git show output (line breaks LF)
+// the manifest of the Extension Dev (prompt JC, fgx-jc-reader-v3-manifest.txt, November 7, 2026; before: prompt HY, reader-v1): the hashes are of the git show output (line breaks LF)
 export const MANIFEST = {
-  tag: "reader-v1",
-  commit: "d94d67aeb61db397b7193afa69d4b04bc9e2bffc",
+  tag: "reader-v3",
+  commit: "de03a113a57bf7a3de3b02454f1a308f211332ae",
   files: [
-    { from: "mobile-reader/reader.js", to: "js/mobile/mobile-reader/reader.js", sha256: "cee45e96c54c30af2f8a4cdb4d4227e1358f6cd8e2abbd1f2f51e6ca1105887c" },
+    { from: "mobile-reader/reader.js", to: "js/mobile/mobile-reader/reader.js", sha256: "f33a3fb3f9419ca4863a4b5366b2fc07bda6c88777dc34c90ffbaf83329be0c6" },
     { from: "extractor.js", to: "js/mobile/extractor.js", sha256: "f1c430a9406a36f4a829a39676abd92a2ea2e909b097107c2377df0c9c6978a5" },
     { from: "kio.js", to: "js/mobile/kio.js", sha256: "b15a133164cbb81490656aab01a0e5a7b5e91f18d051daa1110b0cbdbe367dfc" },
   ],

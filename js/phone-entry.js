@@ -5,9 +5,9 @@
 // THE SCREENSHOT TEXT IS NEVER SENT, STORED, LOGGED OR SHOWN: it goes into the boxes with .value only, it is not in any request, and this file uses no localStorage, sessionStorage, IndexedDB, cookie, window.name or console.
 // On a computer (a mouse, a window of 900 pixels or more) the page shows sentence 12 and does not fill anything.
 import { h, clear } from "./dom.js?v=5c78a8cd";
-import { SENTENCES, MORE_BEFORE, MORE_BUTTON, MORE_AFTER, EXTENSION_LINK_TEXT, choiceText } from "./phone-text.js?v=6a7d6316";
+import { SENTENCES, ORDER_NOTE, MORE_BEFORE, MORE_BUTTON, MORE_AFTER, EXTENSION_LINK_TEXT, choiceText } from "./phone-text.js?v=76610ceb";
 import { SOURCE_PHONE_SENTENCE } from "./source-text.js?v=0a1a7868";
-import { readFragment, cardBoxes } from "./phone-model.js?v=2c1fe20b";
+import { readFragment, cardBoxes } from "./phone-model.js?v=d0aa752b";
 import { EXTENSION_PAGE_URL } from "./config.js?v=62c9e3b1";
 
 export const COMPUTER_QUERY = "(hover: hover) and (pointer: fine) and (min-width: 900px)";
@@ -45,10 +45,14 @@ export function runPhoneEntry({ win = window, doc = document, companyEl, queryEl
     const d = (boxes[name].getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean); d.push(noteId(name));
     boxes[name].setAttribute("aria-describedby", d.join(" "));
   }
+  // prompt JE (November 8, 2026): the "check this" note inside the search box (the status region #orderNote, above the optional line and Search). It is set only when the reader flagged the reading (orderAssumed true), as text, in memory only,
+  // and it is emptied when the person edits the company box or the title box, when a search has run, when another opening is picked (that opening brings its own flag) and with every new reading. It blocks nothing.
+  function clearOrder() { const e = doc.getElementById("orderNote"); if (e) e.textContent = ""; }
+  function setOrder(on) { clearOrder(); const e = doc.getElementById("orderNote"); if (on === true && e) e.textContent = ORDER_NOTE; }
   const fill = (f) => { companyEl.value = f.company; queryEl.value = f.query; reqEl.value = f.req; };
   const setNotes = (n) => { for (const name of Object.keys(boxes)) setNote(name, n[name]); };
 
-  function resetPanel() { clear(line); clear(more); more.hidden = true; clear(list); list.hidden = true; body.hidden = true; privacy.dataset.on = "0"; if (sourceNote) sourceNote.dataset.on = "0"; }   // prompt JB: the two sentences stay hidden on the page (they are in the info box while data-on is 1)
+  function resetPanel() { clearOrder(); clear(line); clear(more); more.hidden = true; clear(list); list.hidden = true; body.hidden = true; privacy.dataset.on = "0"; if (sourceNote) sourceNote.dataset.on = "0"; }   // prompt JB: the two sentences stay hidden on the page (they are in the info box while data-on is 1)
   function say(text) { clear(line); line.append(text); }
   function showBody() { body.hidden = false; }
 
@@ -56,6 +60,7 @@ export function runPhoneEntry({ win = window, doc = document, companyEl, queryEl
   if (!wired) {
     wired = true;
     for (const name of Object.keys(boxes)) boxes[name].addEventListener("input", () => clearNote(name));
+    for (const el of [companyEl, queryEl]) el.addEventListener("input", clearOrder);   // prompt JE: editing the company box or the title box ends the "check this" note
     // once a search has run the page shows its recap and empties the boxes: the sentences about the screenshot are done (the privacy sentence stays)
     const recap = doc.getElementById("recap");
     if (recap && win.MutationObserver) new win.MutationObserver(() => { if (!recap.hidden) { clearNotes(); resetPanel(); privacy.dataset.on = current ? "1" : "0"; if (sourceNote) sourceNote.dataset.on = current ? "1" : "0"; } }).observe(recap, { attributes: true, attributeFilter: ["hidden"] });
@@ -94,7 +99,7 @@ export function runPhoneEntry({ win = window, doc = document, companyEl, queryEl
     showBody();
     return true;
   }
-  fill(parsed.boxes.fill); setNotes(parsed.boxes.notes);
+  fill(parsed.boxes.fill); setNotes(parsed.boxes.notes); setOrder(parsed.boxes.orderAssumed === true);
   say(SENTENCES[1]);
   if (parsed.cut) line.append(" ", SENTENCES[11]);
 
@@ -113,7 +118,7 @@ export function runPhoneEntry({ win = window, doc = document, companyEl, queryEl
         list.append(h("button", { type: "button", class: "btn btn-outline phone-choice", onclick: () => {
           current.index = i; open = false;
           const b = cardBoxes(c);   // the notes of the first opening are cleared; the picked opening brings its own
-          fill(b.fill); setNotes(b.notes);
+          fill(b.fill); setNotes(b.notes); setOrder(b.orderAssumed === true);
           clear(line); line.append(SENTENCES[8]); if (parsed.cut) line.append(" ", SENTENCES[11]);
           drawList(); pickBtn.focus();
         } }, choiceText(c.title, c.company)));

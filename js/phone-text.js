@@ -20,6 +20,10 @@ export const SENTENCES = {
   13: "We never receive your screenshot. Your phone reads the text and this page keeps it in the page only. Nothing is sent until you press Search. Then only the values in the boxes are sent, and the search is recorded like any other.",
 };
 
+// prompt JE (November 8, 2026): the note inside the search box when the reader had to guess which line is the job title and which is the company (the reader's flag orderAssumed). It is NOT one of the 13 sentences above (they stay letter for letter);
+// John approved this wording as the starting point on November 7, 2026 and approves the final wording. Shown above the optional line and Search, cleared when the person edits the company box or the title box.
+export const ORDER_NOTE = "We could not tell which line is the job title and which is the company. Please check both boxes before you search.";
+
 // the words of the one link that may follow sentence 12 (only when EXTENSION_PAGE_URL in js/config.js is an address on this site)
 export const EXTENSION_LINK_TEXT = "Get the browser extension";
 // one entry of the list of other openings: "Title at Company"

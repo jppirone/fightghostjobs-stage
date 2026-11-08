@@ -2657,6 +2657,17 @@ export function checkSite(root, opts = {}) {
       if (!m.includes('export const MORE_BEFORE = "Not the one you meant? ", MORE_BUTTON = "Pick another opening", MORE_AFTER = ".";')) add("S105", tx, "sentence 6 must be Not the one you meant? Pick another opening. with the last three words as the button");
       if (!m.includes('export const EXTENSION_LINK_TEXT = "Get the browser extension";')) add("S105", tx, 'the link text must be "Get the browser extension"');
       if (/verif|compliant|certif|scam|fake|fraud|suspicious|trusted|safe\b|guarantee|\bflag|detect|catch|expose|loophole|compliance|posting|ghost/i.test(m)) add("S105", tx, "the phone sentences hold a forbidden word");
+      // prompt JE (November 8, 2026): the "check this" note of the phone entry. Its words are an export outside the 13 sentences; its place is a status region inside the search box, under the three fields and above the optional line; the page sets it as text only
+      if (!m.includes('export const ORDER_NOTE = "We could not tell which line is the job title and which is the company. Please check both boxes before you search.";')) add("S105", tx, "ORDER_NOTE must be exactly: We could not tell which line is the job title and which is the company. Please check both boxes before you search.");
+      const shJE = R("search.html"), peJE = R("js/phone-entry.js");
+      if (fs.existsSync(shJE)) {
+        const hJE = read(shJE), formJE = (hJE.match(/<form id="searchForm"[\s\S]*?<\/form>/) || [""])[0];
+        if ((hJE.match(/id="orderNote"/g) || []).length !== 1 || !/<div id="orderNote" class="order-note" role="status" aria-live="polite"><\/div>/.test(formJE)) add("S105", shJE, 'search.html must hold the empty status region <div id="orderNote" class="order-note" role="status" aria-live="polite"></div> once, inside the search form');
+        else if (!(formJE.indexOf('id="orderNote"') > formJE.indexOf('class="srch-top"') && formJE.indexOf('id="orderNote"') < formJE.indexOf('id="sourceBlock"'))) add("S105", shJE, "the order note must sit under the three fields and above the optional line (so above Search, never below it)");
+      }
+      if (fs.existsSync(peJE)) { const pj = stripJsComments(read(peJE)); if (!/e\.textContent = ORDER_NOTE/.test(pj) || /orderNote[^\n]*(innerHTML|insertAdjacentHTML)|ORDER_NOTE[^\n]*(innerHTML|insertAdjacentHTML)/.test(pj)) add("S105", peJE, "the order note is set as text from ORDER_NOTE, never as HTML"); if (!/setOrder\(parsed\.boxes\.orderAssumed === true\)/.test(pj) || !/setOrder\(b\.orderAssumed === true\)/.test(pj)) add("S105", peJE, "the note is set from the reader's flag (orderAssumed === true) for the opening that fills the boxes and for a picked opening"); }
+      const runJE = R("tests/run-all.js");
+      if (fs.existsSync(runJE)) { const rj = read(runJE); for (const nn of ["order-note.unit.test.js", "order-note-box.test.js"]) if (!rj.includes('"' + nn + '"')) add("S105", runJE, nn + " is not a step of the full run"); }
     }
     // the import graph: who may load what
     const ALLOWED = {

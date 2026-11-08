@@ -1632,6 +1632,17 @@ control("the policy link's unit test is not run", "S70", edit("tests/run-all.js"
   control("IB: the word paid anywhere else in the reader folder is still caught by the wording rule (only the phrase paid time off is left out)", "S32", append("js/mobile/kio.js", "export const note = 'a paid plan';"));
   control("IB: the phrase paid time off outside js/mobile is still caught by the wording rule", "S32", append("js/chips.js", "export const w = 'paid time off';"));
   control("IB: the drift test is not a step of the full run", "S105", edit("tests/run-all.js", (s) => s.replace('path.join(here, "reader-drift.test.js")', 'path.join(here, "reader-drift-gone.js")')));
+  // prompt JE (November 8, 2026): the check this note
+  control("JE: the note words are changed", "S105", edit("js/phone-text.js", (s) => s.replace("Please check both boxes before you search.", "Please check the boxes.")));
+  control("JE: the note container is gone from the page", "S105", edit("search.html", (s) => s.replace('      <div id="orderNote" class="order-note" role="status" aria-live="polite"></div>\n', "")));
+  control("JE: the note is not a status region", "S105", edit("search.html", (s) => s.replace('<div id="orderNote" class="order-note" role="status" aria-live="polite">', '<div id="orderNote" class="order-note">')));
+  control("JE: the note sits below the Search button", "S105", edit("search.html", (s) => s.replace('      <div id="orderNote" class="order-note" role="status" aria-live="polite"></div>\n', "").replace("    </form>\n", '    </form>\n      <div id="orderNote" class="order-note" role="status" aria-live="polite"></div>\n')));
+  control("JE: the note sits between the optional line and Search", "S105", edit("search.html", (s) => s.replace('      <div id="orderNote" class="order-note" role="status" aria-live="polite"></div>\n', "").replace('      </div>\n      <button type="submit" id="searchBtn"', '      <div id="orderNote" class="order-note" role="status" aria-live="polite"></div>\n      </div>\n      <button type="submit" id="searchBtn"')));
+  control("JE: the note is put in as HTML", "S105", edit("js/phone-entry.js", (s) => s.replace("e.textContent = ORDER_NOTE;", "e.innerHTML = ORDER_NOTE;")));
+  control("JE: the note is not set from the flag", "S105", edit("js/phone-entry.js", (s) => s.replace("setOrder(parsed.boxes.orderAssumed === true);", "setOrder(true);")));
+  control("JE: the picked opening does not bring its own flag", "S105", edit("js/phone-entry.js", (s) => s.replace("setOrder(b.orderAssumed === true);", "")));
+  control("JE: the unit test of the flag is not a step of the full run", "S105", edit("tests/run-all.js", (s) => s.replace('path.join(here, "order-note.unit.test.js")', 'path.join(here, "order-note-gone.js")')));
+  control("JE: the browser test of the note is not a step of the full run", "S105", edit("tests/run-all.js", (s) => s.replace('path.join(here, "order-note-box.test.js")', 'path.join(here, "order-note-box-gone.js")')));
 }
 
 // S106 (2026-11-06, prompt IV): the staff page "Companies to invite"

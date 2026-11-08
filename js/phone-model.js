@@ -12,7 +12,7 @@
 //   - decodeURIComponent, so a plus sign stays a plus sign; a bad percent escape, or any control character other than a line break after decoding, refuses the whole fragment
 //   - a fragment of more than MAX_FRAGMENT characters or more than MAX_PARTS parts is refused (the page never decodes an unbounded string)
 //   - the text is cut at TEXT_CAP characters at the last whole line (before it is read); the page says so
-import { readText } from "./mobile/mobile-reader/reader.js?v=0810e537";
+import { readText } from "./mobile/mobile-reader/reader.js?v=29302fc3";
 import { limitSource } from "./source-clean.js?v=228d1fb3";
 
 export const TEXT_CAP = 600, MAX_FRAGMENT = 50000, MAX_PARTS = 12;
@@ -66,17 +66,18 @@ export function boxesOf(p, kio) {
   const company = p.company || "", title = p.title || "", req = p.req || "";
   if (kio) {
     // a KIO ID is the exact key: it takes the KIO or title box, the company stays optional, and no req number goes with it (the search page refuses an ID together with a req number). The title is not held and not sent.
-    return { fill: { company, query: kio, req: "" }, notes: { company: company && p.cutCompany ? 2 : null, query: null, req: null } };
+    return { fill: { company, query: kio, req: "" }, notes: { company: company && p.cutCompany ? 2 : null, query: null, req: null }, orderAssumed: false };   // prompt JE: with a KIO ID the order of the title and the company does not matter, so no note
   }
   const notes = { company: null, query: null, req: null };
   if (company) { if (p.cutCompany) notes.company = 2; } else if (title || req) notes.company = 5;
   if (title) { if (p.cutTitle || p.titleShortened) notes.query = 2; } else if (p.titleBroken) notes.query = 4; else if (company) notes.query = 5;
   if (req && p.reqUnlabelled) notes.req = 3;
-  return { fill: { company, query: title, req }, notes };
+  // prompt JE (November 8, 2026): orderAssumed is the reader's own flag (reader-v3): true only when a two line crop was read and position alone decided which line is the title and which the company; the page shows a note for it, in memory only
+  return { fill: { company, query: title, req }, notes, orderAssumed: p.orderAssumed === true };
 }
 
 // a card of the reader -> the shape boxesOf reads. A requisition number of a card is always the one found in its title without a label.
-const ofCard = (c) => ({ company: c.company, title: c.title, req: c.req || "", reqUnlabelled: !!c.req, cutCompany: !!(c.cut && c.cut.company), cutTitle: !!(c.cut && c.cut.title), titleShortened: c.titleShortened === true, titleBroken: false });
+export const ofCard = (c) => ({ company: c.company, title: c.title, req: c.req || "", reqUnlabelled: !!c.req, cutCompany: !!(c.cut && c.cut.company), cutTitle: !!(c.cut && c.cut.title), titleShortened: c.titleShortened === true, titleBroken: false, orderAssumed: c.orderAssumed === true });
 export const cardBoxes = (card) => boxesOf(card, null);
 
 // the text (already cut) -> what the page shows. Reads the text with the copy of the extension's reader.
@@ -86,7 +87,7 @@ export function readingOf(text) {
   const complete = Array.isArray(r.cards) ? r.cards : [];
   let primary, cards = [];
   if (r.company || r.title) {
-    primary = { company: r.company, title: r.title, req: r.req || "", reqUnlabelled: r.reqUnlabelled === true, cutCompany: !!(r.cut && r.cut.company), cutTitle: !!(r.cut && r.cut.title), titleShortened: r.titleShortened === true, titleBroken: r.titleBroken === true };
+    primary = { company: r.company, title: r.title, req: r.req || "", reqUnlabelled: r.reqUnlabelled === true, cutCompany: !!(r.cut && r.cut.company), cutTitle: !!(r.cut && r.cut.title), titleShortened: r.titleShortened === true, titleBroken: r.titleBroken === true, orderAssumed: r.orderAssumed === true };
   } else if (complete.length) {
     cards = complete.map(ofCard);
     primary = cards[0];

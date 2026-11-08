@@ -264,6 +264,9 @@ main a:not(.btn):not(td a){text-decoration:underline;text-decoration-thickness:1
 .phone-body .phone-choice{width:100%;max-width:100%;justify-content:flex-start;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 .phone-link{display:inline-block;min-height:44px;line-height:44px}
 .phone-note{font-size:12px;line-height:1.5;color:var(--ink);margin-top:6px;font-weight:600}
+/* prompt JE (November 8, 2026): the "check this" note inside the search box, under the three fields and above the optional line and Search; empty (and not drawn) until the phone entry sets it. A new class, not phone-note (the tests count phone-note). */
+.order-note{font-size:13px;line-height:1.5;font-weight:600;color:var(--ink);margin:6px 12px 2px 12px;padding:2px 0 2px 10px;border-left:3px solid var(--ember);overflow-wrap:anywhere}
+.order-note:empty{display:none}
 .phone-privacy{margin:0 0 14px 0}
 /* prompt JD (November 7, 2026): the optional "where you found this job" field under the search card: its own card of the same look, the label like the other boxes, the input a 44 pixel target at every width */
 /* prompt JK (November 7, 2026): the optional line is INSIDE the one white search box (the form), under the three fields, with the Search button last (to the right of everything on a wide screen, below it on a phone). It is no longer a card of its own: no border round it, no background; a thin line above it is the only divider. */

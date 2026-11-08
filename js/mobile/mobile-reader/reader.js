@@ -46,7 +46,7 @@ const STATES = "AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD M
 const STATE_RE = STATES.join("|");
 const NAME_CHARS = "[\\p{L}.'" + U(0x2019) + " -]";
 const PLACE = [
-  rx("^" + NAME_CHARS + "{2,40},\\s*(?:" + STATE_RE + ")(?![A-Za-z])(?:\\s*[,(].*|\\s+[-" + MIDDOT + BULLET + U(0xab, 0xbb) + "].*)?$", "u"),            // Miami, FL   Miami, FL (Hybrid)   Austin, TX, United States   Minneapolis, MN - Remote
+  rx("^" + NAME_CHARS + "{2,40},\\s*(?:" + STATE_RE + ")(?![A-Za-z])(?:\\s+\\d{5}(?:-\\d{4})?)?(?:\\s*[,(].*|\\s+[-" + MIDDOT + BULLET + U(0xab, 0xbb) + "].*)?$", "u"),            // Miami, FL   Miami, FL (Hybrid)   Austin, TX, United States   Minneapolis, MN - Remote
   rx("^" + NAME_CHARS + "{2,40},\\s*[\\p{L} ]{2,30},\\s*(?:united states|usa|us|canada|united kingdom|uk)$", "iu"),   // Miami, Florida, United States
   rx("^(?:greater\\s+)?" + NAME_CHARS + "{2,40}\\s+(?:metropolitan\\s+)?area(?:\\s*\\(.*\\))?$", "iu"),     // Greater Miami Area
   rx("^(?:remote|hybrid|on-?site|anywhere|united states|usa|worldwide)(?:\\s*[,(" + MIDDOT + "].*)?$", "i"),   // Remote   United States
@@ -61,7 +61,7 @@ const AGO = "(?:\\d+\\s*(?:seconds?|minutes?|mins?|hours?|hrs?|days?|weeks?|wks?
 const APOS = "['" + U(0x2019) + "]";
 const BADGE_WORDS = rx("^(?:" + [
   "viewed", "promoted", "easy apply", "\\d+-click apply", "actively reviewing applicants", "actively recruiting", "actively hiring", "new", "applied", "saved", "reposted", "hiring", "urgently hiring", "be an early applicant", "you" + APOS + "?d be a top applicant", "be seen first",
-  "be among the first \\d+ applicants", "over \\d+ applicants", "\\d+\\+? applicants?", "\\d+ people clicked apply", "\\d+ (?:school alumni|company alumni|alumni|connections?|people|contacts?) (?:work|works|worked) here", "connections? (?:work|works|worked) here", "easily apply", "(?:an? |per )?(?:hour|year|month|week|day)",
+  "be among the first \\d+ applicants", "over \\d+ applicants", "\\d+\\+? applicants?", "\\d+ people clicked apply", "\\d+ (?:school alumni|company alumni|alumni|connections?|mutual connections?|people you know)", "\\d+ (?:school alumni|company alumni|alumni|connections?|people|contacts?) (?:work|works|worked) here", "connections? (?:work|works|worked) here", "easily apply", "(?:an? |per )?(?:hour|year|month|week|day)",
   "responses managed off \\w+", "no longer accepting applications", AGO, "posted " + AGO, "reposted " + AGO,
 ].join("|") + ")$", "i");
 const BENEFIT = "(?:medical|vision|dental|401\\(k\\)|401k|life|disability|pto|paid time off|bonus|equity|retirement|insurance|health|tuition assistance)";
@@ -70,6 +70,7 @@ const CHROME = rx("^(?:" + [
   "jobs?", "search", "home", "my network", "messaging", "notifications", "back", "share", "save", "apply", "done", "cancel", "close", "menu", "filters?", "sort by.*", "show (?:all|more|less)", "see (?:all|more|less)", "view (?:all|more)",
   "top job picks for you", "jobs? (?:based on|similar|you may|for you|picked).*", "jobs that match.*", "based on your.*", "describe the job.*", "recommended(?: for you)?", "suggested.*", "more jobs.*", "similar jobs.*", "\\d[\\d,]* results?", "results?", "people also viewed", "about the job", "job description",
   "\\d{1,2}:\\d{2}(?:\\s*[ap]m)?", "\\d{1,3}%", "welcome back.*", "matches your preferences", "career scout", "my jobs", "messages", "my network notifications", "more\\.?", "lte|5g|4g|wi-?fi", "[<>" + U(0x2039, 0x203a, 0xab, 0xbb) + "]+", "easy apply to .*",
+  "\\d[\\d,]*\\+?\\s+new\\b.*\\bjobs?\\b(?:\\s+(?:in|near|for|at|from)\\b.*)?", "(?:these )?jobs? (?:match|matches|matching)\\b.*", "new jobs?(?: for you| in .*)?", "(?:view|see) (?:all|more)(?: \\w+)? jobs?", "(?:your|manage your|manage|edit your) (?:saved )?job alerts?.*", "unsubscribe(?:\\s+(?:from|here|or|now|link)\\b.*)?",   // the header and footer of a job alert email
 ].join("|") + ")$", "i");
 const TITLE_WORDS = /\b(?:manager|engineer|analyst|director|specialist|coordinator|developer|associate|assistant|officer|lead|representative|consultant|designer|recruiter|administrator|supervisor|technician|scientist|architect|intern|executive|accountant|programmer|planner|buyer|clerk|operator|nurse|therapist|advisor|adviser|strategist|writer|editor|agent|president|vp|head of)\b/i;
 const SPLIT_PARTS = rx("\\s+[" + MIDDOT + BULLET + "|-]\\s+");
@@ -161,6 +162,16 @@ function cardsOf(lines) {
     if (it.kind === "text" && !it.cs && CUT_PLACE.test(it.t) && nx && startsWithState(nx.t)) it.kind = "detail";
     if (prev && (prev.kind === "detail" || prev.kind === "companydetail") && /,$/.test(prev.t) && ["text", "detail", "companydetail"].includes(it.kind) && startsWithState(it.t)) it.kind = "detail";
   }
+  // a title that ends in a work mode bracket ("Quality System Manager (Onsite)") sits right above its company line: it is the title, not a place (the bracket stays). The POSITION decides, no word list (prompt JC):
+  // the text before the bracket is not a place, not a pay line, and the line is one part; the next line is a company-and-detail line, or a company line followed by a detail line, or the text is exactly these two lines
+  const WORK_BRACKET = /\((?:remote|hybrid|on-?site)\)\s*$/i;
+  for (let i = 0; i + 1 < items.length; i++) {
+    const it = items[i], n1 = items[i + 1], n2 = items[i + 2];
+    if (it.kind !== "detail" || !WORK_BRACKET.test(it.t)) continue;
+    const pre = it.t.replace(WORK_BRACKET, "").trim();
+    if (pre === "" || PLACE.some((re, k) => k !== 4 && re.test(it.t)) || isPlace(pre) || STATE_FIRST.test(pre) || isPay(pre) || isPay(it.t) || MODE.test(it.t) || splitParts(it.t).length !== 1) continue;
+    if (n1.kind === "companydetail" || (n1.kind === "text" && !n1.cs && ((n2 && (n2.kind === "detail" || n2.kind === "companydetail")) || (!n2 && i === 0 && items.length === 2)))) { it.kind = "text"; it.brk = true; }
+  }
   const cards = [];
   let run = [];
   for (let k = 0; k < items.length; k++) {
@@ -182,6 +193,17 @@ function cardsOf(lines) {
       if (lg) { lead.logos.push(lg); k++; continue; }
       break;
     }
+  }
+  // a crop of just the title and the company (prompt JC): after the chrome and the logo lines are gone exactly two lines are left, both plain text of 2 to 80 characters, neither a sentence. The first is the title and the second the company (the order of Indeed and LinkedIn);
+  // when exactly one of them holds a title word and it is the second, they are turned round. When position alone decided (no title word, or a title word in both) the card carries orderAssumed. readCard still refuses a pair that does not read like a title and a company.
+  const shortLine = (x) => x.kind === "text" && !x.cs && !x.idTok && x.t.length >= 2 && x.t.length <= 80 && !/[.!?]$/.test(x.t.replace(ABBREV, "$1"));
+  if (!cards.length && items.length === 2 && items.every(shortLine)) {
+    const [a, b] = items, ta = TITLE_WORDS.test(a.t), tb = TITLE_WORDS.test(b.t);
+    const lead = !a.brk && tb && !ta ? [b, a] : [a, b];
+    lead.orderAssumed = a.brk ? !(ta && !tb) : ta === tb;
+    lead.logos = [];
+    cards.push(lead);
+    run = [];
   }
   // a card that ends the text with a company line cut off on the screen ("Voice Systems...") has no detail line after it
   if (run.length >= 2 && isCutOff(run[run.length - 1].t)) cards.push(run);
@@ -218,7 +240,7 @@ const TITLE_ACRONYMS = new Set(["AI", "IT", "HR", "VP", "UX", "UI", "QA", "QC", 
 const CONTINUES = /(?:[,&\/-]|\s(?:and|of|the|for|in|to|at|with))$/i;
 function readCard(lead) {
   const notes = { company: null, title: null, req: null };
-  const out = { company: null, title: null, req: null, cut: { company: false, title: false }, titleShortened: false, titleBroken: false, notes };
+  const out = { orderAssumed: false, company: null, title: null, req: null, cut: { company: false, title: false }, titleShortened: false, titleBroken: false, notes };
   const blank = (why) => { notes.company = notes.title = why; return out; };
   // an icon or a logo read as capitals between the lines ("RN") is not a line of the card; only the last line may be a short name such as EY
   let L = lead.filter((x, i) => i === lead.length - 1 || !SHORT_CAPS.test(x.t));
@@ -337,6 +359,7 @@ function readCard(lead) {
   // a slash read as a bracket ("Outcome [ Product") is put back; a lone bracket is never a title word
   let slashFixed = false;
   if (title && /\s[\[\]]\s/.test(title)) { title = title.replace(/\s[\[\]]\s/g, " / "); slashFixed = true; }
+  if (company && title && lead.orderAssumed) out.orderAssumed = true;      // the order of a two line crop was decided by position alone (output only)
   if (company) { out.company = company; out.cut.company = companyCut; notes.company = "line " + (companyLines[0].i + 1) + (companyLines.length > 1 ? " to " + (companyLines[companyLines.length - 1].i + 1) + " joined" : "") + ": the company, right above the place, pay or badges" + (companyCut ? ". It ends with dots, so it looks cut off." : ""); }
   if (brokenWord) notes.title = "a word in the title looks broken in the middle, so the title was not taken: type it";
   if (title) {
@@ -352,7 +375,7 @@ const SOCIAL = /^(?:\d+\s?[smhdwy]|\d+\s?(?:likes?|comments?|reactions?|reposts?
 const POSTER_ROLE = /^(?:(?:senior |technical |lead |sr\.? )?recruiter|talent (?:acquisition|partner|sourcer).*|hiring manager|hr (?:manager|business partner|generalist)|human resources.*|sourcer|founder|co-?founder|ceo|owner|staffing.*)$/i;
 export function readText(text) {
   const { lines, truncated } = toLines(text);
-  const result = { company: null, title: null, kio: null, kioStored: null, req: null, reqUnlabelled: false, cut: { company: false, title: false }, titleShortened: false, titleBroken: false, notes: { company: null, title: null, kio: null, req: null }, cards: [], seen: { cards: 0, truncated } };
+  const result = { orderAssumed: false, company: null, title: null, kio: null, kioStored: null, req: null, reqUnlabelled: false, cut: { company: false, title: false }, titleShortened: false, titleBroken: false, notes: { company: null, title: null, kio: null, req: null }, cards: [], seen: { cards: 0, truncated } };
   if (!lines.length) return result;
   const plain = { lines: lines.map((t) => ({ text: t })) };
   const found = findAllValues(plain);     // the extension's own rules: labels, "<title> at <company>", the KIO ID and the req number anywhere
@@ -381,12 +404,12 @@ export function readText(text) {
   if (found.titleCutOff) result.notes.title = "the title looks cut off on the screen, so it was not taken";
   if (!result.company && !result.title && !found.titleCutOff) {
     const raw = cardsOf(lines), cards = raw.map(readCard), cutRuns = raw.cutRuns || [];
-    result.cards = cards.filter((c) => c.company && c.title).map((c) => ({ company: c.company, title: c.title, req: c.req, cut: c.cut, titleShortened: c.titleShortened, titleBroken: c.titleBroken, notes: c.notes }));
+    result.cards = cards.filter((c) => c.company && c.title).map((c) => ({ company: c.company, title: c.title, req: c.req, cut: c.cut, orderAssumed: c.orderAssumed, titleShortened: c.titleShortened, titleBroken: c.titleBroken, notes: c.notes }));
     result.seen.cards = cards.length;      // the cards that were read or refused; the page offers the list when this is more than one
     if (cutRuns.length) result.seen.cut = cutRuns.length;      // a card cut by the bottom edge of the screen is counted here, never read
     if (!cards.length && cutRuns.length) result.notes.company = result.notes.title = "the card may be cut by the edge of the screen, so no company or title was taken";
     if (cards.length === 1) {
-      result.company = cards[0].company; result.title = cards[0].title; result.cut = cards[0].cut; result.titleShortened = cards[0].titleShortened; result.titleBroken = cards[0].titleBroken;
+      result.company = cards[0].company; result.title = cards[0].title; result.cut = cards[0].cut; result.titleShortened = cards[0].titleShortened; result.titleBroken = cards[0].titleBroken; result.orderAssumed = cards[0].orderAssumed;
       result.notes.company = cards[0].notes.company; result.notes.title = cards[0].notes.title;
       // an unlabelled requisition number from the title: only when no labelled one was found
       if (cards[0].req && !result.req) { result.req = cards[0].req; result.reqUnlabelled = true; result.notes.req = cards[0].notes.req; }
