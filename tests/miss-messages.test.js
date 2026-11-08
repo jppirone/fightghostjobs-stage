@@ -11,7 +11,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { launchBrowser } from "./cdp-tabs.js";
 import { startFakeSite } from "./fake-site.js";
-import { MISS_MESSAGES, missMessage, missEmptyLines, noMatchMessage, NO_MATCH_NOTE, NO_MATCH_NOTE_REQ } from "../js/search-input.js";
+import { MISS_MESSAGES, missMessage, missEmptyLines, noMatchMessage, NO_MATCH_NOTE, NO_MATCH_NOTE_REQ, splitSentences } from "../js/search-input.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -100,7 +100,7 @@ const SCENARIOS = {
           const tag = kind + " / " + how + " / " + width + ": ";
           const r = await runCase(site, width, kind, how, company, title, req);
           const lead = leadOf(how, company, title);
-          const want = [lead + lines[0], ...lines.slice(1)];
+          const want = [lead + lines[0], ...lines.slice(1).map((l) => (l === MISS_MESSAGES.registered_no_match[1] ? splitSentences(l, 1).visible : l))];   // prompt JB: that line shows its first sentence, the rest is in the info box
           if (JSON.stringify(r.lines) !== JSON.stringify(want)) bad.push(tag + "the lines are " + JSON.stringify(r.lines));
           if (r.note === null || /An opening appears here only if an employer has added it/.test(r.note)) bad.push(tag + "the general note is still there");
           if (r.cards !== 0) bad.push(tag + "result cards are shown");
@@ -121,7 +121,8 @@ const SCENARIOS = {
       try {
         for (const [how, company, title, req] of MODES) {
           const r = await runCase(site, 1280, "none", how, company, title, req);
-          const want = how === "req" ? leadOf(how, company, title) + NO_MATCH_NOTE_REQ : leadOf(how, company, title) + NO_MATCH_NOTE;
+          // prompt JB (November 7, 2026): the page shows the echo and the first sentence(s) of the old note; the remainder is in the info box (tests/info-panel.unit.test.js joins them back into the old words)
+          const want = how === "req" ? leadOf(how, company, title) + splitSentences(NO_MATCH_NOTE_REQ, 2).visible : leadOf(how, company, title) + splitSentences(NO_MATCH_NOTE, 1).visible;
           if (r.note !== want) bad.push(JSON.stringify(v) + " / " + how + ": the words are not the old words: " + String(r.note).slice(0, 80));
           if (r.lines.length) bad.push(JSON.stringify(v) + " / " + how + ": miss lines are shown");
         }

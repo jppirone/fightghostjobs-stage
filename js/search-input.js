@@ -66,11 +66,27 @@ export function missMessage(kind) {
 
 // kind: "phrase" | "code"  ->  No postings found for "Acme Inc" + "Senior Analyst". <note>
 export function noMatchMessage(company, query, kind) {
-  if (kind === "kio") return KIO_NOT_REGISTERED_MESSAGE;
-  if (kind === "req") return "No openings found for \"" + clip(company, 80) + "\" with that req number. " + NO_MATCH_NOTE_REQ;
-  const what = kind === "code" ? "code \"" + clip(query, 40) + "\"" : "\"" + clip(query, 80) + "\"";
-  return "No openings found for \"" + clip(company, 80) + "\" + " + what + ". " + NO_MATCH_NOTE;
+  const p = noMatchParts(company, query, kind);
+  return p.rest ? p.visible + " " + p.rest : p.visible;
 }
+// prompt JB (November 7, 2026): the same sentence in two pieces. visible is what the page shows (the echo of what was searched and the first sentence(s) of the note); rest is the remainder of the note, which the info box shows
+// (js/info-panel.js). visible + " " + rest is exactly noMatchMessage, which is exactly what the page showed before this prompt.
+export function noMatchParts(company, query, kind) {
+  if (kind === "kio") return { visible: KIO_NOT_REGISTERED_MESSAGE, rest: "" };
+  if (kind === "req") { const s = NO_MATCH_REQ_SPLIT(); return { visible: "No openings found for \"" + clip(company, 80) + "\" with that req number. " + s.visible, rest: s.rest }; }
+  const what = kind === "code" ? "code \"" + clip(query, 40) + "\"" : "\"" + clip(query, 80) + "\"";
+  const s = NO_MATCH_SPLIT();
+  return { visible: "No openings found for \"" + clip(company, 80) + "\" + " + what + ". " + s.visible, rest: s.rest };
+}
+// a text cut after its first `keep` sentences: { visible, rest }; the two joined by one space are the text again
+export function splitSentences(text, keep) {
+  const parts = String(text).split(/(?<=\.)\s+(?=[A-Z])/);
+  return { visible: parts.slice(0, keep).join(" "), rest: parts.slice(keep).join(" ") };
+}
+export const NO_MATCH_SPLIT = () => splitSentences(NO_MATCH_NOTE, 1);
+export const NO_MATCH_REQ_SPLIT = () => splitSentences(NO_MATCH_NOTE_REQ, 2);
+// the second line of the "registered, no match" kind is shown cut after its first sentence; the rest is in the info box
+export const MISS_LINE_SPLIT = (line) => (line === MISS_MESSAGES.registered_no_match[1] ? splitSentences(line, 1) : { visible: line, rest: "" });
 // prompt HD: when the answer carries one of the three miss kinds, the same echo ("No openings found for ...") is followed by that kind's lines INSTEAD of the note. Returns the lines (the page shows each on its own line), or null
 // when the kind is not exactly one of the three names or the search was a KIO ID (the old words then stay as they are).
 export function missEmptyLines(company, query, kind, missKind) {

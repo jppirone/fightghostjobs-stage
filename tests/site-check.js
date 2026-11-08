@@ -180,12 +180,18 @@ export function checkSite(root, opts = {}) {
     if (!note.endsWith("A title search finds only openings that are live: closed or expired openings are found only by KIO ID or req number.")) add("S14", si, "NO_MATCH_NOTE must end with the closed-or-expired-by-KIO-ID-or-req sentence");
     if (!note.includes("Check the company name, and check the KIO ID exactly as it is printed in the job ad. If you searched by title, try a different part of the title.")) add("S14", si, "NO_MATCH_NOTE must tell the person to check the KIO ID and to try a different part of the title");
     const src = read(si);
+    // prompt JB (November 7, 2026): the note is built by noMatchParts as the echo plus the first sentence(s) of the note (visible on the page) and the rest of the note (rest, shown by the info box); noMatchMessage is the two joined, the old full text
     const fn = (src.match(/export function noMatchMessage\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1] || "";
-    if (!/\+\s*NO_MATCH_NOTE;\s*$/.test(fn.trim())) add("S14", si, "noMatchMessage must end with NO_MATCH_NOTE");
-    if (!/No openings found for/.test(fn)) add("S14", si, "noMatchMessage must echo what was searched (\"No openings found for ...\")");
+    if (!/noMatchParts\(/.test(fn)) add("S14", si, "noMatchMessage must be built from noMatchParts");
+    const fnP = (src.match(/export function noMatchParts\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1] || "";
+    if (!/No openings found for/.test(fnP)) add("S14", si, "noMatchParts must echo what was searched (\"No openings found for ...\")");
+    if (!/NO_MATCH_SPLIT\(\)/.test(fnP) || !/NO_MATCH_REQ_SPLIT\(\)/.test(fnP) || (fnP.match(/\+ s\.visible/g) || []).length !== 2 || (fnP.match(/rest: s\.rest/g) || []).length !== 2) add("S14", si, "noMatchParts must carry the note (the first sentence(s) as visible, the remainder as rest) for both kinds");
     const page = read(sp);
-    if (!/import\s*\{[^}]*\bnoMatchMessage\b[^}]*\}\s*from\s*"\.\.\/search-input\.js"/.test(page) || !/empty-note[^\n]*noMatchMessage\(searched\.company, searched\.query, searched\.kind\)\)/.test(page)) add("S14", sp, "the empty-result message must be noMatchMessage(company, query, kind)");
+    if (!/import\s*\{[^}]*\bnoMatchParts\b[^}]*\}\s*from\s*"\.\.\/search-input\.js"/.test(page) || !/empty-note[^\n]*noMatchParts\(searched\.company, searched\.query, searched\.kind\)\.visible\)/.test(page)) add("S14", sp, "the empty-result message must be noMatchParts(company, query, kind).visible");
     if (/No openings? (found|matched)/.test(page)) add("S14", sp, "a second, hand-written empty-result message");
+    const ip = path.join(root, "js", "info-panel.js");
+    const panel = fs.existsSync(ip) ? read(ip) : "";
+    if (!/NO_MATCH_SPLIT\(\)\.rest/.test(panel) || !/NO_MATCH_REQ_SPLIT\(\)\.rest/.test(panel) || !/MISS_MESSAGES\.registered_no_match\[1\]/.test(panel)) add("S14", ip, "the info box must carry the rest of every note the page cuts (NO_MATCH_SPLIT, NO_MATCH_REQ_SPLIT and the second line of registered_no_match)");
   } else add("S14", root, "js/search-input.js or js/pages/search.js is missing");
 
   // S15: the register form offers the standard window range the backend and the database enforce (14 to 45 days, 45 by default) and offers nothing longer.
@@ -801,7 +807,17 @@ export function checkSite(root, opts = {}) {
       const describedBy = (id) => ((form.match(new RegExp('<input id="' + id + '"[^>]*aria-describedby="([^"]*)"')) || [])[1] || "").split(/\s+/).filter(Boolean);
       for (const id of ["company", "reqq", "titleq"]) { const d = describedBy(id); if (!d.length) add("S40", sh, "the " + id + " input must point at its guidance with aria-describedby"); for (const x of d) if (!ids.has(x)) add("S40", sh, "the " + id + " input is described by #" + x + ", which is not on the page"); }
       if (!describedBy("titleq").includes("titleNote")) add("S40", sh, "the title box must be described by #titleNote (a title search does not list every job and finds only live openings)");
-      if (!describedBy("company").includes("companyHint")) add("S40", sh, "the company box must be described by #companyHint");
+      if (!describedBy("company").includes("companyHintFull")) add("S40", sh, "the company box must be described by #companyHintFull (the whole hint; prompt JB shows only its last sentence on the page)");
+      // prompt JB (November 7, 2026): the guidance sentences are behind the info button. Each stays in the page inside the hidden element #infoSource (so the box description is still read) and none of them is in the visible page; only the lead sentence is.
+      const infoSrc = (t.match(/<div id="infoSource" hidden>([\s\S]*?)\n<\/div>/) || [])[1] || "";
+      const visiblePage = t.replace(infoSrc, "");
+      for (const s of ["Easiest and most exact:", "No KIO ID? Use the company name plus part of the job title", "Must match the employer's name. We ignore endings like Inc., Co. and LLC. Not needed with a KIO ID.", "A title search will not list all of a company's jobs", "Company is required, unless you type a KIO ID.", "One quick step: we email you a link, and that keeps your email confirmed for 90 days.", "We keep a record of your search, including the words you typed"]) {
+        if (!infoSrc.includes(s)) add("S40", sh, "the sentence must stay in the hidden #infoSource: " + s);
+        if (visiblePage.includes(s)) add("S40", sh, "the sentence must not be on the visible page (it is behind the info button): " + s);
+      }
+      if (!/<span id="infoSlot"/.test(t) || !/<span id="recapInfoSlot"/.test(t)) add("S40", sh, "the info button needs its two places: at the heading (#infoSlot) and in the recap box (#recapInfoSlot)");
+      if (!/<div id="companyHint"[^>]*aria-hidden="true">Not needed with a KIO ID\.<\/div>/.test(t)) add("S40", sh, "the company hint on the page must be the short 'Not needed with a KIO ID.' (the whole hint is in the info box)");
+      for (const gone of ["reqCellHint", "titleHint"]) if (t.includes('id="' + gone + '"')) add("S40", sh, "the hint #" + gone + " was removed by prompt JB (the 'i' of the box says it)");
       if (!/<div id="formError"[^>]*role="alert"/.test(t)) add("S40", sh, "the form error (#formError) must be an alert so it is announced");
       const cq = (src.match(/export function classifyQuery\([^)]*\)\s*\{([\s\S]*?)\n\}/) || [])[1] || "";
       if (/alnumCount\([^)]*\)\s*<\s*[2-9]/.test(cq.replace(/\/\/[^\n]*/g, ""))) add("S40", si, "classifyQuery must not refuse a title of 1 or 2 letters or digits locally: the backend allows the short forms in its own list (VP, SR, JR)");
@@ -2692,7 +2708,7 @@ export function checkSite(root, opts = {}) {
       const h = read(sh);
       for (const id of ["phonePanel", "phoneBody", "phoneLine", "phoneMore", "phoneList", "phonePrivacy"]) if ((h.match(new RegExp('id="' + id + '"', "g")) || []).length !== 1) add("S105", sh, 'search.html must hold id="' + id + '" exactly once');
       if (!/<div id="phonePanel"[^>]*aria-live="polite"/.test(h)) add("S105", sh, "the phone panel must be a polite live region");
-      if (!/<div id="phoneBody"[^>]*\shidden/.test(h) || !/<p id="phonePrivacy"[^>]*\shidden/.test(h)) add("S105", sh, "the phone panel and its privacy sentence are hidden until the module shows them");
+      if (!/<div id="phoneBody"[^>]*\shidden/.test(h) || !/<p id="phonePrivacy"[^>]*\shidden/.test(h)) add("S105", sh, "the phone panel and its privacy sentence are hidden for good (prompt JB: the module switches it on with data-on and the info box shows it)");
       for (const s of SENTENCES_13) if (s && h.includes(s)) add("S105", sh, "search.html holds a phone sentence: they live in js/phone-text.js only");
     }
     // nothing links to the phone entry; the setting for the extension page ships empty

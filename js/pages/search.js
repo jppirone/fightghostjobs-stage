@@ -23,7 +23,8 @@ import { tileActions } from "../tile-actions.js?v=7180edbf";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=5b8f0605";
 import { COMMENTS_VISIBLE } from "../config.js?v=62c9e3b1";
 import { openUnit } from "../open-link.js?v=19175677";
-import { checkCompany, resolveSearch, noMatchMessage, missEmptyLines, missMessage, failoverSentence, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=a852f69f";
+import { infoPanelIcon } from "../info-panel.js?v=0f32cfc3";
+import { checkCompany, resolveSearch, noMatchParts, MISS_LINE_SPLIT, missEmptyLines, missMessage, failoverSentence, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=96255d82";
 import { isRegistered } from "../registered.js?v=f191c8c2";
 import { refineHints } from "../refine-hint.js?v=7ead894b";
 import { placeNodes } from "../place.js?v=2e036978";
@@ -32,7 +33,8 @@ import { wantsStaffScope, STAFF_BANNER, STAFF_TITLE_NOTE, staffChips, staffIdLin
 const form = $("#searchForm"), companyIn = $("#company"), queryIn = $("#titleq"), reqIn = $("#reqq"), sourceIn = $("#sourceq"), sourceBlock = $("#sourceBlock"), reqToggle = $("#reqToggle"), searchBtn = $("#searchBtn"), formError = $("#formError");
 const resultsEl = $("#results"), countEl = $("#resultCount");
 const recapEl = $("#recap"), recapTextEl = $("#recapText"), recapEditBtn = $("#recapEdit");
-const noticeEl = $("#searchNotice");   // prompt FK (October 29, 2026): one static sentence under the results, shown exactly when the recap is (a search has run, found or not); its text and link live in search.html
+const noticeEl = $("#searchNotice");   // prompt FK (October 29, 2026): the sentence about the record of a search. Prompt JB (November 7, 2026): it no longer sits under the results; it stays hidden in search.html and the info box shows it (data-off="1" in the staff view, where no record is kept)
+$("#infoSlot").append(infoPanelIcon()); $("#recapInfoSlot").append(infoPanelIcon());   // prompt JB: one "i" at the heading and the same box from the recap box
 let lastSearch = null;   // what was typed in the three boxes for the search that just ran: in memory only, never stored; "Edit this search" puts it back
 const backdrop = $("#modalBackdrop"), status = makeAnnouncer($("#searchStatus"), window);
 let session = null, busy = false, cooldownTimer = null;
@@ -52,7 +54,7 @@ let heldOrigin = null;   // { origin, host } | null
 // prompt IB (November 3, 2026): an address with the key x is the phone entry (the Shortcut: search.html#x=<the text read out of a screenshot>). Its whole fragment is handled by js/phone-entry.js, loaded only then (again when the fragment changes
 // on this page); the classic prefill below is skipped for it, and a search saved before a sign-in link is dropped so it cannot run over what is read. Without an x nothing below changes.
 const PHONE_X = /^#(?:[^#]*&)?x=/;
-const runPhone = () => import("../phone-entry.js?v=2e34c7af").then((m) => m.runPhoneEntry({ win: window, doc: document, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, sourceEl: sourceIn, onOrigin: (o) => { heldOrigin = o || null; } })).catch(() => { /* the page stays the ordinary search page */ });
+const runPhone = () => import("../phone-entry.js?v=e176687d").then((m) => m.runPhoneEntry({ win: window, doc: document, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, sourceEl: sourceIn, onOrigin: (o) => { heldOrigin = o || null; } })).catch(() => { /* the page stays the ordinary search page */ });
 window.addEventListener("hashchange", () => { if (PHONE_X.test(location.hash)) { takePending(localStorage); runPhone(); } });
 if (PHONE_X.test(location.hash)) { takePending(localStorage); runPhone(); }
 else if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onKio: (k) => { heldKio = k.title || k.bad ? { stored: k.stored, title: k.title, shown: k.shown, bad: k.bad === true } : null; }, onOrigin: (o) => { heldOrigin = o || null; } })) takePending(localStorage);
@@ -184,10 +186,11 @@ function showResults(data, searched) {
   if (n === 0) {
     countEl.textContent = "No matching openings";
     // prompt BQ: an ID that is past its retention says so in its own words; every other empty answer is the page's usual note
-    const emptyNote = h("div", { class: "empty-note", id: "emptyNote", style: "margin-top:0;" }, searched.gone === true ? KIO_GONE_MESSAGE : noMatchMessage(searched.company, searched.query, searched.kind));
+    // prompt JB (November 7, 2026): the note shows its first sentence(s); the rest of it is in the info box (js/info-panel.js)
+    const emptyNote = h("div", { class: "empty-note", id: "emptyNote", style: "margin-top:0;" }, searched.gone === true ? KIO_GONE_MESSAGE : noMatchParts(searched.company, searched.query, searched.kind).visible);
     // prompt HD: a company based search that found nothing and carries one of the three miss kinds says which miss it was, in place of the general note (the echo of what was searched stays; each line on its own line); any other value changes nothing
     const missLines = searched.gone === true ? null : missEmptyLines(searched.company, searched.query, searched.kind, searched.missKind);
-    if (missLines) { clear(emptyNote); missLines.forEach((t, i) => emptyNote.append(h("p", { class: "miss-line", style: "margin:" + (i ? "8px" : "0") + " 0 0;" }, t))); }
+    if (missLines) { clear(emptyNote); missLines.forEach((t, i) => emptyNote.append(h("p", { class: "miss-line", style: "margin:" + (i ? "8px" : "0") + " 0 0;" }, MISS_LINE_SPLIT(t).visible))); }
     resultsEl.append(emptyNote);
     return;
   }
@@ -202,7 +205,7 @@ function showResults(data, searched) {
 }
 
 // ---- the recap (Part C): once a search has run, the boxes are emptied and this read-only sentence sits between the form and the results. The one spoken message of the search is this same sentence (js/search-status.js).
-function hideRecap() { recapEl.hidden = true; recapTextEl.textContent = ""; noticeEl.hidden = true; }
+function hideRecap() { recapEl.hidden = true; recapTextEl.textContent = ""; }
 // prompt BS (October 12, 2026): the moment a new search attempt begins, nothing of the earlier one stays on the page: its results (with the mismatch notice inside them), its count line, its recap and its spoken message.
 // Only the new outcome shows, even when the attempt is refused on the page itself and nothing is sent. Focus is not touched, and Edit this search (which does not start an attempt) keeps the old results as before.
 function clearOutcome() { clear(resultsEl); countEl.hidden = true; countEl.textContent = ""; hideRecap(); lastSearch = null; status.clear(); }
@@ -210,7 +213,7 @@ function showRecap(typed, company, search, auto, extra) {
   lastSearch = typed;
   companyIn.value = ""; queryIn.value = ""; reqIn.value = ""; sourceIn.value = "";   // prompt JD: the optional source goes with the other boxes
   const text = recapSentence(company, search);
-  recapTextEl.textContent = text; recapEl.hidden = false; noticeEl.hidden = staffMode;   // prompt FM: a staff search is not recorded as a candidate search, so the notice about the record stays out of the staff view (staffMode is the page's own staff flag)
+  recapTextEl.textContent = text; recapEl.hidden = false; noticeEl.dataset.off = staffMode ? "1" : "0";   // prompt FM: a staff search is not recorded as a candidate search, so the notice about the record stays out of the staff view (staffMode is the page's own staff flag)
   // the one spoken message of the search: the recap sentence AND the count, in the visible count line's own words (so a search that found nothing says "No matching postings" too); prompt BQ: and the mismatch notice, when there is one
   const spoken = text + " " + countEl.textContent + "." + (extra ? " " + extra : "");
   status.announce(spoken);
@@ -253,10 +256,11 @@ function enterStaffMode() {
   const banner = h("div", { id: "staffBanner", class: "alert alert-notice", role: "note", style: "margin:16px 64px 0 64px;" }, STAFF_BANNER);
   $("#main").prepend(banner);
   const note = $("#titleNote"); if (note) { staffTitleNoteBefore = note.textContent; note.textContent = STAFF_TITLE_NOTE; }   // the line under the boxes must not say that what is not live is hidden
+  noticeEl.dataset.off = "1";   // prompt JB: no record is kept of a staff search, so the info box leaves the sentence about the record out
   applySession();
 }
 function leaveStaffMode() {
-  staffMode = false; sourceBlock.hidden = false;
+  staffMode = false; sourceBlock.hidden = false; noticeEl.dataset.off = "0";
   const banner = $("#staffBanner"); if (banner) banner.remove();
   const note = $("#titleNote"); if (note && staffTitleNoteBefore !== null) { note.textContent = staffTitleNoteBefore; staffTitleNoteBefore = null; }
   const robots = document.querySelector('meta[name="robots"]');

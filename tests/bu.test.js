@@ -50,6 +50,8 @@ const text = (tab, sel) => tab.eval("(() => { const e = document.querySelector("
 const content = (tab, sel) => tab.eval("(() => { const e = document.querySelector(" + q(sel) + "); return e ? e.textContent.replace(/\\s+/g, ' ').trim() : null; })()");
 const typeIn = (tab, sel, value) => tab.eval("(() => { const e = document.querySelector(" + q(sel) + "); e.value = " + q(value) + "; e.dispatchEvent(new Event('input', { bubbles: true })); })()");
 const click = (tab, sel) => tab.eval("document.querySelector(" + q(sel) + ").click()");
+// prompt JB (November 7, 2026): the text of the info box (opened from the "i" at the heading), then closed again
+const boxText = async (tab) => { await tab.eval("document.querySelector('#infoSlot .info-box-icon').click()"); await sleep(250); const t = await tab.eval("(() => { const e = document.querySelector('.info-box-body'); return e ? e.innerText.replace(/\\s+/g, ' ').trim() : null; })()"); await tab.eval("(() => { const b = document.querySelector('.info-box-close'); if (b) b.click(); })()"); await sleep(250); return t || ""; };
 const pill = (tab, label) => tab.eval("(() => { const b = Array.from(document.querySelectorAll('#filters .filter-pill')).find((x) => x.textContent.trim() === " + q(label) + "); if (!b) throw new Error('no pill ' + " + q(label) + "); b.click(); })()");
 const pickSort = (tab, value) => tab.eval("(() => { const s = document.querySelector('#sortBox'); s.value = " + q(value) + "; s.dispatchEvent(new Event('change', { bubbles: true })); })()");
 const titles = (tab) => tab.eval("Array.from(document.querySelectorAll('tbody tr')).map((tr) => tr.querySelector('td').firstChild.textContent.trim())");
@@ -208,10 +210,13 @@ const SCENARIOS = {
     await openSearch(tab, site);
     const label = await tab.eval("document.querySelector('label[for=\"titleq\"]').firstChild.textContent.trim()");
     if (label !== "KIO ID, or part of the title") bad.push("the box label is '" + label + "'");
-    if ((await text(tab, "#titleHint")) !== "A KIO ID is exact. No KIO ID? Use part of the title.") bad.push("the hint says '" + (await text(tab, "#titleHint")) + "'");
+    // prompt JB: the two hints under the boxes are gone (the "i" of each box says the same), the guide sentences are in the info box, the company hint on the page is only its last sentence
+    if ((await text(tab, "#titleHint")) !== null || (await text(tab, "#reqCellHint")) !== null) bad.push("a removed hint is still on the page");
     const guide = (await text(tab, "#searchGuide")) || "";
-    for (const s of ["Easiest and most exact: the KIO ID from the employer's job ad (no company name needed), or the company name plus the requisition (req) number.", "No KIO ID? Use the company name plus part of the job title, copied from the job ad if you can."]) if (!guide.includes(s)) bad.push("the explainer lacks: " + s);
-    if (!((await text(tab, "#companyHint")) || "").endsWith("Not needed with a KIO ID.")) bad.push("the company hint says '" + (await text(tab, "#companyHint")) + "'");
+    if (guide !== "Search for one specific job you already know about.") bad.push("the visible guide says '" + guide + "'");
+    const box = await boxText(tab);
+    for (const s of ["Easiest and most exact: the KIO ID from the employer's job ad (no company name needed), or the company name plus the requisition (req) number.", "No KIO ID? Use the company name plus part of the job title, copied from the job ad if you can.", "Must match the employer's name. We ignore endings like Inc., Co. and LLC. Not needed with a KIO ID."]) if (!box.includes(s)) bad.push("the info box lacks: " + s);
+    if ((await text(tab, "#companyHint")) !== "Not needed with a KIO ID.") bad.push("the company hint says '" + (await text(tab, "#companyHint")) + "'");
     if ((await text(tab, "#reqHint")) !== "Company is required, unless you type a KIO ID. Then fill in the req number, the KIO ID / title box, or both: if the req number does not match, the title is used. A KIO ID cannot be used with a req number. The req number is hidden as you type; press Show to check it.") bad.push("the sentence under the form says '" + (await text(tab, "#reqHint")) + "'");
     if (!((await text(tab, "#titleNote")) || "").endsWith("Closed or expired openings are found only by KIO ID or req number.")) bad.push("the second line under the form says '" + (await text(tab, "#titleNote")) + "'");
     // the help text: the heading, the accessible names, the list items (grammar: a KIO ID)
@@ -237,7 +242,10 @@ const SCENARIOS = {
     // a search that finds nothing: the notes
     await fill(tab, "Zzyzx Unknown", "Nurse"); await pressSearch(tab); await sleep(1000);
     const none = (await text(tab, "#results")) || "";
-    if (!none.includes("check the KIO ID exactly as it is printed in the job ad") || !none.includes("found only by KIO ID or req number.")) bad.push("the empty-result note says '" + none.slice(0, 400) + "'");
+    // prompt JB: the page shows the echo and the first sentence of the note; the rest is in the info box
+    if (!none.includes("An opening appears here only if an employer has added it to FightGhostJobs.") || none.includes("found only by KIO ID or req number.")) bad.push("the empty-result note says '" + none.slice(0, 400) + "'");
+    const boxNone = await boxText(tab);
+    if (!boxNone.includes("check the KIO ID exactly as it is printed in the job ad") || !boxNone.includes("found only by KIO ID or req number.")) bad.push("the info box lacks the rest of the empty-result note: '" + boxNone.slice(0, 300) + "'");
     await tab.eval("(() => { const b = document.getElementById('recapEdit'); if (b) b.click(); })()");
     await fill(tab, "Zzyzx Unknown", "", "R-9999"); await pressSearch(tab); await sleep(1000);
     const noneReq = (await text(tab, "#results")) || "";

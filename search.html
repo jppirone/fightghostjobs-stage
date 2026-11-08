@@ -9,7 +9,7 @@
 <script src="js/stage-gate.js?v=d48925c1"></script>
 <title>FightGhostJobs | Search</title>
 <link rel="stylesheet" href="styles.css?v=4cea5b1e">
-<link rel="stylesheet" href="app.css?v=4bc48df5">
+<link rel="stylesheet" href="app.css?v=4a22c5f7">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -28,11 +28,9 @@
 
 <div style="max-width:1440px;margin:0 auto;">
   <div class="pg" style="padding:56px 64px 32px 64px;">
-    <h1 style="font-size:34px;font-weight:700;letter-spacing:-.01em;">Look up an opening</h1>
+    <div class="srch-title-row"><h1 style="font-size:34px;font-weight:700;letter-spacing:-.01em;">Look up an opening</h1><span id="infoSlot" class="info-slot"></span></div>
     <div id="searchGuide" class="srch-guide">
       <p class="srch-lead">Search for one specific job you already know about.</p>
-      <p>Easiest and most exact: the KIO ID from the employer's job ad (no company name needed), or the company name plus the requisition (req) number.</p>
-      <p>No KIO ID? Use the company name plus part of the job title, copied from the job ad if you can.</p>
     </div>
     <div id="phonePanel" class="phone-panel" aria-live="polite">
       <div id="phoneBody" class="phone-body" hidden>
@@ -46,8 +44,8 @@
     <form id="searchForm" class="srch-form" novalidate style="display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;max-width:1080px;">
       <div class="srch-company" style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
         <label for="company" style="font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em;">Company <span class="srch-req">(required)</span></label>
-        <input id="company" class="srch-input" type="text" aria-required="true" maxlength="200" autocomplete="off" placeholder="e.g. Meridian Health Systems" aria-describedby="companyHint" style="border:none;padding:4px 0;">
-        <div id="companyHint" class="field-hint">Must match the employer's name. We ignore endings like Inc., Co. and LLC. Not needed with a KIO ID.</div>
+        <input id="company" class="srch-input" type="text" aria-required="true" maxlength="200" autocomplete="off" placeholder="e.g. Meridian Health Systems" aria-describedby="companyHintFull" style="border:none;padding:4px 0;">
+        <div id="companyHint" class="field-hint" aria-hidden="true">Not needed with a KIO ID.</div>
       </div>
       <div class="srch-sep" style="width:1px;background:var(--line);"></div>
       <div class="srch-group" role="group" aria-labelledby="oneOfHead" style="flex:2;display:flex;flex-direction:column;">
@@ -62,10 +60,9 @@
           </ul></span></span>
         </label>
         <div style="display:flex;align-items:center;gap:8px;">
-          <input id="reqq" class="srch-input" type="password" maxlength="100" autocomplete="off" spellcheck="false" placeholder="From the job ad" aria-describedby="reqCellHint reqHint" data-lpignore="true" data-1p-ignore="true" style="border:none;padding:4px 0;">
+          <input id="reqq" class="srch-input" type="password" maxlength="100" autocomplete="off" spellcheck="false" placeholder="From the job ad" aria-describedby="reqHint" data-lpignore="true" data-1p-ignore="true" style="border:none;padding:4px 0;">
           <button type="button" id="reqToggle" class="row-action" aria-pressed="false" aria-label="Show the req number" style="margin:0;">Show</button>
         </div>
-        <div id="reqCellHint" class="field-hint">Most exact. Copy it from the job ad.</div>
       </div>
       <div class="srch-or">or</div>
       <div style="flex:1;display:flex;flex-direction:column;padding:8px 12px;">
@@ -76,8 +73,7 @@
             <li>No KIO ID handy? Type part of the job title instead; this box takes either</li>
           </ul></span></span>
         </label>
-        <input id="titleq" class="srch-input" type="text" maxlength="80" autocomplete="off" placeholder="KIO-XXXX-XXXX-XXXX, or e.g. Data Analyst" aria-describedby="titleHint reqHint titleNote" style="border:none;padding:4px 0;">
-        <div id="titleHint" class="field-hint">A KIO ID is exact. No KIO ID? Use part of the title.</div>
+        <input id="titleq" class="srch-input" type="text" maxlength="80" autocomplete="off" placeholder="KIO-XXXX-XXXX-XXXX, or e.g. Data Analyst" aria-describedby="reqHint titleNote" style="border:none;padding:4px 0;">
       </div>
       </div>
       </div>
@@ -90,8 +86,6 @@
       <div id="sourceNote" class="field-hint">Employers see this exactly as you type it.</div>
     </div>
     <div id="formError" class="field-error" role="alert" hidden style="max-width:1080px;margin-top:10px;font-size:13px;"></div>
-    <div id="reqHint" class="field-hint" style="max-width:1080px;">Company is required, unless you type a KIO ID. Then fill in the req number, the KIO ID / title box, or both: if the req number does not match, the title is used. A KIO ID cannot be used with a req number. The req number is hidden as you type; press Show to check it.</div>
-    <div id="titleNote" class="field-hint" style="max-width:1080px;">A title search will not list all of a company's jobs, and it will not show openings that are not live. Closed or expired openings are found only by KIO ID or req number.</div>
   </div>
 
   <div id="landedNotice" class="pg" hidden style="padding:0 64px 16px 64px;max-width:944px;"></div>
@@ -99,7 +93,7 @@
   <div id="signinWrap" class="pg" hidden style="padding:0 64px 32px 64px;">
     <div class="card signin-card">
       <h2>Confirm your email to search</h2>
-      <p>One quick step: we email you a link, and that keeps your email confirmed for 90 days. No password, no account form. Free for job seekers. Your email is only used to confirm you are a person and is never shown to anyone. <a href="https://www.fightghostjobs.com/privacy.html">Privacy</a>.</p>
+      <p>One quick step: we email you a link. No password, no account form.</p>
       <form id="signinForm" novalidate>
         <div class="signin-row">
           <div><label for="candEmail">Your email</label><input id="candEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
@@ -117,13 +111,23 @@
   <div class="pg" style="padding:0 64px 64px 64px;display:flex;flex-direction:column;gap:20px;max-width:880px;">
     <div id="recap" class="recap" hidden>
       <p id="recapText" class="recap-text"></p>
-      <button type="button" id="recapEdit" class="btn btn-outline btn-sm">Edit this search</button>
+      <span class="recap-actions"><button type="button" id="recapEdit" class="btn btn-outline btn-sm">Edit this search</button><span id="recapInfoSlot" class="info-slot"></span></span>
     </div>
     <div id="searchStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <div id="resultCount" class="result-count" aria-hidden="true" hidden></div>
     <div id="results" style="display:flex;flex-direction:column;gap:20px;"></div>
-    <p id="searchNotice" class="field-hint" hidden>We keep a record of your search, including the words you typed, so we can count what people look for. The record also holds any KIO ID or req number you typed or we read from the job page, and an ID you mistyped is kept as typed. Employers never see who searched. Details are in our <a href="https://www.fightghostjobs.com/privacy.html">Privacy Policy</a>.</p>
   </div>
+</div>
+
+<!-- Prompt JB (November 7, 2026): the sentences that moved behind the info button. They stay in the page, hidden, so the boxes keep their descriptions for a screen reader (a hidden element named by aria-describedby is still read) and the info box copies them from here: the words are moved, not rewritten. -->
+<div id="infoSource" hidden>
+  <p id="guideKio">Easiest and most exact: the KIO ID from the employer's job ad (no company name needed), or the company name plus the requisition (req) number.</p>
+  <p id="guideTitle">No KIO ID? Use the company name plus part of the job title, copied from the job ad if you can.</p>
+  <div id="companyHintFull" class="field-hint">Must match the employer's name. We ignore endings like Inc., Co. and LLC. Not needed with a KIO ID.</div>
+  <div id="reqHint" class="field-hint">Company is required, unless you type a KIO ID. Then fill in the req number, the KIO ID / title box, or both: if the req number does not match, the title is used. A KIO ID cannot be used with a req number. The req number is hidden as you type; press Show to check it.</div>
+  <div id="titleNote" class="field-hint">A title search will not list all of a company's jobs, and it will not show openings that are not live. Closed or expired openings are found only by KIO ID or req number.</div>
+  <p id="signinFull">One quick step: we email you a link, and that keeps your email confirmed for 90 days. No password, no account form. Free for job seekers. Your email is only used to confirm you are a person and is never shown to anyone. <a href="https://www.fightghostjobs.com/privacy.html">Privacy</a>.</p>
+  <p id="searchNotice" class="field-hint">We keep a record of your search, including the words you typed, so we can count what people look for. The record also holds any KIO ID or req number you typed or we read from the job page, and an ID you mistyped is kept as typed. Employers never see who searched. Details are in our <a href="https://www.fightghostjobs.com/privacy.html">Privacy Policy</a>.</p>
 </div>
 
 <!-- Shared modal -->
@@ -151,6 +155,6 @@
 
 <footer class="site-footer"><span>FightGhostJobs</span><a href="https://www.fightghostjobs.com/privacy.html">Privacy</a><a href="mailto:privacy@fightghostjobs.com">privacy@fightghostjobs.com</a></footer>
 
-<script type="module" src="js/pages/search.js?v=6410e7e6"></script>
+<script type="module" src="js/pages/search.js?v=c023a61f"></script>
 </body>
 </html>

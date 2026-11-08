@@ -47,7 +47,7 @@ const SNAP = `(() => { const g = (id) => document.getElementById(id), r = (el) =
   return { src: inp ? inp.value : null, c: g('company').value, q: g('titleq').value, href: location.href, hash: location.hash, label: lab ? lab.textContent.replace(/\\s+/g, ' ').trim() : null,
     hint: g('sourceHint') ? g('sourceHint').textContent.trim() : null, note: g('sourceNote') ? g('sourceNote').textContent.trim() : null, describedby: inp ? inp.getAttribute('aria-describedby') : null,
     formOwner: inp && inp.form ? inp.form.id : null, inputBox: inp ? r(inp) : null, inner: window.innerWidth, sideScroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
-    phoneSource: g('phoneSource') ? { hidden: g('phoneSource').hidden, text: g('phoneSource').textContent.trim() } : null, recap: !g('recap').hidden, pending: localStorage.getItem('fgj-pending-search') }; })()`;
+    phoneSource: g('phoneSource') ? { hidden: g('phoneSource').hidden, on: g('phoneSource').dataset.on || null, text: g('phoneSource').textContent.trim() } : null, recap: !g('recap').hidden, pending: localStorage.getItem('fgj-pending-search') }; })()`;
 const snap = (tab) => tab.eval(SNAP);
 const setSource = (tab, v) => tab.eval("(() => { const i = document.getElementById('sourceq'); i.value = " + JSON.stringify(v) + "; i.dispatchEvent(new Event('input', { bubbles: true })); })()");
 const press = async (tab, site) => { site.calls.length = 0; await tab.eval("document.getElementById('searchForm').requestSubmit()"); await sleep(1500); return searches(site); };
@@ -84,7 +84,10 @@ const SCENARIOS = {
       const s0 = await snap(tab);
       if (s0.src !== "Jobs at LinkedIn") bad.push("the field holds '" + s0.src + "' after the Shortcut address");
       if (/[#&]s=|LinkedIn/.test(s0.href)) bad.push("the address still holds the source: " + s0.href);
-      if (!s0.phoneSource || s0.phoneSource.hidden || s0.phoneSource.text !== SOURCE_PHONE_SENTENCE) bad.push("the phone sentence about the source is not shown: " + JSON.stringify(s0.phoneSource));
+      // prompt JB (November 7, 2026): the phone sentence about the source stays hidden on the page (it is behind the info button); it is switched on (data-on 1) by the phone entry and the info box holds it
+      if (!s0.phoneSource || !s0.phoneSource.hidden || s0.phoneSource.on !== "1" || s0.phoneSource.text !== SOURCE_PHONE_SENTENCE) bad.push("the phone sentence about the source is not ready for the info box (hidden on the page, switched on): " + JSON.stringify(s0.phoneSource));
+      const boxS = await tab.eval(`(() => { const i = document.querySelector('#infoSlot .info-box-icon'); if (!i) return null; i.click(); const b = document.querySelector('.info-box-body'); const t = b ? b.innerText.replace(/\\s+/g, ' ').trim() : ''; const c = document.querySelector('.info-box-close'); if (c) c.click(); return t; })()`);
+      if (!boxS || !boxS.includes(SOURCE_PHONE_SENTENCE)) bad.push("the info box does not hold the phone sentence about the source: " + JSON.stringify(boxS).slice(0, 160));
       if (searches(site).length) bad.push("a search ran by itself");
       const sent = await press(tab, site);
       if (sent.length !== 1) bad.push("Search sent " + sent.length + " searches");

@@ -121,11 +121,11 @@ const READ = `(() => { const f = document.getElementById("failoverNotice"), n = 
   return { fail: f ? f.textContent : null, failHtml: f ? f.innerHTML : null, failEls: f ? f.querySelectorAll("*").length : 0, order: Array.from(res.children).map((e) => e.id || (e.className || "").split(" ")[0]), note: n ? n.textContent : null,
     lines: n ? Array.from(n.querySelectorAll("p.miss-line")).map((p) => p.textContent) : [], cards: res.querySelectorAll(".card").length, missEls: res.querySelectorAll(".miss-line").length, titles: Array.from(res.querySelectorAll(".card")).map((c) => c.textContent).join(" | "), results: res.textContent,
     said: window.__said || [], sw, cw, count: document.getElementById("resultCount").hidden ? null : document.getElementById("resultCount").textContent, err: document.getElementById("formError").hidden ? null : document.getElementById("formError").textContent,
-    recap: document.getElementById("recap").hidden ? null : document.getElementById("recapText").textContent, notice: document.getElementById("searchNotice").hidden ? null : document.getElementById("searchNotice").textContent.replace(/\\s+/g, " ").trim(),
+    recap: document.getElementById("recap").hidden ? null : document.getElementById("recapText").textContent, notice: document.getElementById("searchNotice").hidden || document.getElementById("searchNotice").getClientRects().length === 0 ? null : document.getElementById("searchNotice").textContent.replace(/\\s+/g, " ").trim(),
     c: document.getElementById("company").value, q: document.getElementById("titleq").value, r: document.getElementById("reqq").value }; })()`;
 const searches = (site) => site.calls.filter((c) => c.name === "candidate-search").map((c) => c.body);
 // one flow: a fresh tab, signed in, the page opened (with an optional fragment), the boxes filled (or left as the fragment filled them), Search pressed; returns what is on the page and the requests made
-async function flow(site, width, { hash, company, title, req, again }) {
+async function flow(site, width, { hash, company, title, req, again, box }) {
   const tab = await browser.newTab();
   try {
     await tab.focusEmulation(true); await tab.viewport(width, width < 700, width < 700 ? 700 : 900);
@@ -134,12 +134,14 @@ async function flow(site, width, { hash, company, title, req, again }) {
     await tab.eval(`document.getElementById("searchBtn").focus()`); await tab.key("Enter");
     await tab.waitFor("!!document.getElementById('failoverNotice') || !!document.getElementById('emptyNote') || document.querySelectorAll('#results .card').length > 0 || !document.getElementById('formError').hidden", 10000); await sleep(500);
     const first = await tab.eval(READ);
+    // prompt JB (November 7, 2026): the text of the info box (opened from the "i" in the recap box), when asked for
+    const boxText = box ? await tab.eval(`(() => { const i = document.querySelector('#recapInfoSlot .info-box-icon'); if (!i) return null; i.click(); const b = document.querySelector('.info-box-body'); const t = b ? b.innerText.replace(/\\\\s+/g, ' ').trim() : ''; const c = document.querySelector('.info-box-close'); if (c) c.click(); return t; })()`) : null;
     let second = null;
     if (again) {   // the next search typed on the page
       await fill(tab, again.company, again.title || "", again.req || ""); await tab.eval(`document.getElementById("searchBtn").focus()`); await tab.key("Enter"); await sleep(1200);
       second = await tab.eval(READ);
     }
-    return { r: first, second, calls: searches(site) };
+    return { r: first, second, calls: searches(site), box: boxText };
   } finally { await tab.close(); }
 }
 const sub = (co, ti, req) => ({ company: co, title: ti, req });
@@ -199,7 +201,8 @@ const SCENARIOS = {
           if (r.fail !== want) bad.push(tag + "the sentence is " + JSON.stringify(r.fail));
           if (r.order.join(",") !== "failoverNotice,emptyNote") bad.push(tag + "the order is " + JSON.stringify(r.order));
           if (r.cards !== 0) bad.push(tag + "result cards are shown");
-          if (kind) { const w = [echo + MISS[kind][0], ...MISS[kind].slice(1)]; if (JSON.stringify(r.lines) !== JSON.stringify(w)) bad.push(tag + "the lines are " + JSON.stringify(r.lines)); if (/An opening appears here only if an employer has added it/.test(r.note || "")) bad.push(tag + "the general note is still there"); }
+          if (kind) { const shown = (l) => (l === MISS.registered_no_match[1] ? l.split(/(?<=\.)\s+(?=[A-Z])/)[0] : l);   // prompt JB: the second line of this kind shows its first sentence; the rest is in the info box
+            const w = [echo + MISS[kind][0], ...MISS[kind].slice(1).map(shown)]; if (JSON.stringify(r.lines) !== JSON.stringify(w)) bad.push(tag + "the lines are " + JSON.stringify(r.lines)); if (/An opening appears here only if an employer has added it/.test(r.note || "")) bad.push(tag + "the general note is still there"); }
           else { if (!(r.note || "").startsWith(echo) || !/An opening appears here only if an employer has added it/.test(r.note || "") || r.lines.length) bad.push(tag + "no kind: not the standard words: " + String(r.note).slice(0, 120)); }
           if (/No opening is registered under that ID|no longer on FightGhostJobs\.$/.test(r.note || "")) bad.push(tag + "the words of an ID answer are shown");
           if (r.count !== "No matching openings") bad.push(tag + "the count line is " + JSON.stringify(r.count));
@@ -291,8 +294,10 @@ const SCENARIOS = {
     const bad = [];
     const site = await startFakeSite(root, { kio: true, failover: {} });
     try {
-      const x = await flow(site, 375, sub("Meridian", "Nurse", ""));
-      if (x.r.notice !== NOTICE) bad.push("the notice is " + JSON.stringify(x.r.notice));
+      const x = await flow(site, 375, { ...sub("Meridian", "Nurse", ""), box: true });
+      // prompt JB (November 7, 2026): the sentence about the record is no longer under the results; the info box holds it, with its words and its link
+      if (x.r.notice !== null) bad.push("the notice is on the page under the results: " + JSON.stringify(x.r.notice));
+      if (!x.box || !x.box.includes(NOTICE)) bad.push("the info box does not hold the notice: " + JSON.stringify(x.box).slice(0, 200));
       if (x.r.sw > x.r.cw) bad.push("a sideways scroll bar (" + x.r.sw + " over " + x.r.cw + ")");
     } finally { await site.close(); }
     return bad;

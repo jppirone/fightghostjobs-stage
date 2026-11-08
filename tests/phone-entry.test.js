@@ -58,7 +58,7 @@ const SNAP = `(() => { const g = (id) => document.getElementById(id), t = (el) =
   const pick = g('phoneMore').querySelector('button'), box = (el) => { const r = el.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), right: Math.round(r.right) }; };
   return { c: g('company').value, q: g('titleq').value, r: g('reqq').value, rType: g('reqq').type, bodyHidden: g('phoneBody').hidden, line: t(g('phoneLine')), moreHidden: g('phoneMore').hidden, more: t(g('phoneMore')), pick: !!pick, pickBox: pick ? box(pick) : null,
     expanded: pick ? pick.getAttribute('aria-expanded') : null, listHidden: g('phoneList').hidden, listHead: t(g('phoneList').querySelector('.phone-list-head')),
-    choices: Array.from(g('phoneList').querySelectorAll('button')).map((b) => ({ text: b.textContent, box: box(b) })), privacyHidden: g('phonePrivacy').hidden, privacy: t(g('phonePrivacy')),
+    choices: Array.from(g('phoneList').querySelectorAll('button')).map((b) => ({ text: b.textContent, box: box(b) })), privacyHidden: g('phonePrivacy').dataset.on !== '1', privacyRendered: g('phonePrivacy').getClientRects().length > 0, privacy: t(g('phonePrivacy')),   /* prompt JB: the sentence stays hidden on the page for good; "hidden" here means not switched on (data-on), i.e. not in the info box */
     notes: { company: t(g('phoneNoteCompany')), query: t(g('phoneNoteQuery')), req: t(g('phoneNoteReq')) }, noteCount: document.querySelectorAll('.phone-note').length,
     describedby: { company: g('company').getAttribute('aria-describedby'), query: g('titleq').getAttribute('aria-describedby'), req: g('reqq').getAttribute('aria-describedby') },
     hash: location.hash, href: location.href, live: g('phonePanel').getAttribute('aria-live'), liveParent: g('phoneLine').closest('[aria-live]') ? g('phoneLine').closest('[aria-live]').id : null, links: g('phoneBody').querySelectorAll('a').length,
@@ -105,7 +105,8 @@ async function checkReading(tab, size, r, label, bad) {
     if (r.expect.notes[k] && !String(s.describedby[k] || "").includes("phoneNote")) bad.push(label + ": the box " + k + " is not tied to its note for a screen reader");
   }
   if (s.noteCount !== Object.values(r.expect.notes).filter(Boolean).length) bad.push(label + ": " + s.noteCount + " notes on the page");
-  if (s.privacyHidden || s.privacy !== S[13]) bad.push(label + ": the privacy sentence is not under the panel");
+  if (s.privacyHidden || s.privacy !== S[13]) bad.push(label + ": the privacy sentence is not ready for the info box (switched on, with its words)");
+  if (s.privacyRendered) bad.push(label + ": the privacy sentence is on the page (prompt JB: it is behind the info button)");
   const others = r.expect.others;
   if (others.length === 0) { if (!s.moreHidden || s.pick) bad.push(label + ": the page offers other openings when there are none"); }
   else {
@@ -504,7 +505,8 @@ const DEFECTS = [
   ["the cap of 600 characters is gone", [["readings", { ids: ["I13"], sizes: [PHONE], noSearch: true }], ["unit"]], [[PM, (s) => s.replace("export const TEXT_CAP = 600,", "export const TEXT_CAP = 60000,")]]],
   ["the screenshot text is put into the page as markup", [["markup"]], [[PE, (s) => s.replace("const fill = (f) => { companyEl.value = f.company;", "const fill = (f) => { companyEl.insertAdjacentHTML('afterend', f.company); companyEl.value = f.company;")]]],
   ["the screenshot text is echoed in the panel line", [["readings", { ids: ["I01"], sizes: [PHONE], noSearch: true }]], [[PE, (s) => s.replace("  say(SENTENCES[1]);\n  if (parsed.cut)", "  say(SENTENCES[1] + ' ' + parsed.boxes.fill.company);\n  if (parsed.cut)")]]],
-  ["the privacy sentence is missing", [["readings", { ids: ["I01"], sizes: [PHONE], noSearch: true }]], [[PE, (s) => s.replace("privacy.textContent = SENTENCES[13]; privacy.hidden = false;", "")]]],
+  ["the privacy sentence is missing", [["readings", { ids: ["I01"], sizes: [PHONE], noSearch: true }]], [[PE, (s) => s.replace("privacy.textContent = SENTENCES[13]; privacy.dataset.on = \"1\";", "")]]],
+  ["the privacy sentence is shown on the page again (it must stay behind the info button)", [["readings", { ids: ["I01"], sizes: [PHONE], noSearch: true }]], [[PE, (s) => s.replace("privacy.textContent = SENTENCES[13]; privacy.dataset.on = \"1\";", "privacy.textContent = SENTENCES[13]; privacy.dataset.on = \"1\"; privacy.hidden = false;")]]],
   ["editing a box keeps its note", [["edit"]], [[PE, (s) => s.replace("boxes[name].addEventListener(\"input\", () => clearNote(name));", "boxes[name].addEventListener(\"input\", () => {});")]]],
   ["picking another opening keeps the notes of the first one", [["readings", { ids: ["I15"], sizes: [PHONE], noSearch: true }]], [[PE, (s) => s.replace("fill(b.fill); setNotes(b.notes);", "fill(b.fill);")]]],
   ["picking another opening keeps the first opening's req number", [["readings", { ids: ["I15"], sizes: [PHONE], noSearch: true }]], [[PE, (s) => s.replace("fill(b.fill); setNotes(b.notes);", "companyEl.value = b.fill.company; queryEl.value = b.fill.query; setNotes(b.notes);")]]],

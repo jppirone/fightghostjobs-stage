@@ -74,6 +74,14 @@ input[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--embe
 .info-box-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .info-box-title{font-size:17px;font-weight:700}
 .info-box-body{font-size:14px;color:var(--muted);line-height:1.6;margin-top:12px;overflow-wrap:anywhere}
+/* prompt JB (November 7, 2026): the "i" of the search page (at the heading and in the recap box) and the sections of its box */
+.srch-title-row{display:flex;align-items:center;gap:12px}
+.srch-title-row h1{margin:0}
+.info-slot{display:inline-flex;align-items:center;flex:none}
+.recap-actions{display:inline-flex;align-items:center;gap:12px;flex:none}
+.info-box-body .info-section{font-size:14px;font-weight:700;color:var(--ink);margin:16px 0 6px 0}
+.info-box-body .info-section:first-child{margin-top:0}
+.info-box-body .info-para{margin:0 0 8px 0}
 .empty-note{font-size:14px;color:var(--muted);line-height:1.6;background:var(--panel);border-radius:10px;padding:14px 16px;margin-top:16px}
 .refine-hint{font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 16px}
 .refine-hint p{margin:0 0 6px}

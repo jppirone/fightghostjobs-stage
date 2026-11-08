@@ -48,7 +48,7 @@ export function runPhoneEntry({ win = window, doc = document, companyEl, queryEl
   const fill = (f) => { companyEl.value = f.company; queryEl.value = f.query; reqEl.value = f.req; };
   const setNotes = (n) => { for (const name of Object.keys(boxes)) setNote(name, n[name]); };
 
-  function resetPanel() { clear(line); clear(more); more.hidden = true; clear(list); list.hidden = true; body.hidden = true; privacy.hidden = true; if (sourceNote) sourceNote.hidden = true; }
+  function resetPanel() { clear(line); clear(more); more.hidden = true; clear(list); list.hidden = true; body.hidden = true; privacy.dataset.on = "0"; if (sourceNote) sourceNote.dataset.on = "0"; }   // prompt JB: the two sentences stay hidden on the page (they are in the info box while data-on is 1)
   function say(text) { clear(line); line.append(text); }
   function showBody() { body.hidden = false; }
 
@@ -58,7 +58,7 @@ export function runPhoneEntry({ win = window, doc = document, companyEl, queryEl
     for (const name of Object.keys(boxes)) boxes[name].addEventListener("input", () => clearNote(name));
     // once a search has run the page shows its recap and empties the boxes: the sentences about the screenshot are done (the privacy sentence stays)
     const recap = doc.getElementById("recap");
-    if (recap && win.MutationObserver) new win.MutationObserver(() => { if (!recap.hidden) { clearNotes(); resetPanel(); privacy.hidden = !current; if (sourceNote) sourceNote.hidden = !current; } }).observe(recap, { attributes: true, attributeFilter: ["hidden"] });
+    if (recap && win.MutationObserver) new win.MutationObserver(() => { if (!recap.hidden) { clearNotes(); resetPanel(); privacy.dataset.on = current ? "1" : "0"; if (sourceNote) sourceNote.dataset.on = current ? "1" : "0"; } }).observe(recap, { attributes: true, attributeFilter: ["hidden"] });
   }
 
   // ---- the computer: sentence 12 only; nothing is filled, the fragment goes
@@ -83,10 +83,10 @@ export function runPhoneEntry({ win = window, doc = document, companyEl, queryEl
   takeAddress();
   if (typeof onOrigin === "function") onOrigin({ origin: "mobile", host: null });
   current = { index: 0 };
-  privacy.textContent = SENTENCES[13]; privacy.hidden = false;
+  privacy.textContent = SENTENCES[13]; privacy.dataset.on = "1";
   // prompt JD: the optional source (key s of the address) goes into its own field with .value only, so the person sees exactly what will be sent; a new address with no s empties it. Not part of the text, not read by the reader.
   if (sourceEl) { sourceEl.value = typeof parsed.source === "string" ? parsed.source : ""; }
-  if (sourceNote) { sourceNote.textContent = SOURCE_PHONE_SENTENCE; sourceNote.hidden = false; }
+  if (sourceNote) { sourceNote.textContent = SOURCE_PHONE_SENTENCE; sourceNote.dataset.on = "1"; }
   if (parsed.state === "nothing") {
     fill({ company: "", query: "", req: "" });
     say(SENTENCES[9]);
