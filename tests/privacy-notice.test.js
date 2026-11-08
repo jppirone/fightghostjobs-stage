@@ -56,7 +56,7 @@ function staticFindings(html, js, panel, otherPages) {
   if ((js.match(/searchNotice/g) || []).length !== 1) bad.push("search.js reaches the notice in more than the one lookup (a second route to the element)");
   for (const line of js.split("\n").filter((l) => /noticeEl|searchNotice/.test(l))) if (/fetch|localStorage|sessionStorage|document\.cookie|XMLHttp|sendBeacon|window\.open|\.href\s*=/.test(line.replace(/\/\/.*$/, ""))) bad.push("the notice code stores, sends or loads something: " + line.trim().slice(0, 80));
   // the info box reads it, and leaves it out when it is switched off
-  if (!/copyOf\(doc, "searchNotice"\)/.test(panel) || !/notice\.dataset\.off !== "1"/.test(panel)) bad.push("the info box does not copy the notice, or does not leave it out when it is switched off");
+  if (!/copyOf\(doc, "searchNotice"\)/.test(panel) || (panel.match(/notice\.dataset\.off !== "1"/g) || []).length !== 2) bad.push("the info box does not copy the notice, or does not leave it out when it is switched off");
   // no other page carries it
   for (const [name, text] of Object.entries(otherPages)) if (/searchNotice|We keep a record of your search/.test(text)) bad.push(name + " carries the notice, but shows no search");
   return bad;
@@ -92,7 +92,7 @@ test("PART 1: breakages are caught, a plant at nothing is not", () => {
     ["the staff flag is kept in storage for the notice", () => [html, sw(js, SHOW, 'recapEl.hidden = false; noticeEl.dataset.off = localStorage.getItem("staff");'), panel, oth]],
     ["the notice is in the page a second time (a duplicate paragraph)", () => [sw(html, '  <p id="searchNotice" class="field-hint">', '  <p id="searchNotice" class="field-hint">x</p>\n  <p id="searchNotice" class="field-hint">'), js, panel, oth]],
     ["the info box stops copying the notice", () => [html, js, sw(panel, 'privacy.push(copyOf(doc, "searchNotice"));', "privacy.push(null);"), oth]],
-    ["the info box ignores the staff switch", () => [html, js, sw(panel, 'notice.dataset.off !== "1"', "true"), oth]],
+    ["the info box ignores the staff switch", () => [html, js, sw(panel, 'if (notice && notice.dataset.off !== "1") privacy.push(copyOf(doc, "searchNotice"));', 'privacy.push(copyOf(doc, "searchNotice"));'), oth]],   // prompt JK: the same switch also guards the employer sentence (a second line)
     ["a script is added to the page", () => [sw(html, "</body>", '<script type="module" src="js/x.js"></script></body>'), js, panel, oth]],
     ["the script stores something when the notice is switched", () => [html, sw(js, SHOW, SHOW + " localStorage.setItem('n', '1');"), panel, oth]],
     ["the notice is copied onto another page", () => [html, js, panel, { ...oth, "index.html": oth["index.html"] + '<p id="searchNotice">x</p>' }]],

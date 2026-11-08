@@ -6,7 +6,7 @@
 // On a computer (a mouse, a window of 900 pixels or more) the page shows sentence 12 and does not fill anything.
 import { h, clear } from "./dom.js?v=5c78a8cd";
 import { SENTENCES, MORE_BEFORE, MORE_BUTTON, MORE_AFTER, EXTENSION_LINK_TEXT, choiceText } from "./phone-text.js?v=6a7d6316";
-import { SOURCE_PHONE_SENTENCE } from "./source-text.js?v=45075947";
+import { SOURCE_PHONE_SENTENCE } from "./source-text.js?v=0a1a7868";
 import { readFragment, cardBoxes } from "./phone-model.js?v=2c1fe20b";
 import { EXTENSION_PAGE_URL } from "./config.js?v=62c9e3b1";
 

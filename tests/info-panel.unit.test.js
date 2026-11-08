@@ -29,6 +29,7 @@ const OLD_HTML = {
   companyHintFull: "Must match the employer's name. We ignore endings like Inc., Co. and LLC. Not needed with a KIO ID.",
   reqHint: "Company is required, unless you type a KIO ID. Then fill in the req number, the KIO ID / title box, or both: if the req number does not match, the title is used. A KIO ID cannot be used with a req number. The req number is hidden as you type; press Show to check it.",
   titleNote: "A title search will not list all of a company's jobs, and it will not show openings that are not live. Closed or expired openings are found only by KIO ID or req number.",
+  sourceNote: "Employers see this exactly as you type it.",   // prompt JK (November 7, 2026): it left the form and is among the hidden sentences that the info box copies
   signinFull: 'One quick step: we email you a link, and that keeps your email confirmed for 90 days. No password, no account form. Free for job seekers. Your email is only used to confirm you are a person and is never shown to anyone. <a href="https://www.fightghostjobs.com/privacy.html">Privacy</a>.',
   searchNotice: 'We keep a record of your search, including the words you typed, so we can count what people look for. The record also holds any KIO ID or req number you typed or we read from the job page, and an ID you mistyped is kept as typed. Employers never see who searched. Details are in our <a href="https://www.fightghostjobs.com/privacy.html">Privacy Policy</a>.',
 };
@@ -57,6 +58,7 @@ function findings(html, input, panel) {
   for (const n of [1, 2, 3]) { const s = splitSentences(OLD_NOTE, n); if ((s.rest ? s.visible + " " + s.rest : s.visible) !== OLD_NOTE) bad.push("splitSentences loses words at " + n); }
   // the info box carries all three remainders
   for (const need of ["NO_MATCH_SPLIT().rest", "NO_MATCH_REQ_SPLIT().rest", "MISS_MESSAGES.registered_no_match[1]"]) if (!panel.includes(need)) bad.push("the info box does not carry " + need);
+  if (!panel.includes('copyOf(doc, "sourceNote")')) bad.push("the info box does not copy the employer sentence of the source field");
   // 2. the page
   const src = (html.match(/<div id="infoSource" hidden>([\s\S]*?)\n<\/div>/) || [])[1] || "";
   for (const [id, want] of Object.entries(OLD_HTML)) {
@@ -68,7 +70,9 @@ function findings(html, input, panel) {
   for (const [id, want] of Object.entries({ companyHint: "Not needed with a KIO ID." })) if (!new RegExp('id="' + id + '"[^>]*>' + want.replace(/\./g, "\\.") + "</div>").test(page)) bad.push("the page does not show the short text of #" + id);
   if (!page.includes("<p>One quick step: we email you a link. No password, no account form.</p>")) bad.push("the sign-in card does not show the approved short text");
   if (!page.includes('<p class="srch-lead">Search for one specific job you already know about.</p>')) bad.push("the lead sentence is not on the page");
-  if (!page.includes('<div id="sourceNote" class="field-hint">Employers see this exactly as you type it.</div>')) bad.push("the employer sentence of the source field is not visible on the page (John, November 7, 2026: it stays visible)");
+  if (page.includes("Employers see this exactly as you type it.")) bad.push("the employer sentence of the source field is on the visible page (John, November 7, 2026, prompt JK: it is only behind the info button)");
+  if (!page.includes('<div id="sourceHint" class="field-hint">Site (ex. LinkedIn.com or LinkedIn) or email (ex. jobs@linkedin.com)</div>')) bad.push("the one help line of the optional field is not the approved short line");
+  if (!/id="sourceq"[^>]*aria-describedby="sourceHint sourceNote"/.test(page)) bad.push("the optional box is not described by its help line and the hidden employer sentence");
   for (const gone of ["Most exact. Copy it from the job ad.", "A KIO ID is exact. No KIO ID? Use part of the title."]) if (page.includes(gone) || src.includes(gone)) bad.push("a removed hint is back: " + gone);
   // the box is named
   if (INFO_TITLE !== "About this search" || INFO_ICON_LABEL !== "About this search page") bad.push("the box title or the name of the 'i' changed");
@@ -98,7 +102,10 @@ test("breakages are caught, a plant at nothing is not", () => {
     ["the sign-in paragraph loses its link", () => [sw(html, 'is never shown to anyone. <a href="https://www.fightghostjobs.com/privacy.html">Privacy</a>.</p>', "is never shown to anyone.</p>"), input, panel]],
     ["the record notice loses a sentence", () => [sw(html, " Employers never see who searched.", ""), input, panel]],
     ["the short text of the sign-in card is the long one", () => [sw(html, "<p>One quick step: we email you a link. No password, no account form.</p>", "<p>One quick step: we email you a link, and that keeps your email confirmed for 90 days. No password, no account form.</p>"), input, panel]],
-    ["the employer sentence of the source field leaves the page", () => [sw(html, '<div id="sourceNote" class="field-hint">Employers see this exactly as you type it.</div>', '<div id="sourceNote" class="field-hint"></div>'), input, panel]],
+    ["the employer sentence of the source field is gone from the hidden sentences", () => [sw(html, '<div id="sourceNote" class="field-hint">Employers see this exactly as you type it.</div>', '<div id="sourceNote" class="field-hint"></div>'), input, panel]],
+    ["the employer sentence is back on the form", () => [sw(html, '<div id="sourceHint"', '<div class="field-hint">Employers see this exactly as you type it.</div><div id="sourceHint"'), input, panel]],
+    ["the long instruction line is back", () => [sw(html, "Site (ex. LinkedIn.com or LinkedIn) or email (ex. jobs@linkedin.com)", "Type a site name or domain, such as LinkedIn.com (LinkedIn alone is fine), or the address of the email the job came from, such as jobs@linkedin.com."), input, panel]],
+    ["the info box stops copying the employer sentence", () => [html, input, sw(panel, 'privacy.push(copyOf(doc, "sourceNote"));', "")]],
     ["a removed hint comes back", () => [sw(html, '<div id="searchGuide"', '<div id="reqCellHint" class="field-hint">Most exact. Copy it from the job ad.</div><div id="searchGuide"'), input, panel]],
     ["the note is cut after two sentences", () => [html, sw(input, "splitSentences(NO_MATCH_NOTE, 1)", "splitSentences(NO_MATCH_NOTE, 2)"), panel]],
     ["the req note is cut after one sentence", () => [html, sw(input, "splitSentences(NO_MATCH_NOTE_REQ, 2)", "splitSentences(NO_MATCH_NOTE_REQ, 1)"), panel]],

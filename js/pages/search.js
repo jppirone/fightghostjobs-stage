@@ -23,7 +23,7 @@ import { tileActions } from "../tile-actions.js?v=7180edbf";
 import { candidatePolicyLine, applicationLinks, POLICY_LINE_LABEL } from "../policy-link.js?v=5b8f0605";
 import { COMMENTS_VISIBLE } from "../config.js?v=62c9e3b1";
 import { openUnit } from "../open-link.js?v=19175677";
-import { infoPanelIcon } from "../info-panel.js?v=0f32cfc3";
+import { infoPanelIcon } from "../info-panel.js?v=4c0f8c28";
 import { checkCompany, resolveSearch, noMatchParts, MISS_LINE_SPLIT, missEmptyLines, missMessage, failoverSentence, searchErrorMessage, searchErrorFocus, KIO_INVALID_MESSAGE, KIO_GONE_MESSAGE, KIO_NOT_REGISTERED_MESSAGE, kioMismatchMessage } from "../search-input.js?v=96255d82";
 import { isRegistered } from "../registered.js?v=f191c8c2";
 import { refineHints } from "../refine-hint.js?v=7ead894b";
@@ -54,7 +54,7 @@ let heldOrigin = null;   // { origin, host } | null
 // prompt IB (November 3, 2026): an address with the key x is the phone entry (the Shortcut: search.html#x=<the text read out of a screenshot>). Its whole fragment is handled by js/phone-entry.js, loaded only then (again when the fragment changes
 // on this page); the classic prefill below is skipped for it, and a search saved before a sign-in link is dropped so it cannot run over what is read. Without an x nothing below changes.
 const PHONE_X = /^#(?:[^#]*&)?x=/;
-const runPhone = () => import("../phone-entry.js?v=e176687d").then((m) => m.runPhoneEntry({ win: window, doc: document, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, sourceEl: sourceIn, onOrigin: (o) => { heldOrigin = o || null; } })).catch(() => { /* the page stays the ordinary search page */ });
+const runPhone = () => import("../phone-entry.js?v=9b5bad60").then((m) => m.runPhoneEntry({ win: window, doc: document, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, sourceEl: sourceIn, onOrigin: (o) => { heldOrigin = o || null; } })).catch(() => { /* the page stays the ordinary search page */ });
 window.addEventListener("hashchange", () => { if (PHONE_X.test(location.hash)) { takePending(localStorage); runPhone(); } });
 if (PHONE_X.test(location.hash)) { takePending(localStorage); runPhone(); }
 else if (applyFragmentPrefill({ win: window, companyEl: companyIn, queryEl: queryIn, reqEl: reqIn, onKio: (k) => { heldKio = k.title || k.bad ? { stored: k.stored, title: k.title, shown: k.shown, bad: k.bad === true } : null; }, onOrigin: (o) => { heldOrigin = o || null; } })) takePending(localStorage);

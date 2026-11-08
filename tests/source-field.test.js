@@ -62,7 +62,7 @@ const SCENARIOS = {
         await become(tab, site, "candidate"); await openAt(tab, site, size, "", false);
         const s = await snap(tab), L = size.n + ": ";
         if (s.src !== "") bad.push(L + "the field is not there or not empty on the ordinary page: " + JSON.stringify(s.src));
-        if (!s.label || !s.label.startsWith(SOURCE_LABEL) || !s.label.includes(SOURCE_OPTIONAL)) bad.push(L + "the label is '" + s.label + "'");
+        if (s.label !== SOURCE_OPTIONAL + " " + SOURCE_LABEL) bad.push(L + "the label is '" + s.label + "' (prompt JK: Optional comes first)");
         if (s.hint !== SOURCE_INSTRUCTION) bad.push(L + "the instruction line is '" + s.hint + "'");
         if (!/LinkedIn\.com/.test(s.hint || "") || !/jobs@linkedin\.com/.test(s.hint || "")) bad.push(L + "the two examples are not both in the instruction");
         if (s.note !== SOURCE_EMPLOYERS_SEE) bad.push(L + "the sentence for employers is '" + s.note + "'");
@@ -244,7 +244,7 @@ const DEFECTS = [
   ["the word Optional is missing", ["present"], [["search.html", (s) => s.replace('<span class="srch-opt">Optional</span>', "")]]],
   ["the sentence for employers is missing", ["present"], [["search.html", (s) => s.replace("Employers see this exactly as you type it.", "")]]],
   ["the input is not tied to its sentences", ["present"], [["search.html", (s) => s.replace(' aria-describedby="sourceHint sourceNote"', "")]]],
-  ["the input is outside the search form (Enter does not search)", ["present", "keyboard"], [["search.html", (s) => s.replace(' form="searchForm"', "")]]],
+  ["the input is outside the search form (Enter does not search)", ["present", "keyboard"], [["search.html", (s) => s.replace(' class="srch-input srch-source-input"', ' form="elsewhere" class="srch-input srch-source-input"')]]],   // prompt JK: the input is a child of the form now; naming another owner takes it out
   ["the input is a small target", ["present", "layout"], [["app.css", (s) => s.replace("padding:4px 0;min-height:44px;box-sizing:border-box;width:100%", "padding:0;min-height:0;height:20px;box-sizing:border-box;width:100%")]]],
   ["the field makes the page scroll sideways on a phone", ["layout"], [["app.css", (s) => s.replace(".srch-source{display:flex;", ".srch-source{min-width:1600px;display:flex;")]]],
 ];

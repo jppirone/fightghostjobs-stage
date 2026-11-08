@@ -266,12 +266,15 @@ main a:not(.btn):not(td a){text-decoration:underline;text-decoration-thickness:1
 .phone-note{font-size:12px;line-height:1.5;color:var(--ink);margin-top:6px;font-weight:600}
 .phone-privacy{margin:0 0 14px 0}
 /* prompt JD (November 7, 2026): the optional "where you found this job" field under the search card: its own card of the same look, the label like the other boxes, the input a 44 pixel target at every width */
-.srch-source{display:flex;flex-direction:column;max-width:1080px;box-sizing:border-box;margin-top:12px;padding:8px 20px 14px 20px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+/* prompt JK (November 7, 2026): the optional line is INSIDE the one white search box (the form), under the three fields, with the Search button last (to the right of everything on a wide screen, below it on a phone). It is no longer a card of its own: no border round it, no background; a thin line above it is the only divider. */
+.srch-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.srch-top{display:flex;gap:12px;flex:1}
+.srch-source{display:flex;flex-direction:column;box-sizing:border-box;margin:4px 12px 0 12px;padding:10px 0 8px 0;border-top:1px solid var(--line)}
 .srch-source[hidden]{display:none}
 .srch-source-label{font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
-.srch-opt{text-transform:none;letter-spacing:0;font-weight:700;color:var(--muted)}
+.srch-opt{text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:var(--ink);margin-right:4px}
 .srch-source-input{border:none;padding:4px 0;min-height:44px;box-sizing:border-box;width:100%;max-width:100%}
-@media (max-width:760px){.srch-form{flex-direction:column!important}.srch-form .srch-sep{display:none}.srch-form .btn{align-self:flex-start;margin:4px 12px 8px 12px}}
+@media (max-width:760px){.srch-form{flex-direction:column!important}.srch-top{flex-direction:column!important}.srch-form .srch-sep{display:none}.srch-form .btn{align-self:flex-start;margin:4px 12px 8px 12px}}
 
 /* ---- edit page (edit.html): the unsaved-changes bar and the leave dialog. Classes are prefixed unsaved-.
    The bar is the last child of <main> and sticky to the bottom of the window: it stays in view while there is more page below it, and at the end of the page it sits in the flow above the footer,

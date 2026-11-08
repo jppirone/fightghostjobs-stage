@@ -800,7 +800,15 @@ export function checkSite(root, opts = {}) {
       ]) if (!t.includes(s)) add("S40", sh, "the search guidance must say: " + s);
       const form = (t.match(/<form id="searchForm"[\s\S]*?<\/form>/) || [""])[0];
       const inputs = [...form.matchAll(/<input\b[^>]*\bid="([^"]*)"/g)].map((m) => m[1]);
-      if (inputs.join(",") !== "company,reqq,titleq") add("S40", sh, "the search form must have exactly three inputs, in this order: company, req number, KIO ID / title (the exact IDs come first, and there is no way to browse); found: " + inputs.join(","));
+      if (inputs.join(",") !== "company,reqq,titleq,sourceq") add("S40", sh, "the search form must have exactly four inputs, in this order: company, req number, KIO ID / title (the exact IDs come first, and there is no way to browse), and the optional source (prompt JK: inside the one search box); found: " + inputs.join(","));
+      // prompt JK (November 7, 2026): the optional line is inside the one white search box, above the Search button (Search is the last thing in the box); no second card, no form= owner
+      const iSrc = form.indexOf('id="sourceBlock"'), iBtn = form.indexOf('id="searchBtn"');
+      if (iSrc < 0 || iBtn < 0 || iSrc > iBtn) add("S40", sh, "the optional source block must be inside the search form and before the Search button (Search is the last item of the box)");
+      if ((t.match(/id="sourceBlock"/g) || []).length !== 1 || /<input id="sourceq"[^>]*\bform=/.test(t)) add("S40", sh, "the optional source block must appear once, inside the form, and its input must not name a form owner");
+      if (!/<label for="sourceq" class="srch-source-label"><span class="srch-opt">Optional<\/span> Where you found this job<\/label>/.test(form)) add("S40", sh, "the optional label must read Optional, then Where you found this job");
+      if (!form.includes('<div id="sourceHint" class="field-hint">Site (ex. LinkedIn.com or LinkedIn) or email (ex. jobs@linkedin.com)</div>')) add("S40", sh, "the one help line of the optional field must be: Site (ex. LinkedIn.com or LinkedIn) or email (ex. jobs@linkedin.com)");
+      const cssA = fs.existsSync(path.join(root, "app.css")) ? read(path.join(root, "app.css")) : "";
+      if (!/\.srch-opt\{[^}]*text-transform:uppercase[^}]*font-weight:700/.test(cssA) || /\.srch-source\{[^}]*(border-radius|background)/.test(cssA)) add("S40", path.join(root, "app.css"), "Optional must be bold capitals, and the optional block must not be a card of its own (no background, no radius)");
       if (!/<label for="titleq"[^>]*>KIO ID, or part of the title/.test(form)) add("S40", sh, "the title box label must say \"KIO ID, or part of the title\" (the title is the fallback, named as such)");
       for (const id of ["company", "reqq", "titleq"]) if (!new RegExp('<label for="' + id + '"').test(form)) add("S40", sh, "the " + id + " input has no label");
       const ids = new Set([...t.matchAll(/\bid="([^"]*)"/g)].map((m) => m[1]));
@@ -811,7 +819,7 @@ export function checkSite(root, opts = {}) {
       // prompt JB (November 7, 2026): the guidance sentences are behind the info button. Each stays in the page inside the hidden element #infoSource (so the box description is still read) and none of them is in the visible page; only the lead sentence is.
       const infoSrc = (t.match(/<div id="infoSource" hidden>([\s\S]*?)\n<\/div>/) || [])[1] || "";
       const visiblePage = t.replace(infoSrc, "");
-      for (const s of ["Easiest and most exact:", "No KIO ID? Use the company name plus part of the job title", "Must match the employer's name. We ignore endings like Inc., Co. and LLC. Not needed with a KIO ID.", "A title search will not list all of a company's jobs", "Company is required, unless you type a KIO ID.", "One quick step: we email you a link, and that keeps your email confirmed for 90 days.", "We keep a record of your search, including the words you typed"]) {
+      for (const s of ["Easiest and most exact:", "No KIO ID? Use the company name plus part of the job title", "Must match the employer's name. We ignore endings like Inc., Co. and LLC. Not needed with a KIO ID.", "A title search will not list all of a company's jobs", "Company is required, unless you type a KIO ID.", "One quick step: we email you a link, and that keeps your email confirmed for 90 days.", "We keep a record of your search, including the words you typed", "Employers see this exactly as you type it."]) {
         if (!infoSrc.includes(s)) add("S40", sh, "the sentence must stay in the hidden #infoSource: " + s);
         if (visiblePage.includes(s)) add("S40", sh, "the sentence must not be on the visible page (it is behind the info button): " + s);
       }

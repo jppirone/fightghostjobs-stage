@@ -92,19 +92,25 @@ test("the words: facts only, no dash, no relative day word, the example and the 
     assert.ok(!/verif|trust|free\b|guarantee|ghost|fake|scam|real\b/i.test(s), "a forbidden word in: " + s);
   }
   assert.equal(SOURCE_OPTIONAL, "Optional");
-  assert.ok(/LinkedIn\.com/.test(SOURCE_INSTRUCTION) && /LinkedIn alone is fine/.test(SOURCE_INSTRUCTION) && /jobs@linkedin\.com/.test(SOURCE_INSTRUCTION));
+  // prompt JK (John, November 7, 2026): the one short line replaces the long instruction of prompt JH
+  assert.equal(SOURCE_INSTRUCTION, "Site (ex. LinkedIn.com or LinkedIn) or email (ex. jobs@linkedin.com)");
+  assert.ok(!/Type a site name|LinkedIn alone is fine|the address of the email the job came from/.test(R("search.html") + R("js/source-text.js")), "the old long instruction is nowhere");
   assert.ok(/exactly as you type it/.test(SOURCE_EMPLOYERS_SEE) && /optional/.test(SOURCE_PHONE_SENTENCE) && /do not check it/.test(SOURCE_PHONE_SENTENCE) && /own email address/.test(SOURCE_PHONE_SENTENCE));
   const html = R("search.html");
-  assert.ok(html.includes(SOURCE_INSTRUCTION) && html.includes(SOURCE_EMPLOYERS_SEE) && html.includes(SOURCE_LABEL + ' <span class="srch-opt">' + SOURCE_OPTIONAL + "</span>"), "search.html says it in the same words");
+  assert.ok(html.includes(SOURCE_INSTRUCTION) && html.includes(SOURCE_EMPLOYERS_SEE) && html.includes('<span class="srch-opt">' + SOURCE_OPTIONAL + "</span> " + SOURCE_LABEL), "search.html says it in the same words (Optional comes first, prompt JK)");
+  // the employer sentence is not on the form any more: it is in the hidden sentences that the info box copies
+  const src = (html.match(/<div id="infoSource" hidden>([\s\S]*?)\n<\/div>/) || [])[1] || "";
+  assert.ok(src.includes('<div id="sourceNote" class="field-hint">' + SOURCE_EMPLOYERS_SEE + "</div>") && !html.replace(src, "").includes(SOURCE_EMPLOYERS_SEE), "the employer sentence is only in the hidden sentences");
 });
 test("the markup of the field: a label for the input, an input of the search form with a limit of 120, no placeholder standing in for the label", () => {
   const html = R("search.html");
   assert.match(html, /<label for="sourceq"/);
   const m = /<input id="sourceq"[^>]*>/.exec(html);
   assert.ok(m, "the input is there");
-  for (const need of ['form="searchForm"', 'type="text"', 'maxlength="120"', 'autocomplete="off"', 'aria-describedby="sourceHint sourceNote"']) assert.ok(m[0].includes(need), "the input has " + need);
+  assert.ok(!/\bform=/.test(m[0]), "the input is a child of the form, it names no owner (prompt JK)");
+  for (const need of ['type="text"', 'maxlength="120"', 'autocomplete="off"', 'aria-describedby="sourceHint sourceNote"']) assert.ok(m[0].includes(need), "the input has " + need);
   assert.ok(!/placeholder=/.test(m[0]), "no placeholder");
-  assert.ok(html.indexOf('id="searchForm"') < html.indexOf('id="sourceBlock"') && html.indexOf('id="sourceBlock"') < html.indexOf('id="formError"'), "the block sits under the search card and above the error line");
+  assert.ok(html.indexOf('id="searchForm"') < html.indexOf('id="sourceBlock"') && html.indexOf('id="sourceBlock"') < html.indexOf('id="searchBtn"') && html.indexOf('id="searchBtn"') < html.indexOf("</form>") && html.indexOf("</form>") < html.indexOf('id="formError"'), "the block sits inside the search box, above the Search button, which is the last thing in the box (prompt JK)");
   assert.ok(html.includes('id="phoneSource"'), "the panel has its sentence element");
 });
 test("the 13 pinned sentences of the phone entry are not touched, and the new words live in their own file", () => {

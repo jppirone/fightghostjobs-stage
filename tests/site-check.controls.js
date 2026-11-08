@@ -108,6 +108,15 @@ control("the info button in the recap box is gone", "S40", edit("search.html", (
 control("the company hint is the long one again", "S40", edit("search.html", (s) => s.replace("aria-hidden=\"true\">Not needed with a KIO ID.</div>", "aria-hidden=\"true\">Must match the employer's name. We ignore endings like Inc., Co. and LLC. Not needed with a KIO ID.</div>")));
 control("the removed hint under the req number is back", "S40", edit("search.html", (s) => s.replace("<div id=\"searchGuide\"", "<div id=\"reqCellHint\" class=\"field-hint\">Most exact. Copy it from the job ad.</div><div id=\"searchGuide\"")));
 control("the company box is described by the short hint only", "S40", edit("search.html", (s) => s.replace("aria-describedby=\"companyHintFull\"", "aria-describedby=\"companyHint\"")));
+// prompt JK (November 7, 2026): the optional line inside the one search box
+control("the Search button comes before the optional block again", "S40", edit("search.html", (s) => s.replace("      <button type=\"submit\" id=\"searchBtn\" class=\"btn btn-dark\">Search</button>\n    </form>", "    </form>").replace("<div id=\"sourceBlock\" class=\"srch-source\">", "<button type=\"submit\" id=\"searchBtn\" class=\"btn btn-dark\">Search</button><div id=\"sourceBlock\" class=\"srch-source\">")));
+control("the optional input names a form owner again", "S40", edit("search.html", (s) => s.replace("class=\"srch-input srch-source-input\"", "form=\"searchForm\" class=\"srch-input srch-source-input\"")));
+control("the long instruction line is back", "S40", edit("search.html", (s) => s.replace("Site (ex. LinkedIn.com or LinkedIn) or email (ex. jobs@linkedin.com)", "Type a site name or domain, such as LinkedIn.com (LinkedIn alone is fine), or the address of the email the job came from, such as jobs@linkedin.com.")));
+control("the word Optional is not in capitals", "S40", edit("app.css", (s) => s.replace(".srch-opt{text-transform:uppercase;", ".srch-opt{text-transform:none;")));
+control("the optional block is a white card again", "S40", edit("app.css", (s) => s.replace(".srch-source{display:flex;", ".srch-source{background:var(--card);border-radius:12px;display:flex;")));
+control("the employer sentence is back on the form", "S40", edit("search.html", (s) => s.replace("<div id=\"sourceHint\"", "<div class=\"field-hint\">Employers see this exactly as you type it.</div><div id=\"sourceHint\"")));
+control("the employer sentence is gone from the hidden sentences", "S40", edit("search.html", (s) => s.replace("  <div id=\"sourceNote\" class=\"field-hint\">Employers see this exactly as you type it.</div>\n", "")));
+control("the optional label lost the word Optional", "S40", edit("search.html", (s) => s.replace("<span class=\"srch-opt\">Optional</span> Where you found this job", "Where you found this job")));
 
 control("the form range drifts (floor 7)", "S15", edit("js/register-form.js", (s) => s.replace("MIN_WINDOW_DAYS = 14", "MIN_WINDOW_DAYS = 7")));
 control("the form allows more than 45", "S15", edit("js/register-form.js", (s) => s.replace("MAX_WINDOW_DAYS = 45", "MAX_WINDOW_DAYS = 60")));

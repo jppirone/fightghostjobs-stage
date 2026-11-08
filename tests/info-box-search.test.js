@@ -41,9 +41,10 @@ const MOVED = [
   "If the employer is advertising it but it is not here, the employer has not registered it with us.",
   "An opening appears here only if an employer has added it to FightGhostJobs; a missing opening may simply not be added.",
   NOTE, SIGNIN,
+  "Employers see this exactly as you type it.",   // prompt JK (November 7, 2026): it left the form and is behind the button
 ];
-const REMOVED = ["Most exact. Copy it from the job ad.", "A KIO ID is exact. No KIO ID? Use part of the title."];
-const KEPT = ["Search for one specific job you already know about.", "Employers see this exactly as you type it.", "Not needed with a KIO ID."];
+const REMOVED = ["Most exact. Copy it from the job ad.", "A KIO ID is exact. No KIO ID? Use part of the title.", "Type a site name or domain, such as LinkedIn.com (LinkedIn alone is fine), or the address of the email the job came from, such as jobs@linkedin.com."];
+const KEPT = ["Search for one specific job you already know about.", "Not needed with a KIO ID.", "Site (ex. LinkedIn.com or LinkedIn) or email (ex. jobs@linkedin.com)"];
 const wc = (t) => t.trim().split(/\s+/).filter(Boolean).length;
 const EMPTY_FORM_WORD_LIMIT = 90;   // the visible words of #main (the heading, the form and the field for the source) for a signed-in candidate before any search: 80 measured on November 7, 2026 (250 explanatory words before this prompt were 72 after)
 
@@ -259,7 +260,8 @@ const DEFECTS = [
   ["the button is a small target on a phone", ["button"], [["app.css", (s) => s.replace('  .info-icon::before{content:"";position:absolute;inset:-15px}', '  .info-icon::before{content:"";position:absolute;inset:0}')]]],
   ["a guide sentence is back on the page", ["visible"], [[H, (s) => s.replace('<p class="srch-lead">Search for one specific job you already know about.</p>', '<p class="srch-lead">Search for one specific job you already know about.</p><p>Easiest and most exact: the KIO ID from the employer\'s job ad (no company name needed), or the company name plus the requisition (req) number.</p>')]]],
   ["a removed hint is back", ["visible"], [[H, (s) => s.replace('<div id="searchGuide"', '<div id="titleHint" class="field-hint">A KIO ID is exact. No KIO ID? Use part of the title.</div><div id="searchGuide"')]]],
-  ["the employer sentence of the source field leaves the page", ["visible"], [[H, (s) => s.replace("Employers see this exactly as you type it.", "")]]],
+  ["the employer sentence is gone from the hidden sentences (the box loses it)", ["sentences"], [[H, (s) => s.replace("Employers see this exactly as you type it.", "")]]],
+  ["the employer sentence is back on the form", ["visible"], [[H, (s) => s.replace('<div id="sourceHint"', '<div class="field-hint">Employers see this exactly as you type it.</div><div id="sourceHint"')]]],
   ["the box drops the record notice", ["sentences", "recap"], [[IP, (s) => s.replace('privacy.push(copyOf(doc, "searchNotice"));', "privacy.push(null);")]]],
   ["the box drops the sign-in paragraph", ["sentences", "signedout"], [[IP, (s) => s.replace('privacy.push(copyOf(doc, "signinFull"));', "")]]],
   ["the box drops the rules under the form", ["sentences"], [[IP, (s) => s.replace('copyOf(doc, "reqHint"), copyOf(doc, "titleNote")', "null, null")]]],

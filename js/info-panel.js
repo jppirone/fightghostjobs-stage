@@ -25,6 +25,7 @@ export function infoNodes(doc = document) {
   const notice = doc.getElementById("searchNotice");
   const privacy = [];
   if (notice && notice.dataset.off !== "1") privacy.push(copyOf(doc, "searchNotice"));
+  if (notice && notice.dataset.off !== "1") privacy.push(copyOf(doc, "sourceNote"));   // prompt JK (November 7, 2026): "Employers see this exactly as you type it." left the form and sits here, word for word (the staff search sends no source, so it is left out there like the record notice)
   privacy.push(copyOf(doc, "signinFull"));
   for (const id of ["phonePrivacy", "phoneSource"]) { const el = doc.getElementById(id); if (el && el.dataset.on === "1" && el.textContent) privacy.push(para(el.textContent)); }
   const section = (title, items) => items.length ? [h("h3", { class: "info-section" }, title), ...items] : [];

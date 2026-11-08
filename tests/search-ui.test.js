@@ -69,7 +69,7 @@ async function fieldProblems(tab, width, phone) {
       if (!heavier) bad.push(tag + f.id + " line does not get heavier when focused");
       if (f.ph !== EXPECT_PH[f.id]) bad.push(tag + f.id + " placeholder changed: " + f.ph);
     }
-    if (r.order.join() !== "company,reqq,titleq") bad.push(tag + "field order changed: " + r.order.join());
+    if (r.order.join() !== "company,reqq,titleq,sourceq") bad.push(tag + "field order changed: " + r.order.join());
     if (r.labels.join("|") !== "Company|Req number|KIO ID, or part of the title") bad.push(tag + "labels changed: " + r.labels.join("|"));
     if (r.button !== "Search") bad.push(tag + "the Search button changed: " + r.button);
     if (r.out.find((f) => f.id === "reqq").type !== "password") bad.push(tag + "the req number is no longer hidden as typed");
