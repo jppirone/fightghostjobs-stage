@@ -274,7 +274,8 @@ main a:not(.btn):not(td a){text-decoration:underline;text-decoration-thickness:1
 .srch-source-label{font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.05em}
 .srch-opt{text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:var(--ink);margin-right:4px}
 .srch-source-input{border:none;padding:4px 0;min-height:44px;box-sizing:border-box;width:100%;max-width:100%}
-@media (max-width:760px){.srch-form{flex-direction:column!important}.srch-top{flex-direction:column!important}.srch-form .srch-sep{display:none}.srch-form .btn{align-self:flex-start;margin:4px 12px 8px 12px}}
+/* prompt JL (November 8, 2026): the stacked layout of the search box holds up to 999 pixels (it switched at 760 before); the wide row, with the three fields side by side, starts at 1000 pixels, the smallest width where no label takes more than two lines and each of the three boxes is at least 180 pixels wide. In the stacked range above a phone the box is held to 640 pixels so the boxes do not stretch across a tablet. */
+@media (max-width:999px){.srch-form{flex-direction:column!important;max-width:640px!important}.srch-top{flex-direction:column!important}.srch-form .srch-sep{display:none}.srch-form .btn{align-self:flex-start;margin:4px 12px 8px 12px}}
 
 /* ---- edit page (edit.html): the unsaved-changes bar and the leave dialog. Classes are prefixed unsaved-.
    The bar is the last child of <main> and sticky to the bottom of the window: it stays in view while there is more page below it, and at the end of the page it sits in the flow above the footer,
@@ -370,7 +371,7 @@ select{min-height:24px}
 .srch-company{margin-top:28px}
 .srch-or{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700;color:var(--muted)}
 .srch-or::before,.srch-or::after{content:"";flex:1;width:1px;min-height:10px;background:var(--line)}
-@media (max-width:760px){.srch-company{margin-top:0}.srch-group{flex:none!important}.srch-pair{flex-direction:column!important}.srch-or{flex-direction:row;padding:0 12px}.srch-or::before,.srch-or::after{width:auto;min-height:0;height:1px}}
+@media (max-width:999px){.srch-company{margin-top:0}.srch-group{flex:none!important}.srch-pair{flex-direction:column!important}.srch-or{flex-direction:row;padding:0 12px}.srch-or::before,.srch-or::after{width:auto;min-height:0;height:1px}}
 
 /* phone layout for the pages themselves (October 4, 2026). The pages were desktop designs: 64 pixel side padding on every section, 28 pixel padding inside every card (a card's content got about 190 of 375 pixels)
    and every two-column layout stayed two columns. At 640 pixels and below: pages use 16 pixel sides, cards 16 pixel inside, two columns stack, side-by-side fields go one per row, tables become one card per row,

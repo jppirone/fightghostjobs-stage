@@ -22,7 +22,9 @@ let browser;
 before(async () => { browser = await launchBrowser(); });
 after(async () => { if (browser) await browser.close(); });
 
-const S390 = { n: "390", w: 390, h: 844, phone: true }, S768 = { n: "768", w: 768, h: 1024, phone: false }, S1250 = { n: "1250", w: 1250, h: 900, phone: false };
+// prompt JL (November 8, 2026): the stacked layout holds up to 999 pixels, the wide row starts at 1000 (stacked says which one the box must be in)
+const S390 = { n: "390", w: 390, h: 844, phone: true, stacked: true }, S768 = { n: "768", w: 768, h: 1024, phone: false, stacked: true }, S820 = { n: "820", w: 820, h: 1180, phone: false, stacked: true }, S999 = { n: "999", w: 999, h: 900, phone: false, stacked: true }, S1000 = { n: "1000", w: 1000, h: 900, phone: false, stacked: false }, S1250 = { n: "1250", w: 1250, h: 900, phone: false, stacked: false };
+const ALL = [S390, S768, S820, S999, S1000, S1250];
 const HELP = "Site (ex. LinkedIn.com or LinkedIn) or email (ex. jobs@linkedin.com)";
 const EMPLOYERS = "Employers see this exactly as you type it.";
 const OLD_LONG = "Type a site name or domain, such as LinkedIn.com (LinkedIn alone is fine), or the address of the email the job came from, such as jobs@linkedin.com.";
@@ -41,7 +43,9 @@ async function openAt(tab, site, size) {
 const GEO = `(() => { const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top + scrollY, b: b.bottom + scrollY, w: b.width, h: b.height }; }, g = (id) => document.getElementById(id);
   const label = document.querySelector('label[for="sourceq"]'), opt = label && label.querySelector('.srch-opt'), block = g('sourceBlock'), cs = block ? getComputedStyle(block) : null, oc = opt ? getComputedStyle(opt) : null, lc = label ? getComputedStyle(label) : null;
   const lineH = label ? parseFloat(lc.lineHeight) || parseFloat(lc.fontSize) * 1.3 : 0;
-  return { card: r(g('searchForm')), block: r(block), src: r(g('sourceq')), label: r(label), help: r(g('sourceHint')), company: r(g('company')), req: r(g('reqq')), title: r(g('titleq')), btn: r(g('searchBtn')),
+  const kioLab = document.querySelector('label[for="titleq"]'), kc = kioLab ? getComputedStyle(kioLab) : null, probe = document.createElement('span');
+  let kioLines = 0; if (kioLab) { probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:' + kc.font + ';text-transform:uppercase;letter-spacing:' + kc.letterSpacing; probe.textContent = 'X'; document.body.append(probe); const ph = probe.getBoundingClientRect().height; probe.remove(); kioLines = Math.max(1, Math.round(kioLab.getBoundingClientRect().height / ph)); }
+  return { kioLines, card: r(g('searchForm')), block: r(block), src: r(g('sourceq')), label: r(label), help: r(g('sourceHint')), company: r(g('company')), req: r(g('reqq')), title: r(g('titleq')), btn: r(g('searchBtn')),
     labelText: label ? label.textContent.replace(/\\s+/g, ' ').trim() : null, optText: opt ? opt.textContent : null, optWeight: oc ? parseInt(oc.fontWeight, 10) : 0, optTransform: oc ? oc.textTransform : null, optTop: opt ? opt.getBoundingClientRect().top : null, labelTop: label ? label.getBoundingClientRect().top : null, labelH: label ? label.getBoundingClientRect().height : 0, lineH,
     blockBg: cs ? cs.backgroundColor : null, blockRadius: cs ? cs.borderTopLeftRadius : null, blockShadow: cs ? cs.boxShadow : null, blockBorders: cs ? [cs.borderTopWidth, cs.borderRightWidth, cs.borderBottomWidth, cs.borderLeftWidth].join(' ') : null, cards: document.querySelectorAll('.srch-source').length,
     blockText: block ? block.innerText.replace(/\\s+/g, ' ').trim() : null, mainText: document.getElementById('main').innerText.replace(/\\s+/g, ' ').trim(), sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, formOwnerOfSource: g('sourceq') && g('sourceq').form ? g('sourceq').form.id : null }; })()`;
@@ -52,10 +56,12 @@ const SCENARIOS = {
     const bad = [], site = await startFakeSite(root, { kio: true }), tab = await browser.newTab();
     try {
       await tab.focusEmulation(true); await become(tab, site);
-      for (const size of [S390, S768, S1250]) {
+      for (const size of ALL) {
         await openAt(tab, site, size);
         const g = await tab.eval(GEO), L = size.n + ": ";
         if (!g.block || !g.src || !g.btn) { bad.push(L + "the optional line or the Search button is missing"); continue; }
+        if (g.kioLines > 2) bad.push(L + "the KIO ID label takes " + g.kioLines + " lines (two at most)");
+        if (size.stacked && g.card.w > 640.5) bad.push(L + "the stacked box is " + Math.round(g.card.w) + " pixels wide (640 at most, so it does not stretch across a tablet)");
         for (const k of ["block", "src", "label", "help", "company", "req", "title", "btn"]) if (!inside(g[k], g.card)) bad.push(L + k + " lies outside the box of the form: " + JSON.stringify([g[k], g.card]));
         if (g.formOwnerOfSource !== "searchForm") bad.push(L + "the optional input does not belong to the search form: " + g.formOwnerOfSource);
         if (g.cards !== 1) bad.push(L + "there are " + g.cards + " optional blocks");
@@ -69,11 +75,11 @@ const SCENARIOS = {
     const bad = [], site = await startFakeSite(root, { kio: true }), tab = await browser.newTab();
     try {
       await tab.focusEmulation(true); await become(tab, site);
-      for (const size of [S390, S768, S1250]) {
+      for (const size of ALL) {
         await openAt(tab, site, size);
         const g = await tab.eval(GEO), L = size.n + ": ";
         if (!g.block || !g.src || !g.btn) { bad.push(L + "the optional line or the Search button is missing"); continue; }
-        if (size.phone) {
+        if (size.stacked) {
           if (!(g.src.b <= g.btn.t + 0.5)) bad.push(L + "the optional box is not above Search (box bottom " + Math.round(g.src.b) + ", Search top " + Math.round(g.btn.t) + ")");
           for (const k of ["company", "req", "title", "src"]) if (!(g[k].b <= g.btn.t + 0.5)) bad.push(L + k + " is not above Search");
           if (!(g.card.b - g.btn.b < 40)) bad.push(L + "Search is not the last item of the box (" + Math.round(g.card.b - g.btn.b) + " pixels of box below it)");
@@ -174,7 +180,12 @@ const DEFECTS = [
   ["the word Optional is not in capitals", ["words"], [[C, (s) => s.replace(".srch-opt{text-transform:uppercase;", ".srch-opt{text-transform:none;")]]],
   ["the word Optional is not bold", ["words"], [[C, (s) => s.replace("letter-spacing:.05em;font-weight:700;color:var(--ink);margin-right:4px", "letter-spacing:.05em;font-weight:400;color:var(--ink);margin-right:4px")]]],
   ["the word Optional is removed", ["words"], [[H, (s) => s.replace('<span class="srch-opt">Optional</span> ', "")]]],
-  ["Search is to the left of the optional line at 1250", ["order"], [[C, (s) => s.replace(".srch-main{flex:1;", ".srch-form{flex-direction:row-reverse}\n.srch-main{flex:1;")]]],
+  ["Search is to the left of the optional line in the wide row", ["order"], [[C, (s) => s.replace(".srch-main{flex:1;", ".srch-form{flex-direction:row-reverse}\n.srch-main{flex:1;")]]],
+  // prompt JL (November 8, 2026): the switch from the stacked layout to the wide row is at 1000 pixels
+  ["the switch is back at 760 pixels", ["order", "inside"], [[C, (s) => s.split("@media (max-width:999px){.srch-").join("@media (max-width:760px){.srch-")]]],
+  ["the switch is below 700 pixels", ["order", "inside"], [[C, (s) => s.split("@media (max-width:999px){.srch-").join("@media (max-width:640px){.srch-")]]],
+  ["the stacked rule for the in between widths is removed", ["order"], [[C, (s) => s.replace(".srch-top{flex-direction:column!important}", "")]]],
+  ["the stacked box stretches across a tablet", ["inside", "order"], [[C, (s) => s.replace(";max-width:640px!important}", "}")]]],
   ["the employer sentence is back on the form", ["words"], [[H, (s) => s.replace('<div id="sourceHint"', '<div class="field-hint">Employers see this exactly as you type it.</div><div id="sourceHint"')]]],
   ["the employer sentence is deleted from the info box", ["words"], [[H, (s) => s.replace('  <div id="sourceNote" class="field-hint">Employers see this exactly as you type it.</div>\n', "")]]],
   ["the old long instruction line is back", ["words"], [[H, (s) => s.replace(HELP, OLD_LONG)]]],
