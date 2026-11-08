@@ -500,7 +500,7 @@ const DEFECTS = [
   ["x is accepted together with the classic keys", [["refused"], ["unit"]], [[PM, (s) => s.replace("if (old || xCount > 1 ||", "if (xCount > 1 ||")]]],
   ["a repeated x is accepted", [["unit"]], [[PM, (s) => s.replace("xCount > 1 || raw.length", "xCount > 100 || raw.length")]]],
   ["a control character is accepted", [["refused"], ["unit"]], [[PM, (s) => s.replace("if (hasBadControl(text)) return", "if (false) return")]]],
-  ["a bad percent escape is accepted as it is", [["refused"], ["unit"]], [[PM, (s) => s.replace("try { text = decodeURIComponent(value); } catch { return { x: true, refused: true, text: \"\" }; }", "try { text = decodeURIComponent(value); } catch { text = value; }")]]],
+  ["a bad percent escape is accepted as it is", [["refused"], ["unit"]], [[PM, (s) => s.replace("try { text = decodeURIComponent(value); } catch { return { x: true, refused: true, text: \"\", source: \"\" }; }", "try { text = decodeURIComponent(value); } catch { text = value; }")]]],
   ["the cap of 600 characters is gone", [["readings", { ids: ["I13"], sizes: [PHONE], noSearch: true }], ["unit"]], [[PM, (s) => s.replace("export const TEXT_CAP = 600,", "export const TEXT_CAP = 60000,")]]],
   ["the screenshot text is put into the page as markup", [["markup"]], [[PE, (s) => s.replace("const fill = (f) => { companyEl.value = f.company;", "const fill = (f) => { companyEl.insertAdjacentHTML('afterend', f.company); companyEl.value = f.company;")]]],
   ["the screenshot text is echoed in the panel line", [["readings", { ids: ["I01"], sizes: [PHONE], noSearch: true }]], [[PE, (s) => s.replace("  say(SENTENCES[1]);\n  if (parsed.cut)", "  say(SENTENCES[1] + ' ' + parsed.boxes.fill.company);\n  if (parsed.cut)")]]],
