@@ -90,11 +90,12 @@ const steps = [
 // timeout inside a browser file is 58 minutes, so a browser step gets 60 and the test's own timeout still fires first. FGJ_STEP_LIMIT_SCALE multiplies every limit; FGJ_STEP_LIMIT_MIN sets one limit for every step.
 // TEST1 (October 13, 2026): the static controls now get 90 minutes, not 45. The overnight full run (NIGHT1) was stopped at 45 after 1104 controls: the file grew (more than 1150 controls) and each control copies and checks the
 // whole repository, which grew too (about 2.8 seconds per control, 17.6 minutes in all on October 7). The step still has a limit: a run that is stopped at 90 minutes is a finding, not a pass.
+// JN (November 8, 2026): the static controls now get 150 minutes, not 90. The push check of November 8 was stopped at 90 minutes after 1566 controls (it took 66 minutes 43 seconds on November 6): prompts JB, JD, JE, JK and JL added controls. John chose 150 and not to split the file.
 function limitMin(files) {
   if (process.env.FGJ_STEP_LIMIT_MIN) return Number(process.env.FGJ_STEP_LIMIT_MIN);
   const base = path.basename(files[0]);
   // the first prefix of the file name that matches (most specific first); every other file is a browser step
-  const byPrefix = [["site-check.controls", 90], ["site-check", 5], ["leak-check.test", 15], ["leak-check", 5], ["unit.test", 15], ["indexing", 15]];
+  const byPrefix = [["site-check.controls", 150], ["site-check", 5], ["leak-check.test", 15], ["leak-check", 5], ["unit.test", 15], ["indexing", 15]];
   const hit = byPrefix.find(([p]) => base.startsWith(p));
   return (hit ? hit[1] : 60) * (Number(process.env.FGJ_STEP_LIMIT_SCALE) || 1);
 }

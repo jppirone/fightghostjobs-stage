@@ -363,7 +363,7 @@ const DEFECTS = [
   ["the editor's ID block says Opening ID", ["editorBlock", "confirmation"], [["js/kio-block.js", (s) => s.replace('h("span", { class: "kio-label" }, "KIO ID"),', 'h("span", { class: "kio-label" }, "Opening ID"),')]]],
   ["the confirmation says Your Opening ID", ["confirmation"], [["js/pages/register.js", (s) => s.replace('}, "Your KIO ID"),', '}, "Your Opening ID"),')]]],
   ["the search box label says Opening ID", ["searchPage"], [["search.html", (s) => s.replace(">KIO ID, or part of the title\n", ">Opening ID, or part of the title\n")]]],
-  ["the box hint says Opening ID", ["searchPage"], [["search.html", (s) => s.replace("A KIO ID is exact. No KIO ID? Use part of the title.", "An Opening ID is exact. No ID? Use part of the title.")]]],
+  ["the box hint says Opening ID", ["searchPage"], [["search.html", (s) => s.replace("Not needed with a KIO ID.", "Not needed with an Opening ID.")]]],   // prompt JN (November 8, 2026): prompt JB removed the title hint; the hint under the Company box (its first occurrence in search.html, the one on the page) is the box hint that remains
   ["the explainer says Opening ID", ["searchPage"], [["search.html", (s) => s.replace("the KIO ID from the employer's job ad", "the Opening ID from the employer's job ad")]]],
   ["the help heading says Opening ID", ["searchPage"], [["search.html", (s) => s.replace("<span class=\"tip-title\">What's a KIO ID?</span>", "<span class=\"tip-title\">What's an Opening ID?</span>")]]],
   ["the empty box refusal says Opening ID", ["searchPage"], [["js/search-input.js", (s) => s.replace('message: "Enter a req number, a KIO ID or part of the job title."', 'message: "Enter a req number, an Opening ID or part of the job title."')]]],

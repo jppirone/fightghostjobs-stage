@@ -192,7 +192,7 @@ const FORM_DEFECTS = [
   ["the or is hidden by the stylesheet", ["form"], [["app.css", (s) => s.replace(".srch-or{display:flex;", ".srch-or{display:none;")]]],
   ["the old sentence is back", ["form"], [["search.html", (s) => s.replace(NEW_SENTENCE, "Fill in only one of the two lookup boxes: the req number, or the KIO ID / title box. The req number is hidden as you type; press Show to check it.")]]],
   ["the second line under the form is changed", ["form"], [["search.html", (s) => s.replace("Closed or expired openings are found only by KIO ID or req number.", "Closed openings are found by KIO ID.")]]],
-  ["the three boxes are stacked on a wide window", ["form"], [["app.css", (s) => s.replace(".srch-company{margin-top:28px}", ".srch-company{margin-top:28px}.srch-form{flex-direction:column!important}")]]],
+  ["the three boxes are stacked on a wide window", ["form"], [["app.css", (s) => s.replace(".srch-company{margin-top:28px}", ".srch-company{margin-top:28px}.srch-top{flex-direction:column!important}")]]],   // prompt JN (November 8, 2026): since prompt JK the three boxes are in .srch-top, so the control stacks that row (it stacked the whole form before)
 ];
 const DEFECTS = [
   ["the fields lose their line (the old border:none)", ["fields"], [["app.css", (s) => s.replace(".srch-input{border-bottom:2px solid #8A8379!important;border-radius:0!important;padding-bottom:6px!important}", ".srch-input{border-bottom:0!important}")]]],
