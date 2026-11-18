@@ -69,8 +69,8 @@ async function check(root, tag) {
     if (sha256(fs.readFileSync(p, "utf8")) !== f.sha256) bad.push(f.to + " is not the file of " + MANIFEST.tag);
   }
   const note = fs.readFileSync(path.join(root, "js", "mobile", "FROM-EXTENSION.txt"), "utf8");
-  if (!note.includes("tag: reader-v4\n") || !note.includes("commit: 95f6a1cd4b3e1b596747c7c54c6e5b60d32daa17\n")) bad.push("FROM-EXTENSION.txt does not name reader-v4");   // prompt OT (November 18, 2026): the pin moved from reader-v3 (de03a11) to reader-v4 (95f6a1c) with the new copy
-  if (MANIFEST.tag !== "reader-v4" || MANIFEST.commit !== "95f6a1cd4b3e1b596747c7c54c6e5b60d32daa17" || MANIFEST.files[0].sha256 !== "0cd6c7fa2d08af94e2bdcb744521da739122fa5b0f0571d0131db7381c1771c9") bad.push("the manifest of tests/copy-reader.js is not the manifest of reader-v4");
+  if (!note.includes("tag: reader-v5\n") || !note.includes("commit: 19271115277b10fd72b6b2e10f7a404e4cebc773\n")) bad.push("FROM-EXTENSION.txt does not name reader-v5");   // prompts OT and OV (November 18, 2026): the pin moved from reader-v3 (de03a11) to reader-v4 (95f6a1c) and then to reader-v5 (1927111) with the new copy
+  if (MANIFEST.tag !== "reader-v5" || MANIFEST.commit !== "19271115277b10fd72b6b2e10f7a404e4cebc773" || MANIFEST.files[0].sha256 !== "ccabe2528d0f304a638145dbb7eb73086555680e898720769e069267541c82fe") bad.push("the manifest of tests/copy-reader.js is not the manifest of reader-v5");
   return bad;
 }
 

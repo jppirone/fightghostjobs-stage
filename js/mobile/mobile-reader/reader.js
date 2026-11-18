@@ -108,7 +108,7 @@ function classify(t) {
     const parts = splitParts(v);
     // "Company . Place . 2 days ago": the first part is a company and every other part is a detail of the card. This is checked BEFORE the whole line is judged (prompt OS): the end of a line such as
     // "Burtch Works . United States (Remote)" is a work mode in brackets, which made the whole line a place and lost the company. A line of ONE part ("Austin, TX (Remote)") is still a place.
-    if (parts.length > 1 && !isDetailPart(parts[0]) && parts.slice(1).every((p) => isDetailPart(p) || CUT_PLACE.test(p))) return { kind: "companydetail", company: parts[0] };
+    if (parts.length > 1 && !isDetailPart(parts[0]) && parts.slice(1).every((p) => isDetailPart(p) || CUT_PLACE.test(p))) return { kind: "companydetail", company: parts[0], dash: (v.match(SPLIT_PARTS) || [""])[0].trim() === "-" };   // dash: the first separator is a dash ("Title - Remote"), see cardsOf (prompt OU)
     if (isDetailPart(v) || (parts.length > 1 && parts.every(isDetailPart))) return { kind: "detail" };
   }
   // an icon or a logo read as a few symbols or letters ("9", "xX", "oul"), and the signal and battery of the status bar read as a short word and numbers ("wll 2 (59", "TIE 58"): no word of four letters and a digit in it
@@ -157,7 +157,7 @@ function cardsOf(lines) {
     if (m && classify(m[2]).kind === "text") { items.push({ t: m[1], i, kind: "text" }, { t: m[2], i, kind: "text", cs: true }); return; }
     const h = c.kind === "text" && t.match(HASH_ID);
     if (h && h[1].replace(/\D/g, "").length >= 4 && classify(h[2]).kind === "text") { items.push({ t: "#" + h[1], i, kind: "text", idTok: h[1] }, { t: h[2], i, kind: "text", cs: true }); return; }
-    items.push({ t, i, kind: c.kind, company: c.company });
+    items.push({ t, i, kind: c.kind, company: c.company, dash: c.dash === true });
   });
   // a place that wrapped after its comma: the line "Hollywood," and the state at the start of the next line ("FL (Remote)", "WA", "DC . Remote") are details, not a company or a second card
   for (let i = 0; i < items.length; i++) {
@@ -184,6 +184,29 @@ function cardsOf(lines) {
     const bare = b.t.replace(/\s+[A-Za-z]$/, "").trim(), place = isPlace(bare) ? bare : isPlace(b.t) ? b.t : null;
     if (!place || c.kind !== "text" || c.cs || c.idTok || !readsAsCompany(c.t) || (d && d.kind === "text")) continue;
     items.splice(i, 2, { ...a, t: a.t + " " + place, joined: true });
+  }
+  // prompt OU (the OpenAI card as Apple really reads it): "Applied Al Delivery Lead - Remote" / "in AMER" / "OpenAl . United States (Remote)". A line "X - <work mode or place>" is read as "Company - detail", which cut the card there and
+  // started a second one. It is the end of the TITLE (not a company line) ONLY when another company-and-detail line, joined by a bullet, a bar or a lone period (not a dash), follows it with at most ONE continuation line between them
+  // (a short line with no title word that starts in lower case or with a small word: "in AMER", "and Growth"). A lone "Acme Corp - Remote" stays a company line. A line that was turned into a title this way, and a title that carries
+  // such a continuation line, are read by position: they are marked (joined or demoted) so the page shows its own check line.
+  const isCont = (t) => !TITLE_WORDS.test(t) && t.split(/\s+/).length <= 6 && t.length <= 40 && !/[.!?]$/.test(t) && (/^\p{Ll}/u.test(t) || SMALL_WORDS.has(t.split(/\s+/)[0].toLowerCase()));
+  for (let i = 0; i + 1 < items.length; i++) {
+    const a = items[i];
+    if (a.kind !== "companydetail" || !a.dash) continue;
+    const c1 = items[i + 1];
+    // the continuation may read like a place when it is cut at its first words ("in Seattle, WA"): a line that STARTS in lower case is a fragment, never a detail line of its own
+    const cont = (c1.kind === "text" || (c1.kind === "detail" && /^\p{Ll}/u.test(c1.t))) && !c1.cs && !c1.idTok && isCont(c1.t) ? c1 : null;
+    const nx = items[i + (cont ? 2 : 1)];
+    if (!nx || nx.kind !== "companydetail" || nx.dash) continue;
+    a.kind = "text"; a.company = undefined;
+    if (cont) cont.kind = "text";
+    if (!cont) a.demoted = true;   // with a continuation line the second pass below marks both lines as joined
+  }
+  // a title line followed by a continuation line and then the company line is one title joined from two lines (not only after a demoted "Title - Remote" line)
+  for (let i = 0; i + 2 < items.length; i++) {
+    const a = items[i], b = items[i + 1], c = items[i + 2], d = items[i + 3];
+    if (a.kind !== "text" || a.cs || a.idTok || b.kind !== "text" || b.cs || b.idTok || !isCont(b.t)) continue;
+    if (c.kind === "companydetail" || (c.kind === "text" && !c.cs && !c.idTok && readsAsCompany(c.t) && !(d && d.kind === "text"))) a.joined = b.joined = true;
   }
   const cards = [];
   let run = [];
@@ -365,7 +388,11 @@ function readCard(lead) {
   if (brokenWord) { out.titleBroken = title !== null; title = null; }
   // a title cut at 80 characters by the extension's own rule ends at a word: a dash or comma left at the end goes
   if (title && titleText.length > title.length) title = title.replace(/[\s,&\/-]+$/, "");
-  const company = cleanCompany(companyCut ? withoutDots(companyText) : companyText);
+  let company = cleanCompany(companyCut ? withoutDots(companyText) : companyText);
+  // the engine reads the capitals AI as Al ("OpenAl", prompt OU): in a COMPANY only the shape of a lower case letter followed by Al at the end of a word is corrected (never a standalone word Al, never inside a word);
+  // a company that really ends a word in capital A and small l is a known limit, so the person is asked to check it (the flag and a note: nothing is guessed silently)
+  let companyFixed = false;
+  if (company && /(?<=\p{Ll})Al\b/u.test(company)) { company = company.replace(/(?<=\p{Ll})Al\b/gu, "AI"); companyFixed = true; }
   // the engine reads the capitals AI as Al: a standalone Al in a title is corrected
   let aiFixed = false;
   if (title && /\bAl\b/.test(title)) { title = title.replace(/\bAl\b/g, "AI"); aiFixed = true; }
@@ -373,13 +400,14 @@ function readCard(lead) {
   let slashFixed = false;
   if (title && /\s[\[\]]\s/.test(title)) { title = title.replace(/\s[\[\]]\s/g, " / "); slashFixed = true; }
   // the order of a two line crop was decided by position alone (output only). A title joined from two lines (prompt OS) is also a reading by position, so the page's own "check this" line is shown for it too
-  if (company && title && (lead.orderAssumed || titleLines.some((x) => x.joined))) out.orderAssumed = true;
-  if (company) { out.company = company; out.cut.company = companyCut; notes.company = "line " + (companyLines[0].i + 1) + (companyLines.length > 1 ? " to " + (companyLines[companyLines.length - 1].i + 1) + " joined" : "") + ": the company, right above the place, pay or badges" + (companyCut ? ". It ends with dots, so it looks cut off." : ""); }
+  // (prompt OU: a title line turned into the title by position, and a company whose Al was corrected, are shown the same way)
+  if (company && title && (lead.orderAssumed || titleLines.some((x) => x.joined || x.demoted) || companyFixed)) out.orderAssumed = true;
+  if (company) { out.company = company; out.cut.company = companyCut; notes.company = "line " + (companyLines[0].i + 1) + (companyLines.length > 1 ? " to " + (companyLines[companyLines.length - 1].i + 1) + " joined" : "") + ": the company, right above the place, pay or badges" + (companyCut ? ". It ends with dots, so it looks cut off." : "") + (companyFixed ? " The letters Al in the name were read as AI and corrected. Check it." : ""); }
   if (brokenWord) notes.title = "a word in the title looks broken in the middle, so the title was not taken: type it";
   if (title) {
     out.title = title; out.cut.title = titleCut;
     out.titleShortened = fitted.shortened && !titleCut;      // a title that ended in dots is cut.title, never both
-    notes.title = "line" + (titleLines.length > 1 ? "s " + (titleLines[0].i + 1) + " to " + (titleLines[titleLines.length - 1].i + 1) + " joined" : " " + (titleLines[0].i + 1)) + ": above the company" + (titleCut ? ". It ends with dots, so it looks cut off." : "") + (titleLines.some((x) => x.joined) ? ". The title was joined from two lines: the second line looks like a place, but the line above it ends with a dash, a comma or an ampersand, so it wraps. Check it." : "") + (aiFixed ? " The letters AI were read as Al and corrected." : "") + (slashFixed ? " A slash was read as a bracket and corrected." : "");
+    notes.title = "line" + (titleLines.length > 1 ? "s " + (titleLines[0].i + 1) + " to " + (titleLines[titleLines.length - 1].i + 1) + " joined" : " " + (titleLines[0].i + 1)) + ": above the company" + (titleCut ? ". It ends with dots, so it looks cut off." : "") + (titleLines.some((x) => x.joined) ? ". The title was joined from two lines: the second line carries on the line above it (a wrapped title). Check it." : titleLines.some((x) => x.demoted) ? ". The first line reads like a company and a work mode, but another company line follows it, so it was taken as the title. Check it." : "") + (aiFixed ? " The letters AI were read as Al and corrected." : "") + (slashFixed ? " A slash was read as a bracket and corrected." : "");
   }
   return out;
 }
