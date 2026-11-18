@@ -81,6 +81,20 @@ const isDetailPart = (t) => isPlace(t) || isPay(t) || MODE.test(t) || BENEFITS.t
 // a labelled detail ("Location: ...", "Requisition ID: ...", "KIO ID ...") or a line that holds a KIO ID belongs to the card as a detail, it is never a title or company line
 const KNOWN_LABEL = /^(?:location|salary|pay|compensation|posted|employment type|seniority level|job function|industry|work\s*mode|schedule|department|company|employer|role|position|title|job\s*title|req(?:uisition)?(?:\s*(?:id|1d|number|no|num|#))?|job\s*(?:id|1d|number|no|num|#|code)|(?:kio|post|opening)\s*(?:id|1d))\s*[:#]/i;
 const HAS_KIO = /\bKIO[\s-]*[0-9A-Z]{4}/i;
+// prompt OW: a KIO ID INSIDE a line that also holds other text (the public ID travels in the job title: "Officer (TEST ONLY) KIO-Q9GQ-QMXJ-EP8Y") must not make the whole line a detail line, because a detail line closes the card and cuts the title out.
+// The token (KIO, then three groups of four characters, one hyphen, dash or space allowed between them or none) is taken out of the line text before the line is classified; the ID VALUE is still found by findAllValues and readKio on the whole text, as before.
+// It is cut out only when its check character fits (readKio) or when it has the displayed form KIO-XXXX-XXXX-XXXX with hyphens (a typed ID with a wrong character is not searched, but it is not part of the title either). "Kiosk Manager" and "KIOSK Operations Lead" have no such token.
+const KIO_GAP = "[\\s\\-" + U(0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212) + "]?";
+const KIO_TOKEN = rx("(?<![A-Za-z0-9])KIO" + KIO_GAP + "[A-Za-z0-9]{4}" + KIO_GAP + "[A-Za-z0-9]{4}" + KIO_GAP + "[A-Za-z0-9]{4}(?![A-Za-z0-9])", "gi");
+const KIO_DISPLAYED = /^KIO-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/i;
+const KIO_EDGE = rx("^[\\s,;:\\-" + U(0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212) + "]+|[\\s,;:\\-" + U(0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212) + "]+$", "g");
+const ID_LABEL_ONLY = /^(?:[\p{L}]+\s+)?(?:id|1d)\s*[:#]?$/iu;   // what is left of "KIO ID: KIO-..." or "Opening ID KIO-..." when the token is taken out
+// -> null when the line holds no such token, else the text that is left (the dash or comma that led into the token, and the spaces, go with it)
+function withoutKio(t) {
+  let had = false;
+  const s = t.replace(KIO_TOKEN, (m) => { if (readKio(m).kind === "kio" || KIO_DISPLAYED.test(m)) { had = true; return " "; } return m; });
+  return had ? s.replace(/\s+/g, " ").replace(KIO_EDGE, "").replace(STRAY_EDGE, "").trim() : null;
+}
 // the phone's status bar can be read as ONE line ("9:41 5G 100%"): a line made only of status bar words is chrome
 const STATUS_TOKEN = /^(?:\d{1,2}:\d{2}(?:[ap]m)?|\d{1,3}%|lte|5g|4g|3g|wi-?fi|e|ge)$/i;
 const SHORT_CAPS = /^[A-Z][A-Z0-9&]{1,4}$/;
@@ -151,14 +165,24 @@ const startsWithState = (t) => {
 function cardsOf(lines) {
   const items = [];
   lines.forEach((t, i) => {
-    const c = classify(t);
+    // prompt OW: a KIO ID inside a line with other text is taken out of the line first; a line that is only an ID (or a label and an ID) stays a detail line as before
+    const rest = withoutKio(t), bareKio = rest !== null && (rest === "" || ID_LABEL_ONLY.test(rest));
+    if (rest !== null && !bareKio) t = rest;
+    const c = bareKio ? { kind: "detail" } : classify(t);
     if (c.kind === "chrome" || c.kind === "noise") return;
     const m = c.kind === "text" && t.match(MERGED);
     if (m && classify(m[2]).kind === "text") { items.push({ t: m[1], i, kind: "text" }, { t: m[2], i, kind: "text", cs: true }); return; }
     const h = c.kind === "text" && t.match(HASH_ID);
     if (h && h[1].replace(/\D/g, "").length >= 4 && classify(h[2]).kind === "text") { items.push({ t: "#" + h[1], i, kind: "text", idTok: h[1] }, { t: h[2], i, kind: "text", cs: true }); return; }
-    items.push({ t, i, kind: c.kind, company: c.company, dash: c.dash === true });
+    items.push({ t, i, kind: c.kind, company: c.company, dash: c.dash === true, bareKio });
   });
+  // a line that is only an ID, between the title line and the company line ("Title" / "KIO-..." / "Company" / "Place"), does not close the card: it is dropped when exactly ONE text line is before it and exactly one company-like text line
+  // follows it, then a detail line or the end (two text lines before it, or two after it, could be two openings: it stays a detail line and the card is cut there as before)
+  for (let i = items.length - 1; i >= 1; i--) {
+    const b = items[i], prev = items[i - 1], before = items[i - 2], n1 = items[i + 1], n2 = items[i + 2];
+    if (!b.bareKio || prev.kind !== "text" || (before && before.kind === "text")) continue;
+    if (n1 && n1.kind === "text" && !n1.cs && !n1.idTok && (!n2 || n2.kind === "detail" || n2.kind === "companydetail")) items.splice(i, 1);
+  }
   // a place that wrapped after its comma: the line "Hollywood," and the state at the start of the next line ("FL (Remote)", "WA", "DC . Remote") are details, not a company or a second card
   for (let i = 0; i < items.length; i++) {
     const it = items[i], prev = items[i - 1], nx = items[i + 1];
