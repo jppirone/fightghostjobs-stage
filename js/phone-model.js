@@ -12,7 +12,7 @@
 //   - decodeURIComponent, so a plus sign stays a plus sign; a bad percent escape, or any control character other than a line break after decoding, refuses the whole fragment
 //   - a fragment of more than MAX_FRAGMENT characters or more than MAX_PARTS parts is refused (the page never decodes an unbounded string)
 //   - the text is cut at TEXT_CAP characters at the last whole line (before it is read); the page says so
-import { readText } from "./mobile/mobile-reader/reader.js?v=29302fc3";
+import { readText } from "./mobile/mobile-reader/reader.js?v=a2ee040e";
 import { limitSource } from "./source-clean.js?v=228d1fb3";
 
 export const TEXT_CAP = 600, MAX_FRAGMENT = 50000, MAX_PARTS = 12;

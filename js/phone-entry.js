@@ -7,7 +7,7 @@
 import { h, clear } from "./dom.js?v=5c78a8cd";
 import { SENTENCES, ORDER_NOTE, MORE_BEFORE, MORE_BUTTON, MORE_AFTER, EXTENSION_LINK_TEXT, choiceText } from "./phone-text.js?v=104f014c";
 import { SOURCE_PHONE_SENTENCE } from "./source-text.js?v=0a1a7868";
-import { readFragment, cardBoxes } from "./phone-model.js?v=d0aa752b";
+import { readFragment, cardBoxes } from "./phone-model.js?v=580b3866";
 import { EXTENSION_PAGE_URL } from "./config.js?v=62c9e3b1";
 
 export const COMPUTER_QUERY = "(hover: hover) and (pointer: fine) and (min-width: 900px)";

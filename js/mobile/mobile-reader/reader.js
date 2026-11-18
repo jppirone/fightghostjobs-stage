@@ -73,7 +73,7 @@ const CHROME = rx("^(?:" + [
   "\\d[\\d,]*\\+?\\s+new\\b.*\\bjobs?\\b(?:\\s+(?:in|near|for|at|from)\\b.*)?", "(?:these )?jobs? (?:match|matches|matching)\\b.*", "new jobs?(?: for you| in .*)?", "(?:view|see) (?:all|more)(?: \\w+)? jobs?", "(?:your|manage your|manage|edit your) (?:saved )?job alerts?.*", "unsubscribe(?:\\s+(?:from|here|or|now|link)\\b.*)?",   // the header and footer of a job alert email
 ].join("|") + ")$", "i");
 const TITLE_WORDS = /\b(?:manager|engineer|analyst|director|specialist|coordinator|developer|associate|assistant|officer|lead|representative|consultant|designer|recruiter|administrator|supervisor|technician|scientist|architect|intern|executive|accountant|programmer|planner|buyer|clerk|operator|nurse|therapist|advisor|adviser|strategist|writer|editor|agent|president|vp|head of)\b/i;
-const SPLIT_PARTS = rx("\\s+[" + MIDDOT + BULLET + "|-]\\s+");
+const SPLIT_PARTS = rx("\\s+[" + MIDDOT + BULLET + "|.-]\\s+");   // a LONE period with a space on both sides is the middle dot read as a period (prompt OS); a period inside a word or at the end of an abbreviation has no space before it
 const splitParts = (t) => t.split(SPLIT_PARTS).map((s) => s.trim()).filter(Boolean);
 const isPlace = (t) => PLACE.some((re) => re.test(t));
 const isPay = (t) => PAY.some((re) => re.test(t));
@@ -106,9 +106,10 @@ function classify(t) {
     if (CHROME.test(v) && v !== t) return { kind: "chrome" };   // "Show all =": the arrow after the words was read as a symbol
     if (KNOWN_LABEL.test(v) || HAS_KIO.test(v)) return { kind: "detail" };
     const parts = splitParts(v);
-    if (isDetailPart(v) || (parts.length > 1 && parts.every(isDetailPart))) return { kind: "detail" };
-    // "Company . Place . 2 days ago": the first part is a company and every other part is a detail of the card
+    // "Company . Place . 2 days ago": the first part is a company and every other part is a detail of the card. This is checked BEFORE the whole line is judged (prompt OS): the end of a line such as
+    // "Burtch Works . United States (Remote)" is a work mode in brackets, which made the whole line a place and lost the company. A line of ONE part ("Austin, TX (Remote)") is still a place.
     if (parts.length > 1 && !isDetailPart(parts[0]) && parts.slice(1).every((p) => isDetailPart(p) || CUT_PLACE.test(p))) return { kind: "companydetail", company: parts[0] };
+    if (isDetailPart(v) || (parts.length > 1 && parts.every(isDetailPart))) return { kind: "detail" };
   }
   // an icon or a logo read as a few symbols or letters ("9", "xX", "oul"), and the signal and battery of the status bar read as a short word and numbers ("wll 2 (59", "TIE 58"): no word of four letters and a digit in it
   if ((!/\p{L}{3}/u.test(t) && !SHORT_CAPS.test(t)) || /^[a-z]{1,4}$/.test(t) || (!/\p{L}{4}/u.test(t) && /\d/.test(t))) return { kind: "noise" };
@@ -139,6 +140,8 @@ function logoOf(t, lead) {
 }
 // an ID with a hash and a bullet in front of the company ("#26-27638 . US Tech Solutions"): four digits or more, digits and hyphens only; the company is confirmed by the place line that closes the card
 const HASH_ID = rx("^#(\\d[\\d-]*\\d)\\s+[" + MIDDOT + BULLET + "|]\\s+(.+)$");
+const WRAP_END = /(?:-+|[,&])$/;   // the end of a title line that carries on in the next line
+const readsAsCompany = (t) => t.length >= 2 && t.length <= 60 && !TITLE_WORDS.test(t) && !WRAP_END.test(t) && !/^[a-z]/.test(t) && !/[.!?]$/.test(t.replace(ABBREV, "$1"));
 const startsWithState = (t) => {
   const parts = splitParts(t);
   if (!parts.length) return false;
@@ -171,6 +174,16 @@ function cardsOf(lines) {
     const pre = it.t.replace(WORK_BRACKET, "").trim();
     if (pre === "" || PLACE.some((re, k) => k !== 4 && re.test(it.t)) || isPlace(pre) || STATE_FIRST.test(pre) || isPay(pre) || isPay(it.t) || MODE.test(it.t) || splitParts(it.t).length !== 1) continue;
     if (n1.kind === "companydetail" || (n1.kind === "text" && !n1.cs && ((n2 && (n2.kind === "detail" || n2.kind === "companydetail")) || (!n2 && i === 0 && items.length === 2)))) { it.kind = "text"; it.brk = true; }
+  }
+  // a title that WRAPPED onto a second line (prompt OS): "Applied AI Delivery Lead -" / "Remote in AMER" / "OpenAI". The second line reads like a place and would close the card with the title alone and leave the company without
+  // a detail line. It is the continuation of the title ONLY when all of these hold: the line above ends with a dash, a comma or an ampersand (the sign of a wrapped title); the line itself is a place (a lone letter after it, an icon, goes);
+  // exactly one text line follows it and that line reads as a company; and no further text line follows (which lines are the company would not be clear). Anything else keeps the old reading (a refusal). The page is told to check it.
+  for (let i = 0; i + 2 < items.length; i++) {
+    const a = items[i], b = items[i + 1], c = items[i + 2], d = items[i + 3];
+    if (a.kind !== "text" || a.cs || a.idTok || !WRAP_END.test(a.t) || b.kind !== "detail") continue;
+    const bare = b.t.replace(/\s+[A-Za-z]$/, "").trim(), place = isPlace(bare) ? bare : isPlace(b.t) ? b.t : null;
+    if (!place || c.kind !== "text" || c.cs || c.idTok || !readsAsCompany(c.t) || (d && d.kind === "text")) continue;
+    items.splice(i, 2, { ...a, t: a.t + " " + place, joined: true });
   }
   const cards = [];
   let run = [];
@@ -359,13 +372,14 @@ function readCard(lead) {
   // a slash read as a bracket ("Outcome [ Product") is put back; a lone bracket is never a title word
   let slashFixed = false;
   if (title && /\s[\[\]]\s/.test(title)) { title = title.replace(/\s[\[\]]\s/g, " / "); slashFixed = true; }
-  if (company && title && lead.orderAssumed) out.orderAssumed = true;      // the order of a two line crop was decided by position alone (output only)
+  // the order of a two line crop was decided by position alone (output only). A title joined from two lines (prompt OS) is also a reading by position, so the page's own "check this" line is shown for it too
+  if (company && title && (lead.orderAssumed || titleLines.some((x) => x.joined))) out.orderAssumed = true;
   if (company) { out.company = company; out.cut.company = companyCut; notes.company = "line " + (companyLines[0].i + 1) + (companyLines.length > 1 ? " to " + (companyLines[companyLines.length - 1].i + 1) + " joined" : "") + ": the company, right above the place, pay or badges" + (companyCut ? ". It ends with dots, so it looks cut off." : ""); }
   if (brokenWord) notes.title = "a word in the title looks broken in the middle, so the title was not taken: type it";
   if (title) {
     out.title = title; out.cut.title = titleCut;
     out.titleShortened = fitted.shortened && !titleCut;      // a title that ended in dots is cut.title, never both
-    notes.title = "line" + (titleLines.length > 1 ? "s " + (titleLines[0].i + 1) + " to " + (titleLines[titleLines.length - 1].i + 1) + " joined" : " " + (titleLines[0].i + 1)) + ": above the company" + (titleCut ? ". It ends with dots, so it looks cut off." : "") + (aiFixed ? " The letters AI were read as Al and corrected." : "") + (slashFixed ? " A slash was read as a bracket and corrected." : "");
+    notes.title = "line" + (titleLines.length > 1 ? "s " + (titleLines[0].i + 1) + " to " + (titleLines[titleLines.length - 1].i + 1) + " joined" : " " + (titleLines[0].i + 1)) + ": above the company" + (titleCut ? ". It ends with dots, so it looks cut off." : "") + (titleLines.some((x) => x.joined) ? ". The title was joined from two lines: the second line looks like a place, but the line above it ends with a dash, a comma or an ampersand, so it wraps. Check it." : "") + (aiFixed ? " The letters AI were read as Al and corrected." : "") + (slashFixed ? " A slash was read as a bracket and corrected." : "");
   }
   return out;
 }
